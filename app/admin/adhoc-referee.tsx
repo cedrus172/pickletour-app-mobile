@@ -1,6 +1,6 @@
 // Trận tự do — điều khiển từ xa (mobile admin). Tạo trận tự do, chấm điểm trọng tài
 // (REST /live), phát overlay lên máy live (live-control proxy → desktop).
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -26,6 +26,7 @@ import {
   useGetLiveMachinesQuery,
   useLiveControlCallMutation,
 } from "@/slices/liveControlApiSlice";
+import { BASE_URL } from "@/slices/apiSlice";
 
 const pairName = (pair: any) => {
   if (!pair) return "—";
@@ -46,6 +47,15 @@ export default function AdHocRefereeScreen() {
   const [pointsToWin, setPointsToWin] = useState(11);
   const [machineId, setMachineId] = useState("");
   const [msg, setMsg] = useState("");
+
+  // Cấu hình nguồn + đích NGAY TRÊN MOBILE (không cần đụng máy desktop). Options lấy từ
+  // chính máy live qua proxy /api/options.
+  const [opt, setOpt] = useState<any>({ cams: [], rtspSources: [], fbPages: [] });
+  const [srcType, setSrcType] = useState<"rtsp" | "url" | "imou">("rtsp");
+  const [rtspIdx, setRtspIdx] = useState<number | null>(null);
+  const [urlText, setUrlText] = useState("");
+  const [camIdx, setCamIdx] = useState<number | null>(null);
+  const [dests, setDests] = useState<any[]>([]);
 
   const [createUserMatch, { isLoading: creating }] = useCreateUserMatchMutation();
   const [updateUserMatch] = useUpdateUserMatchMutation();
@@ -71,6 +81,49 @@ export default function AdHocRefereeScreen() {
     setMsg(m);
     setTimeout(() => setMsg(""), 3000);
   };
+
+  // Link trọng tài công khai (web) để chia sẻ — bắt trận từ xa không cần app.
+  const refToken = match?.refereeToken || "";
+  const refLink = matchId && refToken ? `${String(BASE_URL || "").replace(/\/$/, "")}/r/${matchId}/${refToken}` : "";
+
+  // Tải options của máy live đã chọn (cam Imou / RTSP lưu / fanpage).
+  useEffect(() => {
+    if (!machineId) { setOpt({ cams: [], rtspSources: [], fbPages: [] }); return; }
+    let alive = true;
+    liveControlCall({ machineId, path: "/api/options", method: "GET" })
+      .unwrap()
+      .then((d: any) => { if (alive) setOpt({ cams: d.cams || [], rtspSources: d.rtspSources || [], fbPages: d.fbPages || [] }); })
+      .catch(() => { if (alive) setOpt({ cams: [], rtspSources: [], fbPages: [] }); });
+    return () => { alive = false; };
+  }, [machineId, liveControlCall]);
+
+  const buildSource = () => {
+    if (srcType === "url") {
+      const u = urlText.trim();
+      if (!u) throw new Error("Nhập link nguồn.");
+      return { kind: "url", sourceUrl: u, encoder: "auto" };
+    }
+    if (srcType === "rtsp") {
+      const srcs = opt.rtspSources || [];
+      const s = rtspIdx != null ? srcs[rtspIdx] : null;
+      if (!s) throw new Error("Chọn nguồn RTSP (hoặc dùng Link).");
+      return { kind: "url", sourceUrl: s.url, encoder: "auto" };
+    }
+    const c = camIdx != null ? (opt.cams || [])[camIdx] : null;
+    if (!c) throw new Error("Chọn camera Imou.");
+    return { kind: "imou", imouDeviceId: c.deviceId, venueId: c.venueId, encoder: "auto" };
+  };
+  const toggleFbDest = (p: any) => {
+    setDests((arr) => {
+      const has = arr.some((d) => d.type === "fb" && d.pageId === p.pageId);
+      return has ? arr.filter((d) => !(d.type === "fb" && d.pageId === p.pageId))
+        : [...arr, { type: "fb", pageId: p.pageId, pageName: p.pageName, label: p.pageName }];
+    });
+  };
+  const toggleYt = () => setDests((arr) =>
+    arr.some((d) => d.type === "youtube")
+      ? arr.filter((d) => d.type !== "youtube")
+      : [...arr, { type: "youtube", label: "YouTube (tự tạo)" }]);
 
   const parts = () => {
     const p: any[] = [];
@@ -126,11 +179,19 @@ export default function AdHocRefereeScreen() {
 
   const streamOn = async () => {
     if (!machineId || !matchId) return toast("Chọn máy live + tạo trận trước.");
+    let source: any, destinations: any[];
     try {
-      await liveControlCall({ machineId, path: "/api/match-start", method: "POST", body: { matchId } }).unwrap();
+      source = buildSource();
+      destinations = dests;
+      if (!destinations.length) throw new Error("Thêm ít nhất 1 đích (Facebook / YouTube).");
+    } catch (e: any) {
+      return toast(e.message);
+    }
+    try {
+      await liveControlCall({ machineId, path: "/api/match-start", method: "POST", body: { matchId, source, destinations } }).unwrap();
       toast("Đã yêu cầu máy live phát trận.");
     } catch (e: any) {
-      toast(e?.data?.error || e?.data?.message || "Lỗi gọi máy live (kiểm tra nguồn & đích RTMP)");
+      toast(e?.data?.error || e?.data?.message || "Lỗi gọi máy live (máy live đang online?)");
     }
   };
   const streamOff = async () => {
@@ -216,10 +277,79 @@ export default function AdHocRefereeScreen() {
                 })}
                 {!machineList.length ? <Text style={{ color: colors.border }}>Chưa có máy live online</Text> : null}
               </View>
+
+              {machineId ? (
+                <View style={{ gap: 8, marginBottom: 8 }}>
+                  {/* Nguồn */}
+                  <Text style={s.lbl}>Nguồn video</Text>
+                  <View style={{ flexDirection: "row", gap: 6 }}>
+                    {([["rtsp", "RTSP"], ["url", "Link"], ["imou", "Imou"]] as const).map(([v, lbl]) => (
+                      <Pressable key={v} onPress={() => setSrcType(v)}
+                        style={[s.seg, { backgroundColor: srcType === v ? colors.primary : colors.card, borderColor: colors.border }]}>
+                        <Text style={{ color: srcType === v ? "#fff" : colors.text }}>{lbl}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  {srcType === "url" ? (
+                    <TextInput style={s.input} placeholder="rtsp:// hoặc https://…m3u8" placeholderTextColor={colors.border}
+                      value={urlText} onChangeText={setUrlText} autoCapitalize="none" />
+                  ) : null}
+                  {srcType === "rtsp" ? (
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                      {(opt.rtspSources || []).map((sc: any, i: number) => (
+                        <Pressable key={i} onPress={() => setRtspIdx(i)}
+                          style={[s.seg, { backgroundColor: rtspIdx === i ? colors.primary : colors.card, borderColor: colors.border }]}>
+                          <Text style={{ color: rtspIdx === i ? "#fff" : colors.text }}>{sc.label || sc.url}</Text>
+                        </Pressable>
+                      ))}
+                      {!(opt.rtspSources || []).length ? <Text style={{ color: colors.border }}>(máy chưa lưu nguồn RTSP)</Text> : null}
+                    </View>
+                  ) : null}
+                  {srcType === "imou" ? (
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                      {(opt.cams || []).map((c: any, i: number) => (
+                        <Pressable key={i} onPress={() => setCamIdx(i)}
+                          style={[s.seg, { backgroundColor: camIdx === i ? colors.primary : colors.card, borderColor: colors.border }]}>
+                          <Text style={{ color: camIdx === i ? "#fff" : colors.text }}>{c.label || c.deviceId}</Text>
+                        </Pressable>
+                      ))}
+                      {!(opt.cams || []).length ? <Text style={{ color: colors.border }}>(máy chưa có cam Imou)</Text> : null}
+                    </View>
+                  ) : null}
+
+                  {/* Đích */}
+                  <Text style={s.lbl}>Đích phát (chạm để chọn)</Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                    <Pressable onPress={toggleYt}
+                      style={[s.seg, { backgroundColor: dests.some((d) => d.type === "youtube") ? colors.primary : colors.card, borderColor: colors.border }]}>
+                      <Text style={{ color: dests.some((d) => d.type === "youtube") ? "#fff" : colors.text }}>YouTube</Text>
+                    </Pressable>
+                    {(opt.fbPages || []).map((p: any) => {
+                      const on = dests.some((d) => d.type === "fb" && d.pageId === p.pageId);
+                      return (
+                        <Pressable key={p.pageId} onPress={() => toggleFbDest(p)}
+                          style={[s.seg, { backgroundColor: on ? colors.primary : colors.card, borderColor: colors.border }]}>
+                          <Text style={{ color: on ? "#fff" : colors.text }}>FB·{p.pageName || p.pageId}</Text>
+                        </Pressable>
+                      );
+                    })}
+                    {!(opt.fbPages || []).length ? <Text style={{ color: colors.border }}>(không có fanpage)</Text> : null}
+                  </View>
+                </View>
+              ) : null}
+
               <View style={{ flexDirection: "row", gap: 8 }}>
                 <Btn label="● Phát" onPress={streamOn} bg="#d32f2f" disabled={!machineId || calling} flex={1} />
                 <Btn label="Dừng phát" onPress={streamOff} bg={colors.card} flex={1} />
               </View>
+              {refLink ? (
+                <View style={{ marginTop: 8, gap: 4 }}>
+                  <Text style={{ color: colors.text, fontWeight: "700" }}>🔗 Link bắt trận từ xa (không cần app)</Text>
+                  <Pressable onPress={() => Linking.openURL(refLink)}>
+                    <Text style={{ color: colors.primary }}>{refLink}</Text>
+                  </Pressable>
+                </View>
+              ) : null}
               {Array.isArray(match?.meta?.liveLinks) && match.meta.liveLinks.length ? (
                 <View style={{ marginTop: 8, gap: 4 }}>
                   <Text style={{ color: colors.text, fontWeight: "700" }}>Link live</Text>
