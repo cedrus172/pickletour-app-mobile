@@ -129,7 +129,7 @@ export default function AdHocRefereeScreen() {
       await liveControlCall({ machineId, path: "/api/match-start", method: "POST", body: { matchId } }).unwrap();
       toast("Đã yêu cầu máy live phát trận.");
     } catch (e: any) {
-      toast(e?.data?.message || e?.error || "Lỗi gọi máy live");
+      toast(e?.data?.error || e?.data?.message || "Lỗi gọi máy live (kiểm tra nguồn & đích RTMP)");
     }
   };
   const streamOff = async () => {
