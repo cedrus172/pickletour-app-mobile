@@ -200,6 +200,18 @@ export default function LiveControlScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.primary} />}
       >
+        {/* Lối vào trận tự do (điều khiển trọng tài từ xa) */}
+        <Pressable
+          onPress={() => router.push("/admin/adhoc-referee" as any)}
+          style={[styles.card, { backgroundColor: C.card, borderColor: C.border, marginBottom: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }]}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <MaterialIcons name="sports-tennis" size={20} color={C.primary} />
+            <Text style={{ color: C.text, fontWeight: "700" }}>Trận tự do — bắt trận từ xa</Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={22} color={C.sub} />
+        </Pressable>
+
         {/* Chọn máy */}
         {loadingMachines ? (
           <ActivityIndicator color={C.primary} style={{ marginVertical: 20 }} />

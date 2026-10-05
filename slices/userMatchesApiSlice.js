@@ -63,6 +63,29 @@ export const userMatchesApiSlice = apiSlice.injectEndpoints({
         params: { search, limit },
       }),
     }),
+
+    // 5. Sửa tên/luật/title trận tự do
+    updateUserMatch: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/api/user-matches/${id}`,
+        method: "PUT",
+        body,
+      }),
+    }),
+
+    // 6. Bootstrap trạng thái trọng tài (poll điểm)
+    userMatchLiveBootstrap: builder.query({
+      query: (id) => ({ url: `/api/user-matches/${id}/live`, method: "GET" }),
+    }),
+
+    // 7. 1 event trọng tài: {type:"start|point|undo|serve|slots|finish|forfeit", team/side/server/winner...}
+    userMatchLiveEvent: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/api/user-matches/${id}/live`,
+        method: "POST",
+        body,
+      }),
+    }),
   }),
 });
 
@@ -71,4 +94,7 @@ export const {
   useCreateUserMatchMutation,
   useDeleteUserMatchMutation, // <--- Export hook xoá mới
   useSearchUserMatchPlayersQuery,
+  useUpdateUserMatchMutation,
+  useUserMatchLiveBootstrapQuery,
+  useUserMatchLiveEventMutation,
 } = userMatchesApiSlice;
