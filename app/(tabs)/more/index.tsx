@@ -67,6 +67,14 @@ const MORE_ITEMS = [
     accent: "#EF4444",
   },
   {
+    key: "referee-scan",
+    title: t("Quét QR trọng tài"),
+    description: "Quét mã QR tại sân để nhận quyền trọng tài, chấm trận ngay.",
+    icon: "qr-code-outline" as const,
+    route: "/referee/scan",
+    accent: "#0EA5E9",
+  },
+  {
     key: "messages",
     title: t("Nhắn tin"),
     description: "Trò chuyện với người khác và nhắn cho BTC giải đấu.",

@@ -735,6 +735,15 @@ export const tournamentsApiSlice = apiSlice.injectEndpoints({
         body: { op: "nextGame", autoNext },
       }),
     }),
+
+    // Quét QR sân → tự nhận quyền trọng tài sân (POST /api/referee/claim-court/:id).
+    claimCourtReferee: builder.mutation({
+      query: ({ stationId, token }) => ({
+        url: `/api/referee/claim-court/${stationId}`,
+        method: "POST",
+        body: { token },
+      }),
+    }),
     // GET /api/referee/matches/:matchId/courts  (cùng tournament+bracket với match)
     getCourtsForMatch: builder.query({
       query: ({ matchId, includeBusy = false, cluster, status } = {}) => {
@@ -996,6 +1005,7 @@ export const {
   useRefereeSetStatusMutation,
   useRefereeSetWinnerMutation,
   useRefereeNextGameMutation,
+  useClaimCourtRefereeMutation,
   useGetCourtsForMatchQuery,
   useRefereeAssignCourtMutation,
   useRefereeUnassignCourtMutation,
