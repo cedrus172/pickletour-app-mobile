@@ -66,3 +66,5 @@ android/app/pickletour-upload.jks
 # Allow local RN modules (imou-rn-native + native sources)
 !modules/
 !modules/**
+
+.env
