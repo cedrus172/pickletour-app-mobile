@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -219,6 +220,18 @@ export default function AdHocRefereeScreen() {
                 <Btn label="● Phát" onPress={streamOn} bg="#d32f2f" disabled={!machineId || calling} flex={1} />
                 <Btn label="Dừng phát" onPress={streamOff} bg={colors.card} flex={1} />
               </View>
+              {Array.isArray(match?.meta?.liveLinks) && match.meta.liveLinks.length ? (
+                <View style={{ marginTop: 8, gap: 4 }}>
+                  <Text style={{ color: colors.text, fontWeight: "700" }}>Link live</Text>
+                  {match.meta.liveLinks.map((l: any, i: number) => (
+                    <Pressable key={i} onPress={() => Linking.openURL(String(l.url || ""))}>
+                      <Text style={{ color: colors.primary }}>
+                        {`${l.platform || ""}${l.label ? ` · ${l.label}` : ""}: ${l.url}`}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
             </View>
           ) : null}
 
