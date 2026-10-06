@@ -1918,6 +1918,47 @@ export default function TournamentRegistrationScreen() {
     },
     [managerSetRegStatus, refetchRegs],
   );
+  // Từ chối cặp đang ở waitlist (chờ duyệt) → status "rejected" (BTC từ chối).
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const handleRejectWaitlist = useCallback(
+    (reg: any) => {
+      if (!reg?._id) return;
+      const label =
+        [reg?.player1?.fullName, reg?.player2?.fullName]
+          .filter(Boolean)
+          .join(" – ") || `cặp #${String(reg._id).slice(-6)}`;
+      Alert.alert(
+        "Từ chối cặp chờ duyệt?",
+        `"${label}" sẽ bị loại khỏi danh sách đăng ký.`,
+        [
+          { text: "Huỷ", style: "cancel" },
+          {
+            text: "Từ chối",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                setRejectingId(reg._id);
+                await managerSetRegStatus({
+                  regId: reg._id,
+                  status: "rejected",
+                }).unwrap();
+                Alert.alert("Thành công", "Đã từ chối cặp đăng ký");
+                refetchRegs();
+              } catch (err: any) {
+                Alert.alert(
+                  "Lỗi",
+                  err?.data?.message || "Từ chối không thành công",
+                );
+              } finally {
+                setRejectingId(null);
+              }
+            },
+          },
+        ],
+      );
+    },
+    [managerSetRegStatus, refetchRegs],
+  );
   // Chuyển cặp đang approved (chính thức) → waitlist (chờ duyệt). Backend
   // tự giảm counter registered và auto-promote cặp waitlist cũ nhất lên.
   const [demotingId, setDemotingId] = useState<string | null>(null);
@@ -3459,29 +3500,58 @@ export default function TournamentRegistrationScreen() {
                           #{idx + 1} · {regCodeOf(r)}
                         </Text>
                         {canManage && (
-                          <TouchableOpacity
-                            disabled={promotingId === r._id}
-                            onPress={() => handlePromoteWaitlist(r._id)}
-                            style={{
-                              backgroundColor:
-                                promotingId === r._id ? "#94A3B8" : "#10B981",
-                              paddingHorizontal: 12,
-                              paddingVertical: 6,
-                              borderRadius: 6,
-                            }}
-                          >
-                            <Text
+                          <View style={{ flexDirection: "row", gap: 8 }}>
+                            <TouchableOpacity
+                              disabled={
+                                promotingId === r._id || rejectingId === r._id
+                              }
+                              onPress={() => handlePromoteWaitlist(r._id)}
                               style={{
-                                color: "#fff",
-                                fontSize: 12,
-                                fontWeight: "800",
+                                backgroundColor:
+                                  promotingId === r._id ? "#94A3B8" : "#10B981",
+                                paddingHorizontal: 12,
+                                paddingVertical: 6,
+                                borderRadius: 6,
                               }}
                             >
-                              {promotingId === r._id
-                                ? "Đang duyệt…"
-                                : "✓ Duyệt"}
-                            </Text>
-                          </TouchableOpacity>
+                              <Text
+                                style={{
+                                  color: "#fff",
+                                  fontSize: 12,
+                                  fontWeight: "800",
+                                }}
+                              >
+                                {promotingId === r._id
+                                  ? "Đang duyệt…"
+                                  : "✓ Duyệt"}
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              disabled={
+                                rejectingId === r._id || promotingId === r._id
+                              }
+                              onPress={() => handleRejectWaitlist(r)}
+                              style={{
+                                backgroundColor:
+                                  rejectingId === r._id ? "#94A3B8" : "#EF4444",
+                                paddingHorizontal: 12,
+                                paddingVertical: 6,
+                                borderRadius: 6,
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  color: "#fff",
+                                  fontSize: 12,
+                                  fontWeight: "800",
+                                }}
+                              >
+                                {rejectingId === r._id
+                                  ? "Đang từ chối…"
+                                  : "✕ Từ chối"}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
                         )}
                       </View>
                       {players.map((pl: any, pi: number) => {
