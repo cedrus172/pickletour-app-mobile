@@ -85,6 +85,7 @@ export default function TournamentLivestreamersScreen() {
   const [edSources, setEdSources] = useState<string[]>([]);
   const [edPages, setEdPages] = useState<string[]>([]);
   const [edYoutube, setEdYoutube] = useState(true);
+  const [edAdhoc, setEdAdhoc] = useState(true);
 
   const openEdit = (g: any) => {
     setEditGrant(g);
@@ -92,6 +93,7 @@ export default function TournamentLivestreamersScreen() {
     setEdSources((g.sources || []).map((s: any) => String(s._id)));
     setEdPages((g.destinations || []).filter((d: any) => d.pageId).map((d: any) => String(d.pageId)));
     setEdYoutube(g.allowYoutube !== false);
+    setEdAdhoc(g.allowAdhoc !== false);
   };
   const toggleIn = (arr: string[], v: string) =>
     arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
@@ -109,6 +111,7 @@ export default function TournamentLivestreamersScreen() {
           return { type: "fb", pageId: pid, label: p?.pageName || "" };
         }),
         allowYoutube: edYoutube,
+        allowAdhoc: edAdhoc,
       }).unwrap();
       setEditGrant(null);
     } catch (e: any) {
@@ -370,6 +373,11 @@ export default function TournamentLivestreamersScreen() {
                       <Text style={{ color: C.danger, fontSize: 12 }}>Không YouTube</Text>
                     </View>
                   ) : null}
+                  {g.allowAdhoc === false ? (
+                    <View style={[styles.chip, { backgroundColor: "#EF444422" }]}>
+                      <Text style={{ color: C.danger, fontSize: 12 }}>Không trận tự do</Text>
+                    </View>
+                  ) : null}
                 </View>
               </View>
               <TouchableOpacity onPress={() => openEdit(g)} style={{ padding: 6 }}>
@@ -480,6 +488,11 @@ export default function TournamentLivestreamersScreen() {
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 16 }}>
                 <Text style={{ color: C.text, fontWeight: "600" }}>Cho phép live lên YouTube</Text>
                 <Switch value={edYoutube} onValueChange={setEdYoutube} />
+              </View>
+              {/* Trận ngẫu nhiên */}
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
+                <Text style={{ color: C.text, fontWeight: "600", flex: 1 }}>Cho phép live trận ngẫu nhiên (tự do)</Text>
+                <Switch value={edAdhoc} onValueChange={setEdAdhoc} />
               </View>
 
               <TouchableOpacity
