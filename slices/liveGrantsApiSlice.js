@@ -81,6 +81,19 @@ export const liveGrantsApiSlice = apiSlice.injectEndpoints({
         `/api/tournament-auto-live/livestreamers/audit?tournament=${encodeURIComponent(tid)}`,
       providesTags: (r, e, tid) => [{ type: "LiveAudit", id: tid }],
     }),
+    // Operator: các luồng của CHÍNH MÌNH đang chạy (Nhóm 4 — tự giám sát/dừng từ phone).
+    myLiveSessions: builder.query({
+      query: () => `/api/tournament-auto-live/my-live-sessions`,
+      providesTags: ["LiveMonitor"],
+    }),
+    // Operator dừng luồng của chính mình (endpoint chung /:id/stop, authz theo sân được cấp).
+    stopMyLiveSession: builder.mutation({
+      query: ({ id }) => ({
+        url: `/api/tournament-auto-live/${id}/stop`,
+        method: "POST",
+      }),
+      invalidatesTags: ["LiveMonitor"],
+    }),
   }),
 });
 
@@ -95,4 +108,6 @@ export const {
   useListTournamentLiveSessionsQuery,
   useOwnerStopLiveSessionMutation,
   useListLivestreamAuditQuery,
+  useMyLiveSessionsQuery,
+  useStopMyLiveSessionMutation,
 } = liveGrantsApiSlice;
