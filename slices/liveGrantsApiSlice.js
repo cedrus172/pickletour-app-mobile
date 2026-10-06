@@ -59,6 +59,11 @@ export const liveGrantsApiSlice = apiSlice.injectEndpoints({
       query: (tid) =>
         `/api/tournament-auto-live/tournaments/${encodeURIComponent(tid)}/courts`,
     }),
+    // Chủ giải: fanpage + nguồn RTSP để chọn khi cấp giới hạn.
+    getLivestreamerGrantOptions: builder.query({
+      query: (tid) =>
+        `/api/tournament-auto-live/livestreamers/options?tournament=${encodeURIComponent(tid)}`,
+    }),
     // Chủ giải: giám sát phiên live đang chạy.
     listTournamentLiveSessions: builder.query({
       query: (tid) =>
@@ -105,6 +110,7 @@ export const {
   useDeleteLivestreamerMutation,
   useCreateLiveInviteMutation,
   useGetAutoLiveCourtsQuery,
+  useGetLivestreamerGrantOptionsQuery,
   useListTournamentLiveSessionsQuery,
   useOwnerStopLiveSessionMutation,
   useListLivestreamAuditQuery,

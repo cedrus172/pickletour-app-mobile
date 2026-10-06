@@ -14,6 +14,8 @@ import {
   Alert,
   Share,
   Linking,
+  Modal,
+  Switch,
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,7 +27,9 @@ import TicketQrRN from "@/components/courts/TicketQrRN";
 import {
   useListLivestreamersQuery,
   useGetAutoLiveCourtsQuery,
+  useGetLivestreamerGrantOptionsQuery,
   useCreateLiveInviteMutation,
+  useUpsertLivestreamerMutation,
   useDeleteLivestreamerMutation,
   useListTournamentLiveSessionsQuery,
   useOwnerStopLiveSessionMutation,
@@ -62,7 +66,11 @@ export default function TournamentLivestreamersScreen() {
   const { data: courts = [] } = useGetAutoLiveCourtsQuery(tid, { skip: !tid });
   const { data: liveSessions = [], isFetching: loadingLive, refetch: refetchLive } =
     useListTournamentLiveSessionsQuery(tid, { skip: !tid, pollingInterval: 15000 });
+  const { data: grantOptions } = useGetLivestreamerGrantOptionsQuery(tid, { skip: !tid });
+  const fbPageOptions = grantOptions?.fbPages || [];
+  const rtspOptions = grantOptions?.rtspSources || [];
   const [createInvite, { isLoading: inviting }] = useCreateLiveInviteMutation();
+  const [upsertGrant, { isLoading: savingGrant }] = useUpsertLivestreamerMutation();
   const [removeGrant] = useDeleteLivestreamerMutation();
   const [stopLive, { isLoading: stopping }] = useOwnerStopLiveSessionMutation();
 
@@ -70,6 +78,43 @@ export default function TournamentLivestreamersScreen() {
   const [invite, setInvite] = useState<any>(null); // { joinUrl }
   const [showAudit, setShowAudit] = useState(false);
   const { data: auditRows = [] } = useListLivestreamAuditQuery(tid, { skip: !tid || !showAudit });
+
+  // Sửa giới hạn nguồn/điểm đến cho 1 grant.
+  const [editGrant, setEditGrant] = useState<any>(null); // grant đang sửa
+  const [edPolicy, setEdPolicy] = useState<"all" | "restricted">("all");
+  const [edSources, setEdSources] = useState<string[]>([]);
+  const [edPages, setEdPages] = useState<string[]>([]);
+  const [edYoutube, setEdYoutube] = useState(true);
+
+  const openEdit = (g: any) => {
+    setEditGrant(g);
+    setEdPolicy(g.sourcePolicy === "restricted" ? "restricted" : "all");
+    setEdSources((g.sources || []).map((s: any) => String(s._id)));
+    setEdPages((g.destinations || []).filter((d: any) => d.pageId).map((d: any) => String(d.pageId)));
+    setEdYoutube(g.allowYoutube !== false);
+  };
+  const toggleIn = (arr: string[], v: string) =>
+    arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
+  const saveEdit = async () => {
+    if (!editGrant?.user?._id) return;
+    try {
+      await upsertGrant({
+        tournament: tid,
+        userId: editGrant.user._id,
+        courts: (editGrant.courts || []).map((c: any) => String(c._id)),
+        sourcePolicy: edPolicy,
+        sources: edPolicy === "restricted" ? edSources : [],
+        destinations: edPages.map((pid) => {
+          const p = fbPageOptions.find((x: any) => String(x.pageId) === pid);
+          return { type: "fb", pageId: pid, label: p?.pageName || "" };
+        }),
+        allowYoutube: edYoutube,
+      }).unwrap();
+      setEditGrant(null);
+    } catch (e: any) {
+      Alert.alert("Lỗi", e?.data?.message || "Không lưu được.");
+    }
+  };
 
   const courtOptions = useMemo(
     () => (courts || []).map((c: any) => ({ _id: String(c._id), label: c.name || c.code || c._id })),
@@ -308,8 +353,28 @@ export default function TournamentLivestreamersScreen() {
                       <Text style={{ color: C.ok, fontSize: 12, fontWeight: "700" }}>Toàn giải</Text>
                     </View>
                   )}
+                  {g.sourcePolicy === "restricted" ? (
+                    <View style={[styles.chip, { backgroundColor: "#F59E0B22" }]}>
+                      <Text style={{ color: "#D97706", fontSize: 12, fontWeight: "700" }}>
+                        {g.sources?.length ? `Nguồn: ${g.sources.length} RTSP` : "Nguồn: tự tạo"}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {g.destinations?.length ? (
+                    <View style={[styles.chip, { backgroundColor: C.chipOff }]}>
+                      <Text style={{ color: C.text, fontSize: 12 }}>{g.destinations.length} fanpage</Text>
+                    </View>
+                  ) : null}
+                  {g.allowYoutube === false ? (
+                    <View style={[styles.chip, { backgroundColor: "#EF444422" }]}>
+                      <Text style={{ color: C.danger, fontSize: 12 }}>Không YouTube</Text>
+                    </View>
+                  ) : null}
                 </View>
               </View>
+              <TouchableOpacity onPress={() => openEdit(g)} style={{ padding: 6 }}>
+                <Ionicons name="options-outline" size={22} color={C.primary} />
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => confirmRevoke(g)} style={{ padding: 6 }}>
                 <Ionicons name="trash-outline" size={22} color={C.danger} />
               </TouchableOpacity>
@@ -349,6 +414,86 @@ export default function TournamentLivestreamersScreen() {
           )
         )}
       </ScrollView>
+
+      {/* Modal sửa giới hạn nguồn/điểm đến */}
+      <Modal visible={!!editGrant} transparent animationType="slide" onRequestClose={() => setEditGrant(null)}>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: C.bg, borderTopLeftRadius: 18, borderTopRightRadius: 18, maxHeight: "85%" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16 }}>
+              <Text style={{ color: C.text, fontWeight: "800", fontSize: 16 }} numberOfLines={1}>
+                Giới hạn: {editGrant?.user?.name || editGrant?.user?.nickname || ""}
+              </Text>
+              <TouchableOpacity onPress={() => setEditGrant(null)}>
+                <Ionicons name="close" size={24} color={C.sub} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 0 }}>
+              {/* Nguồn */}
+              <Text style={{ color: C.sub, fontWeight: "700", marginBottom: 8 }}>NGUỒN CAM/VIDEO</Text>
+              {([
+                ["all", "Mọi nguồn (như admin: cam Imou/Dahua chung + thư viện RTSP)"],
+                ["restricted", "Giới hạn: chỉ nguồn RTSP được cấp + tự tạo (không dùng cam chung)"],
+              ] as const).map(([val, label]) => (
+                <TouchableOpacity
+                  key={val}
+                  onPress={() => setEdPolicy(val)}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 }}
+                >
+                  <Ionicons name={edPolicy === val ? "radio-button-on" : "radio-button-off"} size={20} color={C.primary} />
+                  <Text style={{ color: C.text, flex: 1 }}>{label}</Text>
+                </TouchableOpacity>
+              ))}
+              {edPolicy === "restricted" && rtspOptions.length > 0 && (
+                <View style={{ marginTop: 6, marginBottom: 6 }}>
+                  <Text style={{ color: C.sub, fontSize: 12, marginBottom: 6 }}>Nguồn RTSP được cấp (để trống → họ tự tạo):</Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                    {rtspOptions.map((s: any) => {
+                      const on = edSources.includes(String(s._id));
+                      return (
+                        <TouchableOpacity key={s._id} onPress={() => setEdSources((p) => toggleIn(p, String(s._id)))}
+                          style={[styles.courtChip, { backgroundColor: on ? C.primary : C.chipOff, borderColor: on ? C.primary : C.border }]}>
+                          <Text style={{ color: on ? "#fff" : C.text, fontWeight: "700", fontSize: 13 }}>{s.label || s.url}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              {/* Fanpage */}
+              <Text style={{ color: C.sub, fontWeight: "700", marginTop: 14, marginBottom: 8 }}>FANPAGE ĐƯỢC PHÉP (để trống = mọi page)</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {fbPageOptions.length === 0 ? (
+                  <Text style={{ color: C.sub, fontSize: 13 }}>Chưa có fanpage trong pool.</Text>
+                ) : fbPageOptions.map((p: any) => {
+                  const on = edPages.includes(String(p.pageId));
+                  return (
+                    <TouchableOpacity key={p.pageId} onPress={() => setEdPages((pp) => toggleIn(pp, String(p.pageId)))}
+                      style={[styles.courtChip, { backgroundColor: on ? C.primary : C.chipOff, borderColor: on ? C.primary : C.border }]}>
+                      <Text style={{ color: on ? "#fff" : C.text, fontWeight: "700", fontSize: 13 }}>{p.pageName || p.pageId}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* YouTube */}
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 16 }}>
+                <Text style={{ color: C.text, fontWeight: "600" }}>Cho phép live lên YouTube</Text>
+                <Switch value={edYoutube} onValueChange={setEdYoutube} />
+              </View>
+
+              <TouchableOpacity
+                style={[styles.primaryBtn, { backgroundColor: C.primary, marginTop: 20, opacity: savingGrant ? 0.6 : 1 }]}
+                onPress={saveEdit}
+                disabled={savingGrant}
+              >
+                {savingGrant ? <ActivityIndicator color="#fff" /> : <Ionicons name="save-outline" size={18} color="#fff" />}
+                <Text style={{ color: "#fff", fontWeight: "800" }}>Lưu giới hạn</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
