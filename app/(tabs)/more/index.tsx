@@ -40,6 +40,7 @@ import { IOS_26_LIQUID_GLASS_ENABLED } from "@/utils/nativeTabs";
 import { t, useLang, setLang } from "@/utils/i18n";
 import { useFriendCountsQuery } from "@/slices/friendsApiSlice";
 import { useNotifUnreadCountQuery } from "@/slices/notificationCenterApiSlice";
+import { useMyLiveGrantsQuery } from "@/slices/liveGrantsApiSlice";
 
 const MORE_ITEMS = [
   {
@@ -211,6 +212,28 @@ export default function MoreIndexScreen() {
   const userInfo = useSelector((state: any) => state.auth?.userInfo || null);
   const isAdmin = !!(userInfo?.isAdmin || userInfo?.role === "admin" || userInfo?.isSuperAdmin);
   const isCommentator = !!userInfo?.isCommentator;
+  const isDark = theme.dark;
+  const lang = useLang();
+  const isAuthed = Boolean(userInfo?.token || userInfo?._id || userInfo?.email);
+  // Operator được cấp Quyền Livestream (không phải admin) → hiện lối tắt "Livestream của tôi".
+  const { data: myLiveGrants = [] } = useMyLiveGrantsQuery(undefined, {
+    skip: !isAuthed,
+  });
+  const hasLiveGrants = Array.isArray(myLiveGrants) && myLiveGrants.length > 0;
+  // Lối tắt cho người được cấp Quyền Livestream (operator không phải admin).
+  const liveGrantItems =
+    hasLiveGrants && !isAdmin
+      ? [
+          {
+            key: "my-live-grants",
+            title: "Livestream của tôi",
+            description: "Giải/sân bạn được cấp quyền live + quét QR nhận quyền.",
+            icon: "radio-outline" as const,
+            route: "/live/my-grants",
+            accent: "#EF4444",
+          },
+        ]
+      : [];
   // Admin: mục Điều khiển Live (đầy đủ). Bình luận viên: chỉ vào bình luận.
   const moreItems = isAdmin
     ? [
@@ -235,11 +258,9 @@ export default function MoreIndexScreen() {
             route: "/admin/live-control",
             accent: "#0EA5E9",
           },
+          ...liveGrantItems,
         ]
-      : MORE_ITEMS;
-  const isDark = theme.dark;
-  const lang = useLang();
-  const isAuthed = Boolean(userInfo?.token || userInfo?._id || userInfo?.email);
+      : [...MORE_ITEMS, ...liveGrantItems];
   // Dòng chẩn đoán OTA ở footer — làm mới mỗi 2s để thấy kết quả check gần nhất.
   const [otaDiagLine, setOtaDiagLine] = React.useState(readOtaDiag);
   React.useEffect(() => {

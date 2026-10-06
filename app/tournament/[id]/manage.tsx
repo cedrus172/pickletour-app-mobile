@@ -3914,6 +3914,16 @@ ${html.replace(/<html>|<\/html>|<head>.*?<\/head>|<!doctype[^>]*>/gis, "")}
                   }}
                 />
               ) : null}
+              {canManageManagers ? (
+                <MenuItem
+                  icon="live-tv"
+                  label="Quyền Livestream"
+                  onPress={() => {
+                    setHdrMenuOpen(false);
+                    router.push(`/tournament/${tid}/livestreamers` as any);
+                  }}
+                />
+              ) : null}
               <MenuItem
                 icon="stadium"
                 label="Quản lý sân theo cụm"
