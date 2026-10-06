@@ -21,6 +21,7 @@ import { useSelector } from "react-redux";
 import { useTheme } from "@react-navigation/native";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useLiveControlCallMutation } from "@/slices/liveControlApiSlice";
+import { useMyLiveGrantsQuery } from "@/slices/liveGrantsApiSlice";
 import { useUploadImageToFolderMutation } from "@/slices/uploadApiSlice";
 import { prepareSupportImageForUpload } from "@/utils/supportImageUpload";
 
@@ -29,6 +30,8 @@ export default function LiveAddScreen() {
   const isDark = theme.dark;
   const userInfo = useSelector((s: any) => s.auth?.userInfo);
   const isAdmin = !!(userInfo?.isAdmin || userInfo?.role === "admin" || userInfo?.isSuperAdmin);
+  const { data: myLiveGrants = [] } = useMyLiveGrantsQuery(undefined, { skip: !userInfo });
+  const hasLiveGrant = Array.isArray(myLiveGrants) && myLiveGrants.length > 0;
   const { machineId } = useLocalSearchParams<{ machineId: string }>();
 
   const C = useMemo(
@@ -245,7 +248,7 @@ export default function LiveAddScreen() {
     [C],
   );
 
-  if (!isAdmin) return <Redirect href="/(tabs)/more" />;
+  if (!isAdmin && !hasLiveGrant) return <Redirect href="/(tabs)/more" />;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top", "left", "right"]}>
