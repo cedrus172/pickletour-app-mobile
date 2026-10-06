@@ -78,6 +78,14 @@ export default function MyLiveGrantsScreen() {
           <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>Quét QR nhận quyền live</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={[styles.scanBtn, { backgroundColor: "#EF4444", marginTop: 10 }]}
+          onPress={() => router.push("/admin/live-control" as any)}
+        >
+          <Ionicons name="game-controller-outline" size={20} color="#fff" />
+          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>Điều khiển máy live của tôi</Text>
+        </TouchableOpacity>
+
         {mySessions.length > 0 && (
           <>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 18, marginBottom: 8 }}>

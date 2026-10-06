@@ -25,6 +25,7 @@ import {
   useLiveControlCallMutation,
   useCreateCommentaryTokenMutation,
 } from "@/slices/liveControlApiSlice";
+import { useMyLiveGrantsQuery } from "@/slices/liveGrantsApiSlice";
 
 const CORNERS = ["top-left", "top-right", "bottom-left", "bottom-right"] as const;
 const CORNER_LABEL: Record<string, string> = {
@@ -41,9 +42,15 @@ export default function LiveControlScreen() {
   const userInfo = useSelector((s: any) => s.auth?.userInfo);
   const isAdmin = !!(userInfo?.isAdmin || userInfo?.role === "admin" || userInfo?.isSuperAdmin);
   const isCommentator = !!userInfo?.isCommentator;
-  const canAccess = isAdmin || isCommentator;
-  // Bình luận viên (không phải admin): chỉ xem + bình luận, ẩn mọi điều khiển.
-  const commentaryOnly = !isAdmin;
+  // Operator được cấp Quyền Livestream: điều khiển MÁY CỦA CHÍNH MÌNH (backend scope
+  // theo registeredBy) với toàn quyền như admin trên máy đó.
+  const { data: myLiveGrants = [] } = useMyLiveGrantsQuery(undefined, {
+    skip: !userInfo,
+  });
+  const hasLiveGrant = Array.isArray(myLiveGrants) && myLiveGrants.length > 0;
+  const canAccess = isAdmin || isCommentator || hasLiveGrant;
+  // Chỉ BLV thuần (không phải admin, không có quyền live) mới bị giới hạn xem/bình luận.
+  const commentaryOnly = !isAdmin && !hasLiveGrant;
 
   const C = {
     bg: isDark ? theme.colors.background : "#F8FAFC",
