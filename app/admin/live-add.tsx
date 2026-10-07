@@ -20,7 +20,7 @@ import { Stack, Redirect, router, useLocalSearchParams } from "expo-router";
 import { useSelector } from "react-redux";
 import { useTheme } from "@react-navigation/native";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { useLiveControlCallMutation, useSetScoreboardScaleMutation } from "@/slices/liveControlApiSlice";
+import { useLiveControlCallMutation, useSetScoreboardScaleMutation, useLazyGetAutoLiveSessionQuery } from "@/slices/liveControlApiSlice";
 import { WebView } from "react-native-webview";
 import { BASE_URL } from "@/slices/apiSlice";
 
@@ -66,6 +66,7 @@ export default function LiveAddScreen() {
 
   const [callMut] = useLiveControlCallMutation();
   const [setScoreboardScaleMut] = useSetScoreboardScaleMutation();
+  const [fetchBackendSession] = useLazyGetAutoLiveSessionQuery();
   const [uploadImg] = useUploadImageToFolderMutation();
   const [logoUploading, setLogoUploading] = useState(false);
   const call = useCallback(
@@ -111,8 +112,8 @@ export default function LiveAddScreen() {
     const corner = ovLayout?.scoreboard || DEFAULT_LAYOUT.scoreboard;
     if (overlayStyle === "url") return browserOverlayUrl.trim() || "";
     if (!overlayStyle || overlayStyle === "classic") return "";
-    return `${webBase}/overlay/live.html?theme=${overlayStyle}&corner=${encodeURIComponent(corner)}&ticker=off&preview=1`;
-  }, [overlayStyle, ovLayout, browserOverlayUrl]);
+    return `${webBase}/overlay/live.html?theme=${overlayStyle}&corner=${encodeURIComponent(corner)}&ticker=off&preview=1&scale=${sbScale}`;
+  }, [overlayStyle, ovLayout, browserOverlayUrl, sbScale]);
 
   // Modal picker
   const [picker, setPicker] = useState<{ title: string; items: { label: string; value: any }[]; onPick: (v: any) => void } | null>(null);
@@ -151,6 +152,14 @@ export default function LiveAddScreen() {
           setOvLayout(L);
           origLayoutRef.current = L;
         }
+        // Cỡ bảng điểm CHUẨN từ backend (độc lập app desktop) → tránh hiện 100% sai.
+        let backendScale: number | null = null;
+        try {
+          const bs: any = await fetchBackendSession(editSid).unwrap();
+          const sc = Number(bs?.scoreboardScale);
+          if (Number.isFinite(sc) && sc > 0) backendScale = sc;
+        } catch { /* bỏ qua */ }
+        if (backendScale != null) setSbScale(backendScale);
         if (!cfg) {
           Alert.alert("Lưu ý", "Phiên này chưa có cấu hình để sửa (app desktop cần bản mới). Bạn vẫn chọn lại nguồn/sân được.");
           setPrefilled(true);
@@ -184,7 +193,10 @@ export default function LiveAddScreen() {
         if (cfg.title) setTitle(cfg.title);
         if (cfg.overlayStyle) setOverlayStyle(cfg.overlayStyle);
         if (cfg.browserOverlayUrl) setBrowserOverlayUrl(cfg.browserOverlayUrl);
-        if (cfg.scoreboardScale) setSbScale(Number(cfg.scoreboardScale) || 1);
+        // Ưu tiên scale backend; đồng bộ origCfg để so sánh đúng hot vs restart.
+        const effScale = backendScale != null ? backendScale : Number(cfg.scoreboardScale) || 1;
+        setSbScale(effScale);
+        origCfgRef.current = { ...cfg, scoreboardScale: effScale };
       } catch (e: any) {
         Alert.alert("Lỗi", e?.data?.message || e?.message || "Không nạp được cấu hình phiên.");
       } finally {
@@ -261,7 +273,13 @@ export default function LiveAddScreen() {
   const doStart = async () => {
     setBusy(true);
     try {
-      await call("/api/start", "POST", buildPayload());
+      const r: any = await call("/api/start", "POST", buildPayload());
+      // Áp cỡ bảng điểm THẲNG backend sau khi start (không phụ thuộc app desktop đã
+      // build lại hay chưa) → tránh chọn 70% nhưng ra 100%.
+      const sid = r?.sessionId || r?.sid;
+      if (sid && Math.abs(Number(sbScale) - 1) > 0.001) {
+        try { await setScoreboardScaleMut({ sid, scale: sbScale }).unwrap(); } catch {}
+      }
       Alert.alert("OK", "Đã bắt đầu live.");
       router.back();
     } catch (e: any) { Alert.alert("Lỗi", e?.data?.error || e?.data?.detail || e?.data?.message || e?.message || "Thử lại"); }

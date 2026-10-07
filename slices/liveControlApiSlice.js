@@ -47,6 +47,11 @@ export const liveControlApiSlice = apiSlice.injectEndpoints({
         body: { scale },
       }),
     }),
+    // Lấy 1 phiên auto-live từ backend (nguồn CHUẨN của cỡ bảng điểm…), độc lập app desktop.
+    getAutoLiveSession: builder.query({
+      query: (sid) => `/api/tournament-auto-live/${sid}`,
+      keepUnusedDataFor: 30,
+    }),
   }),
 });
 
@@ -57,4 +62,5 @@ export const {
   useCommentaryOfferMutation,
   useGetSessionRtspQuery,
   useSetScoreboardScaleMutation,
+  useLazyGetAutoLiveSessionQuery,
 } = liveControlApiSlice;

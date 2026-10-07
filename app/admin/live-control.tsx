@@ -25,6 +25,7 @@ import {
   useLiveControlCallMutation,
   useCreateCommentaryTokenMutation,
   useSetScoreboardScaleMutation,
+  useLazyGetAutoLiveSessionQuery,
 } from "@/slices/liveControlApiSlice";
 
 const SCALE_PRESETS = [0.7, 0.85, 1, 1.2, 1.4, 1.6];
@@ -167,6 +168,7 @@ export default function LiveControlScreen() {
     withBusy(() => call("/api/set-layout", "POST", { sid: s.sid, nameMode: mode }));
   // Cỡ bảng điểm (scale) — gọi thẳng backend, áp ngay khi live.
   const [setScoreboardScale] = useSetScoreboardScaleMutation();
+  const [fetchBackendSession] = useLazyGetAutoLiveSessionQuery();
   const [scaleBy, setScaleBy] = useState<Record<string, number>>({});
   const changeScale = async (s: any, v: number) => {
     setScaleBy((m) => ({ ...m, [s.sid]: v }));
@@ -176,6 +178,27 @@ export default function LiveControlScreen() {
       setErr(e?.data?.message || "Không đổi được cỡ bảng điểm");
     }
   };
+  // Seed cỡ bảng điểm từ BACKEND (nguồn chuẩn) → tránh F5/mở lại hiện 100% sai.
+  const seedSids = (snap.sessions || []).map((s: any) => s?.sid).filter(Boolean).join(",");
+  useEffect(() => {
+    let alive = true;
+    (snap.sessions || []).forEach(async (s: any) => {
+      if (!s?.sid || scaleBy[s.sid] != null) return;
+      const snapSc = Number(s.scoreboardScale ?? s?.config?.scoreboardScale);
+      if (Number.isFinite(snapSc) && snapSc > 0) {
+        setScaleBy((m) => (m[s.sid] != null ? m : { ...m, [s.sid]: snapSc }));
+        return;
+      }
+      try {
+        const d: any = await fetchBackendSession(s.sid).unwrap();
+        if (!alive) return;
+        const sc = Number(d?.scoreboardScale);
+        if (Number.isFinite(sc) && sc > 0) setScaleBy((m) => (m[s.sid] != null ? m : { ...m, [s.sid]: sc }));
+      } catch { /* bỏ qua */ }
+    });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedSids]);
   const cancelSchedule = (sc: any) =>
     Alert.alert("Xoá lịch hẹn", sc?.label || "Xoá lịch này?", [
       { text: "Huỷ", style: "cancel" },
