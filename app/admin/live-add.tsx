@@ -456,13 +456,23 @@ export default function LiveAddScreen() {
 
           <Row label="Kiểu overlay bảng điểm">
             <SelectBtn
-              text={{ classic: "Classic (mặc định)", A: "A · Broadcast Pro", B: "B · Aurora Glass", C: "C · Minimal Clean", D: "D · Neon Volt", url: "Scoreboard từ URL" }[overlayStyle] || "Classic (mặc định)"}
+              text={{ classic: "Classic (mặc định)", A: "A · Broadcast Pro", B: "B · Aurora Glass", C: "C · Minimal Clean", D: "D · Neon Volt", E: "E · Court Vision", F: "F · Championship Gold", G: "G · Carbon Sport", H: "H · Sunset Smash", I: "I · Ocean Deep", J: "J · Midnight Pro", K: "K · Clean Light", L: "L · Royal Purple", M: "M · Esports Volt", N: "N · Pickle Fresh", url: "Scoreboard từ URL" }[overlayStyle] || "Classic (mặc định)"}
               onPress={() => setPicker({ title: "Kiểu overlay", items: [
                 { label: "Classic (mặc định)", value: "classic" },
                 { label: "A · Broadcast Pro", value: "A" },
                 { label: "B · Aurora Glass", value: "B" },
                 { label: "C · Minimal Clean", value: "C" },
                 { label: "D · Neon Volt", value: "D" },
+                { label: "E · Court Vision", value: "E" },
+                { label: "F · Championship Gold", value: "F" },
+                { label: "G · Carbon Sport", value: "G" },
+                { label: "H · Sunset Smash", value: "H" },
+                { label: "I · Ocean Deep", value: "I" },
+                { label: "J · Midnight Pro", value: "J" },
+                { label: "K · Clean Light", value: "K" },
+                { label: "L · Royal Purple", value: "L" },
+                { label: "M · Esports Volt", value: "M" },
+                { label: "N · Pickle Fresh", value: "N" },
                 { label: "Scoreboard từ URL (tuỳ chỉnh)", value: "url" },
               ], onPick: setOverlayStyle })}
             />
@@ -547,7 +557,7 @@ export default function LiveAddScreen() {
                 <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>● Cập nhật</Text>
               </Pressable>
               <Text style={{ color: C.sub, fontSize: 12, marginTop: 10 }}>
-                Chỉ đổi kiểu/link overlay hoặc tiêu đề → áp ngay, không gián đoạn. Đổi sân / nguồn / điểm đến (hoặc chuyển classic↔overlay nâng cao) → dừng & live lại (gián đoạn vài giây; đổi điểm đến tạo link xem mới).
+                Đổi giữa các kiểu nâng cao A–N, cỡ/vị trí overlay, link overlay hoặc tiêu đề → áp ngay, không gián đoạn. Chuyển Classic ↔ A–N (thêm/bớt lớp overlay) hoặc đổi sân / nguồn / điểm đến → bắt buộc dừng & live lại (gián đoạn vài giây; đổi điểm đến tạo link xem mới).
               </Text>
             </>
           ) : (
