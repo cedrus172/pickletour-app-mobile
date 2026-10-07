@@ -20,7 +20,7 @@ import { Stack, Redirect, router, useLocalSearchParams } from "expo-router";
 import { useSelector } from "react-redux";
 import { useTheme } from "@react-navigation/native";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { useLiveControlCallMutation, useSetScoreboardScaleMutation, useLazyGetAutoLiveSessionQuery } from "@/slices/liveControlApiSlice";
+import { useLiveControlCallMutation, useSetScoreboardScaleMutation, useLazyGetAutoLiveSessionQuery, useSetLiveTitleMutation } from "@/slices/liveControlApiSlice";
 import { WebView } from "react-native-webview";
 import { BASE_URL } from "@/slices/apiSlice";
 
@@ -66,6 +66,7 @@ export default function LiveAddScreen() {
 
   const [callMut] = useLiveControlCallMutation();
   const [setScoreboardScaleMut] = useSetScoreboardScaleMutation();
+  const [setLiveTitleMut] = useSetLiveTitleMutation();
   const [fetchBackendSession] = useLazyGetAutoLiveSessionQuery();
   const [uploadImg] = useUploadImageToFolderMutation();
   const [logoUploading, setLogoUploading] = useState(false);
@@ -154,12 +155,15 @@ export default function LiveAddScreen() {
         }
         // Cỡ bảng điểm CHUẨN từ backend (độc lập app desktop) → tránh hiện 100% sai.
         let backendScale: number | null = null;
+        let backendTitle: string | null = null;
         try {
           const bs: any = await fetchBackendSession(editSid).unwrap();
           const sc = Number(bs?.scoreboardScale);
           if (Number.isFinite(sc) && sc > 0) backendScale = sc;
+          if (bs?.liveTitle) backendTitle = String(bs.liveTitle);
         } catch { /* bỏ qua */ }
         if (backendScale != null) setSbScale(backendScale);
+        if (backendTitle != null) setTitle(backendTitle);
         if (!cfg) {
           Alert.alert("Lưu ý", "Phiên này chưa có cấu hình để sửa (app desktop cần bản mới). Bạn vẫn chọn lại nguồn/sân được.");
           setPrefilled(true);
@@ -190,13 +194,14 @@ export default function LiveAddScreen() {
           setDestType("fb");
           setFbPage((opt.fbPages || []).find((p: any) => p.pageId === d0.pageId) || { pageId: d0.pageId, pageName: d0.pageName || d0.label || d0.pageId });
         }
-        if (cfg.title) setTitle(cfg.title);
+        if (backendTitle == null && cfg.title) setTitle(cfg.title);
         if (cfg.overlayStyle) setOverlayStyle(cfg.overlayStyle);
         if (cfg.browserOverlayUrl) setBrowserOverlayUrl(cfg.browserOverlayUrl);
-        // Ưu tiên scale backend; đồng bộ origCfg để so sánh đúng hot vs restart.
+        // Ưu tiên scale + tiêu đề backend; đồng bộ origCfg để so sánh đúng hot vs restart.
         const effScale = backendScale != null ? backendScale : Number(cfg.scoreboardScale) || 1;
+        const effTitle = backendTitle != null ? backendTitle : String(cfg.title || "");
         setSbScale(effScale);
-        origCfgRef.current = { ...cfg, scoreboardScale: effScale };
+        origCfgRef.current = { ...cfg, scoreboardScale: effScale, title: effTitle };
       } catch (e: any) {
         Alert.alert("Lỗi", e?.data?.message || e?.message || "Không nạp được cấu hình phiên.");
       } finally {
@@ -309,18 +314,33 @@ export default function LiveAddScreen() {
         if (Number(origCfgRef.current?.scoreboardScale || 1) !== Number(sbScale)) {
           try { await setScoreboardScaleMut({ sid: editSid, scale: sbScale }).unwrap(); } catch {}
         }
+        // Tiêu đề: áp THẲNG backend (cập nhật video FB/YouTube) — không tạo live mới.
+        const origTitle = String(origCfgRef.current?.title || "");
+        if (p.title && p.title !== origTitle) {
+          try { await setLiveTitleMut({ sid: editSid, title: p.title }).unwrap(); } catch {}
+        }
         const ol = origLayoutRef.current || DEFAULT_LAYOUT;
         if (ol.scoreboard !== ovLayout.scoreboard || ol.brand !== ovLayout.brand || ol.sponsor !== ovLayout.sponsor) {
           try { await call("/api/set-layout", "POST", { sid: editSid, layout: ovLayout }); } catch {}
         }
-        const res: any = await call("/api/set-overlay", "POST", {
-          sid: editSid,
-          overlayStyle: p.overlayStyle,
-          browserOverlayUrl: p.browserOverlayUrl || "",
-          title: p.title,
-        });
-        if (!res?.needsRestart) {
-          Alert.alert("OK", "Đã cập nhật overlay — không gián đoạn.");
+        // Kiểu/link overlay: CHỈ gọi desktop khi thực sự đổi (sửa tiêu đề/cỡ/vị trí không cần desktop).
+        const styleChanged =
+          String(origCfgRef.current?.overlayStyle || "") !== String(p.overlayStyle || "") ||
+          String(origCfgRef.current?.browserOverlayUrl || "") !== String(p.browserOverlayUrl || "");
+        if (styleChanged) {
+          const res: any = await call("/api/set-overlay", "POST", {
+            sid: editSid,
+            overlayStyle: p.overlayStyle,
+            browserOverlayUrl: p.browserOverlayUrl || "",
+            title: p.title,
+          });
+          if (!res?.needsRestart) {
+            Alert.alert("OK", "Đã cập nhật overlay — không gián đoạn.");
+            router.back();
+            return;
+          }
+        } else {
+          Alert.alert("OK", "Đã cập nhật — không gián đoạn.");
           router.back();
           return;
         }

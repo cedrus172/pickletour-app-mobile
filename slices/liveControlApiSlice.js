@@ -52,6 +52,14 @@ export const liveControlApiSlice = apiSlice.injectEndpoints({
       query: (sid) => `/api/tournament-auto-live/${sid}`,
       keepUnusedDataFor: 30,
     }),
+    // Đổi tiêu đề luồng ĐANG chạy (cập nhật video FB/YouTube) — không tạo live mới.
+    setLiveTitle: builder.mutation({
+      query: ({ sid, title }) => ({
+        url: `/api/tournament-auto-live/${sid}/title`,
+        method: "PATCH",
+        body: { title },
+      }),
+    }),
   }),
 });
 
@@ -63,4 +71,5 @@ export const {
   useGetSessionRtspQuery,
   useSetScoreboardScaleMutation,
   useLazyGetAutoLiveSessionQuery,
+  useSetLiveTitleMutation,
 } = liveControlApiSlice;
