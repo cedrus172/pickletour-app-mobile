@@ -2345,6 +2345,57 @@ export default function PublicProfileScreen() {
             />
           </View>
 
+          {/* Hành động dành cho ADMIN: chấm trình + xem CCCD/KYC ngay tại trang hồ sơ */}
+          {isAdminViewer ? (
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 8,
+                paddingHorizontal: 16,
+                paddingTop: 4,
+                paddingBottom: 4,
+                justifyContent: "center",
+              }}
+            >
+              <TouchableOpacity
+                onPress={() => router.push(`/user/${String(id)}/grade` as any)}
+                activeOpacity={0.85}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  paddingHorizontal: 14,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: "#0EA5E9",
+                }}
+              >
+                <Ionicons name="ribbon-outline" size={18} color="#fff" />
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>
+                  Chấm trình
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => router.push(`/user/${String(id)}/kyc` as any)}
+                activeOpacity={0.85}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  paddingHorizontal: 14,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: "#7C3AED",
+                }}
+              >
+                <Ionicons name="card-outline" size={18} color="#fff" />
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>
+                  CCCD / KYC
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
           {/* Stats Cards */}
           <View
             style={[
