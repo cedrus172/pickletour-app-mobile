@@ -24,7 +24,10 @@ import {
   useGetLiveMachinesQuery,
   useLiveControlCallMutation,
   useCreateCommentaryTokenMutation,
+  useSetScoreboardScaleMutation,
 } from "@/slices/liveControlApiSlice";
+
+const SCALE_PRESETS = [0.7, 0.85, 1, 1.2, 1.4, 1.6];
 import { useMyLiveGrantsQuery } from "@/slices/liveGrantsApiSlice";
 
 const CORNERS = ["top-left", "top-right", "bottom-left", "bottom-right"] as const;
@@ -162,6 +165,17 @@ export default function LiveControlScreen() {
     withBusy(() => call("/api/set-ts-cover", "POST", { sid: s.sid, hideTimestamp: on }));
   const setNameMode = (s: any, mode: "nick" | "full") =>
     withBusy(() => call("/api/set-layout", "POST", { sid: s.sid, nameMode: mode }));
+  // Cỡ bảng điểm (scale) — gọi thẳng backend, áp ngay khi live.
+  const [setScoreboardScale] = useSetScoreboardScaleMutation();
+  const [scaleBy, setScaleBy] = useState<Record<string, number>>({});
+  const changeScale = async (s: any, v: number) => {
+    setScaleBy((m) => ({ ...m, [s.sid]: v }));
+    try {
+      await setScoreboardScale({ sid: s.sid, scale: v }).unwrap();
+    } catch (e: any) {
+      setErr(e?.data?.message || "Không đổi được cỡ bảng điểm");
+    }
+  };
   const cancelSchedule = (sc: any) =>
     Alert.alert("Xoá lịch hẹn", sc?.label || "Xoá lịch này?", [
       { text: "Huỷ", style: "cancel" },
@@ -409,6 +423,22 @@ export default function LiveControlScreen() {
                               style={[styles.layBtn, { borderColor: C.border, backgroundColor: active ? C.primary : C.chipOff }]}
                             >
                               <Text style={{ color: active ? "#fff" : C.text, fontSize: 12, fontWeight: "700" }}>{label}</Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                      <Text style={{ color: C.sub, fontSize: 12, marginTop: 10 }}>Cỡ bảng điểm (overlay)</Text>
+                      <View style={[styles.layRow, { flexWrap: "wrap" }]}>
+                        {SCALE_PRESETS.map((v) => {
+                          const cur = scaleBy[s.sid] != null ? scaleBy[s.sid] : 1;
+                          const active = Math.abs(cur - v) < 0.001;
+                          return (
+                            <Pressable
+                              key={v}
+                              onPress={() => changeScale(s, v)}
+                              style={[styles.layBtn, { borderColor: C.border, backgroundColor: active ? C.primary : C.chipOff }]}
+                            >
+                              <Text style={{ color: active ? "#fff" : C.text, fontSize: 12, fontWeight: "700" }}>{Math.round(v * 100)}%</Text>
                             </Pressable>
                           );
                         })}

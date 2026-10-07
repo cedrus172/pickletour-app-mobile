@@ -39,6 +39,14 @@ export const liveControlApiSlice = apiSlice.injectEndpoints({
         `/api/live-control/${encodeURIComponent(machineId)}/session-rtsp?sid=${encodeURIComponent(sid)}`,
       keepUnusedDataFor: 30,
     }),
+    // Phóng to/thu nhỏ scoreboard overlay NGAY khi live (gọi thẳng backend).
+    setScoreboardScale: builder.mutation({
+      query: ({ sid, scale }) => ({
+        url: `/api/tournament-auto-live/${sid}/scoreboard-scale`,
+        method: "PATCH",
+        body: { scale },
+      }),
+    }),
   }),
 });
 
@@ -48,4 +56,5 @@ export const {
   useCreateCommentaryTokenMutation,
   useCommentaryOfferMutation,
   useGetSessionRtspQuery,
+  useSetScoreboardScaleMutation,
 } = liveControlApiSlice;
