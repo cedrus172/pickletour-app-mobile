@@ -20,7 +20,7 @@ import { Stack, Redirect, router, useLocalSearchParams } from "expo-router";
 import { useSelector } from "react-redux";
 import { useTheme } from "@react-navigation/native";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { useLiveControlCallMutation, useSetScoreboardScaleMutation, useLazyGetAutoLiveSessionQuery, useSetLiveTitleMutation } from "@/slices/liveControlApiSlice";
+import { useLiveControlCallMutation, useSetScoreboardScaleMutation, useLazyGetAutoLiveSessionQuery, useSetLiveTitleMutation, useCreateRtspSourceMutation } from "@/slices/liveControlApiSlice";
 import { WebView } from "react-native-webview";
 import { BASE_URL } from "@/slices/apiSlice";
 
@@ -67,6 +67,7 @@ export default function LiveAddScreen() {
   const [callMut] = useLiveControlCallMutation();
   const [setScoreboardScaleMut] = useSetScoreboardScaleMutation();
   const [setLiveTitleMut] = useSetLiveTitleMutation();
+  const [createRtspSourceMut] = useCreateRtspSourceMutation();
   const [fetchBackendSession] = useLazyGetAutoLiveSessionQuery();
   const [uploadImg] = useUploadImageToFolderMutation();
   const [logoUploading, setLogoUploading] = useState(false);
@@ -87,6 +88,10 @@ export default function LiveAddScreen() {
   const [srcType, setSrcType] = useState<"rtsp" | "url" | "imou">("rtsp");
   const [rtspIdx, setRtspIdx] = useState<number>(-1);
   const [urlText, setUrlText] = useState("");
+  const [addRtspOpen, setAddRtspOpen] = useState(false);
+  const [newRtspLabel, setNewRtspLabel] = useState("");
+  const [newRtspUrl, setNewRtspUrl] = useState("");
+  const [savingRtsp, setSavingRtsp] = useState(false);
   const [camIdx, setCamIdx] = useState<number>(-1);
   const [destType, setDestType] = useState<"fb" | "youtube">("fb");
   const [fbPage, setFbPage] = useState<any>(null);
@@ -273,6 +278,28 @@ export default function LiveAddScreen() {
     }
     if (brandLogoUrl.trim()) payload.brandLogoUrl = brandLogoUrl.trim();
     return payload;
+  };
+
+  const openAddRtsp = () => {
+    if (srcType === "url" && urlText.trim() && !newRtspUrl.trim()) setNewRtspUrl(urlText.trim());
+    setAddRtspOpen(true);
+  };
+  const doCreateRtsp = async () => {
+    const label = newRtspLabel.trim();
+    const url = newRtspUrl.trim();
+    if (!label || !url) { Alert.alert("Thiếu", "Nhập tên gợi nhớ + link RTSP"); return; }
+    setSavingRtsp(true);
+    try {
+      const created: any = await createRtspSourceMut({ label, url }).unwrap();
+      const next = [...(opt.rtspSources || []), { _id: created._id, label: created.label, url: created.url }];
+      setOpt((o: any) => ({ ...o, rtspSources: next }));
+      setSrcType("rtsp");
+      setRtspIdx(next.length - 1);
+      setAddRtspOpen(false); setNewRtspLabel(""); setNewRtspUrl("");
+      Alert.alert("OK", "Đã lưu nguồn RTSP vào danh sách.");
+    } catch (e: any) {
+      Alert.alert("Lỗi", e?.data?.message || e?.data?.error || e?.message || "Không lưu được nguồn RTSP");
+    } finally { setSavingRtsp(false); }
   };
 
   const doStart = async () => {
@@ -468,7 +495,32 @@ export default function LiveAddScreen() {
             <Seg options={[{ v: "rtsp", l: "RTSP lưu" }, { v: "url", l: "Link" }, { v: "imou", l: "Imou" }]} value={srcType} onChange={setSrcType} />
             <View style={{ height: 8 }} />
             {srcType === "rtsp" && <SelectBtn text={opt.rtspSources[rtspIdx]?.label} onPress={() => setPicker({ title: "Nguồn RTSP", items: opt.rtspSources.map((s: any, i: number) => ({ label: s.label, value: i })), onPick: setRtspIdx })} />}
+            {srcType === "rtsp" && !addRtspOpen && (
+              <Pressable onPress={openAddRtsp} style={{ marginTop: 8, alignSelf: "flex-start" }}>
+                <Text style={{ color: C.primary, fontWeight: "700", fontSize: 13 }}>➕ Thêm nguồn RTSP mới</Text>
+              </Pressable>
+            )}
             {srcType === "url" && <TextInput value={urlText} onChangeText={setUrlText} placeholder="rtsp:// hoặc m3u8…" placeholderTextColor={C.sub} style={[styles.input, { backgroundColor: C.field, borderColor: C.border, color: C.text }]} />}
+            {srcType === "url" && !addRtspOpen && (
+              <Pressable onPress={openAddRtsp} disabled={!urlText.trim()} style={{ marginTop: 8, alignSelf: "flex-start", opacity: urlText.trim() ? 1 : 0.5 }}>
+                <Text style={{ color: C.primary, fontWeight: "700", fontSize: 13 }}>💾 Lưu link này vào danh sách RTSP</Text>
+              </Pressable>
+            )}
+            {(srcType === "rtsp" || srcType === "url") && addRtspOpen && (
+              <View style={{ marginTop: 10, padding: 12, borderWidth: 1, borderColor: C.border, borderRadius: 8, backgroundColor: C.field }}>
+                <Text style={{ color: C.sub, fontSize: 12, marginBottom: 6 }}>Tạo & lưu nguồn RTSP mới (dùng lại ở "RTSP lưu" lần sau)</Text>
+                <TextInput value={newRtspLabel} onChangeText={setNewRtspLabel} placeholder="Tên gợi nhớ (VD: Milkyway - Sân 1)" placeholderTextColor={C.sub} style={[styles.input, { backgroundColor: C.card, borderColor: C.border, color: C.text }]} />
+                <TextInput value={newRtspUrl} onChangeText={setNewRtspUrl} placeholder="rtsp://user:pass@host:port/..." placeholderTextColor={C.sub} autoCapitalize="none" autoCorrect={false} style={[styles.input, { backgroundColor: C.card, borderColor: C.border, color: C.text, marginTop: 8 }]} />
+                <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
+                  <Pressable onPress={doCreateRtsp} disabled={savingRtsp || !newRtspLabel.trim() || !newRtspUrl.trim()} style={{ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 8, backgroundColor: C.primary, opacity: (savingRtsp || !newRtspLabel.trim() || !newRtspUrl.trim()) ? 0.5 : 1 }}>
+                    <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>{savingRtsp ? "Đang lưu…" : "Lưu nguồn"}</Text>
+                  </Pressable>
+                  <Pressable onPress={() => { setAddRtspOpen(false); setNewRtspLabel(""); setNewRtspUrl(""); }} style={{ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 8, borderWidth: 1, borderColor: C.border }}>
+                    <Text style={{ color: C.text, fontWeight: "700", fontSize: 13 }}>Huỷ</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
             {srcType === "imou" && <SelectBtn text={opt.cams[camIdx]?.label} onPress={() => setPicker({ title: "Camera Imou", items: opt.cams.map((c: any, i: number) => ({ label: c.label, value: i })), onPick: setCamIdx })} />}
           </Row>
 

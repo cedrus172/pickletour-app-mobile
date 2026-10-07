@@ -60,6 +60,14 @@ export const liveControlApiSlice = apiSlice.injectEndpoints({
         body: { title },
       }),
     }),
+    // Tự tạo + LƯU nguồn RTSP mới vào thư viện.
+    createRtspSource: builder.mutation({
+      query: ({ label, url, note }) => ({
+        url: `/api/tournament-auto-live/rtsp-sources`,
+        method: "POST",
+        body: { label, url, note },
+      }),
+    }),
   }),
 });
 
@@ -72,4 +80,5 @@ export const {
   useSetScoreboardScaleMutation,
   useLazyGetAutoLiveSessionQuery,
   useSetLiveTitleMutation,
+  useCreateRtspSourceMutation,
 } = liveControlApiSlice;
