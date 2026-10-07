@@ -32,7 +32,8 @@ export default function LiveAddScreen() {
   const isAdmin = !!(userInfo?.isAdmin || userInfo?.role === "admin" || userInfo?.isSuperAdmin);
   const { data: myLiveGrants = [] } = useMyLiveGrantsQuery(undefined, { skip: !userInfo });
   const hasLiveGrant = Array.isArray(myLiveGrants) && myLiveGrants.length > 0;
-  const { machineId } = useLocalSearchParams<{ machineId: string }>();
+  const { machineId, editSid } = useLocalSearchParams<{ machineId: string; editSid?: string }>();
+  const editMode = !!editSid;
 
   const C = useMemo(
     () => ({
@@ -104,6 +105,56 @@ export default function LiveAddScreen() {
     })();
   }, [call]);
 
+  // Chế độ SỬA: nạp cấu hình phiên đang live để prefill (chỉ 1 lần, sau khi có options).
+  const [prefilled, setPrefilled] = useState(false);
+  useEffect(() => {
+    if (!editMode || prefilled || loading) return;
+    (async () => {
+      try {
+        const st = await call("/api/state");
+        const sess = (st?.sessions || []).find((s: any) => s.sid === editSid);
+        const cfg = sess?.config;
+        if (!cfg) {
+          Alert.alert("Lưu ý", "Phiên này chưa có cấu hình để sửa (app desktop cần bản mới). Bạn vẫn chọn lại nguồn/sân được.");
+          setPrefilled(true);
+          return;
+        }
+        if (cfg.tournamentId) {
+          try {
+            const d = await call(`/api/options?tournamentId=${encodeURIComponent(cfg.tournamentId)}`);
+            const cs = d.courts || [];
+            setCourts(cs);
+            setTour({ _id: cfg.tournamentId, name: sess?.tournament || "" });
+            if (cfg.courtStationId) setCourt(cs.find((c: any) => c._id === cfg.courtStationId) || { _id: cfg.courtStationId, name: sess?.court || "" });
+          } catch {}
+        }
+        const src = cfg.source || {};
+        if (src.imouDeviceId) {
+          setSrcType("imou");
+          const idx = (opt.cams || []).findIndex((c: any) => c.deviceId === src.imouDeviceId);
+          if (idx >= 0) setCamIdx(idx);
+        } else if (src.sourceUrl) {
+          const idx = (opt.rtspSources || []).findIndex((s: any) => s.url === src.sourceUrl);
+          if (idx >= 0) { setSrcType("rtsp"); setRtspIdx(idx); }
+          else { setSrcType("url"); setUrlText(src.sourceUrl); }
+        }
+        const d0 = (cfg.destinations || [])[0];
+        if (d0?.type === "youtube") setDestType("youtube");
+        else if (d0?.pageId) {
+          setDestType("fb");
+          setFbPage((opt.fbPages || []).find((p: any) => p.pageId === d0.pageId) || { pageId: d0.pageId, pageName: d0.pageName || d0.label || d0.pageId });
+        }
+        if (cfg.title) setTitle(cfg.title);
+        if (cfg.overlayStyle) setOverlayStyle(cfg.overlayStyle);
+        if (cfg.browserOverlayUrl) setBrowserOverlayUrl(cfg.browserOverlayUrl);
+      } catch (e: any) {
+        Alert.alert("Lỗi", e?.data?.message || e?.message || "Không nạp được cấu hình phiên.");
+      } finally {
+        setPrefilled(true);
+      }
+    })();
+  }, [editMode, prefilled, loading, call, editSid, opt.cams, opt.rtspSources, opt.fbPages]);
+
   const searchTours = useCallback(async (q: string) => {
     try {
       const d = await call(`/api/options?q=${encodeURIComponent(q)}`);
@@ -173,6 +224,25 @@ export default function LiveAddScreen() {
     try {
       await call("/api/start", "POST", buildPayload());
       Alert.alert("OK", "Đã bắt đầu live.");
+      router.back();
+    } catch (e: any) { Alert.alert("Lỗi", e?.data?.error || e?.data?.detail || e?.data?.message || e?.message || "Thử lại"); }
+    finally { setBusy(false); }
+  };
+  const doReconfigure = async () => {
+    setBusy(true);
+    try {
+      const p = buildPayload();
+      await call("/api/reconfigure", "POST", {
+        sid: editSid,
+        courtStationId: p.courtStationId,
+        courtName: p.courtName,
+        source: p.source,
+        destinations: p.destinations,
+        title: p.title,
+        overlayStyle: p.overlayStyle,
+        browserOverlayUrl: p.browserOverlayUrl,
+      });
+      Alert.alert("OK", "Đã cập nhật — luồng đang khởi động lại.");
       router.back();
     } catch (e: any) { Alert.alert("Lỗi", e?.data?.error || e?.data?.detail || e?.data?.message || e?.message || "Thử lại"); }
     finally { setBusy(false); }
@@ -255,7 +325,7 @@ export default function LiveAddScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.header, { borderColor: C.border }]}>
         <Pressable onPress={() => router.back()} hitSlop={10}><Text style={{ color: C.primary, fontSize: 16 }}>‹ Quay lại</Text></Pressable>
-        <Text style={[styles.h1, { color: C.text }]}>Thêm sân live</Text>
+        <Text style={[styles.h1, { color: C.text }]}>{editMode ? "Sửa phiên live" : "Thêm sân live"}</Text>
         <View style={{ width: 60 }} />
       </View>
 
@@ -373,22 +443,35 @@ export default function LiveAddScreen() {
             <Toggle label="Ẩn ngày giờ camera (làm mờ)" value={hideTs} onValueChange={setHideTs} />
           </View>
 
-          <Row label="Hẹn giờ (để trống = live ngay)">
-            <SelectBtn text={schedAt ? schedAt.toLocaleString("vi-VN") : ""} onPress={openDateTime} />
-            {!!schedAt && <Pressable onPress={() => setSchedAt(null)} style={{ marginTop: 6 }}><Text style={{ color: C.sub }}>Xoá hẹn giờ</Text></Pressable>}
-          </Row>
+          {editMode ? (
+            <>
+              <Pressable onPress={doReconfigure} disabled={busy} style={[styles.bigBtn, { backgroundColor: "#F59E0B", opacity: busy ? 0.6 : 1 }]}>
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>● Cập nhật (dừng & live lại)</Text>
+              </Pressable>
+              <Text style={{ color: C.sub, fontSize: 12, marginTop: 10 }}>
+                Lưu thay đổi sẽ dừng luồng hiện tại và chạy lại với cấu hình mới (gián đoạn vài giây; đổi điểm đến sẽ tạo link xem mới).
+              </Text>
+            </>
+          ) : (
+            <>
+              <Row label="Hẹn giờ (để trống = live ngay)">
+                <SelectBtn text={schedAt ? schedAt.toLocaleString("vi-VN") : ""} onPress={openDateTime} />
+                {!!schedAt && <Pressable onPress={() => setSchedAt(null)} style={{ marginTop: 6 }}><Text style={{ color: C.sub }}>Xoá hẹn giờ</Text></Pressable>}
+              </Row>
 
-          <Pressable onPress={doStart} disabled={busy} style={[styles.bigBtn, { backgroundColor: C.primary, opacity: busy ? 0.6 : 1 }]}>
-            <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>● Bắt đầu live ngay</Text>
-          </Pressable>
-          {!!schedAt && (
-            <Pressable onPress={doSchedule} disabled={busy} style={[styles.bigBtnOutline, { borderColor: C.primary, opacity: busy ? 0.6 : 1 }]}>
-              <Text style={{ color: C.primary, fontWeight: "800", fontSize: 16 }}>⏰ Hẹn giờ live</Text>
-            </Pressable>
+              <Pressable onPress={doStart} disabled={busy} style={[styles.bigBtn, { backgroundColor: C.primary, opacity: busy ? 0.6 : 1 }]}>
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>● Bắt đầu live ngay</Text>
+              </Pressable>
+              {!!schedAt && (
+                <Pressable onPress={doSchedule} disabled={busy} style={[styles.bigBtnOutline, { borderColor: C.primary, opacity: busy ? 0.6 : 1 }]}>
+                  <Text style={{ color: C.primary, fontWeight: "800", fontSize: 16 }}>⏰ Hẹn giờ live</Text>
+                </Pressable>
+              )}
+              <Text style={{ color: C.sub, fontSize: 12, marginTop: 10 }}>
+                Vị trí overlay dùng mặc định — chỉnh được ngay khi đang live ở màn Điều khiển Live.
+              </Text>
+            </>
           )}
-          <Text style={{ color: C.sub, fontSize: 12, marginTop: 10 }}>
-            Vị trí overlay dùng mặc định — chỉnh được ngay khi đang live ở màn Điều khiển Live.
-          </Text>
         </ScrollView>
       )}
 

@@ -356,6 +356,15 @@ export default function LiveControlScreen() {
                         </Pressable>
                       )}
                       {!commentaryOnly && (
+                        <Pressable
+                          onPress={() => router.push(`/admin/live-add?machineId=${encodeURIComponent(machineId)}&editSid=${encodeURIComponent(s.sid)}` as any)}
+                          style={[styles.micBtn, { borderColor: "#F59E0B" }]}
+                        >
+                          <MaterialIcons name="edit" size={15} color="#F59E0B" />
+                          <Text style={{ color: "#F59E0B", fontWeight: "700", fontSize: 12 }}>Sửa</Text>
+                        </Pressable>
+                      )}
+                      {!commentaryOnly && (
                         <Pressable onPress={() => stopCourt(s)} style={[styles.stopBtn, { backgroundColor: C.danger }]}>
                           <Text style={{ color: "#fff", fontWeight: "700" }}>■ Dừng</Text>
                         </Pressable>
