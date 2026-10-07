@@ -20,7 +20,21 @@ import { Stack, Redirect, router, useLocalSearchParams } from "expo-router";
 import { useSelector } from "react-redux";
 import { useTheme } from "@react-navigation/native";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { useLiveControlCallMutation } from "@/slices/liveControlApiSlice";
+import { useLiveControlCallMutation, useSetScoreboardScaleMutation } from "@/slices/liveControlApiSlice";
+
+const SB_SCALE_PRESETS = [0.7, 0.85, 1, 1.2, 1.4, 1.6];
+const OV_CORNERS: [string, string][] = [
+  ["top-left", "T·Trái"],
+  ["top-right", "T·Phải"],
+  ["bottom-left", "D·Trái"],
+  ["bottom-right", "D·Phải"],
+];
+const OV_SLOTS: [string, string][] = [
+  ["scoreboard", "Bảng điểm"],
+  ["brand", "Logo"],
+  ["sponsor", "Tài trợ"],
+];
+const DEFAULT_LAYOUT: any = { scoreboard: "top-left", brand: "top-right", sponsor: "bottom-right" };
 import { useMyLiveGrantsQuery } from "@/slices/liveGrantsApiSlice";
 import { useUploadImageToFolderMutation } from "@/slices/uploadApiSlice";
 import { prepareSupportImageForUpload } from "@/utils/supportImageUpload";
@@ -49,6 +63,7 @@ export default function LiveAddScreen() {
   );
 
   const [callMut] = useLiveControlCallMutation();
+  const [setScoreboardScaleMut] = useSetScoreboardScaleMutation();
   const [uploadImg] = useUploadImageToFolderMutation();
   const [logoUploading, setLogoUploading] = useState(false);
   const call = useCallback(
@@ -79,6 +94,8 @@ export default function LiveAddScreen() {
   const [title, setTitle] = useState("");
   const [encoder, setEncoder] = useState("auto");
   const [overlayStyle, setOverlayStyle] = useState("classic");
+  const [sbScale, setSbScale] = useState(1);
+  const [ovLayout, setOvLayout] = useState<any>(DEFAULT_LAYOUT);
   const [browserOverlayUrl, setBrowserOverlayUrl] = useState("");
   const [showTicker, setShowTicker] = useState(true);
   const [brandLogoUrl, setBrandLogoUrl] = useState("");
@@ -108,6 +125,7 @@ export default function LiveAddScreen() {
   // Chế độ SỬA: nạp cấu hình phiên đang live để prefill (chỉ 1 lần, sau khi có options).
   const [prefilled, setPrefilled] = useState(false);
   const origCfgRef = useRef<any>(null);
+  const origLayoutRef = useRef<any>(null);
   useEffect(() => {
     if (!editMode || prefilled || loading) return;
     (async () => {
@@ -116,6 +134,11 @@ export default function LiveAddScreen() {
         const sess = (st?.sessions || []).find((s: any) => s.sid === editSid);
         const cfg = sess?.config;
         origCfgRef.current = cfg || null;
+        if (sess?.layout) {
+          const L = { ...DEFAULT_LAYOUT, ...sess.layout };
+          setOvLayout(L);
+          origLayoutRef.current = L;
+        }
         if (!cfg) {
           Alert.alert("Lưu ý", "Phiên này chưa có cấu hình để sửa (app desktop cần bản mới). Bạn vẫn chọn lại nguồn/sân được.");
           setPrefilled(true);
@@ -149,6 +172,7 @@ export default function LiveAddScreen() {
         if (cfg.title) setTitle(cfg.title);
         if (cfg.overlayStyle) setOverlayStyle(cfg.overlayStyle);
         if (cfg.browserOverlayUrl) setBrowserOverlayUrl(cfg.browserOverlayUrl);
+        if (cfg.scoreboardScale) setSbScale(Number(cfg.scoreboardScale) || 1);
       } catch (e: any) {
         Alert.alert("Lỗi", e?.data?.message || e?.message || "Không nạp được cấu hình phiên.");
       } finally {
@@ -210,6 +234,7 @@ export default function LiveAddScreen() {
       source, destinations,
       perMatchLive: perMatch, recordClips, splitPerTournament: split,
       title: title.trim(), encoder, overlayStyle, noTicker: !showTicker,
+      scoreboardScale: sbScale, layout: ovLayout,
       advanced: { resolutionH: 1080, fps: 0, videoBitrateKbps: 4500 },
     };
     if (hideTs) payload.hideTimestamp = true;
@@ -251,6 +276,13 @@ export default function LiveAddScreen() {
     try {
       const p = buildPayload();
       if (!needsRestartForChange(p)) {
+        if (Number(origCfgRef.current?.scoreboardScale || 1) !== Number(sbScale)) {
+          try { await setScoreboardScaleMut({ sid: editSid, scale: sbScale }).unwrap(); } catch {}
+        }
+        const ol = origLayoutRef.current || DEFAULT_LAYOUT;
+        if (ol.scoreboard !== ovLayout.scoreboard || ol.brand !== ovLayout.brand || ol.sponsor !== ovLayout.sponsor) {
+          try { await call("/api/set-layout", "POST", { sid: editSid, layout: ovLayout }); } catch {}
+        }
         const res: any = await call("/api/set-overlay", "POST", {
           sid: editSid,
           overlayStyle: p.overlayStyle,
@@ -445,6 +477,41 @@ export default function LiveAddScreen() {
                 style={[styles.input, { backgroundColor: C.field, borderColor: C.border, color: C.text, marginTop: 8 }]}
               />
             )}
+          </Row>
+
+          <Row label="Cỡ bảng điểm (overlay)">
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {SB_SCALE_PRESETS.map((v) => {
+                const active = Math.abs(sbScale - v) < 0.001;
+                return (
+                  <Pressable key={v} onPress={() => setSbScale(v)}
+                    style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: C.border, backgroundColor: active ? C.primary : C.field }}>
+                    <Text style={{ color: active ? "#fff" : C.text, fontWeight: "700", fontSize: 13 }}>{Math.round(v * 100)}%</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Row>
+
+          <Row label="Vị trí overlay (ghi nhớ cho sân)">
+            <View style={{ gap: 8 }}>
+              {OV_SLOTS.map(([slot, label]) => (
+                <View key={slot} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Text style={{ color: C.sub, width: 72, fontSize: 13 }}>{label}</Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, flex: 1 }}>
+                    {OV_CORNERS.map(([c, cl]) => {
+                      const active = (ovLayout[slot] || DEFAULT_LAYOUT[slot]) === c;
+                      return (
+                        <Pressable key={c} onPress={() => setOvLayout((m: any) => ({ ...m, [slot]: c }))}
+                          style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: C.border, backgroundColor: active ? C.primary : C.field }}>
+                          <Text style={{ color: active ? "#fff" : C.text, fontWeight: "700", fontSize: 12 }}>{cl}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
+            </View>
           </Row>
 
           <Row label="Logo overlay (trống = logo PickleTour)">
