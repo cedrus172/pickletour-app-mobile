@@ -21,6 +21,8 @@ import { useSelector } from "react-redux";
 import { useTheme } from "@react-navigation/native";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useLiveControlCallMutation, useSetScoreboardScaleMutation } from "@/slices/liveControlApiSlice";
+import { WebView } from "react-native-webview";
+import { BASE_URL } from "@/slices/apiSlice";
 
 const SB_SCALE_PRESETS = [0.7, 0.85, 1, 1.2, 1.4, 1.6];
 const OV_CORNERS: [string, string][] = [
@@ -101,6 +103,16 @@ export default function LiveAddScreen() {
   const [brandLogoUrl, setBrandLogoUrl] = useState("");
   const [schedAt, setSchedAt] = useState<Date | null>(null);
   const [busy, setBusy] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  // URL trang overlay để xem trước (dữ liệu mẫu). Rỗng nếu classic.
+  const previewUrl = useMemo(() => {
+    const webBase = String(BASE_URL || "https://pickletour.vn/api").replace(/\/api\/?$/, "").replace(/\/+$/, "");
+    const corner = ovLayout?.scoreboard || DEFAULT_LAYOUT.scoreboard;
+    if (overlayStyle === "url") return browserOverlayUrl.trim() || "";
+    if (!overlayStyle || overlayStyle === "classic") return "";
+    return `${webBase}/overlay/live.html?theme=${overlayStyle}&corner=${encodeURIComponent(corner)}&ticker=off&preview=1`;
+  }, [overlayStyle, ovLayout, browserOverlayUrl]);
 
   // Modal picker
   const [picker, setPicker] = useState<{ title: string; items: { label: string; value: any }[]; onPick: (v: any) => void } | null>(null);
@@ -487,6 +499,20 @@ export default function LiveAddScreen() {
                 style={[styles.input, { backgroundColor: C.field, borderColor: C.border, color: C.text, marginTop: 8 }]}
               />
             )}
+            <Pressable
+              onPress={() => previewUrl && setPreviewOpen(true)}
+              disabled={!previewUrl}
+              style={{ marginTop: 10, alignSelf: "flex-start", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: C.border, backgroundColor: C.field, opacity: previewUrl ? 1 : 0.5 }}
+            >
+              <Text style={{ color: C.text, fontWeight: "700", fontSize: 13 }}>👁  Xem trước overlay</Text>
+            </Pressable>
+            <Text style={{ color: C.sub, fontSize: 11, marginTop: 6 }}>
+              {overlayStyle === "classic"
+                ? "Classic là overlay mặc định — xem trực tiếp khi live."
+                : overlayStyle === "url" && !previewUrl
+                ? "Nhập URL scoreboard ở trên để xem trước."
+                : "Xem thử bảng điểm với dữ liệu mẫu (đúng kiểu & vị trí đã chọn)."}
+            </Text>
           </Row>
 
           <Row label="Cỡ bảng điểm (overlay)">
@@ -631,6 +657,35 @@ export default function LiveAddScreen() {
               <Pressable onPress={() => setPicker(null)} style={[styles.bigBtnOutline, { borderColor: C.border, marginTop: 8 }]}>
                 <Text style={{ color: C.text, fontWeight: "700" }}>Đóng</Text>
               </Pressable>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
+
+      {previewOpen && (
+        <Modal transparent animationType="fade" onRequestClose={() => setPreviewOpen(false)}>
+          <Pressable style={styles.modalBg} onPress={() => setPreviewOpen(false)}>
+            <Pressable style={{ width: "92%", backgroundColor: "#0b3b2a", borderRadius: 12, overflow: "hidden" }} onPress={(e) => e.stopPropagation()}>
+              <View style={{ width: "100%", aspectRatio: 16 / 9, backgroundColor: "#0b3b2a" }}>
+                {previewUrl ? (
+                  <WebView
+                    source={{ uri: previewUrl }}
+                    style={{ flex: 1, backgroundColor: "transparent" }}
+                    scrollEnabled={false}
+                    scalesPageToFit
+                    javaScriptEnabled
+                    originWhitelist={["*"]}
+                  />
+                ) : null}
+              </View>
+              <View style={{ paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.card }}>
+                <Text style={{ color: C.sub, fontSize: 11 }}>
+                  Dữ liệu mẫu — bảng điểm thật hiển thị theo trận khi live. Nền tối chỉ để dễ nhìn overlay trong suốt.
+                </Text>
+                <Pressable onPress={() => setPreviewOpen(false)} style={[styles.bigBtnOutline, { borderColor: C.border, marginTop: 8 }]}>
+                  <Text style={{ color: C.text, fontWeight: "700" }}>Đóng</Text>
+                </Pressable>
+              </View>
             </Pressable>
           </Pressable>
         </Modal>
