@@ -1,5 +1,5 @@
 // Thêm sân live / Hẹn giờ từ app (admin) — gửi qua backend proxy tới control-server desktop.
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -107,6 +107,7 @@ export default function LiveAddScreen() {
 
   // Chế độ SỬA: nạp cấu hình phiên đang live để prefill (chỉ 1 lần, sau khi có options).
   const [prefilled, setPrefilled] = useState(false);
+  const origCfgRef = useRef<any>(null);
   useEffect(() => {
     if (!editMode || prefilled || loading) return;
     (async () => {
@@ -114,6 +115,7 @@ export default function LiveAddScreen() {
         const st = await call("/api/state");
         const sess = (st?.sessions || []).find((s: any) => s.sid === editSid);
         const cfg = sess?.config;
+        origCfgRef.current = cfg || null;
         if (!cfg) {
           Alert.alert("Lưu ý", "Phiên này chưa có cấu hình để sửa (app desktop cần bản mới). Bạn vẫn chọn lại nguồn/sân được.");
           setPrefilled(true);
@@ -228,10 +230,39 @@ export default function LiveAddScreen() {
     } catch (e: any) { Alert.alert("Lỗi", e?.data?.error || e?.data?.detail || e?.data?.message || e?.message || "Thử lại"); }
     finally { setBusy(false); }
   };
+  const needsRestartForChange = (p: any) => {
+    const o = origCfgRef.current;
+    if (!o) return true;
+    const os = o.source || {};
+    const srcChanged =
+      String(os.sourceUrl || "") !== String(p.source?.sourceUrl || "") ||
+      String(os.imouDeviceId || "") !== String(p.source?.imouDeviceId || "");
+    const od = (o.destinations || [])[0] || {};
+    const nd = (p.destinations || [])[0] || {};
+    const destChanged =
+      String(od.type || "") !== String(nd.type || "") ||
+      String(od.pageId || "") !== String(nd.pageId || "");
+    const courtChanged = String(o.courtStationId || "") !== String(p.courtStationId || "");
+    return srcChanged || destChanged || courtChanged;
+  };
+
   const doReconfigure = async () => {
     setBusy(true);
     try {
       const p = buildPayload();
+      if (!needsRestartForChange(p)) {
+        const res: any = await call("/api/set-overlay", "POST", {
+          sid: editSid,
+          overlayStyle: p.overlayStyle,
+          browserOverlayUrl: p.browserOverlayUrl || "",
+          title: p.title,
+        });
+        if (!res?.needsRestart) {
+          Alert.alert("OK", "Đã cập nhật overlay — không gián đoạn.");
+          router.back();
+          return;
+        }
+      }
       await call("/api/reconfigure", "POST", {
         sid: editSid,
         courtStationId: p.courtStationId,
@@ -446,10 +477,10 @@ export default function LiveAddScreen() {
           {editMode ? (
             <>
               <Pressable onPress={doReconfigure} disabled={busy} style={[styles.bigBtn, { backgroundColor: "#F59E0B", opacity: busy ? 0.6 : 1 }]}>
-                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>● Cập nhật (dừng & live lại)</Text>
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>● Cập nhật</Text>
               </Pressable>
               <Text style={{ color: C.sub, fontSize: 12, marginTop: 10 }}>
-                Lưu thay đổi sẽ dừng luồng hiện tại và chạy lại với cấu hình mới (gián đoạn vài giây; đổi điểm đến sẽ tạo link xem mới).
+                Chỉ đổi kiểu/link overlay hoặc tiêu đề → áp ngay, không gián đoạn. Đổi sân / nguồn / điểm đến (hoặc chuyển classic↔overlay nâng cao) → dừng & live lại (gián đoạn vài giây; đổi điểm đến tạo link xem mới).
               </Text>
             </>
           ) : (
