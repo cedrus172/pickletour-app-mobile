@@ -34,6 +34,14 @@ export const eventLiveApiSlice = apiSlice.injectEndpoints({
         body: body || {},
       }),
     }),
+    // Người xem REALTIME theo giải — ping mỗi ~15s, trả { count }.
+    pingEventLiveViewer: builder.mutation({
+      query: ({ slug, viewerId }) => ({
+        url: `/api/event-live/${encodeURIComponent(slug || "")}/viewer-ping`,
+        method: "POST",
+        body: { viewerId },
+      }),
+    }),
     // Live comments
     getEventLiveComments: builder.query({
       query: ({ before, limit = 30 } = {}) => {
@@ -60,6 +68,7 @@ export const {
   useGetEventLiveConfigQuery,
   useGetEventLiveHomeQuery,
   useTrackEventLiveViewMutation,
+  usePingEventLiveViewerMutation,
   useGetEventLiveCommentsQuery,
   usePostEventLiveCommentMutation,
 } = eventLiveApiSlice;

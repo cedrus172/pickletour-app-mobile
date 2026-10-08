@@ -9,6 +9,7 @@ import { StatusBar } from "expo-status-bar";
 import React,
   { useEffect,
   useMemo,
+  useRef,
   useState } from "react";
 import {
   ActivityIndicator,
@@ -33,6 +34,7 @@ import analytics from "@/utils/analytics";
 import {
   useGetEventLiveQuery,
   useTrackEventLiveViewMutation,
+  usePingEventLiveViewerMutation,
 } from "@/slices/eventLiveApiSlice";
 import EventLiveChat from "@/components/EventLiveChat";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
@@ -198,6 +200,26 @@ export default function EventLiveScreen() {
   const [tab, setTab] = useState<"live" | "replay" | "chat">("live");
   const [current, setCurrent] = useState<Feed | null>(null);
   const [trackView] = useTrackEventLiveViewMutation();
+  const [pingViewer] = usePingEventLiveViewerMutation();
+  const [viewerCount, setViewerCount] = useState(0);
+  const viewerIdRef = useRef<string>("");
+  if (!viewerIdRef.current) {
+    viewerIdRef.current = `m_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+  }
+  // Người xem REALTIME: ping mỗi 15s (gồm cả khách) → số đang xem giải.
+  useEffect(() => {
+    let alive = true;
+    const tick = async () => {
+      try {
+        const r: any = await pingViewer({ slug: slug || "", viewerId: viewerIdRef.current }).unwrap();
+        if (alive && typeof r?.count === "number") setViewerCount(r.count);
+      } catch { /* ignore */ }
+    };
+    tick();
+    const id = setInterval(tick, 15000);
+    return () => { alive = false; clearInterval(id); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
   // Ghi nhận lượt dùng (1 lần khi mở màn) — cho thống kê web/app.
   useEffect(() => {
     trackView({ platform: Platform.OS }).catch(() => {});
@@ -279,6 +301,12 @@ export default function EventLiveScreen() {
               </View>
             ) : (
               <Text style={styles.hMeta}>Chưa có luồng trực tiếp</Text>
+            )}
+            {viewerCount > 0 && (
+              <View style={styles.liveDotRow}>
+                <Ionicons name="eye" size={13} color="#60a5fa" />
+                <Text style={[styles.hMeta, { color: "#60a5fa" }]}>{viewerCount} đang xem</Text>
+              </View>
             )}
           </View>
         </View>
@@ -656,7 +684,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
   },
   iconBtn: { padding: 4 },
   hTitle: { color: C.text, fontSize: 16, fontWeight: "800" },
-  hMetaRow: { marginTop: 2 },
+  hMetaRow: { marginTop: 2, flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" },
   hMeta: { color: C.sub, fontSize: 12 },
   liveDotRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   liveDot: {
