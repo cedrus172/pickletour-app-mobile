@@ -25,6 +25,7 @@ import {
 import {
   useGetLiveMachinesQuery,
   useLiveControlCallMutation,
+  useSetLiveTitleMutation,
 } from "@/slices/liveControlApiSlice";
 import { BASE_URL } from "@/slices/apiSlice";
 
@@ -61,6 +62,11 @@ export default function AdHocRefereeScreen() {
   const [updateUserMatch] = useUpdateUserMatchMutation();
   const [liveEvent] = useUserMatchLiveEventMutation();
   const [liveControlCall, { isLoading: calling }] = useLiveControlCallMutation();
+  const [setLiveTitleMut, { isLoading: savingTitle }] = useSetLiveTitleMutation();
+  const [streaming, setStreaming] = useState(false);
+  const [liveSessionId, setLiveSessionId] = useState("");
+  const [liveTitle, setLiveTitle] = useState("");
+  const [liveDesc, setLiveDesc] = useState("");
   const { data: machines } = useGetLiveMachinesQuery(undefined, { pollingInterval: 8000 });
   const { data: boot, refetch } = useUserMatchLiveBootstrapQuery(matchId, {
     skip: !matchId,
@@ -188,7 +194,10 @@ export default function AdHocRefereeScreen() {
       return toast(e.message);
     }
     try {
-      await liveControlCall({ machineId, path: "/api/match-start", method: "POST", body: { matchId, source, destinations } }).unwrap();
+      const r: any = await liveControlCall({ machineId, path: "/api/match-start", method: "POST", body: { matchId, source, destinations } }).unwrap();
+      setStreaming(true);
+      if (r?.sessionId) setLiveSessionId(String(r.sessionId));
+      if (!liveTitle.trim()) setLiveTitle(title.trim());
       toast("Đã yêu cầu máy live phát trận.");
     } catch (e: any) {
       toast(e?.data?.error || e?.data?.message || "Lỗi gọi máy live (máy live đang online?)");
@@ -198,9 +207,23 @@ export default function AdHocRefereeScreen() {
     if (!machineId) return;
     try {
       await liveControlCall({ machineId, path: "/api/match-stop", method: "POST", body: {} }).unwrap();
+      setStreaming(false);
+      setLiveSessionId("");
       toast("Đã dừng phát.");
     } catch (e: any) {
       toast(e?.data?.message || "Lỗi dừng");
+    }
+  };
+  // Cập nhật tiêu đề + mô tả video YouTube/FB của phiên đang live.
+  const applyLiveTitle = async () => {
+    if (!liveSessionId) return toast("Chưa có phiên live để cập nhật (bấm Phát trước).");
+    const t = liveTitle.trim() || title.trim() || "Trận tự do";
+    try {
+      const res: any = await setLiveTitleMut({ sid: liveSessionId, title: t, description: liveDesc.trim() }).unwrap();
+      const okCount = ((res?.destinations) || []).filter((d: any) => d.ok).length;
+      toast(okCount ? `Đã cập nhật tiêu đề/mô tả (${okCount} đích).` : "Đã lưu — chưa đích nào cập nhật được.");
+    } catch (e: any) {
+      toast(e?.data?.error || e?.data?.message || e?.message || "Không cập nhật được tiêu đề/mô tả");
     }
   };
 
@@ -360,6 +383,18 @@ export default function AdHocRefereeScreen() {
                       </Text>
                     </Pressable>
                   ))}
+                </View>
+              ) : null}
+
+              {streaming && liveSessionId ? (
+                <View style={{ marginTop: 10, gap: 8, padding: 10, borderWidth: 1, borderColor: colors.border, borderRadius: 8 }}>
+                  <Text style={{ color: colors.text, fontWeight: "700" }}>Tiêu đề / mô tả video (YouTube · Facebook)</Text>
+                  <TextInput style={s.input} placeholder={title.trim() || "Trận tự do"} placeholderTextColor={colors.border} value={liveTitle} onChangeText={setLiveTitle} />
+                  <Text style={{ color: colors.border, fontSize: 11 }}>Để trống = dùng tên trận</Text>
+                  <TextInput style={[s.input, { minHeight: 64, textAlignVertical: "top" }]} placeholder="Mô tả" placeholderTextColor={colors.border} value={liveDesc} onChangeText={setLiveDesc} multiline />
+                  <Pressable onPress={applyLiveTitle} disabled={savingTitle} style={{ alignSelf: "flex-start", backgroundColor: colors.primary, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 8, opacity: savingTitle ? 0.6 : 1 }}>
+                    <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>{savingTitle ? "Đang cập nhật…" : "Cập nhật tiêu đề / mô tả"}</Text>
+                  </Pressable>
                 </View>
               ) : null}
             </View>
