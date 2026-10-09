@@ -88,9 +88,11 @@ export default function LiveAddScreen() {
   const [srcType, setSrcType] = useState<"rtsp" | "url" | "imou">("rtsp");
   const [rtspIdx, setRtspIdx] = useState<number>(-1);
   const [urlText, setUrlText] = useState("");
+  const [urlTransport, setUrlTransport] = useState("tcp"); // tcp|udp|udp_multicast|http
   const [addRtspOpen, setAddRtspOpen] = useState(false);
   const [newRtspLabel, setNewRtspLabel] = useState("");
   const [newRtspUrl, setNewRtspUrl] = useState("");
+  const [newRtspTransport, setNewRtspTransport] = useState("tcp");
   const [savingRtsp, setSavingRtsp] = useState(false);
   const [camIdx, setCamIdx] = useState<number>(-1);
   const [destType, setDestType] = useState<"fb" | "youtube">("fb");
@@ -192,6 +194,7 @@ export default function LiveAddScreen() {
           const idx = (opt.rtspSources || []).findIndex((s: any) => s.url === src.sourceUrl);
           if (idx >= 0) { setSrcType("rtsp"); setRtspIdx(idx); }
           else { setSrcType("url"); setUrlText(src.sourceUrl); }
+          if (src.rtspTransport) setUrlTransport(src.rtspTransport);
         }
         const d0 = (cfg.destinations || [])[0];
         if (d0?.type === "youtube") setDestType("youtube");
@@ -251,8 +254,8 @@ export default function LiveAddScreen() {
     if (!tour) throw new Error("Chọn giải đấu");
     if (!court) throw new Error("Chọn sân");
     let source: any = {};
-    if (srcType === "rtsp") { const s = opt.rtspSources[rtspIdx]; if (!s) throw new Error("Chọn nguồn RTSP"); source = { sourceUrl: s.url }; }
-    else if (srcType === "url") { if (!urlText.trim()) throw new Error("Nhập link nguồn"); source = { sourceUrl: urlText.trim() }; }
+    if (srcType === "rtsp") { const s = opt.rtspSources[rtspIdx]; if (!s) throw new Error("Chọn nguồn RTSP"); source = { sourceUrl: s.url, rtspTransport: s.transport || "tcp" }; }
+    else if (srcType === "url") { if (!urlText.trim()) throw new Error("Nhập link nguồn"); source = { sourceUrl: urlText.trim(), rtspTransport: urlTransport }; }
     else { const c = opt.cams[camIdx]; if (!c) throw new Error("Chọn camera Imou"); source = { imouDeviceId: c.deviceId, venueId: c.venueId }; }
     let destinations: any[] = [];
     if (destType === "fb") {
@@ -281,7 +284,7 @@ export default function LiveAddScreen() {
   };
 
   const openAddRtsp = () => {
-    if (srcType === "url" && urlText.trim() && !newRtspUrl.trim()) setNewRtspUrl(urlText.trim());
+    if (srcType === "url" && urlText.trim() && !newRtspUrl.trim()) { setNewRtspUrl(urlText.trim()); setNewRtspTransport(urlTransport); }
     setAddRtspOpen(true);
   };
   const doCreateRtsp = async () => {
@@ -290,8 +293,8 @@ export default function LiveAddScreen() {
     if (!label || !url) { Alert.alert("Thiếu", "Nhập tên gợi nhớ + link RTSP"); return; }
     setSavingRtsp(true);
     try {
-      const created: any = await createRtspSourceMut({ label, url }).unwrap();
-      const next = [...(opt.rtspSources || []), { _id: created._id, label: created.label, url: created.url }];
+      const created: any = await createRtspSourceMut({ label, url, transport: newRtspTransport }).unwrap();
+      const next = [...(opt.rtspSources || []), { _id: created._id, label: created.label, url: created.url, transport: created.transport || newRtspTransport }];
       setOpt((o: any) => ({ ...o, rtspSources: next }));
       setSrcType("rtsp");
       setRtspIdx(next.length - 1);
@@ -501,6 +504,13 @@ export default function LiveAddScreen() {
               </Pressable>
             )}
             {srcType === "url" && <TextInput value={urlText} onChangeText={setUrlText} placeholder="rtsp:// hoặc m3u8…" placeholderTextColor={C.sub} style={[styles.input, { backgroundColor: C.field, borderColor: C.border, color: C.text }]} />}
+            {srcType === "url" && (
+              <View style={{ marginTop: 8 }}>
+                <Text style={{ color: C.sub, fontSize: 12, marginBottom: 4 }}>RTSP transport</Text>
+                <Seg options={[{ v: "tcp", l: "TCP" }, { v: "udp", l: "UDP" }, { v: "udp_multicast", l: "Multicast" }, { v: "http", l: "HTTP" }]} value={urlTransport} onChange={setUrlTransport} />
+                <Text style={{ color: C.sub, fontSize: 11, marginTop: 4 }}>Đầu thu/relay chỉ chạy UDP (vd RTSP :8554) thì chọn UDP — TCP báo "461 Unsupported Transport".</Text>
+              </View>
+            )}
             {srcType === "url" && !addRtspOpen && (
               <Pressable onPress={openAddRtsp} disabled={!urlText.trim()} style={{ marginTop: 8, alignSelf: "flex-start", opacity: urlText.trim() ? 1 : 0.5 }}>
                 <Text style={{ color: C.primary, fontWeight: "700", fontSize: 13 }}>💾 Lưu link này vào danh sách RTSP</Text>
@@ -511,6 +521,8 @@ export default function LiveAddScreen() {
                 <Text style={{ color: C.sub, fontSize: 12, marginBottom: 6 }}>Tạo & lưu nguồn RTSP mới (dùng lại ở "RTSP lưu" lần sau)</Text>
                 <TextInput value={newRtspLabel} onChangeText={setNewRtspLabel} placeholder="Tên gợi nhớ (VD: Milkyway - Sân 1)" placeholderTextColor={C.sub} style={[styles.input, { backgroundColor: C.card, borderColor: C.border, color: C.text }]} />
                 <TextInput value={newRtspUrl} onChangeText={setNewRtspUrl} placeholder="rtsp://user:pass@host:port/..." placeholderTextColor={C.sub} autoCapitalize="none" autoCorrect={false} style={[styles.input, { backgroundColor: C.card, borderColor: C.border, color: C.text, marginTop: 8 }]} />
+                <Text style={{ color: C.sub, fontSize: 12, marginTop: 8, marginBottom: 4 }}>RTSP transport</Text>
+                <Seg options={[{ v: "tcp", l: "TCP" }, { v: "udp", l: "UDP" }, { v: "udp_multicast", l: "Multicast" }, { v: "http", l: "HTTP" }]} value={newRtspTransport} onChange={setNewRtspTransport} />
                 <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
                   <Pressable onPress={doCreateRtsp} disabled={savingRtsp || !newRtspLabel.trim() || !newRtspUrl.trim()} style={{ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 8, backgroundColor: C.primary, opacity: (savingRtsp || !newRtspLabel.trim() || !newRtspUrl.trim()) ? 0.5 : 1 }}>
                     <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>{savingRtsp ? "Đang lưu…" : "Lưu nguồn"}</Text>

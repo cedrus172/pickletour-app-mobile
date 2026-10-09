@@ -62,10 +62,10 @@ export const liveControlApiSlice = apiSlice.injectEndpoints({
     }),
     // Tự tạo + LƯU nguồn RTSP mới vào thư viện.
     createRtspSource: builder.mutation({
-      query: ({ label, url, note }) => ({
+      query: ({ label, url, note, transport }) => ({
         url: `/api/tournament-auto-live/rtsp-sources`,
         method: "POST",
-        body: { label, url, note },
+        body: { label, url, note, transport },
       }),
     }),
   }),
