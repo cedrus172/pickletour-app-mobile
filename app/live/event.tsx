@@ -70,6 +70,22 @@ function buildEmbedHtml(videoId: string, muted: boolean) {
 </div></body></html>`;
 }
 
+// HTML nhúng Facebook Video Plugin — iframe lấp đầy WebView, autoplay tắt tiếng.
+function buildFbEmbedHtml(fbUrl: string) {
+  const src = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(
+    fbUrl || "",
+  )}&show_text=false&autoplay=true&mute=1&allowfullscreen=true`;
+  return `<!DOCTYPE html><html><head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>*{margin:0;padding:0;box-sizing:border-box}html,body{height:100%;background:#000;overflow:hidden}
+.w{position:absolute;inset:0}iframe{width:100%;height:100%;border:0;display:block}</style>
+</head><body><div class="w">
+<iframe src="${src}"
+ allow="autoplay; encrypted-media; picture-in-picture; fullscreen; web-share"
+ allowfullscreen scrolling="no"></iframe>
+</div></body></html>`;
+}
+
 // Player HLS/URL thủ công (expo-video) — cho luồng thêm từ link .m3u8/mp4.
 function HlsPlayer({
   uri,
@@ -129,8 +145,9 @@ type Feed = {
   angleLabelDisplay?: string;
   courtLabel?: string;
   embeddable?: boolean;
-  sourceType?: "youtube" | "hls" | "url";
+  sourceType?: "youtube" | "hls" | "url" | "facebook";
   hlsUrl?: string;
+  fbUrl?: string;
   publishedAt?: string | null;
   durationSec?: number;
 };
@@ -318,7 +335,20 @@ export default function EventLiveScreen() {
       {/* Player — ẩn khi keyboard hiện ở tab chat để nhường chỗ */}
       {!hidePlayer && (
         <View style={{ width: playerW, height: playerH, backgroundColor: "#000" }}>
-          {current &&
+          {current && current.sourceType === "facebook" && current.fbUrl ? (
+            <WebView
+              key={current.videoId}
+              style={{ width: playerW, height: playerH, backgroundColor: "#000" }}
+              source={{ html: buildFbEmbedHtml(current.fbUrl), baseUrl: EMBED_ORIGIN }}
+              originWhitelist={["*"]}
+              javaScriptEnabled
+              domStorageEnabled
+              allowsInlineMediaPlayback
+              mediaPlaybackRequiresUserAction={false}
+              allowsFullscreenVideo
+              androidLayerType="hardware"
+            />
+          ) : current &&
           (current.hlsUrl ||
             current.sourceType === "hls" ||
             current.sourceType === "url") ? (
