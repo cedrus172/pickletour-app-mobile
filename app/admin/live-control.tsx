@@ -11,6 +11,7 @@ import {
   Share,
   StyleSheet,
   Switch,
+  TextInput,
   View,
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
@@ -26,6 +27,7 @@ import {
   useCreateCommentaryTokenMutation,
   useSetScoreboardScaleMutation,
   useLazyGetAutoLiveSessionQuery,
+  useSetOverlayDelayMutation,
 } from "@/slices/liveControlApiSlice";
 
 const SCALE_PRESETS = [0.7, 0.85, 1, 1.2, 1.4, 1.6];
@@ -178,6 +180,20 @@ export default function LiveControlScreen() {
       setErr(e?.data?.message || "Không đổi được cỡ bảng điểm");
     }
   };
+  // Độ trễ overlay RIÊNG theo phiên (đồng bộ tỉ số ↔ camera) — gọi thẳng backend, áp NGAY
+  // cho live đang chạy (không cần bật lại). Nhập theo GIÂY. Trống = mặc định chung.
+  const [setOverlayDelay] = useSetOverlayDelayMutation();
+  const [delayBy, setDelayBy] = useState<Record<string, string>>({});
+  const changeDelay = async (s: any, secStr: string) => {
+    const str = String(secStr).trim();
+    const ms = str === "" ? null : Math.max(0, Math.min(60, Number(str) || 0)) * 1000;
+    setDelayBy((m) => ({ ...m, [s.sid]: str }));
+    try {
+      await setOverlayDelay({ sid: s.sid, ms }).unwrap();
+    } catch (e: any) {
+      setErr(e?.data?.message || "Không đổi được độ trễ overlay");
+    }
+  };
   // Seed cỡ bảng điểm từ BACKEND (nguồn chuẩn) → tránh F5/mở lại hiện 100% sai.
   const seedSids = (snap.sessions || []).map((s: any) => s?.sid).filter(Boolean).join(",");
   useEffect(() => {
@@ -194,6 +210,21 @@ export default function LiveControlScreen() {
         if (!alive) return;
         const sc = Number(d?.scoreboardScale);
         if (Number.isFinite(sc) && sc > 0) setScaleBy((m) => (m[s.sid] != null ? m : { ...m, [s.sid]: sc }));
+      } catch { /* bỏ qua */ }
+    });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedSids]);
+  // Seed độ trễ overlay hiện tại từ backend (GET cache sẵn → không gọi 2 lần).
+  useEffect(() => {
+    let alive = true;
+    (snap.sessions || []).forEach(async (s: any) => {
+      if (!s?.sid || delayBy[s.sid] !== undefined) return;
+      try {
+        const d: any = await fetchBackendSession(s.sid).unwrap();
+        if (!alive) return;
+        const ms = d?.overlayDelayMs;
+        setDelayBy((m) => (m[s.sid] !== undefined ? m : { ...m, [s.sid]: ms == null ? "" : String(Math.round(ms / 1000)) }));
       } catch { /* bỏ qua */ }
     });
     return () => { alive = false; };
@@ -466,6 +497,24 @@ export default function LiveControlScreen() {
                           );
                         })}
                       </View>
+                      <Text style={{ color: C.sub, fontSize: 12, marginTop: 10 }}>Độ trễ overlay (giây) — đồng bộ tỉ số với hình camera</Text>
+                      <View style={[styles.layRow, { marginTop: 4, alignItems: "center" }]}>
+                        <TextInput
+                          value={delayBy[s.sid] ?? ""}
+                          onChangeText={(t) => setDelayBy((m) => ({ ...m, [s.sid]: t.replace(/[^0-9]/g, "") }))}
+                          keyboardType="number-pad"
+                          placeholder="mặc định"
+                          placeholderTextColor={C.sub}
+                          style={{ backgroundColor: C.chipOff, borderColor: C.border, borderWidth: 1, borderRadius: 8, color: C.text, width: 110, paddingHorizontal: 10, paddingVertical: 8, fontSize: 14 }}
+                        />
+                        <Pressable
+                          onPress={() => changeDelay(s, delayBy[s.sid] ?? "")}
+                          style={[styles.layBtn, { borderColor: C.border, backgroundColor: C.primary, marginLeft: 8 }]}
+                        >
+                          <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>Áp</Text>
+                        </Pressable>
+                      </View>
+                      <Text style={{ color: C.sub, fontSize: 11 }}>Overlay nhanh hơn camera → tăng; chậm hơn → giảm. Trống = mặc định chung.</Text>
                       <View style={[styles.rowBetween, { marginTop: 10 }]}>
                         <Text style={{ color: C.text, fontSize: 14 }}>Ẩn ngày giờ camera (làm mờ)</Text>
                         <Switch value={!!s.hideTimestamp} onValueChange={(v) => toggleTs(s, v)} />

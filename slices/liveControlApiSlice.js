@@ -52,6 +52,15 @@ export const liveControlApiSlice = apiSlice.injectEndpoints({
       query: (sid) => `/api/tournament-auto-live/${sid}`,
       keepUnusedDataFor: 30,
     }),
+    // Độ trễ overlay RIÊNG của phiên (ms; null = mặc định chung). Áp NGAY cho live đang
+    // chạy (overlay render backend → không cần bật lại live).
+    setOverlayDelay: builder.mutation({
+      query: ({ sid, ms }) => ({
+        url: `/api/tournament-auto-live/${sid}/overlay-delay`,
+        method: "PATCH",
+        body: { ms },
+      }),
+    }),
     // Đổi tiêu đề luồng ĐANG chạy (cập nhật video FB/YouTube) — không tạo live mới.
     setLiveTitle: builder.mutation({
       query: ({ sid, title }) => ({
@@ -78,6 +87,7 @@ export const {
   useCommentaryOfferMutation,
   useGetSessionRtspQuery,
   useSetScoreboardScaleMutation,
+  useSetOverlayDelayMutation,
   useLazyGetAutoLiveSessionQuery,
   useSetLiveTitleMutation,
   useCreateRtspSourceMutation,
