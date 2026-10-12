@@ -282,7 +282,7 @@ function TournamentListHeader({
 }
 
 /* ---------- Card GOM NHÓM: nhiều nội dung cùng 1 sự kiện ---------- */
-function GroupCard({ group, canManage, formatDate }: any) {
+function GroupCard({ group, canManage, formatDate, onPreview }: any) {
   const [open, setOpen] = React.useState(true); // mặc định hiện đủ nội dung
   const items: any[] = group?.items || [];
   const cover = items.find((x) => normalizeUrl(x?.image)) || items[0];
@@ -298,7 +298,12 @@ function GroupCard({ group, canManage, formatDate }: any) {
         title={group?.title || "Giải đấu Pickletour"}
         status={gstatus}
         onPress={() => setOpen((v) => !v)}
-        onPressImage={() => setOpen((v) => !v)}
+        onPressImage={() => {
+          // Bấm vào ẢNH banner → mở xem ảnh TOÀN MÀN (giống card giải đơn lẻ).
+          const uri = normalizeUrl(cover?.image);
+          if (uri) onPreview?.(uri);
+          else setOpen((v) => !v);
+        }}
       />
       <View style={{ paddingHorizontal: 14, paddingTop: 6 }}>
         <Text style={{ fontSize: 12.5, color: "#8A94A6", fontWeight: "600" }}>
@@ -569,7 +574,7 @@ export default function TournamentDashboardScreen({ isBack = false }) {
   // === RENDER ITEM ===
   const renderItem = ({ item }) => {
     if (item?.isGroup) {
-      return <GroupCard group={item} canManage={canManage} formatDate={formatDate} />;
+      return <GroupCard group={item} canManage={canManage} formatDate={formatDate} onPreview={setPreview} />;
     }
     const tt = item?.items ? item.items[0] : item;
     return renderSingle(tt);
