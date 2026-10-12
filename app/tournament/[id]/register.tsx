@@ -90,7 +90,12 @@ function useThemeColors() {
   return useMemo(() => {
     const isDark = v2 || scheme === "dark";
     return {
-      scheme,
+      // scheme HIỆU LỰC = theo isDark (gồm cả V2), KHÔNG để nguyên scheme hệ thống.
+      // Nếu để scheme hệ thống (light) mà nội dung lại tô theo isDark (V2→tối) thì
+      // kính Apple Liquid Glass + backdrop render SÁNG còn chữ SÁNG → chữ sáng trên
+      // nền sáng, không đọc được (bug light mode khi bật V2).
+      scheme: isDark ? "dark" : "light",
+      isDark,
       tint: v2 ? "#12B6F3" : isDark ? "#60a5fa" : "#2563eb",
       pageBg: v2 ? "#040E20" : isDark ? "#0f1115" : "#F5F7FA",
       cardBg: v2 ? "#0A1B34" : isDark ? "#181a20" : "#FFFFFF",

@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   View,
   AppState,
+  Appearance,
   InteractionManager,
   DeviceEventEmitter,
   Platform,
@@ -1325,6 +1326,25 @@ function RootLayout() {
   const resolvedScheme =
     prefTheme === "system" ? systemScheme : (prefTheme as "light" | "dark");
   const isDark = resolvedScheme === "dark";
+
+  // 3b) ĐỒNG BỘ useColorScheme() HỆ THỐNG với theme HIỆU LỰC của app.
+  // Nhiều màn còn đọc useColorScheme() TRỰC TIẾP (cho kính Apple Liquid Glass / material /
+  // backdrop) trong khi nội dung lại tô theo isDark = (V2 || dark). Khi V2 (thiết kế TỐI)
+  // mà máy để SÁNG → kính render SÁNG còn chữ SÁNG ⇒ không đọc được. Ép useColorScheme()
+  // trả đúng theme hiệu lực: V2 → "dark"; V1 theo PREF_THEME (system → null = theo máy).
+  React.useEffect(() => {
+    const forced: "light" | "dark" | null =
+      uiVersion === "v2"
+        ? "dark"
+        : prefTheme === "light"
+        ? "light"
+        : prefTheme === "dark"
+        ? "dark"
+        : null; // "system" → theo máy (không ép)
+    try {
+      Appearance.setColorScheme(forced as any);
+    } catch {}
+  }, [uiVersion, prefTheme]);
 
   // V2 Modern luôn dùng theme navy riêng (bỏ qua sáng/tối); V1 giữ nguyên.
   const navTheme = React.useMemo(
