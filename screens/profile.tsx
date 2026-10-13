@@ -2561,37 +2561,22 @@ const ProfileModalButton = ({
       { opacity: disabled ? 0.55 : pressed ? 0.9 : 1 },
     ]}
   >
+    {/* Nút phẳng (KHÔNG dùng GlassView): trên iOS 26, GlassView nuốt chữ con RN
+        khiến label rỗng. Dùng View thường tô nền/viền → label luôn hiện. */}
     <View
       style={[
         variant === "primary" ? styles.modalBtnPrimary : styles.modalBtn,
-        IOS_26_LIQUID_GLASS_ENABLED && styles.glassPill,
         variant === "primary"
           ? { backgroundColor: color }
           : {
-              borderColor: IOS_26_LIQUID_GLASS_ENABLED
-                ? profileGlassBorderFor(t, 0.28, 0.16)
-                : t.border,
+              backgroundColor: t.dark
+                ? "rgba(255,255,255,0.08)"
+                : "rgba(0,0,0,0.04)",
+              borderColor: t.border,
             },
       ]}
     >
-      {/* Lớp kính chỉ là NỀN (absolute) — không bọc children, để label luôn hiện
-          (GlassView tương tác trên iOS 26 không render chữ con ổn định). */}
-      <ProfileGlassSurface
-        effect="clear"
-        tintColor={
-          variant === "primary"
-            ? IOS_26_LIQUID_GLASS_ENABLED
-              ? rgbaFromHex(color, t.dark ? 0.62 : 0.54)
-              : rgbaFromHex(color, 0.3)
-            : IOS_26_LIQUID_GLASS_ENABLED
-              ? profileGlassNeutralTintFor(t, 0.52, 0.78)
-              : glassTintFor(t, 0.38, 0.54)
-        }
-        style={StyleSheet.absoluteFill}
-      />
-      <View pointerEvents="none" style={styles.modalBtnLabel}>
-        {children}
-      </View>
+      {children}
     </View>
   </Pressable>
 );
