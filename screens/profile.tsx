@@ -2208,7 +2208,10 @@ export default function ProfileScreen({ isBack = false }) {
                     await refetch();
                     Alert.alert("Thành công", "Đã cập nhật ảnh.");
                   } catch (e) {
-                    Alert.alert("Lỗi", e?.message || "Thất bại");
+                    Alert.alert(
+                      "Lỗi",
+                      e?.data?.message || e?.message || e?.error || "Thất bại"
+                    );
                   } finally {
                     setAvatarSaving(false);
                   }
@@ -2280,7 +2283,10 @@ export default function ProfileScreen({ isBack = false }) {
                     await refetch();
                     Alert.alert("Thành công", "Đã cập nhật ảnh bìa.");
                   } catch (e) {
-                    Alert.alert("Lỗi", e?.message || "Thất bại");
+                    Alert.alert(
+                      "Lỗi",
+                      e?.data?.message || e?.message || e?.error || "Thất bại"
+                    );
                   } finally {
                     setCoverSaving(false);
                   }
