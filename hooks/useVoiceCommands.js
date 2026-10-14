@@ -353,15 +353,16 @@ export function useVoiceCommands({
   });
 
   useSpeechRecognitionEvent("result", (event) => {
-    const result = event?.results?.[event?.resultIndex];
-    if (!result) return;
+    // expo-speech-recognition event: { isFinal: boolean, results: [{ transcript, ... }] }
+    // (KHÔNG phải shape Web SpeechRecognition results[resultIndex][0].transcript).
+    const text = event?.results?.[0]?.transcript || "";
+    if (!text) return;
 
-    const text = result?.[0]?.transcript || "";
     if (trackTranscript) {
       safeSetState(setTranscript, text);
     }
 
-    if (result?.isFinal && text) {
+    if (event?.isFinal) {
       processTranscript(text);
     }
   });
