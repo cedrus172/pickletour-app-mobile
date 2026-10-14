@@ -2786,6 +2786,18 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
     });
   }, []);
 
+  // Nghe được giọng nhưng không khớp lệnh nào → hiện để biết nhận dạng CÓ chạy.
+  const handleVoiceNoMatch = useCallback((heard) => {
+    const text = textOf(heard);
+    if (!text) return;
+    Toast.show({
+      type: "info",
+      text1: `🎤 Nghe: "${text}"`,
+      text2: "Chưa khớp lệnh. Thử nói: điểm / đổi giao / timeout / hoàn tác.",
+      visibilityTime: 2000,
+    });
+  }, []);
+
   // ✅ THÊM: Hàm xử lý đọc điểm chuẩn Pickleball
   useEffect(() => {
     // Chỉ đọc khi: Đã bật voice, Match đang Live, và không phải lúc mới load chưa có dữ liệu
@@ -3809,6 +3821,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
     enabled: voiceCommandEnabled && Boolean(match?._id) && match?.status !== "finished",
     onCommand: handleVoiceCommand,
     onError: handleVoiceCommandError,
+    onNoMatch: handleVoiceNoMatch,
     apiUrl: VOICE_API_URL,
     context: voiceCommandParseContext,
     trackTranscript: false,

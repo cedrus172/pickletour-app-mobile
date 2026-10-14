@@ -126,6 +126,7 @@ export function useVoiceCommands({
   onCommand,
   onError,
   onStatusChange,
+  onNoMatch,
   apiUrl = "",
   context = {},
   hapticFeedback = true,
@@ -190,7 +191,8 @@ export function useVoiceCommands({
   }, []);
 
   const processTranscript = useCallback(
-    async (rawText) => {
+    async (rawText, opts = {}) => {
+      const localOnly = !!opts.localOnly;
       const text = String(rawText || "").trim();
       if (!text || !isMountedRef.current) return;
 
@@ -208,26 +210,21 @@ export function useVoiceCommands({
         return;
       }
 
-      const now = Date.now();
-      if (
-        normalized === lastProcessedRef.current.normalized &&
-        now - lastProcessedRef.current.at < CONFIG.DUPLICATE_WINDOW_MS
-      ) {
-        log.info("Duplicate transcript ignored:", normalized);
-        return;
-      }
-      lastProcessedRef.current = { normalized, at: now };
-
-      if (now - lastCommandTimeRef.current < CONFIG.DEBOUNCE_MS) {
-        log.info("Debounced");
-        return;
-      }
-
-      log.info("Transcript:", text);
-
+      // Parse local trước — fire NGAY cả trên interim (không chờ isFinal, nhạy hơn).
       const localResult = parseVoiceCommand(text, context);
       if (localResult) {
-        log.info("Local:", localResult.action);
+        const now = Date.now();
+        if (
+          normalized === lastProcessedRef.current.normalized &&
+          now - lastProcessedRef.current.at < CONFIG.DUPLICATE_WINDOW_MS
+        ) {
+          return; // trùng (interim → final cùng câu)
+        }
+        if (now - lastCommandTimeRef.current < CONFIG.DEBOUNCE_MS) {
+          return;
+        }
+        lastProcessedRef.current = { normalized, at: now };
+        log.info("Local:", localResult.action, text);
         await emitCommand({
           ...localResult,
           method: "local_rule",
@@ -237,18 +234,34 @@ export function useVoiceCommands({
         return;
       }
 
+      // Chưa khớp local. Interim thì dừng ở đây (chờ thêm chữ / bản final).
+      if (localOnly) return;
+
+      // Bản FINAL mà không khớp local → báo đã nghe được gì (để chẩn đoán).
+      const now = Date.now();
+      if (
+        normalized === lastProcessedRef.current.normalized &&
+        now - lastProcessedRef.current.at < CONFIG.DUPLICATE_WINDOW_MS
+      ) {
+        return;
+      }
+      lastProcessedRef.current = { normalized, at: now };
+
       if (!looksLikeVoiceCommand(text)) {
         log.info("Skip non-command transcript");
+        onNoMatch?.(text);
         return;
       }
 
       if (!apiUrl) {
         log.info("No API fallback configured");
+        onNoMatch?.(text);
         return;
       }
 
       if (!isOnline) {
         log.warn("Offline, skip API fallback");
+        onNoMatch?.(text);
         return;
       }
 
@@ -265,6 +278,8 @@ export function useVoiceCommands({
             transcript: text,
             normalizedTranscript: normalized,
           });
+        } else if (isMountedRef.current) {
+          onNoMatch?.(text);
         }
       } catch (error) {
         log.error("Process transcript error:", error);
@@ -288,6 +303,7 @@ export function useVoiceCommands({
       context,
       emitCommand,
       isOnline,
+      onNoMatch,
       safeSetState,
       updateStatus,
     ]
@@ -363,7 +379,9 @@ export function useVoiceCommands({
     }
 
     if (event?.isFinal) {
-      processTranscript(text);
+      processTranscript(text); // final: local + fallback server
+    } else {
+      processTranscript(text, { localOnly: true }); // interim: fire local ngay cho nhạy
     }
   });
 
