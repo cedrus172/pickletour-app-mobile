@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState } from "react-native";
+import { AppState, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import NetInfo from "@react-native-community/netinfo";
 import Constants from "expo-constants";
@@ -46,6 +46,12 @@ const log = {
 };
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// iOS trong chế độ continuous KHÔNG bao giờ phát isFinal (stream interim mãi) →
+// mỗi câu lệnh không bao giờ "chốt". Dùng non-continuous trên iOS: iOS tự chốt
+// isFinal sau khi ngừng nói, rồi vòng lặp "end"→restart tiếp tục nghe câu sau.
+// Android giữ continuous để tránh tiếng beep mỗi lần start/stop.
+const CONTINUOUS_RECOGNITION = Platform.OS !== "ios";
 
 function canUseSpeechModule() {
   return Boolean(
@@ -328,7 +334,7 @@ export function useVoiceCommands({
         ExpoSpeechRecognitionModule.start({
           lang: language,
           interimResults: true,
-          continuous: true,
+          continuous: CONTINUOUS_RECOGNITION,
           androidIntentOptions: {
             EXTRA_LANGUAGE_MODEL: "web_search",
           },
@@ -487,7 +493,7 @@ export function useVoiceCommands({
       ExpoSpeechRecognitionModule.start({
         lang: language,
         interimResults: true,
-        continuous: true,
+        continuous: CONTINUOUS_RECOGNITION,
         androidIntentOptions: {
           EXTRA_LANGUAGE_MODEL: "web_search",
         },
