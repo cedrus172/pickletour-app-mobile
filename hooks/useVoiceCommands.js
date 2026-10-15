@@ -378,10 +378,10 @@ export function useVoiceCommands({
       safeSetState(setTranscript, text);
     }
 
+    // CHỈ xử lý bản FINAL (câu nói hoàn chỉnh). Interim là phỏng đoán từng phần,
+    // rất nhiễu → nếu fire theo interim thì gần như nói gì cũng dính "tăng điểm".
     if (event?.isFinal) {
-      processTranscript(text); // final: local + fallback server
-    } else {
-      processTranscript(text, { localOnly: true }); // interim: fire local ngay cho nhạy
+      processTranscript(text);
     }
   });
 
