@@ -79,8 +79,39 @@ const PHRASES = {
   ],
 };
 
-const SCORE_SHORT_TOKENS = new Set(["diem", "point", "yes"]);
+// iOS nhận dạng tiếng Việt hay nghe "điểm" thành: dấm/dím/diễm/giem... →
+// chuẩn hoá về: dam/dim/diem/giem. Thêm biến thể + khớp mờ (edit distance ≤1).
+const SCORE_SHORT_TOKENS = new Set([
+  "diem", "point", "yes",
+  "dam", "dim", "diam", "deim", "giem", "diemm", "gdiem", "ziem", "dziem",
+]);
 const SCORE_AMBIGUOUS_TOKENS = new Set(["co", "vao", "duoc"]);
+
+// Levenshtein nhỏ gọn để bắt các biến thể gần "diem"/"dam".
+function editDistance(a, b) {
+  const m = a.length;
+  const n = b.length;
+  if (Math.abs(m - n) > 1) return 2;
+  const dp = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+    }
+  }
+  return dp[m][n];
+}
+
+function isScoreToken(token) {
+  if (!token) return false;
+  if (SCORE_SHORT_TOKENS.has(token)) return true;
+  if (token.length >= 3 && token.length <= 5) {
+    if (editDistance(token, "diem") <= 1) return true;
+    if (editDistance(token, "dam") <= 1) return true;
+  }
+  return false;
+}
 
 const LEFT_PHRASES = ["ben trai", "doi trai", "trai", "left", "team left"];
 const RIGHT_PHRASES = ["ben phai", "doi phai", "phai", "right", "team right"];
@@ -205,7 +236,7 @@ function makeCommand(action, feedback, extras = {}) {
 function parseScoreCommand(text, context) {
   const tokens = text.split(/\s+/).filter(Boolean);
   const hasStrongPhrase = hasAnyPhrase(text, PHRASES.scoreStrong);
-  const hasShortScoreToken = tokens.some((token) => SCORE_SHORT_TOKENS.has(token));
+  const hasShortScoreToken = tokens.some(isScoreToken);
   const hasAmbiguousScoreToken =
     tokens.length <= 3 &&
     tokens.some((token) => SCORE_AMBIGUOUS_TOKENS.has(token));
