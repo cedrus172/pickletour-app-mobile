@@ -36,15 +36,18 @@ const PHRASES = {
   ],
   undo: [
     "hoan tac",
+    "hoan tat",
     "undo",
     "nham roi",
     "sai roi",
+    "bam nham",
     "quay lai",
     "tro lai",
     "huy diem",
+    "bo diem",
   ],
-  timeout: ["timeout", "xin timeout", "tam dung", "nghi"],
-  medical: ["y te", "medical", "injury", "chan thuong"],
+  timeout: ["timeout", "time out", "xin timeout", "tam dung", "het gio", "nghi"],
+  medical: ["y te", "y ta", "medical", "injury", "chan thuong"],
   continue: ["tiep tuc", "choi tiep", "het nghi", "resume", "continue"],
   startMatch: [
     "bat dau tran",
@@ -111,6 +114,34 @@ function isScoreToken(token) {
     if (editDistance(token, "dam") <= 1) return true;
   }
   return false;
+}
+
+function fuzzyEq(a, b, maxD = 1) {
+  if (a === b) return true;
+  if (Math.abs(a.length - b.length) > maxD) return false;
+  return editDistance(a, b) <= maxD;
+}
+
+function hasFuzzyToken(tokens, target, maxD = 1) {
+  return tokens.some((t) => fuzzyEq(t, target, maxD));
+}
+
+// Nhóm lệnh "ĐỔI ..." — iOS hay nghe SAI TỪ THỨ HAI: giao→rau/dao/rao, tay→tai, bên→benh.
+// "đổi/đội/đôi/dỗi" đều chuẩn hoá về "doi". Phân biệt theo từ sau; mặc định "đổi <gì đó>"
+// = ĐỔI GIAO (lệnh dùng nhiều nhất của trọng tài).
+function parseDoiCommand(tokens) {
+  const i = tokens.indexOf("doi");
+  if (i === -1) return null;
+  const next = tokens[i + 1] || "";
+  if (!next) return null;
+  if (fuzzyEq(next, "tay") || fuzzyEq(next, "tai")) {
+    return makeCommand(ACTIONS.TOGGLE_SERVER, "Đổi tay", { confidence: 0.9 });
+  }
+  if (fuzzyEq(next, "ben") || fuzzyEq(next, "san")) {
+    return makeCommand(ACTIONS.SWAP_SIDES, "Đổi bên", { confidence: 0.9 });
+  }
+  // còn lại: đổi giao / đổi rau / đổi dao / đổi rao / đổi giầu / đổi gao ...
+  return makeCommand(ACTIONS.SIDE_OUT, "Đổi giao", { confidence: 0.85 });
 }
 
 const LEFT_PHRASES = ["ben trai", "doi trai", "trai", "left", "team left"];
@@ -273,28 +304,31 @@ export function parseVoiceCommand(transcript, rawContext = {}) {
   const uiSide = resolveUiSide(text, context);
   const teamKey = resolveCommandTeamKey(text, context, uiSide);
 
-  if (hasAnyPhrase(text, PHRASES.undo)) {
-    return makeCommand(ACTIONS.UNDO, "Hoàn tác", {
-      confidence: 0.99,
-    });
+  const tokens = text.split(/\s+/).filter(Boolean);
+
+  // UNDO: hoàn tác / hoàn tất / huỷ / undo / nhầm rồi / sai rồi / quay lại ...
+  if (
+    hasAnyPhrase(text, PHRASES.undo) ||
+    (hasFuzzyToken(tokens, "hoan") &&
+      (hasFuzzyToken(tokens, "tac") || hasFuzzyToken(tokens, "tat")))
+  ) {
+    return makeCommand(ACTIONS.UNDO, "Hoàn tác", { confidence: 0.98 });
   }
 
-  if (text === "doi ben" || hasAnyPhrase(text, PHRASES.swapSides)) {
-    return makeCommand(ACTIONS.SWAP_SIDES, "Đổi bên", {
-      confidence: 0.98,
-    });
+  // Nhóm "đổi ..." (đổi giao / đổi tay / đổi bên) — khớp mờ từ thứ hai.
+  const doiCmd = parseDoiCommand(tokens);
+  if (doiCmd) return doiCmd;
+
+  if (hasAnyPhrase(text, PHRASES.swapSides)) {
+    return makeCommand(ACTIONS.SWAP_SIDES, "Đổi bên", { confidence: 0.96 });
   }
 
   if (hasAnyPhrase(text, PHRASES.toggleServer)) {
-    return makeCommand(ACTIONS.TOGGLE_SERVER, "Đổi tay", {
-      confidence: 0.98,
-    });
+    return makeCommand(ACTIONS.TOGGLE_SERVER, "Đổi tay", { confidence: 0.96 });
   }
 
   if (hasAnyPhrase(text, PHRASES.sideOut)) {
-    return makeCommand(ACTIONS.SIDE_OUT, "Đổi giao", {
-      confidence: 0.99,
-    });
+    return makeCommand(ACTIONS.SIDE_OUT, "Đổi giao", { confidence: 0.98 });
   }
 
   if (hasAnyPhrase(text, PHRASES.finishMatch)) {
@@ -309,7 +343,11 @@ export function parseVoiceCommand(transcript, rawContext = {}) {
     });
   }
 
-  if (hasAnyPhrase(text, PHRASES.startMatch) || text === "bat dau" || text === "start") {
+  if (
+    hasAnyPhrase(text, PHRASES.startMatch) ||
+    hasPhrase(text, "bat dau") ||
+    text === "start"
+  ) {
     if (context.ctaLabel === normalizeText("Bắt game tiếp")) {
       return makeCommand(ACTIONS.START_NEXT_GAME, "Bắt game tiếp", {
         confidence: 0.9,
