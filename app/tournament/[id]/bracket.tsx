@@ -290,6 +290,10 @@ const extractDisplayCodeText = (value) => {
 };
 
 /* ----- seed label helpers ----- */
+// (bảng#hạng / stage#bảng#hạng) đang CHỜ BỐC THĂM — component set để seedLabel
+// đánh dấu ô seed trên sơ đồ KO.
+let pendingGroupRankRef = new Set<string>();
+
 export const seedLabel = (seed) => {
   if (!seed || !seed.type) return "Chưa có đội";
   if (seed.label) return seed.label;
@@ -299,7 +303,17 @@ export const seedLabel = (seed) => {
       const st = seed.ref?.stage ?? seed.ref?.stageIndex ?? "?";
       const g = seed.ref?.groupCode;
       const r = seed.ref?.rank ?? "?";
-      return g ? `V${st}-B${g}-T${r}` : `V${st}-T${r}`;
+      const base = g ? `V${st}-B${g}-T${r}` : `V${st}-T${r}`;
+      if (g) {
+        const gk = String(g).toUpperCase();
+        if (
+          pendingGroupRankRef.has(`${st}#${gk}#${r}`) ||
+          pendingGroupRankRef.has(`${gk}#${r}`)
+        ) {
+          return `${base} · 🎲 chờ bốc`;
+        }
+      }
+      return base;
     }
     case "stageMatchWinner": {
       const r = seed.ref?.round ?? "?";
@@ -4108,6 +4122,36 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
     });
     return mp;
   }, [brackets]);
+
+  // (bảng#hạng) đang chờ bốc thăm — gộp từ mọi bracket vòng bảng, đánh dấu sơ đồ KO.
+  const pendingGroupRankSet = useMemo(() => {
+    const set = new Set<string>();
+    if (!tour?.tiebreakByDraw) return set;
+    (brackets || []).forEach((b: any) => {
+      if (b?.type !== "group") return;
+      const bMatches = byBracket?.[b._id] || [];
+      const sd: any = buildStandingsWithFallback(b, bMatches, tour?.eventType, true);
+      const stage = Number(b?.stage ?? 1);
+      (sd.groups || []).forEach((g: any) => {
+        const gk = String(g.key || "").toUpperCase();
+        (g.rows || []).forEach((row: any, idx: number) => {
+          if (row.pendingTiebreak) {
+            const rank = row.rank || idx + 1;
+            set.add(`${stage}#${gk}#${rank}`);
+            set.add(`${gk}#${rank}`);
+          }
+        });
+      });
+    });
+    return set;
+  }, [brackets, byBracket, tour?.tiebreakByDraw, tour?.eventType]);
+
+  useEffect(() => {
+    pendingGroupRankRef = pendingGroupRankSet;
+    return () => {
+      pendingGroupRankRef = new Set<string>();
+    };
+  }, [pendingGroupRankSet]);
 
   const matchRefIndex = useMemo(() => {
     const byId = new Map();
