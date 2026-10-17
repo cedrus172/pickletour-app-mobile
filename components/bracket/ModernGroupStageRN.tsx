@@ -496,6 +496,20 @@ function ModernStandingRowRN({
       >
         {row.name}
       </Text>
+      {(row as any).pendingTiebreak && (
+        <View
+          style={{
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+            borderRadius: 6,
+            backgroundColor: rgba("#f59e0b", isDark ? 0.28 : 0.16),
+          }}
+        >
+          <Text style={{ fontSize: 10, fontWeight: "800", color: isDark ? "#fcd34d" : "#b45309" }}>
+            🎲 Chờ bốc
+          </Text>
+        </View>
+      )}
       <LinearGradient
         colors={[accent, darken(accent, 0.25)]}
         style={styles.ptsBadge}
@@ -535,11 +549,15 @@ function ModernGroupCardRN({
   index,
   isDark,
   onOpenMatch,
+  canManageTiebreak,
+  onTiebreakDraw,
 }: {
   entry: ModernGroupEntry;
   index: number;
   isDark: boolean;
   onOpenMatch?: (m: any) => void;
+  canManageTiebreak?: boolean;
+  onTiebreakDraw?: (groupKey: string, cluster: any) => void;
 }) {
   const accent = accentForGroup(index);
   const total = entry.matchRows?.length || 0;
@@ -747,6 +765,33 @@ function ModernGroupCardRN({
             </Text>
           </View>
         )}
+        {canManageTiebreak &&
+          Array.isArray((entry as any).pendingTieGroups) &&
+          (entry as any).pendingTieGroups.length > 0 && (
+            <View style={{ gap: 6, marginTop: 8 }}>
+              {(entry as any).pendingTieGroups.map((cluster: any, ci: number) => (
+                <Pressable
+                  key={ci}
+                  onPress={() => onTiebreakDraw?.(entry.key, cluster)}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: rgba("#f59e0b", 0.5),
+                    backgroundColor: rgba("#f59e0b", isDark ? 0.14 : 0.08),
+                  }}
+                >
+                  <Text style={{ fontWeight: "800", color: isDark ? "#fcd34d" : "#b45309" }}>
+                    🎲 Bốc thăm phân hạng
+                  </Text>
+                  <Text style={{ fontSize: 11, color: isDark ? "#fcd34d" : "#b45309", opacity: 0.9 }}>
+                    {cluster.teams?.map((tm: any) => tm.name).join(", ")}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
       </View>
     </View>
   );
@@ -758,11 +803,15 @@ export default function ModernGroupStageRN({
   isDark,
   onOpenMatch,
   zoom = 1,
+  canManageTiebreak,
+  onTiebreakDraw,
 }: {
   groups: ModernGroupEntry[];
   isDark: boolean;
   onOpenMatch?: (m: any) => void;
   zoom?: number;
+  canManageTiebreak?: boolean;
+  onTiebreakDraw?: (groupKey: string, cluster: any) => void;
 }) {
   const safeZoom = Number.isFinite(zoom) && zoom > 0 ? zoom : 1;
   if (!groups?.length) {
@@ -798,6 +847,8 @@ export default function ModernGroupStageRN({
           index={entry.labelNumeric ? entry.labelNumeric - 1 : i}
           isDark={isDark}
           onOpenMatch={onOpenMatch}
+          canManageTiebreak={canManageTiebreak}
+          onTiebreakDraw={onTiebreakDraw}
         />
       ))}
     </View>

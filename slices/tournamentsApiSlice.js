@@ -268,6 +268,29 @@ export const tournamentsApiSlice = apiSlice.injectEndpoints({
       providesTags: (res, err, id) => [{ type: "Match", id }],
     }),
 
+    // Bốc thăm phá hoà điểm vòng bảng
+    recordGroupTiebreak: builder.mutation({
+      query: ({ tourId, bracketId, groupKey, order, method = "online" }) => ({
+        url: `/api/tournaments/${tourId}/group-tiebreak`,
+        method: "POST",
+        body: { bracketId, groupKey, order, method },
+      }),
+      invalidatesTags: (_res, _err, { tourId }) => [
+        { type: "Brackets", id: tourId },
+        { type: "Tournaments", id: tourId },
+      ],
+    }),
+    setTiebreakMode: builder.mutation({
+      query: ({ tourId, enabled }) => ({
+        url: `/api/tournaments/${tourId}/tiebreak-mode`,
+        method: "PATCH",
+        body: { enabled },
+      }),
+      invalidatesTags: (_res, _err, { tourId }) => [
+        { type: "Tournaments", id: tourId },
+      ],
+    }),
+
     cancelRegistration: builder.mutation({
       query: (regId) => ({
         url: `/api/registrations/${regId}/cancel`,
@@ -963,6 +986,8 @@ export const {
   useListTournamentMatchesQuery,
   useListTournamentManagersQuery,
   useAddTournamentManagerMutation,
+  useRecordGroupTiebreakMutation,
+  useSetTiebreakModeMutation,
   useRemoveTournamentManagerMutation,
   useGetMatchPublicQuery,
   useLazyGetMatchPublicQuery,

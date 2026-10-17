@@ -20,6 +20,8 @@ import {
   RefreshControl,
   TextInput,
   useWindowDimensions,
+  Alert,
+  Switch,
   type LayoutChangeEvent,
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
@@ -32,6 +34,8 @@ import {
   useGetTournamentQuery,
   useListTournamentBracketsQuery,
   useListTournamentMatchesQuery,
+  useRecordGroupTiebreakMutation,
+  useSetTiebreakModeMutation,
 } from "@/slices/tournamentsApiSlice";
 
 import { useSocket } from "@/context/SocketContext";
@@ -65,6 +69,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import ModernKnockoutBracketRN from "@/components/bracket/ModernKnockoutBracketRN";
 import ModernRoundElimBracketRN from "@/components/bracket/ModernRoundElimBracketRN";
 import ModernGroupStageRN from "@/components/bracket/ModernGroupStageRN";
+import TiebreakDrawSheetRN from "@/components/bracket/TiebreakDrawSheetRN";
 import { ModernBracketToggle } from "@/components/bracket/ModernBracketShared";
 import CourtStatusBar from "@/components/bracket/CourtStatusBar";
 
@@ -824,11 +829,22 @@ function sumPointsLocal(gameScores) {
   return { a, b };
 }
 
-function computeGroupTablesForBracket(bracket, matches, eventType) {
+function computeGroupTablesForBracket(bracket, matches, eventType, tiebreakByDraw = false) {
   const { byKey, byRegId } = buildGroupIndex(bracket);
   const PWIN = bracket?.config?.roundRobin?.points?.win ?? 3;
   const PDRAW = bracket?.config?.roundRobin?.points?.draw ?? 1;
   const PLOSS = bracket?.config?.roundRobin?.points?.loss ?? 0;
+  const drawResults = Array.isArray(bracket?.tiebreakResults)
+    ? bracket.tiebreakResults
+    : [];
+  const drawPos = (groupKey, id) => {
+    for (const c of drawResults) {
+      if (String(c.groupKey) !== String(groupKey)) continue;
+      const i = (c.order || []).map(String).indexOf(String(id));
+      if (i >= 0) return { cluster: c, index: i };
+    }
+    return null;
+  };
 
   const stats = new Map();
 
@@ -912,8 +928,16 @@ function computeGroupTablesForBracket(bracket, matches, eventType) {
     rowB.pointDiff = rowB.pf - rowB.pa;
   });
 
-  const cmpForGroup = () => (x, y) => {
+  const cmpForGroup = (key) => (x, y) => {
     if (y.pts !== x.pts) return y.pts - x.pts;
+    if (tiebreakByDraw) {
+      const dx = drawPos(key, x.id);
+      const dy = drawPos(key, y.id);
+      if (dx && dy && dx.cluster === dy.cluster) return dx.index - dy.index;
+      const nx0 = safePairNick(x.pair, eventType) || "";
+      const ny0 = safePairNick(y.pair, eventType) || "";
+      return nx0.localeCompare(ny0);
+    }
     if (y.setDiff !== x.setDiff) return y.setDiff - x.setDiff;
     if (y.pointDiff !== x.pointDiff) return y.pointDiff - x.pointDiff;
     const nx = safePairNick(x.pair, eventType) || "";
@@ -932,6 +956,28 @@ function computeGroupTablesForBracket(bracket, matches, eventType) {
       r.pointDiff = r.pf - r.pa;
     });
     const rows = filteredRows.sort(cmpForGroup(key));
+    if (tiebreakByDraw) {
+      let i = 0;
+      while (i < rows.length) {
+        let j = i;
+        while (j + 1 < rows.length && rows[j + 1].pts === rows[i].pts) j++;
+        if (j > i) {
+          const ids = rows.slice(i, j + 1).map((r) => String(r.id));
+          const resolved = drawResults.some(
+            (c) =>
+              String(c.groupKey) === String(key) &&
+              ids.every((id) => (c.order || []).map(String).includes(id))
+          );
+          if (!resolved) {
+            for (let k = i; k <= j; k++) {
+              rows[k].pendingTiebreak = true;
+              rows[k].tieGroupIds = ids;
+            }
+          }
+        }
+        i = j + 1;
+      }
+    }
     out.push({ key, label, rows });
   }
 
@@ -1042,11 +1088,12 @@ function buildGroupPlaceholderMatches({
     };
   });
 }
-function buildStandingsWithFallback(bracket, matchesReal, eventType) {
+function buildStandingsWithFallback(bracket, matchesReal, eventType, tiebreakByDraw = false) {
   const real = computeGroupTablesForBracket(
     bracket,
     matchesReal,
-    eventType
+    eventType,
+    tiebreakByDraw
   ) || {
     groups: [],
     points: { win: 3, draw: 1, loss: 0 },
@@ -3722,6 +3769,38 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
     return Boolean(t2?.isManager);
   }, [userInfo, myUserId, tour]);
 
+  // ===== Bốc thăm phá hoà điểm vòng bảng (mobile) =====
+  const [recordTiebreak, { isLoading: savingTiebreak }] =
+    useRecordGroupTiebreakMutation();
+  const [setTiebreakMode, { isLoading: togglingTiebreak }] =
+    useSetTiebreakModeMutation();
+  const [tiebreakSheet, setTiebreakSheet] = useState<any>(null); // { groupKey, pts, teams }
+  const submitTiebreak = async (orderIds: string[], method: "online" | "manual") => {
+    if (!tiebreakSheet || !current?._id) return;
+    try {
+      await recordTiebreak({
+        tourId,
+        bracketId: String(current._id),
+        groupKey: tiebreakSheet.groupKey,
+        order: orderIds,
+        method,
+      }).unwrap();
+      setTiebreakSheet(null);
+      refetchBrackets?.();
+    } catch (err: any) {
+      // eslint-disable-next-line no-alert
+      Alert.alert("Lỗi", err?.data?.message || err?.message || "Lưu bốc thăm thất bại");
+    }
+  };
+  const toggleTiebreakMode = async (enabled: boolean) => {
+    try {
+      await setTiebreakMode({ tourId, enabled }).unwrap();
+      refetchTour?.();
+    } catch (err: any) {
+      Alert.alert("Lỗi", err?.data?.message || err?.message || "Đổi chế độ thất bại");
+    }
+  };
+
   // Zoom cho SƠ ĐỒ MỚI (v4) — trước đây chỉ bản cũ có zoom
   const [modernZoom, setModernZoom] = useState(1);
   const modernZoomIn = useCallback(
@@ -4680,8 +4759,13 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
 
   const standingsData = useMemo(() => {
     if (!current || current.type !== "group") return null;
-    return buildStandingsWithFallback(current, currentMatches, tour?.eventType);
-  }, [current, currentMatches, tour?.eventType]);
+    return buildStandingsWithFallback(
+      current,
+      currentMatches,
+      tour?.eventType,
+      !!tour?.tiebreakByDraw
+    );
+  }, [current, currentMatches, tour?.eventType, tour?.tiebreakByDraw]);
 
   const scaleForCurrent = readBracketScale(current);
   const uniqueRoundsCount = new Set(currentMatches.map((m) => m.round ?? 1))
@@ -5013,8 +5097,29 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
               : row.setDiff ?? 0,
             rank: row.rank || idx + 1,
             isMine: myRegIds.has(String(row.id || "")),
+            pendingTiebreak: !!row.pendingTiebreak,
+            tieGroupIds: row.tieGroupIds || null,
           })
         );
+        const pendingTieGroups: any[] = [];
+        {
+          const seen = new Set<string>();
+          const byId = new Map(standingRows.map((s: any) => [String(s.id), s]));
+          standingRows.forEach((r: any) => {
+            if (!r.pendingTiebreak || !Array.isArray(r.tieGroupIds)) return;
+            const sig = r.tieGroupIds.join("|");
+            if (seen.has(sig)) return;
+            seen.add(sig);
+            pendingTieGroups.push({
+              ids: r.tieGroupIds,
+              pts: r.pts,
+              teams: r.tieGroupIds.map((id: string) => ({
+                id,
+                name: byId.get(String(id))?.name || "—",
+              })),
+            });
+          });
+        }
         return {
           key,
           labelNumeric,
@@ -5024,6 +5129,7 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
           pointsCfg: sData.points || { win: 3, draw: 1, loss: 0 },
           matchRows,
           standingRows,
+          pendingTieGroups,
         };
       });
       return (
@@ -5047,11 +5153,42 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
               </Text>
             </Ripple>
           </View>
+          {canManageTournament && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: t.colors.border,
+              }}
+            >
+              <Switch
+                value={!!tour?.tiebreakByDraw}
+                disabled={togglingTiebreak}
+                onValueChange={(v) => toggleTiebreakMode(v)}
+              />
+              <Text style={{ color: t.colors.text, fontWeight: "700", flex: 1 }}>
+                🎲 Hoà điểm → bốc thăm phân hạng
+              </Text>
+            </View>
+          )}
           <ModernGroupStageRN
             groups={payload}
             isDark={!!t.dark}
             onOpenMatch={openMatch}
             zoom={modernZoom}
+            canManageTiebreak={canManageTournament && !!tour?.tiebreakByDraw}
+            onTiebreakDraw={(groupKey: string, cluster: any) =>
+              setTiebreakSheet({
+                groupKey,
+                pts: cluster?.pts,
+                teams: cluster?.teams || [],
+              })
+            }
           />
         </View>
       );
@@ -5717,6 +5854,16 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
             url={videoState.url}
             onClose={closeVideo}
             t={t}
+          />
+          <TiebreakDrawSheetRN
+            visible={!!tiebreakSheet}
+            onClose={() => setTiebreakSheet(null)}
+            groupKey={tiebreakSheet?.groupKey}
+            pts={tiebreakSheet?.pts}
+            teams={tiebreakSheet?.teams || []}
+            onConfirm={submitTiebreak}
+            saving={savingTiebreak}
+            isDark={!!t.dark}
           />
         </ScrollView>
 
