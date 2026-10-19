@@ -1,6 +1,6 @@
 // app/referee/cluster/[clusterId].tsx
 // Danh sách SÂN trong 1 cụm + trận đang đánh / hàng đợi → bấm để chấm.
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -9,12 +9,12 @@ import {
   View,
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
-import { Stack, useLocalSearchParams, useFocusEffect } from "expo-router";
+import { Stack, router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
 import { useListRefereeClusterStationsQuery } from "@/slices/tournamentsApiSlice";
-import ResponsiveMatchViewer from "@/components/match/ResponsiveMatchViewer";
+import { buildRefereeMatchRoute } from "@/utils/refereeMatchRoute";
 
 const STATUS_META = {
   live: { label: "Đang live", color: "#ef4444" },
@@ -34,7 +34,6 @@ export default function RefereeClusterCourtsScreen() {
   const insets = useSafeAreaInsets();
   const { clusterId } = useLocalSearchParams();
   const cid = String(clusterId || "");
-  const [viewer, setViewer] = useState({ open: false, matchId: null });
 
   const { data, isLoading, isFetching, refetch, error } =
     useListRefereeClusterStationsQuery(
@@ -54,13 +53,12 @@ export default function RefereeClusterCourtsScreen() {
   );
   const clusterName = data?.cluster?.name || "Cụm sân";
 
-  const openMatch = useCallback((mid) => {
-    if (mid) setViewer({ open: true, matchId: String(mid) });
+  // Mở thẳng màn CHẤM TRẬN (/match/:id/referee) như màn trọng tài theo giải,
+  // KHÔNG mở popup xem dữ liệu trận.
+  const openMatch = useCallback((match) => {
+    if (!match?._id) return;
+    router.push(buildRefereeMatchRoute(match));
   }, []);
-  const closeMatch = useCallback(
-    () => setViewer({ open: false, matchId: null }),
-    []
-  );
 
   const renderItem = useCallback(
     ({ item }) => {
@@ -126,7 +124,7 @@ export default function RefereeClusterCourtsScreen() {
 
           {cm ? (
             <Pressable
-              onPress={() => openMatch(cm._id)}
+              onPress={() => openMatch(cm)}
               style={({ pressed }) => ({
                 marginTop: 12,
                 borderRadius: 12,
@@ -265,12 +263,6 @@ export default function RefereeClusterCourtsScreen() {
           }
         />
       )}
-
-      <ResponsiveMatchViewer
-        open={viewer.open}
-        matchId={viewer.matchId}
-        onClose={closeMatch}
-      />
     </View>
   );
 }
