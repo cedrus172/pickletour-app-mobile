@@ -662,6 +662,7 @@ const TeamSimple = memo(
     teamKey,
     players = [],
     slotsNow,
+    baseSlots,
     onSwap,
     source,
     isServing,
@@ -680,15 +681,16 @@ const TeamSimple = memo(
       const withSlot = players.map((u) => ({
         u,
         uid: userIdOf(u),
-        slot: Number(slotsNow?.[userIdOf(u)] ?? 99),
+        // Xếp theo slot GỐC (base), KHÔNG theo điểm chẵn/lẻ — để vị trí 2 ô
+        // không nhảy mỗi lần lên điểm/đổi giao; chỉ icon server di chuyển.
+        slot: Number(baseSlots?.[userIdOf(u)] ?? 99),
       }));
       withSlot.sort((a, b) => a.slot - b.slot);
-      // VĐV ở sân giao bên phải (điểm chẵn => slot 1) phải nằm Ở DƯỚI với đội
-      // bên TRÁI và Ở TRÊN với đội bên PHẢI (hai panel soi gương nhau theo sân).
-      // Panel phải giữ thứ tự slot tăng (slot1 ở trên); panel trái đảo lại.
+      // base 1 (người phát #1) phải nằm Ở GÓC GIAO: DƯỚI với đội bên TRÁI,
+      // TRÊN với đội bên PHẢI. Panel phải giữ base1 ở trên; panel trái đảo lại.
       if (panelSide === "left") withSlot.reverse();
       return withSlot.map((x) => x.u);
-    }, [players, slotsNow, panelSide]);
+    }, [players, baseSlots, panelSide]);
 
     const p1 = ordered[0];
     const p2 = ordered[1];
@@ -788,6 +790,7 @@ const TeamSimple = memo(
       prev.serverUidShow === next.serverUidShow &&
       prev.players === next.players &&
       prev.slotsNow === next.slotsNow &&
+      prev.baseSlots === next.baseSlots &&
       prev.compact === next.compact &&
       prev.airy === next.airy &&
       prev.airyWide === next.airyWide &&
@@ -2220,6 +2223,24 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
     });
     return o;
   }, [playersB, baseA, baseB, curA, curB]);
+
+  // Slot GỐC (base) theo từng VĐV — KHÔNG đổi theo điểm chẵn/lẻ. Dùng để xếp
+  // vị trí 2 ô: người phát #1 (base 1) luôn nằm ở GÓC GIAO (dưới với đội bên
+  // trái, trên với đội bên phải), icon server mới nhảy theo người đang cầm giao.
+  const baseSlotsA = useMemo(() => {
+    const o = {};
+    playersA.forEach((u) => {
+      o[userIdOf(u)] = Number(resolveBaseSlotForPlayer(u, baseA) || 99);
+    });
+    return o;
+  }, [playersA, baseA]);
+  const baseSlotsB = useMemo(() => {
+    const o = {};
+    playersB.forEach((u) => {
+      o[userIdOf(u)] = Number(resolveBaseSlotForPlayer(u, baseB) || 99);
+    });
+    return o;
+  }, [playersB, baseB]);
 
   const getUidAtSlotNow = useCallback(
     (teamKey, slotNum) => {
@@ -4355,6 +4376,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                 panelSide="left"
                 players={leftSide === "A" ? playersA : playersB}
                 slotsNow={leftSide === "A" ? slotsNowA : slotsNowB}
+                baseSlots={leftSide === "A" ? baseSlotsA : baseSlotsB}
                 teamName={leftSide === "A" ? teamNameA : teamNameB}
                 onSwap={() => swapTeamSlots(leftSide)}
                 source={match}
@@ -4554,6 +4576,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                 panelSide="right"
                 players={rightSide === "A" ? playersA : playersB}
                 slotsNow={rightSide === "A" ? slotsNowA : slotsNowB}
+                baseSlots={rightSide === "A" ? baseSlotsA : baseSlotsB}
                 teamName={rightSide === "A" ? teamNameA : teamNameB}
                 onSwap={() => swapTeamSlots(rightSide)}
                 source={match}
