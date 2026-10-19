@@ -672,6 +672,7 @@ const TeamSimple = memo(
     airy = false,
     airyWide = false,
     teamName = "",
+    panelSide = "left",
   }) {
     const t = useTokens();
 
@@ -682,8 +683,12 @@ const TeamSimple = memo(
         slot: Number(slotsNow?.[userIdOf(u)] ?? 99),
       }));
       withSlot.sort((a, b) => a.slot - b.slot);
+      // VĐV ở sân giao bên phải (điểm chẵn => slot 1) phải nằm Ở DƯỚI với đội
+      // bên TRÁI và Ở TRÊN với đội bên PHẢI (hai panel soi gương nhau theo sân).
+      // Panel phải giữ thứ tự slot tăng (slot1 ở trên); panel trái đảo lại.
+      if (panelSide === "left") withSlot.reverse();
       return withSlot.map((x) => x.u);
-    }, [players, slotsNow]);
+    }, [players, slotsNow, panelSide]);
 
     const p1 = ordered[0];
     const p2 = ordered[1];
@@ -786,7 +791,8 @@ const TeamSimple = memo(
       prev.compact === next.compact &&
       prev.airy === next.airy &&
       prev.airyWide === next.airyWide &&
-      prev.teamName === next.teamName
+      prev.teamName === next.teamName &&
+      prev.panelSide === next.panelSide
     );
   },
 );
@@ -4346,6 +4352,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
             >
               <TeamSimple
                 teamKey={leftSide}
+                panelSide="left"
                 players={leftSide === "A" ? playersA : playersB}
                 slotsNow={leftSide === "A" ? slotsNowA : slotsNowB}
                 teamName={leftSide === "A" ? teamNameA : teamNameB}
@@ -4544,6 +4551,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
 
               <TeamSimple
                 teamKey={rightSide}
+                panelSide="right"
                 players={rightSide === "A" ? playersA : playersB}
                 slotsNow={rightSide === "A" ? slotsNowA : slotsNowB}
                 teamName={rightSide === "A" ? teamNameA : teamNameB}
