@@ -3464,9 +3464,11 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
     const wantOrder = preStart && isDouble ? OPENING_DOUBLES_SERVER : 1;
     const wantOpening = preStart && isDouble;
     const nextTeamScore = nextSide === "A" ? curA : curB;
+    // ĐỔI GIAO (side-out): người ở SÂN GIAO BÊN PHẢI (slot 1 = góc giao: dưới với
+    // đội bên trái, trên với đội bên phải) LUÔN phát trước — không phụ thuộc chẵn/lẻ.
     const targetSlot = wantOpening
       ? preStartRightSlotForSide(nextSide, leftSide)
-      : currentSlotFromBase(1, nextTeamScore);
+      : 1;
     const uidFound =
       getUidAtSlotNow(nextSide, targetSlot) ||
       getUidAtSlotNow(nextSide, oppositeSlot(targetSlot)) ||
