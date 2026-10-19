@@ -465,8 +465,9 @@ const getCurrentSlotOfUser = ({
   return currentSlotFromBase(Number(base), ts);
 };
 
-const preStartRightSlotForSide = (side, leftSide) =>
-  leftSide === side ? 2 : 1;
+// Ô GIAO khai cuộc = SÂN GIAO BÊN PHẢI (điểm chẵn) = slot 1 với CẢ 2 panel
+// (trái: slot1 ở dưới; phải: slot1 ở trên). Người phát khai cuộc luôn ở slot 1.
+const preStartRightSlotForSide = (/* side, leftSide */) => 1;
 const oppositeSlot = (slot) => (Number(slot) === 1 ? 2 : 1);
 const OPENING_DOUBLES_SERVER = 2;
 const sameSlotBase = (left = {}, right = {}) => {
