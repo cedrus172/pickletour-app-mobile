@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
 import { useListRefereeClustersQuery } from "@/slices/tournamentsApiSlice";
@@ -28,6 +28,54 @@ export default function RefereeClustersScreen() {
   );
 
   const items = Array.isArray(data) ? data : [];
+
+  const goScan = useCallback(() => router.push("/referee/scan"), []);
+
+  const ScanButton = useCallback(
+    () => (
+      <Pressable
+        onPress={goScan}
+        hitSlop={10}
+        style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, paddingHorizontal: 4 })}
+      >
+        <Ionicons name="qr-code-outline" size={24} color={C.primary} />
+      </Pressable>
+    ),
+    [C.primary, goScan]
+  );
+
+  const ListHeader = useCallback(
+    () => (
+      <Pressable
+        onPress={goScan}
+        style={({ pressed }) => ({
+          backgroundColor: C.primarySoft,
+          borderColor: C.primary,
+          borderWidth: 1,
+          borderRadius: 14,
+          paddingVertical: 14,
+          paddingHorizontal: 16,
+          marginBottom: 16,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          opacity: pressed ? 0.85 : 1,
+        })}
+      >
+        <Ionicons name="qr-code-outline" size={22} color={C.primary} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={{ color: C.text, fontSize: 15, fontWeight: "800" }}>
+            Quét QR trọng tài
+          </Text>
+          <Text style={{ color: C.sub, fontSize: 12, marginTop: 2 }}>
+            Quét mã QR tại sân/cụm để nhận quyền trọng tài.
+          </Text>
+        </View>
+        <MaterialIcons name="chevron-right" size={22} color={C.muted} />
+      </Pressable>
+    ),
+    [C, goScan]
+  );
 
   const renderItem = useCallback(
     ({ item }) => {
@@ -93,7 +141,9 @@ export default function RefereeClustersScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <Stack.Screen options={{ title: "Chấm trận theo cụm sân" }} />
+      <Stack.Screen
+        options={{ title: "Chấm trận theo cụm sân", headerRight: ScanButton }}
+      />
       {isLoading ? (
         <View
           style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
@@ -110,6 +160,7 @@ export default function RefereeClustersScreen() {
             paddingBottom: insets.bottom + 24,
             flexGrow: 1,
           }}
+          ListHeaderComponent={ListHeader}
           refreshControl={
             <RefreshControl
               refreshing={isFetching}
