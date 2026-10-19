@@ -68,9 +68,17 @@ const MORE_ITEMS = [
     accent: "#EF4444",
   },
   {
+    key: "referee-clusters",
+    title: t("Chấm trận theo cụm sân"),
+    description: "Chọn cụm sân bạn được chia, vào tìm sân và trận để chấm.",
+    icon: "grid-outline" as const,
+    route: "/referee/clusters",
+    accent: "#12B6F3",
+  },
+  {
     key: "referee-scan",
     title: t("Quét QR trọng tài"),
-    description: "Quét mã QR tại sân để nhận quyền trọng tài, chấm trận ngay.",
+    description: "Quét mã QR tại sân/cụm để nhận quyền trọng tài, chấm trận ngay.",
     icon: "qr-code-outline" as const,
     route: "/referee/scan",
     accent: "#0EA5E9",

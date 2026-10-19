@@ -9,7 +9,10 @@ import { Stack, useRouter } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "@react-navigation/native";
-import { useClaimCourtRefereeMutation } from "@/slices/tournamentsApiSlice";
+import {
+  useClaimCourtRefereeMutation,
+  useClaimClusterRefereeMutation,
+} from "@/slices/tournamentsApiSlice";
 
 // Chấp nhận QR dạng "PKTREF:<stationId>:<token>" hoặc link ".../rj/<stationId>/<token>".
 function parseCourtQr(data: string): { stationId: string; token: string } | null {
@@ -21,25 +24,45 @@ function parseCourtQr(data: string): { stationId: string; token: string } | null
   return null;
 }
 
+// Chấp nhận QR CỤM dạng "PKTREFC:<clusterId>:<token>" hoặc link ".../rjc/<clusterId>/<token>".
+function parseClusterQr(data: string): { clusterId: string; token: string } | null {
+  const s = String(data || "").trim();
+  let m = s.match(/PKTREFC:([a-fA-F0-9]{24}):([a-fA-F0-9]+)/);
+  if (m) return { clusterId: m[1], token: m[2] };
+  m = s.match(/\/rjc\/([a-fA-F0-9]{24})\/([a-fA-F0-9]+)/);
+  if (m) return { clusterId: m[1], token: m[2] };
+  return null;
+}
+
 export default function RefereeScanScreen() {
   const { colors } = useTheme() as any;
   const router = useRouter();
   const [perm, requestPermission] = useCameraPermissions();
   const [claim] = useClaimCourtRefereeMutation();
+  const [claimCluster] = useClaimClusterRefereeMutation();
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<any>(null); // { ok, stationName, tournamentId } | { error }
+  const [result, setResult] = useState<any>(null); // { ok, stationName, tournamentId } | { ok, clusterId } | { error }
   const lockRef = useRef(false);
 
   const onScanned = async ({ data }: { data: string }) => {
     if (lockRef.current || busy) return;
-    const parsed = parseCourtQr(data);
-    if (!parsed) return; // không phải QR sân → bỏ qua, tiếp tục quét
+    const cluster = parseClusterQr(data);
+    const court = cluster ? null : parseCourtQr(data);
+    if (!cluster && !court) return; // không phải QR trọng tài → bỏ qua, tiếp tục quét
     lockRef.current = true;
     setBusy(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     try {
-      const res: any = await claim({ stationId: parsed.stationId, token: parsed.token }).unwrap();
-      setResult(res);
+      if (cluster) {
+        const res: any = await claimCluster({
+          clusterId: cluster.clusterId,
+          token: cluster.token,
+        }).unwrap();
+        setResult({ ...res, kind: "cluster" });
+      } else {
+        const res: any = await claim({ stationId: court!.stationId, token: court!.token }).unwrap();
+        setResult({ ...res, kind: "court" });
+      }
     } catch (e: any) {
       setResult({ error: e?.data?.message || "Mã QR không hợp lệ hoặc đã hết hạn" });
     } finally {
@@ -53,7 +76,9 @@ export default function RefereeScanScreen() {
   };
 
   const goReferee = () => {
-    if (result?.tournamentId) {
+    if (result?.kind === "cluster" && result?.clusterId) {
+      router.replace(`/referee/cluster/${result.clusterId}` as any);
+    } else if (result?.tournamentId) {
       router.replace(`/tournament/${result.tournamentId}/referee` as any);
     } else {
       router.back();
@@ -118,12 +143,15 @@ export default function RefereeScanScreen() {
                 Đã nhận quyền trọng tài
               </Text>
               <Text style={{ color: colors.text, marginTop: 6, textAlign: "center" }}>
-                Sân: {result.stationName || "—"}
-                {result.tournamentName ? `\nGiải: ${result.tournamentName}` : ""}
+                {result.kind === "cluster"
+                  ? `Cụm sân: ${result.clusterName || "—"}`
+                  : `Sân: ${result.stationName || "—"}${
+                      result.tournamentName ? `\nGiải: ${result.tournamentName}` : ""
+                    }`}
               </Text>
               <TouchableOpacity style={[styles.btn, { backgroundColor: colors.primary, marginTop: 22, minWidth: 220 }]} onPress={goReferee}>
                 <Text style={{ color: "#fff", fontWeight: "800", textAlign: "center" }}>
-                  {result.tournamentId ? "Vào chấm trận" : "Xong"}
+                  {result.kind === "cluster" || result.tournamentId ? "Vào chấm trận" : "Xong"}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity style={{ marginTop: 12 }} onPress={reset}>

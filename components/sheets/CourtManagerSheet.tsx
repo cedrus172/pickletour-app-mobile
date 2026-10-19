@@ -2421,17 +2421,24 @@ export default function CourtManagerSheet({
   const handleSaveSelectedCluster = useCallback(async () => {
     if (!tournamentId) return;
     try {
+      // GIẢI có thể dùng NHIỀU cụm sân → GỘP cụm đang chọn vào danh sách cụm đã
+      // cho phép (không ghi đè, tránh xoá các cụm đã gán ở admin/web).
+      const merged = Array.from(
+        new Set(
+          [...(selectedAllowedClusterIds || []), selectedClusterId]
+            .map((id) => toIdString(id))
+            .filter(Boolean),
+        ),
+      );
       await updateTournamentAllowedCourtClusters({
         tournamentId,
-        allowedCourtClusterIds: selectedClusterId ? [selectedClusterId] : [],
+        allowedCourtClusterIds: merged,
       }).unwrap();
       await refetchClusterOptions?.();
       refetchAllMatches?.();
       Alert.alert(
         "Thành công",
-        selectedClusterId
-          ? "Đã cập nhật cụm sân đang dùng cho giải."
-          : "Đã xóa cấu hình cụm sân của giải.",
+        "Đã thêm cụm sân vào danh sách cụm của giải.",
       );
     } catch (error) {
       Alert.alert(
@@ -2442,6 +2449,7 @@ export default function CourtManagerSheet({
   }, [
     refetchAllMatches,
     refetchClusterOptions,
+    selectedAllowedClusterIds,
     selectedClusterId,
     tournamentId,
     updateTournamentAllowedCourtClusters,

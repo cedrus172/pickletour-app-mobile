@@ -387,6 +387,8 @@ export const apiSlice = createApi({
     "ADMIN_BRACKETS",
     "ADMIN_MATCHES",
     "REFEREE_MATCHES",
+    "REFEREE_CLUSTERS",
+    "REFEREE_CLUSTER_STATIONS",
     "TournamentMatches",
     "MyTournaments",
     "Matches",

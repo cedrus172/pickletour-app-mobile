@@ -571,6 +571,33 @@ export const tournamentsApiSlice = apiSlice.injectEndpoints({
       }),
       providesTags: ["REFEREE_MATCHES"],
     }),
+    // Trọng tài theo CỤM SÂN: các cụm mình được chia
+    listRefereeClusters: builder.query({
+      query: () => ({ url: `/api/referee/clusters`, method: "GET" }),
+      transformResponse: (res) => (Array.isArray(res?.items) ? res.items : []),
+      providesTags: ["REFEREE_CLUSTERS"],
+    }),
+    // Các sân (+ trận hiện tại/hàng đợi) trong 1 cụm để chấm
+    listRefereeClusterStations: builder.query({
+      query: ({ clusterId }) => ({
+        url: `/api/referee/clusters/${clusterId}/stations`,
+        method: "GET",
+      }),
+      transformResponse: (res) => ({
+        cluster: res?.cluster || null,
+        stations: Array.isArray(res?.stations) ? res.stations : [],
+      }),
+      providesTags: ["REFEREE_CLUSTER_STATIONS"],
+    }),
+    // Quét QR cụm → tự nhận quyền trọng tài cụm
+    claimClusterReferee: builder.mutation({
+      query: ({ clusterId, token }) => ({
+        url: `/api/referee/claim-cluster/${clusterId}`,
+        method: "POST",
+        body: { token },
+      }),
+      invalidatesTags: ["REFEREE_CLUSTERS"],
+    }),
     adminListMatchesByTournament: builder.query({
       // args: { tid, page, pageSize, status, bracketId, q }
       query: ({ tid, ...params }) => {
@@ -1020,6 +1047,9 @@ export const {
   useAddPairToGroupMutation,
   useMovePairBetweenGroupsMutation,
   useListRefereeMatchesByTournamentQuery,
+  useListRefereeClustersQuery,
+  useListRefereeClusterStationsQuery,
+  useClaimClusterRefereeMutation,
   useAdminListMatchesByTournamentQuery,
   useAdminSetMatchLiveUrlMutation,
   useListMyTournamentsQuery,
