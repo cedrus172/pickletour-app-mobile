@@ -685,8 +685,10 @@ const TeamSimple = memo(
         slot: Number(slotsNow?.[userIdOf(u)] ?? 99),
       }));
       withSlot.sort((a, b) => a.slot - b.slot);
-      // 2 panel soi gương: panel trái slot tăng (slot1 trên); panel phải đảo.
-      if (panelSide === "right") withSlot.reverse();
+      // Ô 1 = sân giao bên phải (điểm CHẴN, slot 1) = DƯỚI với đội bên TRÁI /
+      // TRÊN với đội bên PHẢI. Panel phải giữ slot tăng (slot1 trên); panel
+      // trái đảo lại (slot1 xuống dưới).
+      if (panelSide === "left") withSlot.reverse();
       return withSlot.map((x) => x.u);
     }, [players, slotsNow, panelSide]);
 
