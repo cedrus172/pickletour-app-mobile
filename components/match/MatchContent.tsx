@@ -968,7 +968,7 @@ function detectEmbed(url) {
     return {
       kind: "facebook",
       canEmbed: true,
-      embedUrl: `https://www.facebook.com/plugins/video.php?href=${href}&show_text=false&width=1280&autoplay=true&mute=0`,
+      embedUrl: `https://www.facebook.com/plugins/video.php?href=${href}&show_text=false&width=1280&autoplay=true&mute=1`,
       allow: "autoplay; encrypted-media; picture-in-picture; fullscreen",
       aspect,
     };

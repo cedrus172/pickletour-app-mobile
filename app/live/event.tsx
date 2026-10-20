@@ -72,10 +72,12 @@ function buildEmbedHtml(videoId: string, muted: boolean) {
 }
 
 // HTML nhúng Facebook Video Plugin — iframe lấp đầy WebView, autoplay tắt tiếng.
-function buildFbEmbedHtml(fbUrl: string) {
+function buildFbEmbedHtml(fbUrl: string, muted: boolean = true) {
+  // autoplay CHỈ chạy khi mute=1 (chính sách trình duyệt). Mặc định phát tắt tiếng
+  // để live tự lên ngay; nút "Bật tiếng" sẽ remount với mute=0 (có cử chỉ người dùng).
   const src = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(
     fbUrl || "",
-  )}&show_text=false&autoplay=true&mute=0&allowfullscreen=true`;
+  )}&show_text=false&autoplay=true&mute=${muted ? 1 : 0}&allowfullscreen=true`;
   return `<!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <style>*{margin:0;padding:0;box-sizing:border-box}html,body{height:100%;background:#000;overflow:hidden}
@@ -249,7 +251,7 @@ export default function EventLiveScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Phát tắt tiếng để autoplay chạy ngay (không lộ nút to "Watch on YouTube").
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true);
   useEffect(() => {
     setMuted(true);
   }, [current?.videoId]);
@@ -337,19 +339,30 @@ export default function EventLiveScreen() {
       {!hidePlayer && (
         <View style={{ width: playerW, height: playerH, backgroundColor: "#000" }}>
           {current && current.sourceType === "facebook" && current.fbUrl ? (
-            <WebView
-              key={current.videoId}
-              style={{ width: playerW, height: playerH, backgroundColor: "#000" }}
-              source={{ html: buildFbEmbedHtml(current.fbUrl), baseUrl: EMBED_ORIGIN }}
-              userAgent={DESKTOP_UA}
-              originWhitelist={["*"]}
-              javaScriptEnabled
-              domStorageEnabled
-              allowsInlineMediaPlayback
-              mediaPlaybackRequiresUserAction={false}
-              allowsFullscreenVideo
-              androidLayerType="hardware"
-            />
+            <>
+              <WebView
+                key={`${current.videoId}-${muted ? "m" : "s"}`}
+                style={{ width: playerW, height: playerH, backgroundColor: "#000" }}
+                source={{
+                  html: buildFbEmbedHtml(current.fbUrl, muted),
+                  baseUrl: EMBED_ORIGIN,
+                }}
+                userAgent={DESKTOP_UA}
+                originWhitelist={["*"]}
+                javaScriptEnabled
+                domStorageEnabled
+                allowsInlineMediaPlayback
+                mediaPlaybackRequiresUserAction={false}
+                allowsFullscreenVideo
+                androidLayerType="hardware"
+              />
+              {muted ? (
+                <Pressable onPress={() => setMuted(false)} style={styles.unmuteBtn}>
+                  <Ionicons name="volume-high" size={16} color="#fff" />
+                  <Text style={styles.unmuteText}>Bật tiếng</Text>
+                </Pressable>
+              ) : null}
+            </>
           ) : current &&
           (current.hlsUrl ||
             current.sourceType === "hls" ||

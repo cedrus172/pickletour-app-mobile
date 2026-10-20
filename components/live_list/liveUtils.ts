@@ -92,7 +92,7 @@ export function buildFacebookPluginUrl(watchUrl?: string | null) {
   if (!watchUrl) return null;
   return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(
     watchUrl
-  )}&show_text=0&width=560&autoplay=1&mute=0`;
+  )}&show_text=0&width=560&autoplay=1&mute=1`;
 }
 
 // User-agent desktop: Facebook plugins/video.php CHỈ phát LIVE inline khi UA là

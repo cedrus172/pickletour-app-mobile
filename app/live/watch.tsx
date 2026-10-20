@@ -43,7 +43,6 @@ import {
   sid,
   DESKTOP_UA,
   isFacebookSession,
-  forceUnmuteEmbedHtml,
 } from "@/components/live_list/liveUtils";
 import { normalizeUrl } from "@/utils/normalizeUri";
 
@@ -224,7 +223,7 @@ export default function LiveWatchScreen() {
       <WebView
         key={`html-${activeKey}`}
         source={{
-          html: buildEmbedHtml(forceUnmuteEmbedHtml(session.embedHtml)),
+          html: buildEmbedHtml(session.embedHtml),
           baseUrl: "https://www.pickletour.vn",
         }}
         userAgent={isFacebookSession(session) ? DESKTOP_UA : undefined}
