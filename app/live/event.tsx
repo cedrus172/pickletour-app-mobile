@@ -262,6 +262,16 @@ export default function EventLiveScreen() {
     () => live.reduce((n, c) => n + (c.angles?.length || 0), 0),
     [live],
   );
+  // Feed đang chọn có phải LIVE không (nằm trong data.live/angles). FB chặn phát
+  // live nhúng trên web mobile → với FB LIVE phải mở thẳng Facebook; FB VOD (replay)
+  // thì nhúng bình thường.
+  const isCurrentLive = useMemo(
+    () =>
+      live.some((c) =>
+        (c.angles || []).some((a) => a.videoId === current?.videoId),
+      ),
+    [live, current?.videoId],
+  );
 
   // Tự chọn feed đầu tiên khi có dữ liệu — ưu tiên luồng NHÚNG được.
   useEffect(() => {
@@ -339,30 +349,51 @@ export default function EventLiveScreen() {
       {!hidePlayer && (
         <View style={{ width: playerW, height: playerH, backgroundColor: "#000" }}>
           {current && current.sourceType === "facebook" && current.fbUrl ? (
-            <>
-              <WebView
-                key={`${current.videoId}-${muted ? "m" : "s"}`}
-                style={{ width: playerW, height: playerH, backgroundColor: "#000" }}
-                source={{
-                  html: buildFbEmbedHtml(current.fbUrl, muted),
-                  baseUrl: EMBED_ORIGIN,
-                }}
-                userAgent={DESKTOP_UA}
-                originWhitelist={["*"]}
-                javaScriptEnabled
-                domStorageEnabled
-                allowsInlineMediaPlayback
-                mediaPlaybackRequiresUserAction={false}
-                allowsFullscreenVideo
-                androidLayerType="hardware"
-              />
-              {muted ? (
-                <Pressable onPress={() => setMuted(false)} style={styles.unmuteBtn}>
-                  <Ionicons name="volume-high" size={16} color="#fff" />
-                  <Text style={styles.unmuteText}>Bật tiếng</Text>
+            isCurrentLive ? (
+              // FB LIVE: Facebook chặn phát live nhúng trên web mobile → mở thẳng Facebook.
+              <View style={styles.noEmbed}>
+                <Ionicons name="logo-facebook" size={40} color="#1877f2" />
+                <Text style={styles.noEmbedTitle}>Xem trực tiếp trên Facebook</Text>
+                <Text style={styles.noEmbedSub} numberOfLines={2}>
+                  Facebook không cho phát live nhúng trong ứng dụng. Nhấn để mở trên Facebook.
+                </Text>
+                <Pressable
+                  onPress={() => Linking.openURL(current.fbUrl!).catch(() => {})}
+                  style={[styles.noEmbedBtn, { backgroundColor: "#1877f2" }]}
+                >
+                  <Ionicons name="play" size={16} color="#fff" />
+                  <Text style={[styles.noEmbedBtnText, { color: "#fff" }]}>
+                    Xem live trên Facebook
+                  </Text>
                 </Pressable>
-              ) : null}
-            </>
+              </View>
+            ) : (
+              // FB VOD (xem lại): nhúng bình thường.
+              <>
+                <WebView
+                  key={`${current.videoId}-${muted ? "m" : "s"}`}
+                  style={{ width: playerW, height: playerH, backgroundColor: "#000" }}
+                  source={{
+                    html: buildFbEmbedHtml(current.fbUrl, muted),
+                    baseUrl: EMBED_ORIGIN,
+                  }}
+                  userAgent={DESKTOP_UA}
+                  originWhitelist={["*"]}
+                  javaScriptEnabled
+                  domStorageEnabled
+                  allowsInlineMediaPlayback
+                  mediaPlaybackRequiresUserAction={false}
+                  allowsFullscreenVideo
+                  androidLayerType="hardware"
+                />
+                {muted ? (
+                  <Pressable onPress={() => setMuted(false)} style={styles.unmuteBtn}>
+                    <Ionicons name="volume-high" size={16} color="#fff" />
+                    <Text style={styles.unmuteText}>Bật tiếng</Text>
+                  </Pressable>
+                ) : null}
+              </>
+            )
           ) : current &&
           (current.hlsUrl ||
             current.sourceType === "hls" ||
@@ -504,7 +535,14 @@ export default function EventLiveScreen() {
                   court={court}
                   feeds={court.angles || []}
                   currentId={current?.videoId}
-                  onPick={setCurrent}
+                  onPick={(f) => {
+                    // FB LIVE: nhảy thẳng ra Facebook (không nhúng được trên mobile).
+                    if (f?.sourceType === "facebook" && f?.fbUrl) {
+                      Linking.openURL(f.fbUrl).catch(() => {});
+                      return;
+                    }
+                    setCurrent(f);
+                  }}
                 />
               ))
             )
