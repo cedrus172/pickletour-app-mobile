@@ -28,6 +28,7 @@ import {
 import { Text } from "@/components/ui/i18nText";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
+import { DESKTOP_UA } from "../../components/live_list/liveUtils";
 import { useVideoPlayer, VideoView } from "expo-video";
 
 import analytics from "@/utils/analytics";
@@ -74,7 +75,7 @@ function buildEmbedHtml(videoId: string, muted: boolean) {
 function buildFbEmbedHtml(fbUrl: string) {
   const src = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(
     fbUrl || "",
-  )}&show_text=false&autoplay=true&mute=1&allowfullscreen=true`;
+  )}&show_text=false&autoplay=true&mute=0&allowfullscreen=true`;
   return `<!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <style>*{margin:0;padding:0;box-sizing:border-box}html,body{height:100%;background:#000;overflow:hidden}
@@ -248,7 +249,7 @@ export default function EventLiveScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Phát tắt tiếng để autoplay chạy ngay (không lộ nút to "Watch on YouTube").
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
   useEffect(() => {
     setMuted(true);
   }, [current?.videoId]);
@@ -340,6 +341,7 @@ export default function EventLiveScreen() {
               key={current.videoId}
               style={{ width: playerW, height: playerH, backgroundColor: "#000" }}
               source={{ html: buildFbEmbedHtml(current.fbUrl), baseUrl: EMBED_ORIGIN }}
+              userAgent={DESKTOP_UA}
               originWhitelist={["*"]}
               javaScriptEnabled
               domStorageEnabled

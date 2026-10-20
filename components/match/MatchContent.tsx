@@ -27,7 +27,10 @@ import Constants from "expo-constants";
 import { useSelector } from "react-redux";
 import { WebView } from "react-native-webview";
 import { CompatVideo as Video } from "@/lib/expoMediaCompat";
-import { fixFacebookOpenUrl } from "@/components/live_list/liveUtils";
+import {
+  fixFacebookOpenUrl,
+  DESKTOP_UA,
+} from "@/components/live_list/liveUtils";
 import { setLiveWatchPayload } from "@/components/live_list/liveWatchHandoff";
 import * as Clipboard from "expo-clipboard";
 import Toast from "react-native-toast-message";
@@ -965,7 +968,7 @@ function detectEmbed(url) {
     return {
       kind: "facebook",
       canEmbed: true,
-      embedUrl: `https://www.facebook.com/plugins/video.php?href=${href}&show_text=false&width=1280`,
+      embedUrl: `https://www.facebook.com/plugins/video.php?href=${href}&show_text=false&width=1280&autoplay=true&mute=0`,
       allow: "autoplay; encrypted-media; picture-in-picture; fullscreen",
       aspect,
     };
@@ -1515,6 +1518,7 @@ const StreamPlayer = memo(({ stream, match }) => {
               html: buildFramedHtml(stream.embedUrl, stream.allow),
               baseUrl: EMBED_BASE_URL,
             }}
+            userAgent={stream.kind === "facebook" ? DESKTOP_UA : undefined}
             originWhitelist={["*"]}
             style={{ flex: 1, backgroundColor: "#000" }}
             allowsFullscreenVideo

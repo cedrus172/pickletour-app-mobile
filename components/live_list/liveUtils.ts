@@ -95,6 +95,31 @@ export function buildFacebookPluginUrl(watchUrl?: string | null) {
   )}&show_text=0&width=560&autoplay=1&mute=0`;
 }
 
+// User-agent desktop: Facebook plugins/video.php CHỈ phát LIVE inline khi UA là
+// desktop; UA mobile mặc định chỉ hiện thumbnail + nút "Xem trên Facebook" (bấm
+// không chạy). Ép UA desktop cho mọi WebView phát Facebook.
+export const DESKTOP_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0 Safari/537.36";
+
+/** Phiên live này có phải nguồn Facebook không (để biết khi nào ép UA desktop). */
+export function isFacebookSession(s: any): boolean {
+  if (!s) return false;
+  if (String(s.provider || "").toLowerCase() === "facebook") return true;
+  const u = String(
+    s.watchUrl || s.openUrl || s.pluginUrl || s.embedHtml || ""
+  );
+  return /facebook\.com|fb\.watch|fbcdn/i.test(u);
+}
+
+/** Bỏ tắt tiếng mặc định trong HTML nhúng (YouTube/Facebook) để xem có tiếng luôn. */
+export function forceUnmuteEmbedHtml(html?: string | null): string {
+  if (!html) return html || "";
+  return String(html)
+    .replace(/([?&])mute=1\b/gi, "$1mute=0")
+    .replace(/([?&])muted=1\b/gi, "$1muted=0")
+    .replace(/([?&])mute=true\b/gi, "$1mute=false");
+}
+
 // Dạng link live cũ của Facebook: facebook.com/watch/live/?v=<LIVE-id>.
 // Graph API trả nó trong permalink_url/watch_url nhưng Facebook đã bỏ định dạng
 // này -> mở ra "not found" (kể cả khi trận vẫn còn trên page). Link bền là

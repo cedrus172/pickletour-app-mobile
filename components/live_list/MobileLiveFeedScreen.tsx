@@ -56,6 +56,8 @@ import {
   getLiveStatusLabel,
   sid,
   timeAgo,
+  DESKTOP_UA,
+  isFacebookSession,
 } from "./liveUtils";
 import { setLiveWatchPayload } from "./liveWatchHandoff";
 
@@ -396,6 +398,7 @@ function FeedVideoSurface({
           html: buildPlayerHtml(session.embedHtml),
           baseUrl: "https://www.pickletour.vn",
         }}
+        userAgent={isFacebookSession(session) ? DESKTOP_UA : undefined}
         originWhitelist={["*"]}
         style={StyleSheet.absoluteFill}
         javaScriptEnabled
@@ -412,6 +415,7 @@ function FeedVideoSurface({
     return (
       <WebView
         source={{ uri: normalizeUrl(session.pluginUrl) }}
+        userAgent={isFacebookSession(session) ? DESKTOP_UA : undefined}
         style={StyleSheet.absoluteFill}
         javaScriptEnabled
         domStorageEnabled

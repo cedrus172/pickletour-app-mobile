@@ -35,6 +35,8 @@ import {
   hostOf,
   sid,
   timeAgo,
+  DESKTOP_UA,
+  isFacebookSession,
 } from "./liveUtils";
 
 const BLURHASH = "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXo";
@@ -112,6 +114,7 @@ function renderPlayer(activeSession: any) {
           html: buildPlayerHtml(activeSession.embedHtml),
           baseUrl: "https://www.pickletour.vn",
         }}
+        userAgent={isFacebookSession(activeSession) ? DESKTOP_UA : undefined}
         originWhitelist={["*"]}
         style={styles.player}
         javaScriptEnabled
@@ -127,6 +130,7 @@ function renderPlayer(activeSession: any) {
     return (
       <WebView
         source={{ uri: activeSession.pluginUrl }}
+        userAgent={isFacebookSession(activeSession) ? DESKTOP_UA : undefined}
         style={styles.player}
         javaScriptEnabled
         domStorageEnabled

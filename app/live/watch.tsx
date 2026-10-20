@@ -41,6 +41,9 @@ import {
   getLiveSessions,
   getLiveStatusLabel,
   sid,
+  DESKTOP_UA,
+  isFacebookSession,
+  forceUnmuteEmbedHtml,
 } from "@/components/live_list/liveUtils";
 import { normalizeUrl } from "@/utils/normalizeUri";
 
@@ -221,9 +224,10 @@ export default function LiveWatchScreen() {
       <WebView
         key={`html-${activeKey}`}
         source={{
-          html: buildEmbedHtml(session.embedHtml),
+          html: buildEmbedHtml(forceUnmuteEmbedHtml(session.embedHtml)),
           baseUrl: "https://www.pickletour.vn",
         }}
+        userAgent={isFacebookSession(session) ? DESKTOP_UA : undefined}
         originWhitelist={["*"]}
         style={styles.webview}
         javaScriptEnabled
@@ -238,6 +242,7 @@ export default function LiveWatchScreen() {
       <WebView
         key={`plugin-${activeKey}`}
         source={{ uri: normalizeUrl(session.pluginUrl) }}
+        userAgent={isFacebookSession(session) ? DESKTOP_UA : undefined}
         style={styles.webview}
         javaScriptEnabled
         domStorageEnabled
