@@ -45,6 +45,25 @@ export const courtClustersAdminApiSlice = apiSlice.injectEndpoints({
       ],
       extraOptions: { skip404Redirect: true },
     }),
+    // Luật ràng buộc gán sân (bảng/trận → chỉ một số sân của cụm).
+    getTournamentCourtAssignRules: builder.query({
+      query: (tournamentId) =>
+        `/api/admin/tournaments/${tournamentId}/court-assign-rules`,
+      keepUnusedDataFor: 0,
+      providesTags: (result, error, tournamentId) => [
+        { type: "TournamentCourtAssignRules", id: tournamentId },
+      ],
+    }),
+    updateTournamentCourtAssignRules: builder.mutation({
+      query: ({ tournamentId, rules }) => ({
+        url: `/api/admin/tournaments/${tournamentId}/court-assign-rules`,
+        method: "PUT",
+        body: { rules },
+      }),
+      invalidatesTags: (result, error, { tournamentId }) => [
+        { type: "TournamentCourtAssignRules", id: tournamentId },
+      ],
+    }),
     getAdminCourtClusterRuntime: builder.query({
       query: (clusterId) => `/api/admin/court-clusters/${clusterId}/runtime`,
       keepUnusedDataFor: 0,
@@ -133,4 +152,6 @@ export const {
   useAppendTournamentCourtStationQueueItemMutation,
   useRemoveTournamentCourtStationQueueItemMutation,
   useFreeTournamentCourtStationMutation,
+  useGetTournamentCourtAssignRulesQuery,
+  useUpdateTournamentCourtAssignRulesMutation,
 } = courtClustersAdminApiSlice;

@@ -59,6 +59,8 @@ import { useSocketRoomSet } from "@/hooks/useSocketRoomSet";
 import ManageRefereesSheet from "@/components/sheets/ManageRefereesSheet";
 import TournamentManagersSheet from "@/components/sheets/TournamentManagersSheet";
 import AssignCourtSheet from "@/components/sheets/AssignCourtSheet";
+import CourtAssignRulesSheet from "@/components/sheets/CourtAssignRulesSheet";
+import { useGetTournamentCourtAssignRulesQuery } from "@/slices/courtClustersAdminApiSlice";
 import AssignRefSheet from "@/components/sheets/AssignRefSheet";
 import CourtManagerSheet from "@/components/sheets/CourtManagerSheet";
 import LiveSetupSheet from "@/components/sheets/LiveSetupSheet";
@@ -2693,6 +2695,46 @@ export default function ManageScreen() {
     open: false,
     match: null,
   });
+  // Luật ràng buộc gán sân → props cho sheet gán sân (chỉ hiện sân được phép + gợi ý).
+  const [courtRulesSheetOpen, setCourtRulesSheetOpen] = useState(false);
+  const { data: courtRulesData, refetch: refetchCourtRules } =
+    useGetTournamentCourtAssignRulesQuery(tid, { skip: !tid });
+  const courtRulePropsFor = useCallback(
+    (m: any) => {
+      const rules = ((courtRulesData as any)?.rules || []).filter(
+        (r: any) => r.enabled !== false,
+      );
+      if (!m || !rules.length) return {};
+      const mid = String(m?._id || "");
+      const pool = String(m?.pool?.name || "").trim().toUpperCase();
+      const hit = rules.filter(
+        (r: any) =>
+          (r.matchIds || []).some((x: any) => String(x) === mid) ||
+          (pool &&
+            (r.groups || []).some(
+              (g: any) => String(g).trim().toUpperCase() === pool,
+            )),
+      );
+      if (!hit.length) return {};
+      return {
+        allowedStationIds: Array.from(
+          new Set(hit.flatMap((r: any) => r.stationIds || [])),
+        ),
+        allowedClusterIds: Array.from(
+          new Set(hit.map((r: any) => r.clusterId).filter(Boolean)),
+        ),
+        ruleHint: hit
+          .map(
+            (r: any) =>
+              `${r.cluster?.name || "Cụm sân"} · ${(r.stations || [])
+                .map((s: any) => s.name)
+                .join(", ")}`,
+          )
+          .join(" | "),
+      };
+    },
+    [courtRulesData],
+  );
   const [assignRefSheet, setAssignRefSheet] = useState({
     open: false,
     match: null,
@@ -3879,6 +3921,20 @@ ${html.replace(/<html>|<\/html>|<head>.*?<\/head>|<!doctype[^>]*>/gis, "")}
                 styles.glassMenuCard,
               ]}
             >
+              {canManage ? (
+                <MenuItem
+                  icon="rule"
+                  label={`Ràng buộc sân${
+                    (courtRulesData as any)?.rules?.length
+                      ? ` (${(courtRulesData as any).rules.length})`
+                      : ""
+                  }`}
+                  onPress={() => {
+                    setHdrMenuOpen(false);
+                    setCourtRulesSheetOpen(true);
+                  }}
+                />
+              ) : null}
               <MenuItem
                 icon="person"
                 label={
@@ -4377,6 +4433,7 @@ ${html.replace(/<html>|<\/html>|<head>.*?<\/head>|<!doctype[^>]*>/gis, "")}
             onClose={() => setAssignCourtSheet({ open: false, match: null })}
             match={assignCourtSheet.match}
             tournamentId={tid}
+            {...courtRulePropsFor(assignCourtSheet.match)}
             onAssigned={() => refetchMatches?.()}
           />
           <AssignRefSheet
@@ -4385,6 +4442,33 @@ ${html.replace(/<html>|<\/html>|<head>.*?<\/head>|<!doctype[^>]*>/gis, "")}
             match={assignRefSheet.match}
             tournamentId={tid}
             onChanged={() => refetchMatches?.()}
+          />
+          {/* Luật ràng buộc gán sân (bảng/trận → chỉ một số sân của cụm) */}
+          <CourtAssignRulesSheet
+            open={courtRulesSheetOpen}
+            onClose={() => setCourtRulesSheetOpen(false)}
+            tournamentId={tid}
+            groups={Array.from(
+              new Set(
+                ((bracketsData as any[]) || [])
+                  .filter((b: any) => String(b?.type || "").toLowerCase() === "group")
+                  .flatMap((b: any) =>
+                    (b?.groups || []).map((g: any) => String(g?.name || "").trim()),
+                  )
+                  .filter(Boolean),
+              ),
+            )}
+            matches={((allMatches as any[]) || []).map((m: any) => ({
+              _id: String(m?._id || ""),
+              code:
+                m?.displayCode ||
+                m?.code ||
+                m?.globalCode ||
+                m?.labelKey ||
+                (Number.isFinite(m?.round) ? `V${m.round}-T${(m?.order ?? 0) + 1}` : String(m?._id || "")),
+              pool: m?.pool?.name || "",
+            }))}
+            onSaved={() => refetchCourtRules?.()}
           />
           <CourtManagerSheet
             open={courtMgrSheet.open}

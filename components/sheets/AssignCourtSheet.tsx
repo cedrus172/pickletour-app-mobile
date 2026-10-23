@@ -255,6 +255,11 @@ export default function AssignCourtSheet({
   onClose,
   tournamentId,
   match,
+  // Luật ràng buộc sân (tournament.courtAssignRules): allowedStationIds = null → tự do;
+  // mảng → chỉ hiện/gán được các sân đó. ruleHint = mô tả để hiện banner.
+  allowedStationIds = null,
+  allowedClusterIds = null,
+  ruleHint = "",
   onAssigned,
 }) {
   const insets = useSafeAreaInsets();
@@ -376,8 +381,17 @@ export default function AssignCourtSheet({
     const selectedItems = items.filter((cluster) =>
       selectedIds.includes(sid(cluster?._id || cluster?.id))
     );
-    return selectedItems.length ? selectedItems : items;
-  }, [clusterOptionsData?.items, clusterOptionsData?.selectedIds]);
+    const base = selectedItems.length ? selectedItems : items;
+    // Có luật ràng buộc → chỉ giữ các cụm chứa sân được phép.
+    const ruleClusterIds = (Array.isArray(allowedClusterIds) ? allowedClusterIds : [])
+      .map((v) => sid(v))
+      .filter(Boolean);
+    if (!ruleClusterIds.length) return base;
+    const narrowed = base.filter((cluster) =>
+      ruleClusterIds.includes(sid(cluster?._id || cluster?.id))
+    );
+    return narrowed.length ? narrowed : base;
+  }, [clusterOptionsData?.items, clusterOptionsData?.selectedIds, allowedClusterIds]);
 
   const isClusterRuntimeMode = Boolean(
     open && normalizedTournamentId && allowedClusterOptions.length
@@ -499,7 +513,13 @@ export default function AssignCourtSheet({
     };
   }, [canRefetchRuntime, isClusterRuntimeMode, open, refetchRuntime, selectedClusterId, socket]);
 
-  const stations = useMemo(() => runtime?.stations || [], [runtime?.stations]);
+  // Có luật ràng buộc sân → chỉ hiện các sân được phép (không gán tự do được).
+  const stations = useMemo(() => {
+    const all = runtime?.stations || [];
+    if (!Array.isArray(allowedStationIds)) return all;
+    const allow = new Set(allowedStationIds.map((v: any) => sid(v)).filter(Boolean));
+    return all.filter((station: any) => allow.has(sid(station?._id)));
+  }, [runtime?.stations, allowedStationIds]);
   const matchId = sid(match?._id);
 
   const currentStation = useMemo(() => {
@@ -962,6 +982,26 @@ export default function AssignCourtSheet({
             onLayout={updateStationListLayout}
             style={[styles.runtimeStationList, styles.connectorSurface]}
           >
+            {Array.isArray(allowedStationIds) ? (
+              <View
+                style={{
+                  borderWidth: 1,
+                  borderRadius: 12,
+                  padding: 10,
+                  marginBottom: 10,
+                  backgroundColor: stations.length ? t.chipInfoBg : t.chipWarnBg,
+                  borderColor: stations.length ? t.chipInfoBd : t.chipWarnBd,
+                }}
+              >
+                <Text style={{ fontWeight: "800", color: stations.length ? t.chipInfoFg : t.chipWarnFg }}>
+                  Trận này bị ràng buộc sân
+                </Text>
+                <Text style={{ color: stations.length ? t.chipInfoFg : t.chipWarnFg, marginTop: 2 }}>
+                  {ruleHint ? `Chỉ được gán vào: ${ruleHint}.` : "Chỉ được gán vào các sân theo luật."}
+                  {!stations.length ? " Cụm đang chọn không có sân hợp lệ — đổi cụm hoặc sửa luật." : ""}
+                </Text>
+              </View>
+            ) : null}
             {stations.map(renderRuntimeStationCard)}
             {!stations.length ? (
               <View style={[styles.infoBox, { backgroundColor: t.chipInfoBg, borderColor: t.chipInfoBd }]}>
