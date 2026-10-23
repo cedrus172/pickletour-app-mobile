@@ -1881,6 +1881,9 @@ export default function ManageScreen() {
 
   const [courtFilter, setCourtFilter] = useState("");
   const [showBye, setShowBye] = useState(true);
+  // Hiện cả trận KO mà bảng nguồn chưa đấu xong (vd R32 seed "NHẤT A"). Mặc định BẬT
+  // để BTC thấy đủ sơ đồ và gán sân/ràng buộc trước; tắt để ẩn như trước đây.
+  const [showPendingKO, setShowPendingKO] = useState(true);
   const [courtPickerOpen, setCourtPickerOpen] = useState(false);
   const [courtOptions, setCourtOptions] = useState([]);
 
@@ -2441,7 +2444,7 @@ export default function ManageScreen() {
       const groupStatusMap = computeGroupCompletionStatus(mergedAllMatches);
       return list
         .filter((m) => {
-          if (!canShowKOMatch(m, groupStatusMap)) return false;
+          if (!showPendingKO && !canShowKOMatch(m, groupStatusMap)) return false;
           if (kw) {
             const text = [
               matchCode(m),
@@ -2469,7 +2472,7 @@ export default function ManageScreen() {
           return secondaryCmp(a, b);
         });
     },
-    [q, courtFilter, showBye, isByeMatch, secondaryCmp, mergedAllMatches]
+    [q, courtFilter, showBye, showPendingKO, isByeMatch, secondaryCmp, mergedAllMatches]
   );
 
   const matchesByBracketId = useMemo(() => {
@@ -3660,6 +3663,11 @@ ${html.replace(/<html>|<\/html>|<head>.*?<\/head>|<!doctype[^>]*>/gis, "")}
                   label="Hiện BYE"
                   onPress={() => setShowBye((v) => !v)}
                 />
+                <CheckChip
+                  checked={showPendingKO}
+                  label="Hiện KO chờ bảng"
+                  onPress={() => setShowPendingKO((v) => !v)}
+                />
                 <Pill
                   label={`${
                     typesAvailable.length ? bracketsOfTab.length : 0
@@ -3814,7 +3822,7 @@ ${html.replace(/<html>|<\/html>|<head>.*?<\/head>|<!doctype[^>]*>/gis, "")}
                 )}
               </View>
             }
-            extraData={`${liveBump}|${selBump}|${courtFilter}|${showBye}`}
+            extraData={`${liveBump}|${selBump}|${courtFilter}|${showBye}|${showPendingKO}`}
             removeClippedSubviews={Platform.OS === "android"}
             initialNumToRender={2}
             maxToRenderPerBatch={3}
