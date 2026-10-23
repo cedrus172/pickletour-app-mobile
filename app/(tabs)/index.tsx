@@ -14,6 +14,7 @@ import {
   FlatList,
   Dimensions,
   DeviceEventEmitter,
+  useWindowDimensions,
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { Stack, router, useRouter } from "expo-router";
@@ -1816,6 +1817,12 @@ export default function HomeScreen() {
   const heroLottieRef = React.useRef<any>(null);
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
+  // Màn hình thấp/gần vuông (máy gập, iPhone SE, cửa sổ ngắn) → bố cục gọn lại
+  // để hero + lối tắt không bị chật. Reactive theo useWindowDimensions nên tự
+  // cập nhật khi gập/mở máy.
+  const { height: winH } = useWindowDimensions();
+  const compact = winH > 0 && winH < 780;
+  const gap = compact ? 14 : 24;
   React.useEffect(() => {
     const listener = DeviceEventEmitter.addListener(
       "SCROLL_TO_TOP",
@@ -1937,7 +1944,7 @@ export default function HomeScreen() {
           <View
             style={[
               styles.hero3dWrap,
-              { height: (v2 ? 252 : 240) + heroTopBleed },
+              { height: (compact ? (v2 ? 176 : 168) : (v2 ? 252 : 240)) + heroTopBleed },
               v2 && { justifyContent: "flex-start", paddingTop: heroTopBleed + 6 },
             ]}
           >
@@ -1962,19 +1969,19 @@ export default function HomeScreen() {
           <EventLiveBanner />
           <CourtBookingBanner />
 
-          <View style={{ height: 8 }} />
+          <View style={{ height: compact ? 4 : 8 }} />
           <FeaturesGrid />
 
-          <View style={{ height: 24 }} />
+          <View style={{ height: gap }} />
           <TournamentsSection />
 
-          <View style={{ height: 24 }} />
+          <View style={{ height: gap }} />
           <NewsSection />
 
-          <View style={{ height: 24 }} />
+          <View style={{ height: gap }} />
           <LeaderboardSection />
 
-          <View style={{ height: 16 }} />
+          <View style={{ height: compact ? 10 : 16 }} />
           <View style={{ paddingHorizontal: 16 }}>
             <ContactCard />
           </View>
