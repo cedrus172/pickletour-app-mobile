@@ -2016,21 +2016,14 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
   const eventType = (match?.tournament?.eventType || "double").toLowerCase();
   const gs = Array.isArray(match?.gameScores) ? match.gameScores : [];
   const matchStatus = String(match?.status || "").toLowerCase();
-  const hasStartEvent = Array.isArray(match?.liveLog)
-    ? match.liveLog.some(
-        (entry) => String(entry?.type || "").trim().toLowerCase() === "start",
-      )
-    : false;
-  const hasRecordedScore = gs.some(
-    (game) => Number(game?.a || 0) > 0 || Number(game?.b || 0) > 0,
-  );
-  const hasAdvancedGame =
-    Number(match?.currentGame || 0) > 0 || gs.length > 1;
+  // "Chưa bắt đầu" = XÉT THEO STATUS giống web (status != live/finished), KHÔNG xét
+  // theo đã-có-điểm. Trước đây mobile coi "đã có điểm" là đang đá dở → ẩn nút Bắt đầu
+  // nhưng chấm điểm lại cần status=live → kẹt (chỉ đổi giao chạy). Nay trận chưa live
+  // (dù đã có điểm do rút sân/reset/đổi status) luôn hiện "Bắt đầu"; bấm → live, GIỮ
+  // nguyên tỉ số để đá tiếp.
   const isPreMatch =
+    matchStatus !== "live" &&
     matchStatus !== "finished" &&
-    !hasStartEvent &&
-    !hasRecordedScore &&
-    !hasAdvancedGame &&
     !String(match?.winner || "").trim();
   const [leftRight, setLeftRight] = useState({ left: "A", right: "B" });
   const leftSide = leftRight.left;
