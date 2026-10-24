@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Linking,
@@ -23,6 +24,7 @@ import {
   useFbytUploadMutation,
   useFbytRetryMutation,
   useFbytUpdateMetaMutation,
+  useFbytDeleteMutation,
 } from "@/slices/fbYoutubeApiSlice";
 
 const fmtDur = (s: number) => {
@@ -91,8 +93,32 @@ export default function FbToYoutubeScreen() {
   const [doUpload, { isLoading: uploading }] = useFbytUploadMutation();
   const [doRetry] = useFbytRetryMutation();
   const [doUpdateMeta, { isLoading: savingMeta }] = useFbytUpdateMetaMutation();
+  const [doDelete] = useFbytDeleteMutation();
 
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
+
+  const confirmDelete = (j: any) => {
+    const msg =
+      j.status === "done" && j.ytVideoId
+        ? "Sẽ XOÁ video trên YouTube và bản ghi ở PickleTour (để tải lại được). Tiếp tục?"
+        : "Xoá bản ghi clip này ở PickleTour?";
+    Alert.alert("Xoá clip?", msg, [
+      { text: "Huỷ", style: "cancel" },
+      {
+        text: "Xoá",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await doDelete(j._id).unwrap();
+            refetchJobs();
+            refetchLives();
+          } catch (e: any) {
+            alert(e?.data?.message || "Xoá thất bại");
+          }
+        },
+      },
+    ]);
+  };
 
   if (!isAdmin) return <Redirect href="/(tabs)/more" />;
 
@@ -435,6 +461,11 @@ export default function FbToYoutubeScreen() {
                   {["failed", "canceled"].includes(j.status) ? (
                     <Pressable onPress={() => doRetry(j._id)} hitSlop={8} style={{ marginLeft: 12 }}>
                       <Ionicons name="reload" size={20} color={C.primary} />
+                    </Pressable>
+                  ) : null}
+                  {!["pending", "downloading", "uploading"].includes(j.status) ? (
+                    <Pressable onPress={() => confirmDelete(j)} hitSlop={8} style={{ marginLeft: 12 }}>
+                      <Ionicons name="trash-outline" size={20} color={C.redText} />
                     </Pressable>
                   ) : null}
                 </View>
