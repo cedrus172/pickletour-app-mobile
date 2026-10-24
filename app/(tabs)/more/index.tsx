@@ -254,6 +254,14 @@ export default function MoreIndexScreen() {
           route: "/admin/live-control",
           accent: "#0EA5E9",
         },
+        {
+          key: "fb-to-youtube",
+          title: "FB VOD → YouTube",
+          description: "Tải VOD live fanpage Facebook → đăng lên YouTube.",
+          icon: "logo-youtube" as const,
+          route: "/admin/fb-to-youtube",
+          accent: "#ff0033",
+        },
       ]
     : isCommentator
       ? [
