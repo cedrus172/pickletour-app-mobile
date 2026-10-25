@@ -15,6 +15,8 @@ export const liveControlApiSlice = apiSlice.injectEndpoints({
         method: "POST",
         body: { path, method, body: body || {} },
       }),
+      // Lỗi 404 của MÁY LIVE (endpoint máy không hỗ trợ) KHÔNG được làm app nhảy /404.
+      extraOptions: { skip404Redirect: true },
     }),
     // Tạo liên kết bình luận viên (mic → luồng live) cho 1 sân đang live.
     createCommentaryToken: builder.mutation({
