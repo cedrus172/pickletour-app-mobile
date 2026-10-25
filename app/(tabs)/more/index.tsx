@@ -68,6 +68,14 @@ const MORE_ITEMS = [
     accent: "#EF4444",
   },
   {
+    key: "youtube-library",
+    title: "Kho clip YouTube",
+    description: "Video và livestream từ các kênh YouTube của PickleTour.",
+    icon: "logo-youtube" as const,
+    route: "/youtube-library",
+    accent: "#FF0000",
+  },
+  {
     key: "referee-clusters",
     title: t("Chấm trận theo cụm sân"),
     description: "Chọn cụm sân bạn được chia, vào tìm sân và trận để chấm.",
