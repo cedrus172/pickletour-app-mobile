@@ -39,6 +39,7 @@ import ImageViewing from "react-native-image-viewing";
 import LeaderboardSection from "@/components/home/LeaderboardSection";
 import EventLiveBanner from "@/components/home/EventLiveBanner";
 import CourtBookingBanner from "@/components/home/CourtBookingBanner";
+import YoutubeClipsHome from "@/components/home/YoutubeClipsHome";
 import {
   HomePage,
   HomeSectionHeader,
@@ -1968,6 +1969,9 @@ export default function HomeScreen() {
           {v2 ? <QuickActions /> : null}
           <EventLiveBanner />
           <CourtBookingBanner />
+
+          <View style={{ height: compact ? 8 : 12 }} />
+          <YoutubeClipsHome />
 
           <View style={{ height: compact ? 4 : 8 }} />
           <FeaturesGrid />

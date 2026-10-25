@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
-  Linking,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -13,7 +12,22 @@ import {
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
+
+// Mở trình phát YouTube NGAY TRONG APP (không nhảy ra ngoài).
+function openClip(v: Video) {
+  router.push({
+    pathname: "/youtube-watch",
+    params: {
+      videoId: v.videoId,
+      title: v.title,
+      channel: v.channelTitle,
+      views: String(v.viewCount || 0),
+      published: v.publishedAt || "",
+      isLive: v.isLive ? "1" : "0",
+    },
+  });
+}
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
 import { useYoutubeLibraryQuery } from "@/slices/youtubeLibraryApiSlice";
@@ -58,7 +72,7 @@ const fmtDate = (d: any) => {
 function VideoCard({ v, C, width }: { v: Video; C: any; width: number }) {
   return (
     <Pressable
-      onPress={() => Linking.openURL(v.url)}
+      onPress={() => openClip(v)}
       style={{
         width,
         backgroundColor: C.card,
