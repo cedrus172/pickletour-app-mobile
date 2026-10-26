@@ -67,6 +67,7 @@ function LivePreview({ uri }: { uri: string }) {
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
 const hhmm = (d: Date) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+const hhmmss = (d: Date) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
 const clampN = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 /** Dòng thời gian kéo-tua + chụm-để-zoom (như DMSS). */
@@ -559,8 +560,8 @@ export default function ClipCutScreen() {
             </Pressable>
           </View>
         </View>
-        <Text style={{ color: C.primary, fontWeight: "800", fontSize: 15, marginBottom: 6 }}>
-          {hhmm(scrubTime)}  <Text style={{ color: C.sub, fontWeight: "500", fontSize: 12 }}>· {pad2(scrubTime.getDate())}/{pad2(scrubTime.getMonth() + 1)}</Text>
+        <Text style={{ color: C.primary, fontWeight: "800", fontSize: 18 }}>
+          {hhmmss(scrubTime)}  <Text style={{ color: C.sub, fontWeight: "500", fontSize: 12 }}>· {pad2(scrubTime.getDate())}/{pad2(scrubTime.getMonth() + 1)}</Text>
         </Text>
         <Timeline C={C} winStart={winStart} winMs={winMs} scrubTime={scrubTime} onScrub={setScrubTime} onCommit={(t) => { setScrubTime(t); startPlaybackAt(t); }} onZoom={onZoom} />
         <Text style={{ color: C.muted, fontSize: 11, textAlign: "center", marginTop: 4 }}>
@@ -568,7 +569,7 @@ export default function ClipCutScreen() {
         </Text>
         <Pressable onPress={cutFromScrub} disabled={busy} style={[styles.previewBtn, { borderColor: C.primary, marginTop: 12, opacity: busy ? 0.6 : 1 }]}>
           <Ionicons name="cut" size={17} color={C.primary} />
-          <Text style={{ color: C.primary, fontWeight: "700", marginLeft: 8 }}>Cắt {quickMin} phút từ {hhmm(scrubTime)}</Text>
+          <Text style={{ color: C.primary, fontWeight: "700", marginLeft: 8 }}>Cắt {quickMin} phút từ {hhmmss(scrubTime)}</Text>
         </Pressable>
 
         {/* Chọn khoảng cắt */}
