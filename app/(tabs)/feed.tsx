@@ -69,6 +69,7 @@ import { AspectImage } from "@/components/feed/AspectImage";
 import { AuthorAvatar } from "@/components/social/AuthorAvatar";
 import PlayerNameText from "@/components/PlayerNameText";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { useResponsive } from "@/hooks/useResponsive";
 import {
   FEED_COLORS,
   FeedFilters,
@@ -1811,6 +1812,7 @@ function PostCard({ post, me }: { post: any; me: any }) {
 export default function FeedScreen() {
   const C = useThemeTokens();
   const styles = useMemo(() => mk_styles(C), [C]);
+  const r = useResponsive();
   const me = useSelector((s: any) => s.auth?.userInfo);
   const dispatch = useDispatch();
   const socket = useSocket();
@@ -1955,6 +1957,7 @@ export default function FeedScreen() {
         <FlatList
           data={items}
           keyExtractor={(i: any) => i._id}
+          style={r.isWide ? { alignSelf: "center", width: "100%", maxWidth: r.contentMaxWidth } : undefined}
           ListHeaderComponent={
             <>
               <FeedHeader />

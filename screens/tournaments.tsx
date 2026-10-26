@@ -3,6 +3,7 @@ import {
   useGetTournamentsQuery } from "@/slices/tournamentsApiSlice";
 import { router,
   useLocalSearchParams } from "expo-router";
+import { useResponsive } from "@/hooks/useResponsive";
 import React,
   { useEffect,
   useMemo,
@@ -431,6 +432,8 @@ function GroupCard({ group, canManage, formatDate, onPreview }: any) {
 /* ---------- Main Screen ---------- */
 export default function TournamentDashboardScreen({ isBack = false }) {
   const theme = useModernTheme();
+  const rsp = useResponsive();
+  const wideList: any = rsp.isWide ? { maxWidth: rsp.contentMaxWidth, alignSelf: "center", width: "100%" } : null;
   const scheme = useColorScheme() ?? "light";
   const isDark = scheme === "dark";
 
@@ -691,7 +694,7 @@ export default function TournamentDashboardScreen({ isBack = false }) {
             keyExtractor={(_, i) => `sk-${i}`}
             renderItem={() => <SkeletonCard />}
             ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, wideList]}
             showsVerticalScrollIndicator={false}
             keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"
@@ -717,7 +720,7 @@ export default function TournamentDashboardScreen({ isBack = false }) {
             data={groups}
             keyExtractor={(item) => String(item.key || item._id)}
             renderItem={renderItem}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, wideList]}
             ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
             refreshing={refreshing}
             onRefresh={onRefresh}
