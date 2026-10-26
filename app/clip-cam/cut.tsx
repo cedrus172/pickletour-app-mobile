@@ -73,9 +73,10 @@ export default function ClipCutScreen() {
   const channelId = Number(chId || 0);
   const channelName = String(chName || "Sân");
 
-  // ── Live preview ────────────────────────────────────────────────────────────
+  // ── Xem trước (live / phát lại đoạn cắt) ────────────────────────────────────
   const [manifest, setManifest] = useState<string>("");
   const [previewBusy, setPreviewBusy] = useState(false);
+  const [previewMode, setPreviewMode] = useState<"live" | "playback">("live");
   const streamRef = useRef<StreamSession | null>(null);
 
   const startPreview = useCallback(async () => {
@@ -84,6 +85,7 @@ export default function ClipCutScreen() {
     try {
       const s = await startStream(baseUrl, channelId, "live");
       streamRef.current = s;
+      setPreviewMode("live");
       setManifest(streamManifestUrl(baseUrl, s));
     } catch (e: any) {
       Alert.alert("Không xem được", e?.message || "Camera tạm thời không phản hồi.");
@@ -114,6 +116,42 @@ export default function ClipCutScreen() {
 
   const customMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
   const customValid = useCustom ? end > start && customMinutes <= MAX_CLIP_MINUTES : true;
+  // Thông báo cụ thể lý do (tránh gộp chung gây khó hiểu).
+  const customMsg = !useCustom
+    ? ""
+    : end <= start
+      ? "Giờ kết thúc phải sau giờ bắt đầu."
+      : customMinutes > MAX_CLIP_MINUTES
+        ? `Khoảng cắt ${customMinutes} phút — tối đa ${MAX_CLIP_MINUTES} phút/clip, hãy chọn ngắn lại.`
+        : `Độ dài: ${customMinutes} phút`;
+
+  // Khoảng thời gian đang chọn → {start,end} dạng chuỗi cho API.
+  const selectedRange = useCallback(() => {
+    if (useCustom) return { start: fmtClipTime(start), end: fmtClipTime(end) };
+    const now = new Date();
+    return { start: fmtClipTime(new Date(now.getTime() - quickMin * 60000)), end: fmtClipTime(now) };
+  }, [useCustom, start, end, quickMin]);
+
+  // Xem trước (phát lại) đoạn sắp cắt — tua được để kiểm tra đúng đoạn rồi mới cắt.
+  const startRangePreview = useCallback(async () => {
+    if (useCustom && !customValid) { Alert.alert("Thời gian không hợp lệ", customMsg); return; }
+    if (previewBusy) return;
+    const prev = streamRef.current;
+    streamRef.current = null;
+    setManifest("");
+    if (prev) stopStream(baseUrl, prev.session_id);
+    setPreviewBusy(true);
+    try {
+      const s = await startStream(baseUrl, channelId, "playback", selectedRange());
+      streamRef.current = s;
+      setPreviewMode("playback");
+      setManifest(streamManifestUrl(baseUrl, s));
+    } catch (e: any) {
+      Alert.alert("Không xem trước được", e?.message || "Không phát lại được đoạn này.");
+    } finally {
+      setPreviewBusy(false);
+    }
+  }, [useCustom, customValid, customMsg, previewBusy, baseUrl, channelId, selectedRange]);
 
   // ── Cắt + poll ───────────────────────────────────────────────────────────
   const [phase, setPhase] = useState<Phase>("idle");
@@ -268,6 +306,12 @@ export default function ClipCutScreen() {
         {/* Preview / thumbnail */}
         {manifest ? (
           <View>
+            {previewMode === "playback" && (
+              <View style={[styles.pbTag, { backgroundColor: C.primarySoft, borderColor: C.primary }]}>
+                <Ionicons name="play-back" size={13} color={C.primary} />
+                <Text style={{ color: C.primary, fontWeight: "700", fontSize: 12, marginLeft: 5 }}>Đang xem lại đoạn cắt — kéo thanh thời gian để tua</Text>
+              </View>
+            )}
             <LivePreview uri={manifest} />
             <Pressable onPress={stopPreview} style={[styles.ghostBtn, { borderColor: C.border, marginTop: 8 }]}>
               <Ionicons name="stop-circle-outline" size={18} color={C.redText} />
@@ -321,16 +365,29 @@ export default function ClipCutScreen() {
               <DateBtn C={C} label="Kết thúc" value={end} onPress={() => setPicker("end")} />
             </View>
             <Text style={{ color: customValid ? C.sub : C.redText, marginTop: 6, fontSize: 12 }}>
-              {customValid ? `Độ dài: ${customMinutes} phút` : `Tối đa ${MAX_CLIP_MINUTES} phút, kết thúc phải sau bắt đầu.`}
+              {customMsg}
             </Text>
           </View>
         )}
+
+        {/* Xem trước đoạn cắt (phát lại, tua được) */}
+        <Pressable
+          onPress={startRangePreview}
+          disabled={previewBusy || (useCustom && !customValid)}
+          style={[styles.previewBtn, { borderColor: C.primary, opacity: previewBusy || (useCustom && !customValid) ? 0.6 : 1 }]}
+        >
+          {previewBusy ? <ActivityIndicator color={C.primary} size="small" /> : <Ionicons name="eye-outline" size={18} color={C.primary} />}
+          <Text style={{ color: C.primary, fontWeight: "700", marginLeft: 8 }}>Xem trước đoạn cắt</Text>
+        </Pressable>
+        <Text style={{ color: C.muted, fontSize: 11.5, textAlign: "center", marginTop: 6 }}>
+          Phát lại đoạn đã chọn để kiểm tra đúng chưa, rồi hãy cắt.
+        </Text>
 
         {/* Nút cắt */}
         <Pressable
           onPress={onCut}
           disabled={busy || (useCustom && !customValid)}
-          style={[styles.cutBtn, { backgroundColor: C.primary, opacity: busy || (useCustom && !customValid) ? 0.6 : 1 }]}
+          style={[styles.cutBtn, { backgroundColor: C.primary, opacity: busy || (useCustom && !customValid) ? 0.6 : 1, marginTop: 12 }]}
         >
           {busy ? <ActivityIndicator color={C.onPrimary} /> : <Ionicons name="cut" size={18} color={C.onPrimary} />}
           <Text style={{ color: C.onPrimary, fontWeight: "800", fontSize: 16, marginLeft: 8 }}>
@@ -461,6 +518,8 @@ const mkStyles = (C: ThemeTokens) =>
     thumb: { width: "100%", height: "100%" },
     previewOverlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.28)" },
     ghostBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 10, borderRadius: 10, borderWidth: 1 },
+    previewBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, marginTop: 18 },
+    pbTag: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1, marginBottom: 8 },
     sectionTitle: { fontWeight: "800", fontSize: 15, marginTop: 20, marginBottom: 10 },
     chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
     chip: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, borderWidth: 1 },
