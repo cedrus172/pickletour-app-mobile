@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { setAudioModeAsync } from "expo-audio";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
@@ -53,8 +54,11 @@ try { MediaLibrary = require("expo-media-library"); } catch { /* bản chưa bui
 function LivePreview({ uri }: { uri: string }) {
   const player = useVideoPlayer(uri, (p) => {
     p.loop = false;
+    p.muted = false;
     p.play();
   });
+  // Phát tiếng cả khi iPhone bật gạt im lặng (nếu không sẽ không nghe thấy).
+  useEffect(() => { setAudioModeAsync({ playsInSilentMode: true }).catch(() => {}); }, []);
   return (
     <VideoView
       player={player}
