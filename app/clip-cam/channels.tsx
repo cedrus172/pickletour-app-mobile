@@ -14,11 +14,15 @@ import { Stack, router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/i18nText";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { useResponsive } from "@/hooks/useResponsive";
 import { fetchChannels, thumbnailUrl, type Channel } from "@/utils/pickclip";
 
 export default function ClipCamChannelsScreen() {
   const C = useThemeTokens();
   const styles = useMemo(() => mkStyles(C), [C]);
+  const rsp = useResponsive();
+  const camCols = rsp.isLarge ? 4 : rsp.isWide ? 3 : 2;
+  const camCardW: any = `${100 / camCols - 1.5}%`;
   const { base, venueName } = useLocalSearchParams<{ base: string; venueName: string }>();
   const baseUrl = String(base || "");
 
@@ -89,7 +93,7 @@ export default function ClipCamChannelsScreen() {
         ) : (
           <View style={styles.grid}>
             {channels.map((ch) => (
-              <Pressable key={ch.id} onPress={() => openCut(ch)} style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}>
+              <Pressable key={ch.id} onPress={() => openCut(ch)} style={[styles.card, { backgroundColor: C.card, borderColor: C.border, width: camCardW }]}>
                 <View style={styles.thumbWrap}>
                   <Image source={{ uri: `${thumbnailUrl(baseUrl, ch.id)}?t=${thumbTick}` }} style={styles.thumb} resizeMode="cover" />
                   <View style={styles.playBadge}><Ionicons name="cut" size={16} color="#fff" /></View>

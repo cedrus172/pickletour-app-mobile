@@ -17,6 +17,7 @@ import { Stack, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/i18nText";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { useResponsive } from "@/hooks/useResponsive";
 import { useMyCamClipAccessQuery } from "@/slices/camClipApiSlice";
 
 type Access = {
@@ -47,6 +48,7 @@ function accessLabel(a: Access): string {
 export default function ClipCamScreen() {
   const C = useThemeTokens();
   const styles = useMemo(() => mkStyles(C), [C]);
+  const rsp = useResponsive();
   const { data, isLoading, isError, refetch, isFetching } = useMyCamClipAccessQuery(undefined);
   const venues: Access[] = Array.isArray(data) ? data : [];
 
@@ -66,7 +68,7 @@ export default function ClipCamScreen() {
     <SafeAreaView style={styles.root} edges={["bottom"]}>
       <Stack.Screen options={{ title: "Cắt Cam Sân", headerShown: true }} />
       <ScrollView
-        contentContainerStyle={{ padding: 14, paddingBottom: 32 }}
+        contentContainerStyle={[{ padding: 14, paddingBottom: 32 }, rsp.isWide && { maxWidth: rsp.contentMaxWidth, alignSelf: "center", width: "100%" }]}
         refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} tintColor={C.primary} />}
       >
         {isLoading ? (
