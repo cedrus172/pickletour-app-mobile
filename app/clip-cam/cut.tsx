@@ -216,12 +216,17 @@ export default function ClipCutScreen() {
       const dir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
       const safe = (name || `clip-${clipId}.mp4`).replace(/[^\w.\-]+/g, "_");
       const dl = await FileSystem.downloadAsync(clipDownloadUrl(baseUrl, clipId), `${dir}${safe}`);
+      // Thử lưu thẳng album; nếu module native thiếu/hỏng (bản app cũ) → fallback share.
       if (MediaLibrary?.saveToLibraryAsync) {
-        const perm = MediaLibrary.requestPermissionsAsync ? await MediaLibrary.requestPermissionsAsync() : { granted: true };
-        if (!perm?.granted) { Alert.alert("Cần quyền", "Cho phép truy cập Ảnh để lưu clip vào máy."); return; }
-        await MediaLibrary.saveToLibraryAsync(dl.uri);
-        Alert.alert("Đã lưu", "Clip đã lưu vào thư viện ảnh.");
-      } else if (await Sharing.isAvailableAsync()) {
+        try {
+          const perm = MediaLibrary.requestPermissionsAsync ? await MediaLibrary.requestPermissionsAsync() : { granted: true };
+          if (!perm?.granted) { Alert.alert("Cần quyền", "Cho phép truy cập Ảnh để lưu clip vào máy."); return; }
+          await MediaLibrary.saveToLibraryAsync(dl.uri);
+          Alert.alert("Đã lưu", "Clip đã lưu vào thư viện ảnh.");
+          return;
+        } catch { /* native không khả dụng → rơi xuống share */ }
+      }
+      if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(dl.uri, { mimeType: "video/mp4", UTI: "public.mpeg-4", dialogTitle: "Lưu / chia sẻ clip" });
       } else {
         Alert.alert("Đã tải", "Clip đã được tải về máy.");
