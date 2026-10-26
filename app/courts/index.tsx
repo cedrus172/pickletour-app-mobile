@@ -3,6 +3,7 @@ import React, { useMemo, useState, useCallback } from "react";
 import { View, FlatList, TextInput, TouchableOpacity, Image, StyleSheet, RefreshControl, ActivityIndicator, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Text } from "@/components/ui/i18nText";
+import { useResponsive } from "@/hooks/useResponsive";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, router } from "expo-router";
 import { useTheme } from "@react-navigation/native";
@@ -17,6 +18,7 @@ const fmtKm = (m?: number) => (typeof m !== "number" ? "" : m < 1000 ? `${m}m` :
 export default function CourtsBrowseScreen() {
   const theme = useTheme();
   const C = useMemo(() => pal(!!theme.dark), [theme.dark]);
+  const rsp = useResponsive();
   const [q, setQ] = useState("");
   const [keyword, setKeyword] = useState("");
   const [near, setNear] = useState(false);
@@ -142,6 +144,7 @@ export default function CourtsBrowseScreen() {
         <FlatList
           data={items}
           keyExtractor={(v) => String(v._id)}
+          style={rsp.isWide ? { alignSelf: "center", width: "100%", maxWidth: rsp.contentMaxWidth } : undefined}
           contentContainerStyle={{ padding: SP.lg, paddingBottom: 48 }}
           refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} />}
           ListEmptyComponent={<Empty C={C} icon="search-outline" title={keyword ? `Không có sân khớp "${keyword}"` : "Chưa có sân nào"} subtitle="Thử từ khoá khác hoặc bật Gần tôi." />}
