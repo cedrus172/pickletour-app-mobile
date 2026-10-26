@@ -41,6 +41,7 @@ import { t, useLang, setLang } from "@/utils/i18n";
 import { useFriendCountsQuery } from "@/slices/friendsApiSlice";
 import { useNotifUnreadCountQuery } from "@/slices/notificationCenterApiSlice";
 import { useMyLiveGrantsQuery } from "@/slices/liveGrantsApiSlice";
+import { useResponsive } from "@/hooks/useResponsive";
 
 const MORE_ITEMS = [
   {
@@ -233,6 +234,8 @@ function MoreGlassSurface({
 export default function MoreIndexScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const r = useResponsive();
+  const itemW: any = r.isLarge ? "32.2%" : r.isWide ? "48.6%" : "100%";
   const userInfo = useSelector((state: any) => state.auth?.userInfo || null);
   const isAdmin = !!(userInfo?.isAdmin || userInfo?.role === "admin" || userInfo?.isSuperAdmin);
   const isCommentator = !!userInfo?.isCommentator;
@@ -490,6 +493,7 @@ export default function MoreIndexScreen() {
             </View>
           </Pressable>
 
+          <View style={r.isWide ? { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 18 } : undefined}>
           {moreItems.map((item) => (
             <Pressable
               key={item.key}
@@ -503,6 +507,7 @@ export default function MoreIndexScreen() {
               }
               style={({ pressed }) => [
                 styles.itemPressable,
+                r.isWide && { width: itemW },
                 {
                   opacity: pressed ? 0.92 : 1,
                 },
@@ -611,6 +616,7 @@ export default function MoreIndexScreen() {
               </MoreGlassSurface>
             </Pressable>
           ))}
+          </View>
         </View>
 
         <Text

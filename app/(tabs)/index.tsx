@@ -48,6 +48,8 @@ import {
 } from "@/components/home/HomeDesign";
 import { SHOULD_RENDER_NATIVE_LOTTIE } from "@/utils/runtimeSafety";
 import { useUiVersion, V2 } from "@/hooks/uiVersion";
+import { useResponsive } from "@/hooks/useResponsive";
+import { AdaptiveContainer } from "@/components/ui/AdaptiveContainer";
 import PlayerNameText from "@/components/PlayerNameText";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
 import { useLiquidGlassEnabled } from "@/context/GlassAppearanceContext";
@@ -977,7 +979,7 @@ function shadeHex(hex, amt) {
   return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`;
 }
 
-function FeatureItem({ item, theme }) {
+function FeatureItem({ item, theme, colWidth }) {
   const v2 = useUiVersion() === "v2";
   const isDark = !!theme?.dark;
   const text = v2 ? V2.ink : theme?.colors?.text ?? (isDark ? "#ffffff" : "#111111");
@@ -1019,7 +1021,7 @@ function FeatureItem({ item, theme }) {
         onPress={handlePress}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
-        style={styles.featureCol}
+        style={[styles.featureCol, colWidth ? { width: colWidth } : null]}
       >
         <Animated.View style={[styles.featureV2, { transform: [{ scale: scaleVal }] }]}>
           <View style={styles.featureV2IconWrap}>
@@ -1052,7 +1054,7 @@ function FeatureItem({ item, theme }) {
       onPress={handlePress}
       onPressIn={onPressIn}
       onPressOut={onPressOut}
-      style={styles.featureCol}
+      style={[styles.featureCol, colWidth ? { width: colWidth } : null]}
     >
       <Animated.View
         style={[
@@ -1126,9 +1128,11 @@ function FeatureItem({ item, theme }) {
 /* ---------- Features Grid ---------- */
 function FeaturesGrid() {
   const theme = useTheme();
+  const r = useResponsive();
 
-  // Hàng cuối thiếu bao nhiêu ô để đủ 4 cột → chèn ô rỗng, giữ lưới thẳng hàng
-  const NUM_COLUMNS = 4;
+  // Số cột theo bề rộng (iPhone Duo mở → 6–8 cột). Hàng cuối chèn ô rỗng cho thẳng lưới.
+  const NUM_COLUMNS = r.featureColumns;
+  const colWidth: any = `${(100 / NUM_COLUMNS) - 1.8}%`;
   const remainder = FEATURES.length % NUM_COLUMNS;
   const emptySlots = remainder === 0 ? 0 : NUM_COLUMNS - remainder;
 
@@ -1141,10 +1145,10 @@ function FeaturesGrid() {
       />
       <View style={styles.featuresGrid}>
         {FEATURES.map((item) => (
-          <FeatureItem key={item.id} item={item} theme={theme} />
+          <FeatureItem key={item.id} item={item} theme={theme} colWidth={colWidth} />
         ))}
         {Array.from({ length: emptySlots }).map((_, index) => (
-          <View key={`empty-${index}`} style={styles.featureCol} />
+          <View key={`empty-${index}`} style={[styles.featureCol, { width: colWidth }]} />
         ))}
       </View>
     </View>
@@ -1982,29 +1986,31 @@ export default function HomeScreen() {
             <AthleteIsland />
           </View>
 
-          {v2 ? <QuickActions /> : null}
-          <EventLiveBanner />
-          <CourtBookingBanner />
+          <AdaptiveContainer>
+            {v2 ? <QuickActions /> : null}
+            <EventLiveBanner />
+            <CourtBookingBanner />
 
-          <View style={{ height: compact ? 8 : 12 }} />
-          <YoutubeClipsHome />
+            <View style={{ height: compact ? 8 : 12 }} />
+            <YoutubeClipsHome />
 
-          <View style={{ height: compact ? 4 : 8 }} />
-          <FeaturesGrid />
+            <View style={{ height: compact ? 4 : 8 }} />
+            <FeaturesGrid />
 
-          <View style={{ height: gap }} />
-          <TournamentsSection />
+            <View style={{ height: gap }} />
+            <TournamentsSection />
 
-          <View style={{ height: gap }} />
-          <NewsSection />
+            <View style={{ height: gap }} />
+            <NewsSection />
 
-          <View style={{ height: gap }} />
-          <LeaderboardSection />
+            <View style={{ height: gap }} />
+            <LeaderboardSection />
 
-          <View style={{ height: compact ? 10 : 16 }} />
-          <View style={{ paddingHorizontal: 16 }}>
-            <ContactCard />
-          </View>
+            <View style={{ height: compact ? 10 : 16 }} />
+            <View style={{ paddingHorizontal: 16 }}>
+              <ContactCard />
+            </View>
+          </AdaptiveContainer>
         </ScrollView>
       </View>
       </HomePage>
