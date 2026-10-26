@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
+import { useResponsive } from "@/hooks/useResponsive";
 import { Stack, router } from "expo-router";
 import { useTheme } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -164,6 +165,8 @@ function SkeletonItem({ isDark, cardBg }) {
 
 export default function GuidesScreen() {
   const theme = useTheme();
+  const rsp = useResponsive();
+  const wideList: any = rsp.isWide ? { alignSelf: "center", width: "100%", maxWidth: rsp.contentMaxWidth } : null;
   const isDark = !!theme?.dark;
   const bg = isDark ? "#0b0f14" : "#f5f7fb";
   const cardBg = isDark ? "#14171c" : "#ffffff";
@@ -379,6 +382,7 @@ export default function GuidesScreen() {
             data={[1, 2, 3, 4, 5, 6]}
             keyExtractor={(item) => String(item)}
             renderItem={() => <SkeletonItem isDark={isDark} cardBg={cardBg} />}
+            style={wideList}
             contentContainerStyle={styles.listContent}
             ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
             ListHeaderComponent={
@@ -421,6 +425,7 @@ export default function GuidesScreen() {
             data={videos}
             keyExtractor={(item) => String(item.id)}
             renderItem={renderItem}
+            style={wideList}
             contentContainerStyle={styles.listContent}
             ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
             refreshControl={

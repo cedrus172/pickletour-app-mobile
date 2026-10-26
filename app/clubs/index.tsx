@@ -13,6 +13,7 @@ import {
   ScrollView,
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
+import { useResponsive } from "@/hooks/useResponsive";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Animated, {
@@ -92,6 +93,7 @@ const ClubSkeleton = () => {
 
 export default function ClubsListScreen() {
   const router = useRouter();
+  const rsp = useResponsive();
   // 🆕 Lấy theme hiện tại
   const { colors, dark } = useTheme();
 
@@ -307,6 +309,7 @@ export default function ClubsListScreen() {
           data={clubs}
           renderItem={renderClubCard}
           keyExtractor={(item) => item._id}
+          style={rsp.isWide ? { alignSelf: "center", width: "100%", maxWidth: rsp.contentMaxWidth } : undefined}
           contentContainerStyle={styles.listContent}
           onScroll={handleScroll}
           scrollEventThrottle={16}

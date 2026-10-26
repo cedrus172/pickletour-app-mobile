@@ -65,7 +65,8 @@ export default function MarketplaceScreen() {
     }, [refetch])
   );
 
-  const cardW = (width - 12 * 3) / 2;
+  const mkCols = width >= 1040 ? 4 : width >= 760 ? 3 : 2;
+  const cardW = (width - 12 * (mkCols + 1)) / mkCols;
 
   const onToggleSave = async (item: any) => {
     if (!me) return router.push("/login" as any);
@@ -200,7 +201,8 @@ export default function MarketplaceScreen() {
         <FlatList
           data={items}
           keyExtractor={(it) => String(it._id)}
-          numColumns={2}
+          numColumns={mkCols}
+          key={`mk-${mkCols}`}
           columnWrapperStyle={{ paddingHorizontal: 12, gap: 12 }}
           contentContainerStyle={{ paddingTop: 12, paddingBottom: 100 }}
           refreshControl={

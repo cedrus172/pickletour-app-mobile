@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { TextInput } from "@/components/ui/i18nTextInput";
+import { useResponsive } from "@/hooks/useResponsive";
 import { Text } from "@/components/ui/i18nText";
 import { Stack, router } from "expo-router";
 import { useTheme } from "@react-navigation/native";
@@ -241,6 +242,7 @@ function NewsListItem({ item, theme }) {
 /* ========== Screen ========== */
 export default function NewsListScreen() {
   const theme = useTheme();
+  const rsp = useResponsive();
   const isDark = !!theme?.dark;
   const bg = theme?.colors?.background ?? (isDark ? "#020817" : "#f5f7fb");
 
@@ -411,6 +413,7 @@ export default function NewsListScreen() {
             renderItem={({ item }) => (
               <NewsListItem item={item} theme={theme} />
             )}
+            style={rsp.isWide ? { alignSelf: "center", width: "100%", maxWidth: rsp.contentMaxWidth } : undefined}
             contentContainerStyle={styles.listContent}
             keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"
