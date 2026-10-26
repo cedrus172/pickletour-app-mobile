@@ -131,6 +131,15 @@ const FEATURES = [
     isHot: true, // ô nổi bật (nền gradient) — tính năng mới ra mắt
   },
   {
+    id: 42,
+    icon: "cut",
+    iconLib: "Ionicons",
+    title: t("Cắt Cam Sân"),
+    color: "#06b6d4",
+    link: "/clip-cam",
+    isNew: true,
+  },
+  {
     id: 1,
     icon: "calendar",
     iconLib: "Ionicons",
@@ -1013,7 +1022,13 @@ function FeatureItem({ item, theme }) {
       >
         <Animated.View style={[styles.featureV2, { transform: [{ scale: scaleVal }] }]}>
           <View style={styles.featureV2IconWrap}>
-            <Image source={v2Icon} style={styles.featureV2Icon} contentFit="contain" />
+            {v2Icon ? (
+              <Image source={v2Icon} style={styles.featureV2Icon} contentFit="contain" />
+            ) : (
+              <View style={[styles.featureV2Icon, { alignItems: "center", justifyContent: "center" }]}>
+                <Lib name={item.icon} size={28} color={item.color} />
+              </View>
+            )}
             {item.isNew ? (
               <View style={[styles.newBadge, styles.newBadgeV2, hot && styles.newBadgeV2Hot]} pointerEvents="none">
                 <Text style={[styles.newBadgeText, hot && { color: "#04121f" }]}>
