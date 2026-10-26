@@ -40,6 +40,11 @@ import {
   type StreamSession,
 } from "@/utils/pickclip";
 
+// Lưu vào album cần module native expo-media-library. Bản app cũ (chỉ nhận OTA) chưa
+// có native module → require lỗi → MediaLibrary=null → tự fallback sang share sheet.
+let MediaLibrary: any = null;
+try { MediaLibrary = require("expo-media-library"); } catch { /* bản chưa build native */ }
+
 /** Trình phát HLS (expo-video). Tách riêng vì useVideoPlayer là hook top-level. */
 function LivePreview({ uri }: { uri: string }) {
   const player = useVideoPlayer(uri, (p) => {
@@ -202,6 +207,32 @@ export default function ClipCutScreen() {
     }
   }, [baseUrl, sharing]);
 
+  // Lưu THẲNG vào album (thư viện ảnh). Cần module native expo-media-library (bản
+  // build mới); bản cũ chưa có → tự fallback sang share sheet (vẫn có "Lưu video").
+  const saveToAlbum = useCallback(async (clipId: string, name: string) => {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      const dir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+      const safe = (name || `clip-${clipId}.mp4`).replace(/[^\w.\-]+/g, "_");
+      const dl = await FileSystem.downloadAsync(clipDownloadUrl(baseUrl, clipId), `${dir}${safe}`);
+      if (MediaLibrary?.saveToLibraryAsync) {
+        const perm = MediaLibrary.requestPermissionsAsync ? await MediaLibrary.requestPermissionsAsync() : { granted: true };
+        if (!perm?.granted) { Alert.alert("Cần quyền", "Cho phép truy cập Ảnh để lưu clip vào máy."); return; }
+        await MediaLibrary.saveToLibraryAsync(dl.uri);
+        Alert.alert("Đã lưu", "Clip đã lưu vào thư viện ảnh.");
+      } else if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(dl.uri, { mimeType: "video/mp4", UTI: "public.mpeg-4", dialogTitle: "Lưu / chia sẻ clip" });
+      } else {
+        Alert.alert("Đã tải", "Clip đã được tải về máy.");
+      }
+    } catch (e: any) {
+      Alert.alert("Lỗi lưu clip", e?.message || "Không lưu được clip (có thể đã quá hạn).");
+    } finally {
+      setSharing(false);
+    }
+  }, [baseUrl, sharing]);
+
   // ── Lịch sử (clip của camera này) ──────────────────────────────────────────
   const [history, setHistory] = useState<ClipHistoryItem[]>([]);
   useEffect(() => {
@@ -305,19 +336,27 @@ export default function ClipCutScreen() {
         {/* Kết quả */}
         {phase === "done" && result && (
           <View style={[styles.resultCard, { backgroundColor: C.greenSoft, borderColor: C.greenText }]}>
-            <Ionicons name="checkmark-circle" size={22} color={C.greenText} />
-            <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text numberOfLines={1} style={{ color: C.text, fontWeight: "700" }}>{result.name}</Text>
-              {!!result.size && <Text style={{ color: C.sub, fontSize: 12 }}>{humanSize(result.size)}</Text>}
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons name="checkmark-circle" size={22} color={C.greenText} />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text numberOfLines={1} style={{ color: C.text, fontWeight: "700" }}>{result.name}</Text>
+                {!!result.size && <Text style={{ color: C.sub, fontSize: 12 }}>{humanSize(result.size)}</Text>}
+              </View>
             </View>
-            <Pressable onPress={() => shareClip(result.clipId, result.name)} disabled={sharing} style={[styles.shareBtn, { backgroundColor: C.primary }]}>
-              {sharing ? <ActivityIndicator color={C.onPrimary} size="small" /> : <Ionicons name="share-social" size={16} color={C.onPrimary} />}
-              <Text style={{ color: C.onPrimary, fontWeight: "700", marginLeft: 6 }}>Tải / Chia sẻ</Text>
-            </Pressable>
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
+              <Pressable onPress={() => saveToAlbum(result.clipId, result.name)} disabled={sharing} style={[styles.resBtn, { backgroundColor: C.primary }]}>
+                {sharing ? <ActivityIndicator color={C.onPrimary} size="small" /> : <Ionicons name="download" size={16} color={C.onPrimary} />}
+                <Text style={{ color: C.onPrimary, fontWeight: "700", marginLeft: 6 }}>Lưu vào máy</Text>
+              </Pressable>
+              <Pressable onPress={() => shareClip(result.clipId, result.name)} disabled={sharing} style={[styles.resBtn, { backgroundColor: C.field, borderWidth: 1, borderColor: C.border }]}>
+                <Ionicons name="share-social-outline" size={16} color={C.text} />
+                <Text style={{ color: C.text, fontWeight: "700", marginLeft: 6 }}>Chia sẻ</Text>
+              </Pressable>
+            </View>
           </View>
         )}
         {phase === "error" && (
-          <View style={[styles.resultCard, { backgroundColor: C.redSoft, borderColor: C.redText }]}>
+          <View style={[styles.resultCard, { backgroundColor: C.redSoft, borderColor: C.redText, flexDirection: "row", alignItems: "center" }]}>
             <Ionicons name="alert-circle" size={22} color={C.redText} />
             <Text style={{ color: C.text, flex: 1, marginLeft: 10 }}>{statusText}</Text>
           </View>
@@ -402,6 +441,7 @@ const mkStyles = (C: ThemeTokens) =>
     progressCard: { borderRadius: 12, borderWidth: 1, padding: 14, marginTop: 16 },
     track: { height: 8, borderRadius: 999, backgroundColor: "rgba(127,127,127,0.25)", overflow: "hidden" },
     bar: { height: 8, borderRadius: 999 },
-    resultCard: { flexDirection: "row", alignItems: "center", borderRadius: 12, borderWidth: 1, padding: 12, marginTop: 16 },
+    resultCard: { borderRadius: 12, borderWidth: 1, padding: 12, marginTop: 16 },
+    resBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 11, borderRadius: 10 },
     shareBtn: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10 },
   });

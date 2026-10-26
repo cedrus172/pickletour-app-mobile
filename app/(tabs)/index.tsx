@@ -73,6 +73,7 @@ const BADGE_ASPECT = 1237 / 1088; // tỉ lệ file badge đã trim
 /* Bộ icon thể thao V2 (tạo bằng Stability AI, badge navy đồng nhất) — theo id FEATURES */
 const V2_ICONS: Record<number, any> = {
   21: require("@/assets/images/v2icons/court.png"),
+  42: require("@/assets/images/v2icons/clipcam.png"),
   1: require("@/assets/images/v2icons/calendar.png"),
   2: require("@/assets/images/v2icons/trophy.png"),
   3: require("@/assets/images/v2icons/stats.png"),

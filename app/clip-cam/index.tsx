@@ -22,11 +22,13 @@ type Access = {
   venueName: string;
   logo?: string;
   piBaseUrl: string;
-  source: "admin" | "owner" | "manager" | "manual" | "booking";
+  hasAccess: boolean;
+  source: "admin" | "owner" | "manager" | "manual" | "booking" | null;
   expiresAt: string | null;
 };
 
 function accessLabel(a: Access): string {
+  if (!a.hasAccess) return "Chưa có quyền";
   if (a.source === "owner" || a.source === "manager") return "Chủ sân";
   if (a.source === "admin") return "Admin";
   if (!a.expiresAt) return "Vĩnh viễn";
@@ -41,7 +43,7 @@ export default function ClipCamScreen() {
   const C = useThemeTokens();
   const styles = useMemo(() => mkStyles(C), [C]);
 
-  const { data: access, isLoading: accLoading, isError: accError, refetch } = useMyCamClipAccessQuery();
+  const { data: access, isLoading: accLoading, isError: accError, refetch } = useMyCamClipAccessQuery(undefined);
   const venues: Access[] = Array.isArray(access) ? access : [];
 
   const [venueIdx, setVenueIdx] = useState(0);
@@ -54,7 +56,7 @@ export default function ClipCamScreen() {
   const [thumbTick, setThumbTick] = useState(0);
 
   const loadChannels = useCallback(async (v?: Access) => {
-    if (!v) { setChannels([]); return; }
+    if (!v || !v.hasAccess) { setChannels([]); return; }
     setChErr("");
     setChLoading(true);
     try {
@@ -100,10 +102,10 @@ export default function ClipCamScreen() {
           </View>
         ) : venues.length === 0 ? (
           <View style={styles.center}>
-            <Ionicons name="lock-closed-outline" size={44} color={C.muted} />
-            <Text style={[styles.emptyTitle, { color: C.text }]}>Bạn chưa có quyền cắt cam</Text>
+            <Ionicons name="videocam-off-outline" size={44} color={C.muted} />
+            <Text style={[styles.emptyTitle, { color: C.text }]}>Chưa có sân nào hỗ trợ cắt cam</Text>
             <Text style={{ color: C.sub, marginTop: 8, textAlign: "center", lineHeight: 20 }}>
-              Đặt sân qua app để được cắt cam miễn phí 48 giờ sau khi nhận sân, hoặc liên hệ chủ sân để được cấp quyền.
+              Tính năng đang được triển khai tại các sân có hệ thống camera. Vui lòng quay lại sau.
             </Text>
           </View>
         ) : (
@@ -119,7 +121,7 @@ export default function ClipCamScreen() {
                       onPress={() => setVenueIdx(i)}
                       style={[styles.venueChip, { backgroundColor: on ? C.primary : C.field, borderColor: on ? C.primary : C.border }]}
                     >
-                      <Ionicons name="location" size={14} color={on ? C.onPrimary : C.sub} />
+                      <Ionicons name={v.hasAccess ? "location" : "lock-closed"} size={14} color={on ? C.onPrimary : C.sub} />
                       <Text style={{ color: on ? C.onPrimary : C.text, fontWeight: "700", marginLeft: 6 }}>{v.venueName}</Text>
                     </Pressable>
                   );
@@ -129,14 +131,28 @@ export default function ClipCamScreen() {
 
             {/* Badge quyền của venue đang chọn */}
             {venue && (
-              <View style={[styles.accessBadge, { backgroundColor: C.primarySoft, borderColor: C.primary }]}>
-                <Ionicons name="shield-checkmark" size={15} color={C.primary} />
-                <Text style={{ color: C.primary, fontWeight: "700", marginLeft: 6 }}>
+              <View style={[styles.accessBadge, { backgroundColor: venue.hasAccess ? C.primarySoft : C.field, borderColor: venue.hasAccess ? C.primary : C.border }]}>
+                <Ionicons name={venue.hasAccess ? "shield-checkmark" : "lock-closed"} size={15} color={venue.hasAccess ? C.primary : C.sub} />
+                <Text style={{ color: venue.hasAccess ? C.primary : C.sub, fontWeight: "700", marginLeft: 6 }}>
                   {venue.venueName} · {accessLabel(venue)}
                 </Text>
               </View>
             )}
 
+            {venue && !venue.hasAccess ? (
+              /* Venue có camera nhưng user chưa có quyền */
+              <View style={styles.center}>
+                <Ionicons name="lock-closed-outline" size={44} color={C.muted} />
+                <Text style={[styles.emptyTitle, { color: C.text }]}>Chưa có quyền cắt cam ở sân này</Text>
+                <Text style={{ color: C.sub, marginTop: 8, textAlign: "center", lineHeight: 20 }}>
+                  Đặt sân qua app để được cắt cam miễn phí 48 giờ sau khi nhận sân, hoặc liên hệ chủ sân để được cấp quyền.
+                </Text>
+                <Pressable onPress={() => router.push("/courts" as any)} style={[styles.retryBtn, { borderColor: C.primary, backgroundColor: C.primarySoft }]}>
+                  <Text style={{ color: C.primary, fontWeight: "700" }}>Đặt sân ngay</Text>
+                </Pressable>
+              </View>
+            ) : (
+            <>
             <View style={styles.hintRow}>
               <Ionicons name="cut-outline" size={16} color={C.primary} />
               <Text style={styles.hint}>Chọn camera sân để xem và cắt highlight (tối đa 30 phút/clip).</Text>
@@ -170,6 +186,8 @@ export default function ClipCamScreen() {
                   </Pressable>
                 ))}
               </View>
+            )}
+            </>
             )}
           </>
         )}

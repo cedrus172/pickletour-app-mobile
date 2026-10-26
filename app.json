@@ -131,6 +131,14 @@
         }
       ],
       [
+        "expo-media-library",
+        {
+          "photosPermission": "Cho phép PickleTour lưu clip đã cắt vào thư viện ảnh của bạn.",
+          "savePhotosPermission": "Cho phép PickleTour lưu clip đã cắt vào thư viện ảnh của bạn.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      [
         "@rnmapbox/maps"
       ],
       [
