@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +16,8 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { runOnJS } from "react-native-reanimated";
 import { Text } from "@/components/ui/i18nText";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
 import {
@@ -68,12 +69,13 @@ const pad2 = (n: number) => String(n).padStart(2, "0");
 const hhmm = (d: Date) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 const clampN = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
-/** Dòng thời gian kéo-tua (như DMSS): kéo con trỏ tới giờ bất kỳ trong cửa sổ. */
+/** Dòng thời gian kéo-tua + chụm-để-zoom (như DMSS). */
 function Timeline({
-  C, winStart, winMs, scrubTime, onScrub, onCommit,
+  C, winStart, winMs, scrubTime, onScrub, onCommit, onZoom,
 }: {
   C: ThemeTokens; winStart: Date; winMs: number; scrubTime: Date;
   onScrub: (t: Date) => void; onCommit: (t: Date) => void;
+  onZoom: (centerMs: number, newMs: number) => void;
 }) {
   const [w, setW] = useState(0);
   const wRef = useRef(0);
@@ -81,50 +83,61 @@ function Timeline({
   winRef.current = { s: winStart.getTime(), ms: winMs };
   const onScrubRef = useRef(onScrub); onScrubRef.current = onScrub;
   const onCommitRef = useRef(onCommit); onCommitRef.current = onCommit;
+  const onZoomRef = useRef(onZoom); onZoomRef.current = onZoom;
+  const baseRef = useRef({ ms: winMs, center: winStart.getTime() + winMs / 2 });
 
-  const xToTime = (x: number) => {
+  const xToTimeMs = (x: number) => {
     const ww = Math.max(1, wRef.current);
-    return new Date(winRef.current.s + (clampN(x, 0, ww) / ww) * winRef.current.ms);
+    return winRef.current.s + (clampN(x, 0, ww) / ww) * winRef.current.ms;
   };
   const timeToX = (t: Date) => {
     if (w <= 0) return 0;
     return clampN(((t.getTime() - winStart.getTime()) / winMs) * w, 0, w);
   };
 
-  const pan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e) => onScrubRef.current(xToTime(e.nativeEvent.locationX)),
-      onPanResponderMove: (e) => onScrubRef.current(xToTime(e.nativeEvent.locationX)),
-      onPanResponderRelease: (e) => onCommitRef.current(xToTime(e.nativeEvent.locationX)),
-    }),
-  ).current;
+  const doScrub = (x: number, commit: boolean) => {
+    const t = new Date(xToTimeMs(x));
+    onScrubRef.current(t);
+    if (commit) onCommitRef.current(t);
+  };
+  const pinchBegin = () => { baseRef.current = { ms: winRef.current.ms, center: winRef.current.s + winRef.current.ms / 2 }; };
+  const pinchUpdate = (scale: number) => { onZoomRef.current(baseRef.current.center, baseRef.current.ms / (scale || 1)); };
 
-  // Vạch giờ.
+  const panG = Gesture.Pan()
+    .activeOffsetX([-8, 8])
+    .onUpdate((e) => runOnJS(doScrub)(e.x, false))
+    .onEnd((e) => runOnJS(doScrub)(e.x, true));
+  const tapG = Gesture.Tap().maxDuration(400).onEnd((e) => runOnJS(doScrub)(e.x, true));
+  const pinchG = Gesture.Pinch()
+    .onBegin(() => runOnJS(pinchBegin)())
+    .onUpdate((e) => runOnJS(pinchUpdate)(e.scale));
+  const gesture = Gesture.Simultaneous(pinchG, Gesture.Race(panG, tapG));
+
+  // Vạch thời gian: theo giờ nếu cửa sổ rộng, theo 10 phút nếu zoom sâu.
+  const stepMs = winMs <= 30 * 60000 ? 5 * 60000 : winMs <= 90 * 60000 ? 10 * 60000 : 3600000;
   const ticks: Date[] = [];
-  const first = new Date(winStart); first.setMinutes(0, 0, 0);
-  if (first.getTime() < winStart.getTime()) first.setTime(first.getTime() + 3600000);
-  for (let t = first.getTime(); t <= winStart.getTime() + winMs; t += 3600000) ticks.push(new Date(t));
+  const first = Math.ceil(winStart.getTime() / stepMs) * stepMs;
+  for (let t = first; t <= winStart.getTime() + winMs; t += stepMs) ticks.push(new Date(t));
 
   return (
-    <View
-      onLayout={(e) => { const width = e.nativeEvent.layout.width; wRef.current = width; setW(width); }}
-      style={{ height: 72, borderRadius: 12, borderWidth: 1, overflow: "hidden", backgroundColor: C.field, borderColor: C.border }}
-      {...pan.panHandlers}
-    >
-      <View style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: timeToX(scrubTime), backgroundColor: C.primarySoft }} />
-      {ticks.map((tk) => {
-        const x = timeToX(tk);
-        return (
-          <View key={+tk} style={{ position: "absolute", top: 0, bottom: 0, left: x, width: 1, alignItems: "center" }} pointerEvents="none">
-            <View style={{ position: "absolute", top: 0, width: 1, height: 10, backgroundColor: C.line }} />
-            <Text style={{ position: "absolute", bottom: 6, fontSize: 10, width: 40, textAlign: "center", marginLeft: -20, color: C.muted }}>{hhmm(tk)}</Text>
-          </View>
-        );
-      })}
-      <View style={{ position: "absolute", top: 0, bottom: 0, left: timeToX(scrubTime), width: 2.5, marginLeft: -1.25, backgroundColor: C.primary }} pointerEvents="none" />
-    </View>
+    <GestureDetector gesture={gesture}>
+      <View
+        onLayout={(e) => { const width = e.nativeEvent.layout.width; wRef.current = width; setW(width); }}
+        style={{ height: 72, borderRadius: 12, borderWidth: 1, overflow: "hidden", backgroundColor: C.field, borderColor: C.border }}
+      >
+        <View style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: timeToX(scrubTime), backgroundColor: C.primarySoft }} />
+        {ticks.map((tk) => {
+          const x = timeToX(tk);
+          return (
+            <View key={+tk} style={{ position: "absolute", top: 0, bottom: 0, left: x, width: 1, alignItems: "center" }} pointerEvents="none">
+              <View style={{ position: "absolute", top: 0, width: 1, height: 10, backgroundColor: C.line }} />
+              <Text style={{ position: "absolute", bottom: 6, fontSize: 10, width: 44, textAlign: "center", marginLeft: -22, color: C.muted }}>{hhmm(tk)}</Text>
+            </View>
+          );
+        })}
+        <View style={{ position: "absolute", top: 0, bottom: 0, left: timeToX(scrubTime), width: 2.5, marginLeft: -1.25, backgroundColor: C.primary }} pointerEvents="none" />
+      </View>
+    </GestureDetector>
   );
 }
 
@@ -221,9 +234,19 @@ export default function ClipCutScreen() {
   }, [useCustom, customValid, customMsg, previewBusy, baseUrl, channelId, selectedRange]);
 
   // ── Dòng thời gian (tua như DMSS) ───────────────────────────────────────────
-  const TL_WIN_MS = 3 * 60 * 60 * 1000; // cửa sổ 3 giờ
-  const [winStart, setWinStart] = useState<Date>(() => new Date(Date.now() - TL_WIN_MS));
+  const TL_MIN_MS = 5 * 60 * 1000;        // zoom tối đa: cửa sổ 5 phút
+  const TL_MAX_MS = 12 * 60 * 60 * 1000;  // zoom tối thiểu: 12 giờ
+  const [winMs, setWinMs] = useState<number>(3 * 60 * 60 * 1000); // cửa sổ 3 giờ
+  const [winStart, setWinStart] = useState<Date>(() => new Date(Date.now() - 3 * 60 * 60 * 1000));
   const [scrubTime, setScrubTime] = useState<Date>(() => new Date(Date.now() - 5 * 60000));
+
+  // Zoom (pinch) → đổi độ rộng cửa sổ, giữ tâm.
+  const onZoom = useCallback((centerMs: number, newMs: number) => {
+    const ms = Math.max(TL_MIN_MS, Math.min(TL_MAX_MS, newMs));
+    const maxStart = Date.now() - ms * 0.5;
+    setWinMs(ms);
+    setWinStart(new Date(Math.min(centerMs - ms / 2, maxStart)));
+  }, []);
 
   const startPlaybackAt = useCallback(async (t: Date) => {
     if (t.getTime() > Date.now()) t = new Date(Date.now() - 1000);
@@ -246,13 +269,13 @@ export default function ClipCutScreen() {
     }
   }, [baseUrl, channelId]);
 
-  const shiftWin = useCallback((deltaMs: number) => {
+  const shiftWin = useCallback((frac: number) => {
     setWinStart((w) => {
-      const next = new Date(w.getTime() + deltaMs);
-      const maxStart = Date.now() - TL_WIN_MS * 0.5; // không trôi quá tương lai
-      return new Date(Math.min(next.getTime(), maxStart));
+      const next = w.getTime() + winMs * frac;
+      const maxStart = Date.now() - winMs * 0.5; // không trôi quá tương lai
+      return new Date(Math.min(next, maxStart));
     });
-  }, [TL_WIN_MS]);
+  }, [winMs]);
 
   // ── Cắt + poll ───────────────────────────────────────────────────────────
   const [phase, setPhase] = useState<Phase>("idle");
@@ -522,10 +545,16 @@ export default function ClipCutScreen() {
         <View style={styles.tlHeaderRow}>
           <Text style={[styles.sectionTitle, { color: C.text, marginTop: 20 }]}>Tua theo dòng thời gian</Text>
           <View style={{ flexDirection: "row", gap: 6 }}>
-            <Pressable onPress={() => shiftWin(-TL_WIN_MS / 2)} style={[styles.tlNav, { borderColor: C.border }]}>
+            <Pressable onPress={() => onZoom(winStart.getTime() + winMs / 2, winMs / 2)} style={[styles.tlNav, { borderColor: C.border }]}>
+              <Ionicons name="add" size={16} color={C.text} />
+            </Pressable>
+            <Pressable onPress={() => onZoom(winStart.getTime() + winMs / 2, winMs * 2)} style={[styles.tlNav, { borderColor: C.border }]}>
+              <Ionicons name="remove" size={16} color={C.text} />
+            </Pressable>
+            <Pressable onPress={() => shiftWin(-0.5)} style={[styles.tlNav, { borderColor: C.border }]}>
               <Ionicons name="chevron-back" size={16} color={C.text} />
             </Pressable>
-            <Pressable onPress={() => shiftWin(TL_WIN_MS / 2)} style={[styles.tlNav, { borderColor: C.border }]}>
+            <Pressable onPress={() => shiftWin(0.5)} style={[styles.tlNav, { borderColor: C.border }]}>
               <Ionicons name="chevron-forward" size={16} color={C.text} />
             </Pressable>
           </View>
@@ -533,7 +562,10 @@ export default function ClipCutScreen() {
         <Text style={{ color: C.primary, fontWeight: "800", fontSize: 15, marginBottom: 6 }}>
           {hhmm(scrubTime)}  <Text style={{ color: C.sub, fontWeight: "500", fontSize: 12 }}>· {pad2(scrubTime.getDate())}/{pad2(scrubTime.getMonth() + 1)}</Text>
         </Text>
-        <Timeline C={C} winStart={winStart} winMs={TL_WIN_MS} scrubTime={scrubTime} onScrub={setScrubTime} onCommit={(t) => { setScrubTime(t); startPlaybackAt(t); }} />
+        <Timeline C={C} winStart={winStart} winMs={winMs} scrubTime={scrubTime} onScrub={setScrubTime} onCommit={(t) => { setScrubTime(t); startPlaybackAt(t); }} onZoom={onZoom} />
+        <Text style={{ color: C.muted, fontSize: 11, textAlign: "center", marginTop: 4 }}>
+          Kéo để tua · chụm 2 ngón để phóng to/thu nhỏ · {Math.round(winMs / 60000)} phút
+        </Text>
         <Pressable onPress={cutFromScrub} disabled={busy} style={[styles.previewBtn, { borderColor: C.primary, marginTop: 12, opacity: busy ? 0.6 : 1 }]}>
           <Ionicons name="cut" size={17} color={C.primary} />
           <Text style={{ color: C.primary, fontWeight: "700", marginLeft: 8 }}>Cắt {quickMin} phút từ {hhmm(scrubTime)}</Text>
