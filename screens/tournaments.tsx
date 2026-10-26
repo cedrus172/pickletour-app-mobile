@@ -433,7 +433,16 @@ function GroupCard({ group, canManage, formatDate, onPreview }: any) {
 export default function TournamentDashboardScreen({ isBack = false }) {
   const theme = useModernTheme();
   const rsp = useResponsive();
-  const wideList: any = rsp.isWide ? { maxWidth: rsp.contentMaxWidth, alignSelf: "center", width: "100%" } : null;
+  // iPhone Duo mở (~669pt) / iPad: lưới nhiều cột để hiện nhiều giải cùng lúc thay vì 1
+  // cột. Dựa trực tiếp vào bề rộng (foldable mở < ngưỡng isLarge=720 nhưng vẫn đủ rộng).
+  const cols = rsp.width >= 1024 ? 3 : rsp.width >= 640 ? 2 : 1;
+  const wideList: any =
+    cols > 1
+      ? { alignSelf: "center", width: "100%", maxWidth: cols >= 3 ? 1320 : 1040 }
+      : rsp.isWide
+      ? { maxWidth: rsp.contentMaxWidth, alignSelf: "center", width: "100%" }
+      : null;
+  const colWrap: any = cols > 1 ? { gap: 16 } : undefined;
   const scheme = useColorScheme() ?? "light";
   const isDark = scheme === "dark";
 
@@ -574,13 +583,24 @@ export default function TournamentDashboardScreen({ isBack = false }) {
   // Gom nhóm giải cùng sự kiện (cùng tên gốc / cùng cụm sân ≤2 ngày)
   const groups = useMemo(() => groupTournaments(filtered), [filtered]);
 
+  // Lưới nhiều cột: chèn ô trống cho hàng cuối lẻ để các thẻ giữ nửa/1-phần-ba bề rộng.
+  const gridData = useMemo(() => {
+    if (cols <= 1) return groups;
+    const rem = groups.length % cols;
+    if (rem === 0) return groups;
+    const pad = Array.from({ length: cols - rem }, (_, i) => ({ __spacer: true, key: `__sp-${i}` }));
+    return [...groups, ...pad];
+  }, [groups, cols]);
+
   // === RENDER ITEM ===
   const renderItem = ({ item }) => {
-    if (item?.isGroup) {
-      return <GroupCard group={item} canManage={canManage} formatDate={formatDate} onPreview={setPreview} />;
-    }
-    const tt = item?.items ? item.items[0] : item;
-    return renderSingle(tt);
+    if (item?.__spacer) return <View style={{ flex: 1 }} />;
+    const content = item?.isGroup ? (
+      <GroupCard group={item} canManage={canManage} formatDate={formatDate} onPreview={setPreview} />
+    ) : (
+      renderSingle(item?.items ? item.items[0] : item)
+    );
+    return cols > 1 ? <View style={{ flex: 1 }}>{content}</View> : content;
   };
 
   const renderSingle = (tt) => {
@@ -690,9 +710,12 @@ export default function TournamentDashboardScreen({ isBack = false }) {
                 error={error}
               />
             }
-            data={Array.from({ length: SKELETON_COUNT })}
+            data={Array.from({ length: cols > 1 ? Math.ceil(SKELETON_COUNT / cols) * cols : SKELETON_COUNT })}
+            key={`sk-${cols}`}
+            numColumns={cols}
+            columnWrapperStyle={colWrap}
             keyExtractor={(_, i) => `sk-${i}`}
-            renderItem={() => <SkeletonCard />}
+            renderItem={() => (cols > 1 ? <View style={{ flex: 1 }}><SkeletonCard /></View> : <SkeletonCard />)}
             ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
             contentContainerStyle={[styles.listContent, wideList]}
             showsVerticalScrollIndicator={false}
@@ -717,7 +740,10 @@ export default function TournamentDashboardScreen({ isBack = false }) {
                 error={error}
               />
             }
-            data={groups}
+            data={gridData}
+            key={`tl-${cols}`}
+            numColumns={cols}
+            columnWrapperStyle={colWrap}
             keyExtractor={(item) => String(item.key || item._id)}
             renderItem={renderItem}
             contentContainerStyle={[styles.listContent, wideList]}

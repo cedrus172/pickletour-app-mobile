@@ -1584,11 +1584,15 @@ const MemoizedListView = memo(
     theme,
     scrollRef,
     wideStyle,
+    numColumns,
+    colWrap,
   }) => {
     return (
       <RankingList
         ref={scrollRef}
         data={data}
+        numColumns={numColumns}
+        columnWrapperStyle={colWrap}
         keyExtractor={(item) => String(item._id)}
         renderItem={renderItem}
         ListHeaderComponent={header}
@@ -1659,7 +1663,16 @@ const SCORE_TYPES: { value: "single" | "double" | "mix"; label: string }[] = [
 export default function RankingListScreen({ isBack = false }) {
   const theme = useThemeColors();
   const rsp = useResponsive();
-  const wideList: any = rsp.isWide ? { maxWidth: rsp.contentMaxWidth, alignSelf: "center", width: "100%" } : null;
+  // iPhone Duo mở (~669pt) / iPad: lưới nhiều cột để hiện nhiều VĐV cùng lúc thay vì 1
+  // cột. Dựa trực tiếp vào bề rộng (foldable mở < ngưỡng isLarge=720 nhưng vẫn đủ rộng).
+  const cols = rsp.width >= 1024 ? 3 : rsp.width >= 640 ? 2 : 1;
+  const wideList: any =
+    cols > 1
+      ? { alignSelf: "center", width: "100%", maxWidth: cols >= 3 ? 1320 : 1040 }
+      : rsp.isWide
+      ? { maxWidth: rsp.contentMaxWidth, alignSelf: "center", width: "100%" }
+      : null;
+  const colWrap: any = cols > 1 ? { gap: 16, paddingHorizontal: 12 } : undefined;
   const dispatch = useDispatch();
   const router = useRouter();
 
@@ -1983,6 +1996,22 @@ export default function RankingListScreen({ isBack = false }) {
       openAchievements,
     ]
   );
+
+  // Lưới nhiều cột (iPhone Duo mở / iPad): bọc mỗi thẻ flex:1, ô trống cho hàng cuối lẻ.
+  const gridRenderItem = useCallback(
+    (info: any) => {
+      if (info?.item?.__spacer) return <View style={{ flex: 1 }} />;
+      return cols > 1 ? <View style={{ flex: 1 }}>{renderItem(info)}</View> : renderItem(info);
+    },
+    [renderItem, cols]
+  );
+  const gridList = useMemo(() => {
+    if (cols <= 1) return accumulatedList;
+    const rem = accumulatedList.length % cols;
+    if (rem === 0) return accumulatedList;
+    const pad = Array.from({ length: cols - rem }, (_, i) => ({ _id: `__sp-${i}`, __spacer: true }));
+    return [...accumulatedList, ...pad];
+  }, [accumulatedList, cols]);
 
   const initialLoading =
     isLoadingList ||
@@ -2363,9 +2392,12 @@ export default function RankingListScreen({ isBack = false }) {
               ]}
             >
               <MemoizedListView
+                key={`rk-${cols}`}
                 scrollRef={scrollViewRef}
-                data={accumulatedList}
-                renderItem={renderItem}
+                data={gridList}
+                numColumns={cols}
+                colWrap={colWrap}
+                renderItem={gridRenderItem}
                 header={HeaderComponent}
                 wideStyle={wideList}
                 footer={
