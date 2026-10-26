@@ -186,24 +186,39 @@ export default function ClipCutScreen() {
   }, [phase, useCustom, customValid, channelId, start, end, quickMin, baseUrl, venueName, channelName]);
 
   // ── Tải / chia sẻ ──────────────────────────────────────────────────────────
+  // Clip khá nặng (vài chục–vài trăm MB) → tải có % tiến trình. Spinner CHỈ hiện lúc
+  // tải; mở share sheet xong tắt ngay (không chờ shareAsync resolve — trên iOS promise
+  // này có thể không trả về sau khi lưu → tránh "xoay mãi").
   const [sharing, setSharing] = useState(false);
+  const [dlPct, setDlPct] = useState(0);
   const shareClip = useCallback(async (clipId: string, name: string) => {
     if (sharing) return;
     setSharing(true);
+    setDlPct(0);
     try {
       const dir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
       const safe = (name || `clip-${clipId}.mp4`).replace(/[^\w.\-]+/g, "_");
-      const dest = `${dir}${safe}`;
-      const dl = await FileSystem.downloadAsync(clipDownloadUrl(baseUrl, clipId), dest);
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(dl.uri, { mimeType: "video/mp4", UTI: "public.mpeg-4", dialogTitle: "Chia sẻ / lưu clip" });
-      } else {
+      const task = FileSystem.createDownloadResumable(
+        clipDownloadUrl(baseUrl, clipId),
+        `${dir}${safe}`,
+        {},
+        (p) => {
+          const total = p.totalBytesExpectedToWrite;
+          if (total > 0) setDlPct(Math.min(100, Math.round((p.totalBytesWritten / total) * 100)));
+        },
+      );
+      const out = await task.downloadAsync();
+      setSharing(false);
+      setDlPct(0);
+      if (out?.uri && (await Sharing.isAvailableAsync())) {
+        Sharing.shareAsync(out.uri, { mimeType: "video/mp4", UTI: "public.mpeg-4", dialogTitle: "Chia sẻ / lưu clip" }).catch(() => {});
+      } else if (out?.uri) {
         Alert.alert("Đã tải", "Clip đã được tải về máy.");
       }
     } catch (e: any) {
-      Alert.alert("Lỗi tải clip", e?.message || "Không tải được clip (có thể đã quá hạn).");
-    } finally {
       setSharing(false);
+      setDlPct(0);
+      Alert.alert("Lỗi tải clip", e?.message || "Không tải được clip (có thể đã quá hạn).");
     }
   }, [baseUrl, sharing]);
 
@@ -375,6 +390,17 @@ export default function ClipCutScreen() {
         )}
       </ScrollView>
 
+      {/* Overlay tiến trình tải (clip nặng) */}
+      {sharing && (
+        <View style={styles.dlOverlay}>
+          <View style={[styles.dlCard, { backgroundColor: C.card }]}>
+            <ActivityIndicator color={C.primary} size="large" />
+            <Text style={{ color: C.text, fontWeight: "800", marginTop: 12 }}>Đang tải clip… {dlPct}%</Text>
+            <Text style={{ color: C.sub, fontSize: 12, marginTop: 4 }}>Clip có thể nặng, vui lòng đợi.</Text>
+          </View>
+        </View>
+      )}
+
       <DateTimePickerModal
         isVisible={!!picker}
         mode="datetime"
@@ -420,8 +446,8 @@ function HistoryRow({ C, item, onShare }: { C: ThemeTokens; item: ClipHistoryIte
       {alive === false ? (
         <Text style={{ color: C.muted, fontSize: 12 }}>Đã hết hạn</Text>
       ) : (
-        <Pressable onPress={onShare} disabled={alive === null} style={{ padding: 8 }}>
-          <Ionicons name="share-social-outline" size={18} color={alive === null ? C.muted : C.primary} />
+        <Pressable onPress={onShare} hitSlop={10} style={{ padding: 8 }}>
+          <Ionicons name="share-social-outline" size={20} color={C.primary} />
         </Pressable>
       )}
     </View>
@@ -445,5 +471,7 @@ const mkStyles = (C: ThemeTokens) =>
     bar: { height: 8, borderRadius: 999 },
     resultCard: { borderRadius: 12, borderWidth: 1, padding: 12, marginTop: 16 },
     resBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 11, borderRadius: 10 },
+    dlOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(2,6,23,0.55)", alignItems: "center", justifyContent: "center" },
+    dlCard: { borderRadius: 16, paddingVertical: 26, paddingHorizontal: 32, alignItems: "center", minWidth: 220 },
     shareBtn: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10 },
   });
