@@ -113,6 +113,22 @@ export function pollClip(baseUrl: string, clipId: string): Promise<ClipStatus> {
   return jfetch<ClipStatus>(`${trimBase(baseUrl)}/api/public/clips/${clipId}`);
 }
 
+// Ghi hình trực tiếp từ camera (Pi ghi live RTSP → MP4).
+export function startRecord(baseUrl: string, channelId: number): Promise<{ record_id: string; name: string }> {
+  return jfetch(`${trimBase(baseUrl)}/api/public/record/start`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ channel_id: channelId }),
+  });
+}
+export function stopRecord(baseUrl: string, recordId: string): Promise<{ status: string; clip_id: string; name: string; size: number; download_url: string }> {
+  return jfetch(`${trimBase(baseUrl)}/api/public/record/stop`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ record_id: recordId }),
+  }, 30000);
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 /** Định dạng "YYYY-MM-DD HH:MM:SS" theo giờ máy (backend nhận local time của NVR). */
 export function fmtClipTime(d: Date): string {

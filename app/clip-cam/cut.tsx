@@ -32,6 +32,8 @@ import {
   MAX_CLIP_MINUTES,
   pollClip,
   QUICK_MINUTES,
+  startRecord,
+  stopRecord,
   startStream,
   stopStream,
   streamManifestUrl,
@@ -337,6 +339,55 @@ export default function ClipCutScreen() {
     onCut({ start: s, end: e });
   }, [scrubTime, quickMin, onCut]);
 
+  // ── Ghi hình trực tiếp (như nút record DMSS) ────────────────────────────────
+  const [recId, setRecId] = useState<string | null>(null);
+  const [recSec, setRecSec] = useState(0);
+  const [recBusy, setRecBusy] = useState(false);
+  const recTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const toggleRecord = useCallback(async () => {
+    if (recBusy) return;
+    if (recId) {
+      // Dừng ghi → nhận clip.
+      setRecBusy(true);
+      if (recTimerRef.current) { clearInterval(recTimerRef.current); recTimerRef.current = null; }
+      try {
+        const r = await stopRecord(baseUrl, recId);
+        setRecId(null);
+        setRecSec(0);
+        if (r.status === "done") {
+          setPhase("done");
+          setResult({ clipId: r.clip_id, name: r.name, size: r.size });
+          setStatusText("");
+        } else {
+          Alert.alert("Ghi hình lỗi", "Không lưu được bản ghi, thử lại.");
+        }
+      } catch (e: any) {
+        Alert.alert("Lỗi dừng ghi", e?.message || "Thử lại.");
+      } finally {
+        setRecBusy(false);
+      }
+    } else {
+      // Bắt đầu ghi.
+      setRecBusy(true);
+      try {
+        const r = await startRecord(baseUrl, channelId);
+        setRecId(r.record_id);
+        setRecSec(0);
+        recTimerRef.current = setInterval(() => setRecSec((s) => s + 1), 1000);
+      } catch (e: any) {
+        Alert.alert("Không ghi được", e?.message || "Camera tạm thời không phản hồi.");
+      } finally {
+        setRecBusy(false);
+      }
+    }
+  }, [recBusy, recId, baseUrl, channelId]);
+
+  // Dọn timer + dừng bản ghi khi rời màn.
+  useEffect(() => () => {
+    if (recTimerRef.current) clearInterval(recTimerRef.current);
+  }, []);
+
   // ── Tải / chia sẻ ──────────────────────────────────────────────────────────
   // Clip khá nặng (vài chục–vài trăm MB) → tải có % tiến trình. Spinner CHỈ hiện lúc
   // tải; mở share sheet xong tắt ngay (không chờ shareAsync resolve — trên iOS promise
@@ -447,6 +498,25 @@ export default function ClipCutScreen() {
             </View>
           </Pressable>
         )}
+
+        {/* Ghi hình trực tiếp */}
+        <Pressable
+          onPress={toggleRecord}
+          disabled={recBusy}
+          style={[styles.recBtn, { backgroundColor: recId ? C.redSoft : C.redText, borderColor: C.redText, opacity: recBusy ? 0.6 : 1 }]}
+        >
+          {recBusy ? (
+            <ActivityIndicator color={recId ? C.redText : C.onPrimary} size="small" />
+          ) : (
+            <View style={[styles.recDot, { backgroundColor: recId ? C.redText : "#fff" }]} />
+          )}
+          <Text style={{ color: recId ? C.redText : C.onPrimary, fontWeight: "800", marginLeft: 8 }}>
+            {recId ? `Dừng ghi · ${pad2(Math.floor(recSec / 60))}:${pad2(recSec % 60)}` : "Ghi hình trực tiếp"}
+          </Text>
+        </Pressable>
+        <Text style={{ color: C.muted, fontSize: 11.5, textAlign: "center", marginTop: 6 }}>
+          Ghi lại camera theo thời gian thực — bấm lại để dừng và lưu.
+        </Text>
 
         {/* Dòng thời gian — tua xem như DMSS */}
         <View style={styles.tlHeaderRow}>
@@ -655,6 +725,8 @@ const mkStyles = (C: ThemeTokens) =>
     ghostBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 10, borderRadius: 10, borderWidth: 1 },
     previewBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, marginTop: 18 },
     pbTag: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1, marginBottom: 8 },
+    recBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 13, borderRadius: 12, borderWidth: 1.5, marginTop: 18 },
+    recDot: { width: 12, height: 12, borderRadius: 6 },
     tlHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
     tlNav: { width: 34, height: 30, borderRadius: 8, borderWidth: 1, alignItems: "center", justifyContent: "center" },
     sectionTitle: { fontWeight: "800", fontSize: 15, marginTop: 20, marginBottom: 10 },
