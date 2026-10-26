@@ -278,6 +278,14 @@ export default function MoreIndexScreen() {
           route: "/admin/fb-to-youtube",
           accent: "#ff0033",
         },
+        {
+          key: "admin-cam-clip",
+          title: "Quyền Cắt Cam Sân",
+          description: "Cấu hình + cấp quyền cắt cam cho mọi sân có camera.",
+          icon: "shield-checkmark-outline" as const,
+          route: "/admin/cam-clip",
+          accent: "#06b6d4",
+        },
       ]
     : isCommentator
       ? [

@@ -10,6 +10,11 @@ export const camClipApiSlice = apiSlice.injectEndpoints({
       providesTags: ["CamClip"],
       keepUnusedDataFor: 30,
     }),
+    // ADMIN: liệt kê venue để cấu hình + cấp quyền (q = tìm theo tên, kể cả chưa bật).
+    adminCamClipVenues: builder.query({
+      query: (q) => `/api/cam-clip/admin/venues${q ? `?q=${encodeURIComponent(q)}` : ""}`,
+      providesTags: ["CamClip"],
+    }),
     camClipGrants: builder.query({
       query: (venueId) => `/api/cam-clip/venues/${encodeURIComponent(venueId)}/grants`,
       providesTags: (r, e, venueId) => [{ type: "CamClip", id: venueId }],
@@ -42,6 +47,7 @@ export const camClipApiSlice = apiSlice.injectEndpoints({
 
 export const {
   useMyCamClipAccessQuery,
+  useAdminCamClipVenuesQuery,
   useCamClipGrantsQuery,
   useAddCamClipGrantMutation,
   useSetCamClipConfigMutation,
