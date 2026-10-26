@@ -41,6 +41,7 @@ import {
   SafeAreaView as RNSafeAreaView,
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
+import { useResponsive } from "@/hooks/useResponsive";
 import { VN_PROVINCES } from "@/constants/provinces";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -1582,6 +1583,7 @@ const MemoizedListView = memo(
     onRefresh,
     theme,
     scrollRef,
+    wideStyle,
   }) => {
     return (
       <RankingList
@@ -1590,7 +1592,7 @@ const MemoizedListView = memo(
         keyExtractor={(item) => String(item._id)}
         renderItem={renderItem}
         ListHeaderComponent={header}
-        contentContainerStyle={{ paddingBottom: 80 }}
+        contentContainerStyle={[{ paddingBottom: 80 }, wideStyle]}
         onEndReached={onLoadMore}
         onEndReachedThreshold={0.5}
         removeClippedSubviews={Platform.OS === "android"}
@@ -1656,6 +1658,8 @@ const SCORE_TYPES: { value: "single" | "double" | "mix"; label: string }[] = [
 
 export default function RankingListScreen({ isBack = false }) {
   const theme = useThemeColors();
+  const rsp = useResponsive();
+  const wideList: any = rsp.isWide ? { maxWidth: rsp.contentMaxWidth, alignSelf: "center", width: "100%" } : null;
   const dispatch = useDispatch();
   const router = useRouter();
 
@@ -2363,6 +2367,7 @@ export default function RankingListScreen({ isBack = false }) {
                 data={accumulatedList}
                 renderItem={renderItem}
                 header={HeaderComponent}
+                wideStyle={wideList}
                 footer={
                   isFetchingList && page > 0 ? (
                     <View style={{ paddingVertical: 10, gap: 16 }}>
