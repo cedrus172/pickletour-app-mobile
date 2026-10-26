@@ -33,14 +33,16 @@ export function useResponsive(): Responsive {
   const shortest = Math.min(width, height);
   const isLandscape = width > height;
   const isWide = width >= 600;
-  const isLarge = width >= 840;
+  // iPhone Duo MỞ (~744–834pt) + iPad: dùng bố cục rộng / two-pane. Ngưỡng 720 để màn
+  // mở của foldable cũng vào "expanded" (không chỉ iPad lớn).
+  const isLarge = width >= 720;
 
-  const deviceClass: DeviceClass = width >= 840 ? "expanded" : width >= 600 ? "medium" : "compact";
+  const deviceClass: DeviceClass = width >= 720 ? "expanded" : width >= 600 ? "medium" : "compact";
 
-  const featureColumns = width >= 1040 ? 8 : width >= 860 ? 6 : width >= 680 ? 5 : 4;
-  const gridColumns = width >= 1040 ? 4 : width >= 760 ? 3 : width >= 560 ? 2 : 1;
-  const contentMaxWidth = width >= 1100 ? 1040 : width >= 840 ? 820 : width >= 600 ? 680 : width;
-  const gutter = width >= 840 ? 24 : width >= 600 ? 20 : 16;
+  const featureColumns = width >= 1040 ? 8 : width >= 820 ? 6 : width >= 640 ? 5 : 4;
+  const gridColumns = width >= 1040 ? 4 : width >= 720 ? 3 : width >= 540 ? 2 : 1;
+  const contentMaxWidth = width >= 1100 ? 1040 : width >= 820 ? 800 : width >= 600 ? 680 : width;
+  const gutter = width >= 820 ? 24 : width >= 600 ? 20 : 16;
 
   return {
     width, height, shortest, isLandscape,
