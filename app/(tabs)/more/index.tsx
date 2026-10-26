@@ -76,6 +76,14 @@ const MORE_ITEMS = [
     accent: "#FF0000",
   },
   {
+    key: "clip-cam",
+    title: "Cắt Cam Sân",
+    description: "Cắt highlight từ camera sân, tải về hoặc chia sẻ ngay.",
+    icon: "cut-outline" as const,
+    route: "/clip-cam",
+    accent: "#06b6d4",
+  },
+  {
     key: "referee-clusters",
     title: t("Chấm trận theo cụm sân"),
     description: "Chọn cụm sân bạn được chia, vào tìm sân và trận để chấm.",
