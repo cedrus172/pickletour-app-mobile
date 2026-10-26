@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -58,6 +59,70 @@ function LivePreview({ uri }: { uri: string }) {
       nativeControls
       contentFit="contain"
     />
+  );
+}
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+const hhmm = (d: Date) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+const clampN = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+/** Dòng thời gian kéo-tua (như DMSS): kéo con trỏ tới giờ bất kỳ trong cửa sổ. */
+function Timeline({
+  C, winStart, winMs, scrubTime, onScrub, onCommit,
+}: {
+  C: ThemeTokens; winStart: Date; winMs: number; scrubTime: Date;
+  onScrub: (t: Date) => void; onCommit: (t: Date) => void;
+}) {
+  const [w, setW] = useState(0);
+  const wRef = useRef(0);
+  const winRef = useRef({ s: winStart.getTime(), ms: winMs });
+  winRef.current = { s: winStart.getTime(), ms: winMs };
+  const onScrubRef = useRef(onScrub); onScrubRef.current = onScrub;
+  const onCommitRef = useRef(onCommit); onCommitRef.current = onCommit;
+
+  const xToTime = (x: number) => {
+    const ww = Math.max(1, wRef.current);
+    return new Date(winRef.current.s + (clampN(x, 0, ww) / ww) * winRef.current.ms);
+  };
+  const timeToX = (t: Date) => {
+    if (w <= 0) return 0;
+    return clampN(((t.getTime() - winStart.getTime()) / winMs) * w, 0, w);
+  };
+
+  const pan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => onScrubRef.current(xToTime(e.nativeEvent.locationX)),
+      onPanResponderMove: (e) => onScrubRef.current(xToTime(e.nativeEvent.locationX)),
+      onPanResponderRelease: (e) => onCommitRef.current(xToTime(e.nativeEvent.locationX)),
+    }),
+  ).current;
+
+  // Vạch giờ.
+  const ticks: Date[] = [];
+  const first = new Date(winStart); first.setMinutes(0, 0, 0);
+  if (first.getTime() < winStart.getTime()) first.setTime(first.getTime() + 3600000);
+  for (let t = first.getTime(); t <= winStart.getTime() + winMs; t += 3600000) ticks.push(new Date(t));
+
+  return (
+    <View
+      onLayout={(e) => { const width = e.nativeEvent.layout.width; wRef.current = width; setW(width); }}
+      style={{ height: 72, borderRadius: 12, borderWidth: 1, overflow: "hidden", backgroundColor: C.field, borderColor: C.border }}
+      {...pan.panHandlers}
+    >
+      <View style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: timeToX(scrubTime), backgroundColor: C.primarySoft }} />
+      {ticks.map((tk) => {
+        const x = timeToX(tk);
+        return (
+          <View key={+tk} style={{ position: "absolute", top: 0, bottom: 0, left: x, width: 1, alignItems: "center" }} pointerEvents="none">
+            <View style={{ position: "absolute", top: 0, width: 1, height: 10, backgroundColor: C.line }} />
+            <Text style={{ position: "absolute", bottom: 6, fontSize: 10, width: 40, textAlign: "center", marginLeft: -20, color: C.muted }}>{hhmm(tk)}</Text>
+          </View>
+        );
+      })}
+      <View style={{ position: "absolute", top: 0, bottom: 0, left: timeToX(scrubTime), width: 2.5, marginLeft: -1.25, backgroundColor: C.primary }} pointerEvents="none" />
+    </View>
   );
 }
 
@@ -153,6 +218,40 @@ export default function ClipCutScreen() {
     }
   }, [useCustom, customValid, customMsg, previewBusy, baseUrl, channelId, selectedRange]);
 
+  // ── Dòng thời gian (tua như DMSS) ───────────────────────────────────────────
+  const TL_WIN_MS = 3 * 60 * 60 * 1000; // cửa sổ 3 giờ
+  const [winStart, setWinStart] = useState<Date>(() => new Date(Date.now() - TL_WIN_MS));
+  const [scrubTime, setScrubTime] = useState<Date>(() => new Date(Date.now() - 5 * 60000));
+
+  const startPlaybackAt = useCallback(async (t: Date) => {
+    if (t.getTime() > Date.now()) t = new Date(Date.now() - 1000);
+    const prev = streamRef.current;
+    streamRef.current = null;
+    setManifest("");
+    if (prev) stopStream(baseUrl, prev.session_id);
+    setPreviewBusy(true);
+    try {
+      const endT = new Date(Math.min(t.getTime() + 30 * 60000, Date.now()));
+      const end = endT.getTime() > t.getTime() + 60000 ? endT : new Date(t.getTime() + 60000);
+      const s = await startStream(baseUrl, channelId, "playback", { start: fmtClipTime(t), end: fmtClipTime(end) });
+      streamRef.current = s;
+      setPreviewMode("playback");
+      setManifest(streamManifestUrl(baseUrl, s));
+    } catch (e: any) {
+      Alert.alert("Không phát lại được", e?.message || "Không có dữ liệu ghi ở thời điểm này.");
+    } finally {
+      setPreviewBusy(false);
+    }
+  }, [baseUrl, channelId]);
+
+  const shiftWin = useCallback((deltaMs: number) => {
+    setWinStart((w) => {
+      const next = new Date(w.getTime() + deltaMs);
+      const maxStart = Date.now() - TL_WIN_MS * 0.5; // không trôi quá tương lai
+      return new Date(Math.min(next.getTime(), maxStart));
+    });
+  }, [TL_WIN_MS]);
+
   // ── Cắt + poll ───────────────────────────────────────────────────────────
   const [phase, setPhase] = useState<Phase>("idle");
   const [pct, setPct] = useState(0);
@@ -167,13 +266,19 @@ export default function ClipCutScreen() {
     return () => { pollingRef.current.stop = true; };
   }, [baseUrl]);
 
-  const onCut = useCallback(async () => {
+  const onCut = useCallback(async (override?: { start: Date; end: Date }) => {
     if (phase === "creating" || phase === "running") return;
     const now = Date.now();
     if (now - lastCutRef.current < 2000) return; // debounce 2s
     lastCutRef.current = now;
-    if (useCustom && !customValid) {
-      Alert.alert("Thời gian không hợp lệ", `Khoảng cắt phải từ nhỏ hơn đến lớn hơn và tối đa ${MAX_CLIP_MINUTES} phút.`);
+    if (override) {
+      const mins = Math.round((override.end.getTime() - override.start.getTime()) / 60000);
+      if (override.end <= override.start || mins > MAX_CLIP_MINUTES) {
+        Alert.alert("Không cắt được", `Đoạn phải hợp lệ và tối đa ${MAX_CLIP_MINUTES} phút.`);
+        return;
+      }
+    } else if (useCustom && !customValid) {
+      Alert.alert("Thời gian không hợp lệ", customMsg);
       return;
     }
     setPhase("creating");
@@ -181,9 +286,11 @@ export default function ClipCutScreen() {
     setResult(null);
     setStatusText("Đang tạo yêu cầu…");
     try {
-      const body = useCustom
-        ? { channel_id: channelId, start: fmtClipTime(start), end: fmtClipTime(end) }
-        : { channel_id: channelId, quick_min: quickMin };
+      const body = override
+        ? { channel_id: channelId, start: fmtClipTime(override.start), end: fmtClipTime(override.end) }
+        : useCustom
+          ? { channel_id: channelId, start: fmtClipTime(start), end: fmtClipTime(end) }
+          : { channel_id: channelId, quick_min: quickMin };
       const { clip_id, name } = await createClip(baseUrl, body);
       setPhase("running");
       pollingRef.current = { stop: false };
@@ -221,7 +328,14 @@ export default function ClipCutScreen() {
       setPhase("error");
       setStatusText(e?.message || "Có lỗi, vui lòng thử lại.");
     }
-  }, [phase, useCustom, customValid, channelId, start, end, quickMin, baseUrl, venueName, channelName]);
+  }, [phase, useCustom, customValid, customMsg, channelId, start, end, quickMin, baseUrl, venueName, channelName]);
+
+  // Cắt từ vị trí đang tua trên dòng thời gian (quickMin phút kể từ đó).
+  const cutFromScrub = useCallback(() => {
+    const s = new Date(scrubTime);
+    const e = new Date(Math.min(s.getTime() + quickMin * 60000, Date.now()));
+    onCut({ start: s, end: e });
+  }, [scrubTime, quickMin, onCut]);
 
   // ── Tải / chia sẻ ──────────────────────────────────────────────────────────
   // Clip khá nặng (vài chục–vài trăm MB) → tải có % tiến trình. Spinner CHỈ hiện lúc
@@ -334,6 +448,27 @@ export default function ClipCutScreen() {
           </Pressable>
         )}
 
+        {/* Dòng thời gian — tua xem như DMSS */}
+        <View style={styles.tlHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: C.text, marginTop: 20 }]}>Tua theo dòng thời gian</Text>
+          <View style={{ flexDirection: "row", gap: 6 }}>
+            <Pressable onPress={() => shiftWin(-TL_WIN_MS / 2)} style={[styles.tlNav, { borderColor: C.border }]}>
+              <Ionicons name="chevron-back" size={16} color={C.text} />
+            </Pressable>
+            <Pressable onPress={() => shiftWin(TL_WIN_MS / 2)} style={[styles.tlNav, { borderColor: C.border }]}>
+              <Ionicons name="chevron-forward" size={16} color={C.text} />
+            </Pressable>
+          </View>
+        </View>
+        <Text style={{ color: C.primary, fontWeight: "800", fontSize: 15, marginBottom: 6 }}>
+          {hhmm(scrubTime)}  <Text style={{ color: C.sub, fontWeight: "500", fontSize: 12 }}>· {pad2(scrubTime.getDate())}/{pad2(scrubTime.getMonth() + 1)}</Text>
+        </Text>
+        <Timeline C={C} winStart={winStart} winMs={TL_WIN_MS} scrubTime={scrubTime} onScrub={setScrubTime} onCommit={(t) => { setScrubTime(t); startPlaybackAt(t); }} />
+        <Pressable onPress={cutFromScrub} disabled={busy} style={[styles.previewBtn, { borderColor: C.primary, marginTop: 12, opacity: busy ? 0.6 : 1 }]}>
+          <Ionicons name="cut" size={17} color={C.primary} />
+          <Text style={{ color: C.primary, fontWeight: "700", marginLeft: 8 }}>Cắt {quickMin} phút từ {hhmm(scrubTime)}</Text>
+        </Pressable>
+
         {/* Chọn khoảng cắt */}
         <Text style={[styles.sectionTitle, { color: C.text }]}>Chọn khoảng cắt</Text>
         <View style={styles.chipsRow}>
@@ -385,7 +520,7 @@ export default function ClipCutScreen() {
 
         {/* Nút cắt */}
         <Pressable
-          onPress={onCut}
+          onPress={() => onCut()}
           disabled={busy || (useCustom && !customValid)}
           style={[styles.cutBtn, { backgroundColor: C.primary, opacity: busy || (useCustom && !customValid) ? 0.6 : 1, marginTop: 12 }]}
         >
@@ -520,6 +655,8 @@ const mkStyles = (C: ThemeTokens) =>
     ghostBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 10, borderRadius: 10, borderWidth: 1 },
     previewBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, marginTop: 18 },
     pbTag: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1, marginBottom: 8 },
+    tlHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+    tlNav: { width: 34, height: 30, borderRadius: 8, borderWidth: 1, alignItems: "center", justifyContent: "center" },
     sectionTitle: { fontWeight: "800", fontSize: 15, marginTop: 20, marginBottom: 10 },
     chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
     chip: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, borderWidth: 1 },
