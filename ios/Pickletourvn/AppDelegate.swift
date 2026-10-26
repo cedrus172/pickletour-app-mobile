@@ -23,17 +23,28 @@ class AppDelegate: ExpoAppDelegate {
     reactNativeFactory = factory
 
 #if os(iOS) || os(tvOS)
-    window = UIWindow(frame: UIScreen.main.bounds)
 // @generated begin @react-native-firebase/app-didFinishLaunchingWithOptions - expo prebuild (DO NOT MODIFY) sync-10e8520570672fd76b2403b7e1e27f5198a6349a
 FirebaseApp.configure()
 // @generated end @react-native-firebase/app-didFinishLaunchingWithOptions
-    factory.startReactNative(
-      withModuleName: "main",
-      in: window,
-      launchOptions: launchOptions)
+    // SDK iOS 26/27 bắt buộc adopt UIScene lifecycle; root view React Native được
+    // dựng trong SceneDelegate.scene(_:willConnectTo:) bên dưới (không còn tạo
+    // window + startReactNative ở đây).
 #endif
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  // SDK iOS 26/27: app phải adopt UIScene. ExpoAppDelegate/RN 0.83 chưa implement
+  // scene (TODO trong ExpoAppDelegate) → tự khai báo SceneDelegate để không crash
+  // "NoSceneLifecycleAdoption".
+  func application(
+    _ application: UIApplication,
+    configurationForConnectingSceneSession connectingSceneSession: UISceneSession,
+    options: UIScene.ConnectionOptions
+  ) -> UISceneConfiguration {
+    let config = UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
+    config.delegateClass = SceneDelegate.self
+    return config
   }
 
   // Linking API
@@ -53,6 +64,40 @@ FirebaseApp.configure()
   ) -> Bool {
     let result = RCTLinkingManager.application(application, continue: userActivity, restorationHandler: restorationHandler)
     return super.application(application, continue: userActivity, restorationHandler: restorationHandler) || result
+  }
+}
+
+// SceneDelegate cho UIScene lifecycle (SDK iOS 26/27). Dựng root view React Native
+// qua factory đã tạo ở AppDelegate; chuyển tiếp deep link cho RCTLinkingManager.
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+  var window: UIWindow?
+
+  func scene(
+    _ scene: UIScene,
+    willConnectTo session: UISceneSession,
+    options connectionOptions: UIScene.ConnectionOptions
+  ) {
+    guard let windowScene = scene as? UIWindowScene else { return }
+    let window = UIWindow(windowScene: windowScene)
+    self.window = window
+
+    if let factory = (UIApplication.shared.delegate as? AppDelegate)?.reactNativeFactory {
+      factory.startReactNative(withModuleName: "main", in: window, launchOptions: nil)
+    }
+
+    // Deep link lúc khởi động nguội.
+    if let url = connectionOptions.urlContexts.first?.url {
+      RCTLinkingManager.application(UIApplication.shared, open: url, options: [:])
+    }
+  }
+
+  func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+    guard let url = URLContexts.first?.url else { return }
+    RCTLinkingManager.application(UIApplication.shared, open: url, options: [:])
+  }
+
+  func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+    RCTLinkingManager.application(UIApplication.shared, continue: userActivity, restorationHandler: { _ in })
   }
 }
 

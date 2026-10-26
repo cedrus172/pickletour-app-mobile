@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Pickletour.vn</string>
+	<string>Pickletour</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -19,7 +19,7 @@
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
-	<string>$(MARKETING_VERSION)</string>
+	<string>1.1.20</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
@@ -31,9 +31,17 @@
 				<string>com.pkt.pickletour</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.729938965315-ts7gpljqrcqk6jl56go6c62qk1bre1im</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<string>50</string>
+	<key>HOT_UPDATER_CHANNEL</key>
+	<string>production</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSApplicationQueriesSchemes</key>
@@ -59,15 +67,19 @@
 	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
 	<string>Ứng dụng cần quyền để thêm sự kiện trận đấu vào lịch của bạn.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Scan the CCCD QR to auto-fill profile/tournament info.</string>
+	<string>Quét QR CCCD để tự điền thông tin hồ sơ hoặc giải đấu.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>Allow $(PRODUCT_NAME) to access your contacts</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Allow $(PRODUCT_NAME) to use Face ID.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Cho phép PickleTour cập nhật vị trí của bạn để gợi ý hoạt động quanh bạn.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Allow $(PRODUCT_NAME) to access your location</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Ứng dụng cần vị trí để hiển thị giải đấu và sân pickleball gần bạn trên bản đồ.</string>
+	<string>Cho phép PickleTour dùng vị trí của bạn để tìm người chơi và sân gần nhất.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Capture audio for livestreams and video recordings.</string>
+	<string>Dùng micro cho tính năng điều khiển bằng giọng nói khi chấm trận.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Pick photos to upload your avatar and CCCD images.</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
@@ -76,12 +88,33 @@
 	<string>Ứng dụng cần quyền để tạo nhắc nhở cho trận đấu.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Ứng dụng cần quyền nhận dạng giọng nói để hỗ trợ điều khiển bằng giọng nói khi chấm trận (đọc tỉ số, chuyển giao bóng...).</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>NSSupportsLiveActivitiesFrequentUpdates</key>
+	<true/>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
 	</array>
 	<key>RCTNewArchEnabled</key>
 	<true/>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneConfigurationName</key>
+					<string>Default Configuration</string>
+					<key>UISceneDelegateClassName</key>
+					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
 	<key>UILaunchStoryboardName</key>
 	<string>SplashScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>

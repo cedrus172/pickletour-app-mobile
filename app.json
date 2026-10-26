@@ -29,7 +29,18 @@
         "NSCalendarsWriteOnlyAccessUsageDescription": "Ứng dụng cần quyền để thêm sự kiện trận đấu vào lịch của bạn.",
         "NSSupportsLiveActivities": true,
         "NSSupportsLiveActivitiesFrequentUpdates": true,
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIApplicationSceneManifest": {
+          "UIApplicationSupportsMultipleScenes": false,
+          "UISceneConfigurations": {
+            "UIWindowSceneSessionRoleApplication": [
+              {
+                "UISceneConfigurationName": "Default Configuration",
+                "UISceneDelegateClassName": "$(PRODUCT_MODULE_NAME).SceneDelegate"
+              }
+            ]
+          }
+        }
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
@@ -119,7 +130,8 @@
           },
           "ios": {
             "deploymentTarget": "16.1",
-            "useFrameworks": "static"
+            "useFrameworks": "static",
+            "buildReactNativeFromSource": true
           }
         }
       ],
