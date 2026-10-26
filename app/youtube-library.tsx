@@ -180,7 +180,9 @@ export default function YoutubeLibraryScreen() {
 
   const GAP = 12;
   const PAD = 14;
-  const cardW = Math.floor((winW - PAD * 2 - GAP) / 2);
+  // Nhiều cột trên màn lớn (iPhone Duo mở / iPad).
+  const ytCols = winW >= 1040 ? 4 : winW >= 760 ? 3 : 2;
+  const cardW = Math.floor((winW - PAD * 2 - GAP * (ytCols - 1)) / ytCols);
   const liveCardW = Math.min(260, Math.floor(winW * 0.72));
 
   const notConfigured = !data?.enabled || data?.error === "no_channels";
@@ -305,7 +307,8 @@ export default function YoutubeLibraryScreen() {
         <FlatList
           data={vodList}
           keyExtractor={(v) => v.videoId}
-          numColumns={2}
+          key={`yt-${ytCols}`}
+          numColumns={ytCols}
           ListHeaderComponent={Header}
           columnWrapperStyle={{ paddingHorizontal: PAD, gap: GAP }}
           contentContainerStyle={{ paddingBottom: 28, gap: GAP }}

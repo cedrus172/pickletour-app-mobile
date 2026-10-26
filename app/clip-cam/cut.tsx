@@ -21,6 +21,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-reanimated";
 import { Text } from "@/components/ui/i18nText";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { useResponsive } from "@/hooks/useResponsive";
 import {
   addHistory,
   clipDownloadUrl,
@@ -151,6 +152,7 @@ type Phase = "idle" | "creating" | "running" | "done" | "error";
 export default function ClipCutScreen() {
   const C = useThemeTokens();
   const styles = useMemo(() => mkStyles(C), [C]);
+  const rsp = useResponsive();
   const { base, venueName, chId, chName } = useLocalSearchParams<{
     base: string; venueName: string; chId: string; chName: string;
   }>();
@@ -495,7 +497,7 @@ export default function ClipCutScreen() {
   return (
     <SafeAreaView style={styles.root} edges={["bottom"]}>
       <Stack.Screen options={{ title: channelName, headerShown: true }} />
-      <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={[{ padding: 14, paddingBottom: 40 }, rsp.isWide && { maxWidth: rsp.contentMaxWidth, alignSelf: "center", width: "100%" }]}>
         {/* Preview / thumbnail */}
         {manifest ? (
           <View>
