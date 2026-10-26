@@ -349,13 +349,10 @@ export default function ClipCutScreen() {
               </View>
             </View>
             <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
-              <Pressable onPress={() => saveToAlbum(result.clipId, result.name)} disabled={sharing} style={[styles.resBtn, { backgroundColor: C.primary }]}>
-                {sharing ? <ActivityIndicator color={C.onPrimary} size="small" /> : <Ionicons name="download" size={16} color={C.onPrimary} />}
-                <Text style={{ color: C.onPrimary, fontWeight: "700", marginLeft: 6 }}>Lưu vào máy</Text>
-              </Pressable>
-              <Pressable onPress={() => shareClip(result.clipId, result.name)} disabled={sharing} style={[styles.resBtn, { backgroundColor: C.field, borderWidth: 1, borderColor: C.border }]}>
-                <Ionicons name="share-social-outline" size={16} color={C.text} />
-                <Text style={{ color: C.text, fontWeight: "700", marginLeft: 6 }}>Chia sẻ</Text>
+              {/* Nút "Lưu vào máy" tạm ẩn — cần build native (expo-media-library) mới bật. */}
+              <Pressable onPress={() => shareClip(result.clipId, result.name)} disabled={sharing} style={[styles.resBtn, { backgroundColor: C.primary }]}>
+                {sharing ? <ActivityIndicator color={C.onPrimary} size="small" /> : <Ionicons name="share-social" size={16} color={C.onPrimary} />}
+                <Text style={{ color: C.onPrimary, fontWeight: "700", marginLeft: 6 }}>Tải / Chia sẻ</Text>
               </Pressable>
             </View>
           </View>
