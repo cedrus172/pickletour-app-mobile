@@ -1,7 +1,9 @@
-// app/clip-cam/index.tsx — Cắt Cam Sân (PickClip): chọn venue (theo QUYỀN) → lưới camera.
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+// app/clip-cam/index.tsx — Cắt Cam Sân (PickClip): danh sách SÂN (card ảnh+tên+địa chỉ,
+// như tab Đặt sân) theo QUYỀN → chạm vào sân có quyền để xem/cắt camera.
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Pressable,
   RefreshControl,
@@ -10,17 +12,20 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { Stack, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/i18nText";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
 import { useMyCamClipAccessQuery } from "@/slices/camClipApiSlice";
-import { fetchChannels, thumbnailUrl, type Channel } from "@/utils/pickclip";
 
 type Access = {
   venueId: string;
   venueName: string;
   logo?: string;
+  address?: string;
+  province?: string;
+  images?: string[];
   piBaseUrl: string;
   hasAccess: boolean;
   source: "admin" | "owner" | "manager" | "manual" | "booking" | null;
@@ -42,63 +47,34 @@ function accessLabel(a: Access): string {
 export default function ClipCamScreen() {
   const C = useThemeTokens();
   const styles = useMemo(() => mkStyles(C), [C]);
+  const { data, isLoading, isError, refetch, isFetching } = useMyCamClipAccessQuery(undefined);
+  const venues: Access[] = Array.isArray(data) ? data : [];
 
-  const { data: access, isLoading: accLoading, isError: accError, refetch } = useMyCamClipAccessQuery(undefined);
-  const venues: Access[] = Array.isArray(access) ? access : [];
-
-  const [venueIdx, setVenueIdx] = useState(0);
-  const venue = venues[Math.min(venueIdx, Math.max(0, venues.length - 1))];
-
-  const [channels, setChannels] = useState<Channel[]>([]);
-  const [chLoading, setChLoading] = useState(false);
-  const [chErr, setChErr] = useState("");
-  const [refreshing, setRefreshing] = useState(false);
-  const [thumbTick, setThumbTick] = useState(0);
-
-  const loadChannels = useCallback(async (v?: Access) => {
-    if (!v || !v.hasAccess) { setChannels([]); return; }
-    setChErr("");
-    setChLoading(true);
-    try {
-      setChannels(await fetchChannels(v.piBaseUrl));
-    } catch (e: any) {
-      setChannels([]);
-      setChErr(e?.message || "Không tải được danh sách sân");
-    } finally {
-      setChLoading(false);
+  const onPress = useCallback((v: Access) => {
+    if (v.hasAccess) {
+      router.push({ pathname: "/clip-cam/channels", params: { base: v.piBaseUrl, venueName: v.venueName } } as any);
+    } else {
+      Alert.alert(
+        "Chưa có quyền cắt cam",
+        "Đặt sân qua app để được cắt cam miễn phí 48 giờ sau khi nhận sân, hoặc liên hệ chủ sân để được cấp quyền.",
+        [{ text: "Để sau", style: "cancel" }, { text: "Đặt sân ngay", onPress: () => router.push("/courts" as any) }],
+      );
     }
   }, []);
-
-  useEffect(() => { loadChannels(venue); }, [venue?.piBaseUrl, loadChannels]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    setThumbTick((t) => t + 1);
-    await Promise.all([refetch(), loadChannels(venue)]);
-    setRefreshing(false);
-  }, [refetch, loadChannels, venue]);
-
-  const openCut = (ch: Channel) => {
-    if (!venue) return;
-    router.push({
-      pathname: "/clip-cam/cut",
-      params: { base: venue.piBaseUrl, venueName: venue.venueName, chId: String(ch.id), chName: ch.name },
-    } as any);
-  };
 
   return (
     <SafeAreaView style={styles.root} edges={["bottom"]}>
       <Stack.Screen options={{ title: "Cắt Cam Sân", headerShown: true }} />
       <ScrollView
         contentContainerStyle={{ padding: 14, paddingBottom: 32 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.primary} />}
+        refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} tintColor={C.primary} />}
       >
-        {accLoading ? (
+        {isLoading ? (
           <View style={styles.center}><ActivityIndicator color={C.primary} /></View>
-        ) : accError ? (
+        ) : isError ? (
           <View style={styles.center}>
             <Ionicons name="cloud-offline-outline" size={40} color={C.muted} />
-            <Text style={{ color: C.sub, marginTop: 10 }}>Không tải được quyền. Kéo xuống để thử lại.</Text>
+            <Text style={{ color: C.sub, marginTop: 10 }}>Không tải được. Kéo xuống để thử lại.</Text>
           </View>
         ) : venues.length === 0 ? (
           <View style={styles.center}>
@@ -110,85 +86,47 @@ export default function ClipCamScreen() {
           </View>
         ) : (
           <>
-            {/* Chọn venue (nếu có quyền ở nhiều sân) */}
-            {venues.length > 1 && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-                {venues.map((v, i) => {
-                  const on = i === venueIdx;
-                  return (
-                    <Pressable
-                      key={v.venueId}
-                      onPress={() => setVenueIdx(i)}
-                      style={[styles.venueChip, { backgroundColor: on ? C.primary : C.field, borderColor: on ? C.primary : C.border }]}
-                    >
-                      <Ionicons name={v.hasAccess ? "location" : "lock-closed"} size={14} color={on ? C.onPrimary : C.sub} />
-                      <Text style={{ color: on ? C.onPrimary : C.text, fontWeight: "700", marginLeft: 6 }}>{v.venueName}</Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            )}
-
-            {/* Badge quyền của venue đang chọn */}
-            {venue && (
-              <View style={[styles.accessBadge, { backgroundColor: venue.hasAccess ? C.primarySoft : C.field, borderColor: venue.hasAccess ? C.primary : C.border }]}>
-                <Ionicons name={venue.hasAccess ? "shield-checkmark" : "lock-closed"} size={15} color={venue.hasAccess ? C.primary : C.sub} />
-                <Text style={{ color: venue.hasAccess ? C.primary : C.sub, fontWeight: "700", marginLeft: 6 }}>
-                  {venue.venueName} · {accessLabel(venue)}
-                </Text>
-              </View>
-            )}
-
-            {venue && !venue.hasAccess ? (
-              /* Venue có camera nhưng user chưa có quyền */
-              <View style={styles.center}>
-                <Ionicons name="lock-closed-outline" size={44} color={C.muted} />
-                <Text style={[styles.emptyTitle, { color: C.text }]}>Chưa có quyền cắt cam ở sân này</Text>
-                <Text style={{ color: C.sub, marginTop: 8, textAlign: "center", lineHeight: 20 }}>
-                  Đặt sân qua app để được cắt cam miễn phí 48 giờ sau khi nhận sân, hoặc liên hệ chủ sân để được cấp quyền.
-                </Text>
-                <Pressable onPress={() => router.push("/courts" as any)} style={[styles.retryBtn, { borderColor: C.primary, backgroundColor: C.primarySoft }]}>
-                  <Text style={{ color: C.primary, fontWeight: "700" }}>Đặt sân ngay</Text>
-                </Pressable>
-              </View>
-            ) : (
-            <>
             <View style={styles.hintRow}>
               <Ionicons name="cut-outline" size={16} color={C.primary} />
-              <Text style={styles.hint}>Chọn camera sân để xem và cắt highlight (tối đa 30 phút/clip).</Text>
+              <Text style={styles.hint}>Các sân có camera. Chọn sân bạn có quyền để cắt highlight.</Text>
             </View>
-
-            {chLoading ? (
-              <View style={styles.center}><ActivityIndicator color={C.primary} /></View>
-            ) : chErr ? (
-              <View style={styles.center}>
-                <Ionicons name="videocam-off-outline" size={40} color={C.muted} />
-                <Text style={{ color: C.sub, marginTop: 10, textAlign: "center" }}>{chErr}</Text>
-                <Pressable onPress={() => loadChannels(venue)} style={[styles.retryBtn, { borderColor: C.border }]}>
-                  <Text style={{ color: C.primary, fontWeight: "700" }}>Thử lại</Text>
-                </Pressable>
-              </View>
-            ) : channels.length === 0 ? (
-              <View style={styles.center}>
-                <Ionicons name="videocam-off-outline" size={40} color={C.muted} />
-                <Text style={{ color: C.sub, marginTop: 10 }}>Chưa có camera nào ở sân này.</Text>
-              </View>
-            ) : (
-              <View style={styles.grid}>
-                {channels.map((ch) => (
-                  <Pressable key={ch.id} onPress={() => openCut(ch)} style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}>
-                    <View style={styles.thumbWrap}>
-                      <Image source={{ uri: `${thumbnailUrl(venue!.piBaseUrl, ch.id)}?t=${thumbTick}` }} style={styles.thumb} resizeMode="cover" />
-                      <View style={styles.playBadge}><Ionicons name="cut" size={16} color="#fff" /></View>
+            {venues.map((v) => (
+              <Pressable key={v.venueId} onPress={() => onPress(v)} style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}>
+                <View>
+                  {v.images?.[0] ? (
+                    <Image source={{ uri: v.images[0] }} style={styles.cover} />
+                  ) : (
+                    <LinearGradient colors={C.heroGrad} style={[styles.cover, { alignItems: "center", justifyContent: "center" }]}>
+                      <Ionicons name="videocam" size={40} color="rgba(255,255,255,0.6)" />
+                    </LinearGradient>
+                  )}
+                  <LinearGradient colors={["rgba(2,6,23,0)", "rgba(2,6,23,0.8)"]} style={styles.coverShade} />
+                  {/* Badge quyền */}
+                  <View style={[styles.badge, { backgroundColor: v.hasAccess ? C.primary : "rgba(2,6,23,0.72)" }]}>
+                    <Ionicons name={v.hasAccess ? "shield-checkmark" : "lock-closed"} size={12} color="#fff" />
+                    <Text style={styles.badgeText}>{accessLabel(v)}</Text>
+                  </View>
+                  {/* Overlay mờ khi khoá */}
+                  {!v.hasAccess && <View style={styles.lockVeil} />}
+                  <View style={styles.coverBottom}>
+                    <Text style={styles.coverTitle} numberOfLines={1}>{v.venueName}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <Ionicons name="location" size={12} color="rgba(255,255,255,0.85)" />
+                      <Text style={styles.coverSub} numberOfLines={1}>{[v.address, v.province].filter(Boolean).join(", ") || "—"}</Text>
                     </View>
-                    <Text numberOfLines={1} style={[styles.cardName, { color: C.text }]}>{ch.name}</Text>
-                    {!!ch.description && <Text numberOfLines={1} style={[styles.cardDesc, { color: C.sub }]}>{ch.description}</Text>}
-                  </Pressable>
-                ))}
-              </View>
-            )}
-            </>
-            )}
+                  </View>
+                </View>
+                <View style={styles.cardFoot}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Ionicons name="cut" size={15} color={C.primary} />
+                    <Text style={{ color: C.text, fontWeight: "700", fontSize: 13 }}>
+                      {v.hasAccess ? "Cắt highlight" : "Chưa có quyền"}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={C.muted} />
+                </View>
+              </Pressable>
+            ))}
           </>
         )}
       </ScrollView>
@@ -199,18 +137,18 @@ export default function ClipCamScreen() {
 const mkStyles = (C: ThemeTokens) =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
-    venueChip: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1, marginRight: 8 },
-    accessBadge: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, marginBottom: 12 },
     hintRow: { flexDirection: "row", alignItems: "center", marginBottom: 14, gap: 6 },
     hint: { color: C.sub, flex: 1, fontSize: 13 },
     center: { alignItems: "center", justifyContent: "center", paddingVertical: 56, paddingHorizontal: 20 },
     emptyTitle: { fontWeight: "800", fontSize: 16, marginTop: 14 },
-    retryBtn: { marginTop: 14, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, borderWidth: 1 },
-    grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
-    card: { width: "48.5%", borderRadius: 14, borderWidth: 1, padding: 8, marginBottom: 12 },
-    thumbWrap: { borderRadius: 10, overflow: "hidden", backgroundColor: "#000", aspectRatio: 16 / 10 },
-    thumb: { width: "100%", height: "100%" },
-    playBadge: { position: "absolute", right: 8, bottom: 8, backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 999, padding: 7 },
-    cardName: { fontWeight: "700", fontSize: 14, marginTop: 8 },
-    cardDesc: { fontSize: 12, marginTop: 2 },
+    card: { borderRadius: 16, borderWidth: 1, overflow: "hidden", marginBottom: 14 },
+    cover: { width: "100%", height: 160 },
+    coverShade: { position: "absolute", left: 0, right: 0, bottom: 0, height: 96 },
+    lockVeil: { position: "absolute", left: 0, top: 0, right: 0, height: 160, backgroundColor: "rgba(2,6,23,0.35)" },
+    coverBottom: { position: "absolute", left: 14, right: 14, bottom: 12 },
+    coverTitle: { color: "#fff", fontWeight: "900", fontSize: 18, letterSpacing: -0.3 },
+    coverSub: { color: "rgba(255,255,255,0.85)", fontSize: 12.5, flexShrink: 1 },
+    badge: { position: "absolute", top: 12, right: 12, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
+    badgeText: { color: "#fff", fontWeight: "800", fontSize: 11.5 },
+    cardFoot: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingVertical: 12 },
   });
