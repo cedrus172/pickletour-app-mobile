@@ -222,6 +222,17 @@ export const userApiSlice = apiSlice.injectEndpoints({
         { type: "RatingHistory", id: userId },
       ],
     }),
+    // Sửa 1 lịch sử điểm trình: lý do (note) và/hoặc điểm Đơn / Đôi
+    updateRatingHistory: builder.mutation({
+      query: ({ userId, historyId, ...patch }) => ({
+        url: `/api/users/${userId}/rating-history/${historyId}`,
+        method: "PATCH",
+        body: patch,
+      }),
+      invalidatesTags: (r, e, { userId }) => [
+        { type: "RatingHistory", id: userId },
+      ],
+    }),
     getUserAchievements: builder.query({
       query: (arg) => {
         const { id, userId } = normalizeUserScopedArg(arg);
@@ -328,6 +339,7 @@ export const {
   useGetMeQuery,
   useGetMeScoreQuery,
   useDeleteRatingHistoryMutation,
+  useUpdateRatingHistoryMutation,
   useGetUserAchievementsQuery,
   useIssueOsAuthTokenMutation,
   useLazyGetOAuthAuthorizeContextQuery,

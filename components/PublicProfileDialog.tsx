@@ -13,8 +13,10 @@ import {
   Animated,
   RefreshControl,
   InteractionManager,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
+import { TextInput } from "@/components/ui/i18nTextInput";
 import {
   BottomSheetModal,
   BottomSheetScrollView,
@@ -27,6 +29,7 @@ import {
   useGetRatingHistoryQuery,
   useGetMatchHistoryQuery,
   useDeleteRatingHistoryMutation,
+  useUpdateRatingHistoryMutation,
   useGetUserAchievementsQuery,
 } from "@/slices/usersApiSlice";
 import PaginationRN from "./PaginationRN";
@@ -731,6 +734,12 @@ export default function PublicProfileSheet({ open, onClose, userId }: Props) {
   const [deleteHistory, { isLoading: deleting }] =
     useDeleteRatingHistoryMutation();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [updateHistory, { isLoading: savingRating }] =
+    useUpdateRatingHistoryMutation();
+  const [editItem, setEditItem] = useState<any>(null);
+  const [editSingle, setEditSingle] = useState("");
+  const [editDouble, setEditDouble] = useState("");
+  const [editNote, setEditNote] = useState("");
 
   // snapPoints
   const topSafeGap = insets.top + 8;
@@ -1184,6 +1193,52 @@ export default function PublicProfileSheet({ open, onClose, userId }: Props) {
     );
   };
 
+  const openEditHistory = (h: any) => {
+    if (!viewerIsAdmin) return;
+    const noteText = h?.note ?? h?.notes ?? "";
+    setEditItem(h);
+    setEditSingle(Number.isFinite(Number(h?.single)) ? String(h.single) : "");
+    setEditDouble(Number.isFinite(Number(h?.double)) ? String(h.double) : "");
+    setEditNote(String(noteText || ""));
+  };
+
+  const submitEditHistory = async () => {
+    if (!editItem) return;
+    const historyId = editItem?._id ?? editItem?.id;
+    const uid = editItem?.user?._id || userId;
+    if (!historyId || !uid) {
+      openSnack("Thiếu ID, không thể sửa.");
+      return;
+    }
+    const parseScore = (v: any) => {
+      const s = String(v ?? "").trim().replace(",", ".");
+      if (s === "") return undefined;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : undefined;
+    };
+    try {
+      await updateHistory({
+        userId: String(uid),
+        historyId: String(historyId),
+        note: editNote,
+        single: parseScore(editSingle),
+        double: parseScore(editDouble),
+      }).unwrap();
+      await rateQ.refetch?.();
+      if (aliveRef.current) {
+        setEditItem(null);
+        openSnack("Đã cập nhật lịch sử điểm trình.");
+      }
+    } catch (e: any) {
+      openSnack(
+        e?.data?.message ||
+          e?.error ||
+          e?.message ||
+          "Cập nhật thất bại. Vui lòng thử lại."
+      );
+    }
+  };
+
   const RatingSection = () => {
     if (rateQ.isLoading || rateQ.isFetching) {
       return (
@@ -1275,29 +1330,49 @@ export default function PublicProfileSheet({ open, onClose, userId }: Props) {
                     </Text>
 
                     {viewerIsAdmin ? (
-                      <Pressable
-                        onPress={() => handleDeleteHistory(h)}
-                        disabled={deleting && deletingId === historyId}
-                        hitSlop={8}
-                        style={({ pressed }) => [
-                          {
-                            paddingHorizontal: 6,
-                            paddingVertical: Platform.OS === "android" ? 4 : 6,
-                            borderRadius: 8,
-                          },
-                          pressed && { opacity: 0.7 },
-                        ]}
-                      >
-                        {deleting && deletingId === historyId ? (
-                          <ActivityIndicator size="small" />
-                        ) : (
+                      <>
+                        <Pressable
+                          onPress={() => openEditHistory(h)}
+                          hitSlop={8}
+                          style={({ pressed }) => [
+                            {
+                              paddingHorizontal: 6,
+                              paddingVertical: Platform.OS === "android" ? 4 : 6,
+                              borderRadius: 8,
+                            },
+                            pressed && { opacity: 0.7 },
+                          ]}
+                        >
                           <MaterialIcons
-                            name="delete-outline"
+                            name="edit"
                             size={18}
-                            color={isDark ? "#f87171" : "#ef4444"}
+                            color={isDark ? "#38bdf8" : "#0284c7"}
                           />
-                        )}
-                      </Pressable>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => handleDeleteHistory(h)}
+                          disabled={deleting && deletingId === historyId}
+                          hitSlop={8}
+                          style={({ pressed }) => [
+                            {
+                              paddingHorizontal: 6,
+                              paddingVertical: Platform.OS === "android" ? 4 : 6,
+                              borderRadius: 8,
+                            },
+                            pressed && { opacity: 0.7 },
+                          ]}
+                        >
+                          {deleting && deletingId === historyId ? (
+                            <ActivityIndicator size="small" />
+                          ) : (
+                            <MaterialIcons
+                              name="delete-outline"
+                              size={18}
+                              color={isDark ? "#f87171" : "#ef4444"}
+                            />
+                          )}
+                        </Pressable>
+                      </>
                     ) : null}
                   </View>
                 </View>
@@ -2163,6 +2238,113 @@ export default function PublicProfileSheet({ open, onClose, userId }: Props) {
         </View>
       </Modal>
 
+      {/* Admin: Modal sửa điểm trình của 1 dòng lịch sử */}
+      <Modal
+        visible={Boolean(editItem)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditItem(null)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.editOverlay}
+        >
+          <View
+            style={[
+              styles.editCard,
+              { backgroundColor: cardBg, borderColor: border },
+            ]}
+          >
+            <Text style={[styles.editTitle, { color: text }]}>
+              Sửa điểm trình
+            </Text>
+            <Text style={[styles.editSub, { color: subtext }]}>
+              {fmtDate(editItem?.scoredAt)} ·{" "}
+              {editItem?.scorer?.name || "Hệ thống"}
+            </Text>
+
+            <View style={styles.editRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.editLabel, { color: subtext }]}>
+                  Điểm Đơn
+                </Text>
+                <TextInput
+                  value={editSingle}
+                  onChangeText={setEditSingle}
+                  keyboardType="decimal-pad"
+                  placeholder="VD: 4.50"
+                  placeholderTextColor={subtext}
+                  style={[
+                    styles.editInput,
+                    { backgroundColor: pageBg, borderColor: border, color: text },
+                  ]}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.editLabel, { color: subtext }]}>
+                  Điểm Đôi
+                </Text>
+                <TextInput
+                  value={editDouble}
+                  onChangeText={setEditDouble}
+                  keyboardType="decimal-pad"
+                  placeholder="VD: 4.30"
+                  placeholderTextColor={subtext}
+                  style={[
+                    styles.editInput,
+                    { backgroundColor: pageBg, borderColor: border, color: text },
+                  ]}
+                />
+              </View>
+            </View>
+
+            <Text style={[styles.editLabel, { color: subtext }]}>
+              Lý do (ghi chú)
+            </Text>
+            <TextInput
+              value={editNote}
+              onChangeText={setEditNote}
+              placeholder="Lý do điều chỉnh…"
+              placeholderTextColor={subtext}
+              multiline
+              textAlignVertical="top"
+              maxLength={500}
+              style={[
+                styles.editTextArea,
+                { backgroundColor: pageBg, borderColor: border, color: text },
+              ]}
+            />
+
+            <Text style={[styles.editHint, { color: subtext }]}>
+              Chỉ sửa dòng lịch sử này. Điểm hiện tại của VĐV không đổi.
+            </Text>
+
+            <View style={styles.editActions}>
+              <Pressable
+                style={[styles.editBtn, { backgroundColor: pageBg }]}
+                onPress={() => setEditItem(null)}
+                disabled={savingRating}
+              >
+                <Text style={{ color: text, fontWeight: "600" }}>Huỷ</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.editBtn, { backgroundColor: tint }]}
+                onPress={submitEditHistory}
+                disabled={savingRating}
+              >
+                {savingRating ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={{ color: "#FFFFFF", fontWeight: "700" }}>
+                    Lưu
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       {/* Snackbar */}
       <Snack
         open={snack.open}
@@ -2176,6 +2358,47 @@ export default function PublicProfileSheet({ open, onClose, userId }: Props) {
 
 /* ---------- styles ---------- */
 const styles = StyleSheet.create({
+  editOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  editCard: { borderRadius: 16, borderWidth: 1, padding: 20 },
+  editTitle: { fontSize: 18, fontWeight: "700", marginBottom: 4 },
+  editSub: { fontSize: 12, marginBottom: 16 },
+  editRow: { flexDirection: "row", gap: 12, marginBottom: 12 },
+  editLabel: { fontSize: 13, fontWeight: "600", marginBottom: 6 },
+  editInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+  },
+  editTextArea: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    minHeight: 72,
+  },
+  editHint: { fontSize: 12, marginTop: 10 },
+  editActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+    marginTop: 18,
+  },
+  editBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+    minWidth: 88,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   chip: {
     paddingHorizontal: 8,
     paddingVertical: 4,

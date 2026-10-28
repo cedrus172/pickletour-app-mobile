@@ -14,8 +14,11 @@ import {
   StatusBar,
   Platform,
   RefreshControl,
+  Modal,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
+import { TextInput } from "@/components/ui/i18nTextInput";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -44,6 +47,7 @@ import {
   useGetRatingHistoryQuery,
   useGetMatchHistoryQuery,
   useDeleteRatingHistoryMutation,
+  useUpdateRatingHistoryMutation,
   useGetUserAchievementsQuery,
 } from "@/slices/usersApiSlice";
 import { useGetPlayerPositionQuery } from "@/slices/headtoheadApiSlice";
@@ -693,7 +697,7 @@ const MatchCard = React.memo(({ match, userId, onPress, colors }) => {
 
 /* ======= Rating History Row (keep stable + avoid unused delete mutation) ======= */
 const RatingHistoryRow = React.memo(
-  ({ item, prevItem, isAdmin, isDeleting, onDelete, colors }) => {
+  ({ item, prevItem, isAdmin, isDeleting, onDelete, onEdit, colors }) => {
     const singleDelta =
       prevItem &&
       Number.isFinite(item.single) &&
@@ -728,18 +732,28 @@ const RatingHistoryRow = React.memo(
         ]}
       >
         {isAdmin && (
-          <TouchableOpacity
-            style={styles.deleteItemButton}
-            onPress={onDelete}
-            disabled={isDeleting}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            {isDeleting ? (
-              <ActivityIndicator size="small" color="#FF3B30" />
-            ) : (
-              <Ionicons name="trash-outline" size={18} color="#FF3B30" />
-            )}
-          </TouchableOpacity>
+          <View style={styles.ratingAdminActions}>
+            <TouchableOpacity
+              style={styles.editItemButton}
+              onPress={onEdit}
+              disabled={isDeleting}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="create-outline" size={18} color="#12B6F3" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.deleteItemButton}
+              onPress={onDelete}
+              disabled={isDeleting}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              {isDeleting ? (
+                <ActivityIndicator size="small" color="#FF3B30" />
+              ) : (
+                <Ionicons name="trash-outline" size={18} color="#FF3B30" />
+              )}
+            </TouchableOpacity>
+          </View>
         )}
 
         <View style={styles.ratingLeft}>
@@ -1355,6 +1369,13 @@ export default function PublicProfileScreen() {
   const [deleteHistory, { isLoading: deleting }] =
     useDeleteRatingHistoryMutation();
   const [deletingId, setDeletingId] = useState(null);
+  const [updateHistory, { isLoading: savingRating }] =
+    useUpdateRatingHistoryMutation();
+  // Modal sửa điểm trình (admin)
+  const [editRating, setEditRating] = useState(null); // item đang sửa
+  const [editSingle, setEditSingle] = useState("");
+  const [editDouble, setEditDouble] = useState("");
+  const [editNote, setEditNote] = useState("");
 
   const base = baseQ.data || {};
   const ratingRaw = Array.isArray(rateQ.data?.history)
@@ -1611,6 +1632,56 @@ export default function PublicProfileScreen() {
     },
     [isAdminViewer, id, deleteHistory, rateQ]
   );
+
+  const handleEditHistory = useCallback(
+    (h) => {
+      if (!isAdminViewer) return;
+      const noteText =
+        h?.notes ?? h?.note ?? h?.meta?.notes ?? h?.meta?.note ?? "";
+      setEditRating(h);
+      setEditSingle(
+        Number.isFinite(Number(h?.single)) ? String(h.single) : ""
+      );
+      setEditDouble(
+        Number.isFinite(Number(h?.double)) ? String(h.double) : ""
+      );
+      setEditNote(String(noteText || ""));
+    },
+    [isAdminViewer]
+  );
+
+  const submitEditHistory = useCallback(async () => {
+    if (!editRating) return;
+    const historyId = editRating?._id ?? editRating?.id;
+    const targetUid = editRating?.user?._id || id;
+    if (!historyId || !targetUid) {
+      Alert.alert("Lỗi", "Thiếu ID, không thể sửa.");
+      return;
+    }
+    const parseScore = (v) => {
+      const s = String(v ?? "").trim().replace(",", ".");
+      if (s === "") return undefined;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : undefined;
+    };
+    try {
+      await updateHistory({
+        userId: String(targetUid),
+        historyId: String(historyId),
+        note: editNote,
+        single: parseScore(editSingle),
+        double: parseScore(editDouble),
+      }).unwrap();
+      await rateQ.refetch?.();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setEditRating(null);
+    } catch (e) {
+      Alert.alert(
+        "Lỗi",
+        e?.data?.message || "Cập nhật điểm trình thất bại. Vui lòng thử lại."
+      );
+    }
+  }, [editRating, id, editNote, editSingle, editDouble, updateHistory, rateQ]);
 
   const handleTabPress = useCallback(
     (index) => {
@@ -2774,6 +2845,7 @@ export default function PublicProfileScreen() {
                             deleting && deletingId === (item._id || item.id)
                           }
                           onDelete={() => handleDeleteHistory(item)}
+                          onEdit={() => handleEditHistory(item)}
                         />
                       );
                     })}
@@ -2903,6 +2975,137 @@ export default function PublicProfileScreen() {
             </View>
           )}
         />
+
+        {/* Admin: Modal sửa điểm trình của 1 dòng lịch sử */}
+        <Modal
+          visible={Boolean(editRating)}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setEditRating(null)}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={styles.editModalOverlay}
+          >
+            <View
+              style={[
+                styles.editModalCard,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <Text style={[styles.editModalTitle, { color: colors.text }]}>
+                Sửa điểm trình
+              </Text>
+              <Text style={[styles.editModalSub, { color: colors.subText }]}>
+                {fmtDate(editRating?.scoredAt)} ·{" "}
+                {editRating?.scorer?.name || "Hệ thống"}
+              </Text>
+
+              <View style={styles.editModalRow}>
+                <View style={styles.editModalField}>
+                  <Text
+                    style={[styles.editModalLabel, { color: colors.subText }]}
+                  >
+                    Điểm Đơn
+                  </Text>
+                  <TextInput
+                    value={editSingle}
+                    onChangeText={setEditSingle}
+                    keyboardType="decimal-pad"
+                    placeholder="VD: 4.50"
+                    placeholderTextColor={colors.subText}
+                    style={[
+                      styles.editModalInput,
+                      {
+                        backgroundColor: colors.bgMuted,
+                        borderColor: colors.border,
+                        color: colors.text,
+                      },
+                    ]}
+                  />
+                </View>
+                <View style={styles.editModalField}>
+                  <Text
+                    style={[styles.editModalLabel, { color: colors.subText }]}
+                  >
+                    Điểm Đôi
+                  </Text>
+                  <TextInput
+                    value={editDouble}
+                    onChangeText={setEditDouble}
+                    keyboardType="decimal-pad"
+                    placeholder="VD: 4.30"
+                    placeholderTextColor={colors.subText}
+                    style={[
+                      styles.editModalInput,
+                      {
+                        backgroundColor: colors.bgMuted,
+                        borderColor: colors.border,
+                        color: colors.text,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+
+              <Text style={[styles.editModalLabel, { color: colors.subText }]}>
+                Lý do (ghi chú)
+              </Text>
+              <TextInput
+                value={editNote}
+                onChangeText={setEditNote}
+                placeholder="Lý do điều chỉnh…"
+                placeholderTextColor={colors.subText}
+                multiline
+                textAlignVertical="top"
+                maxLength={500}
+                style={[
+                  styles.editModalTextArea,
+                  {
+                    backgroundColor: colors.bgMuted,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
+                ]}
+              />
+
+              <Text style={[styles.editModalHint, { color: colors.subText }]}>
+                Chỉ sửa dòng lịch sử này. Điểm hiện tại của VĐV không đổi.
+              </Text>
+
+              <View style={styles.editModalActions}>
+                <TouchableOpacity
+                  style={[
+                    styles.editModalBtn,
+                    { backgroundColor: colors.bgMuted },
+                  ]}
+                  onPress={() => setEditRating(null)}
+                  disabled={savingRating}
+                >
+                  <Text style={{ color: colors.text, fontWeight: "600" }}>
+                    Huỷ
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.editModalBtn,
+                    { backgroundColor: colors.primary },
+                  ]}
+                  onPress={submitEditHistory}
+                  disabled={savingRating}
+                >
+                  {savingRating ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={{ color: "#FFFFFF", fontWeight: "700" }}>
+                      Lưu
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
 
         {/* Share Bottom Sheet */}
         <BottomSheet
@@ -3415,16 +3618,72 @@ const styles = StyleSheet.create({
     elevation: 1,
     position: "relative",
   },
-  deleteItemButton: {
+  ratingAdminActions: {
     position: "absolute",
     top: 10,
     right: 10,
     zIndex: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  editItemButton: {
+    padding: 4,
+    borderRadius: 8,
+    backgroundColor: "rgba(18,182,243,0.12)",
+  },
+  deleteItemButton: {
     padding: 4,
     borderRadius: 8,
     backgroundColor: "rgba(255,59,48,0.1)",
   },
-  ratingLeft: { flex: 1, paddingRight: 32 },
+  ratingLeft: { flex: 1, paddingRight: 64 },
+  editModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  editModalCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 20,
+  },
+  editModalTitle: { fontSize: 18, fontWeight: "700", marginBottom: 4 },
+  editModalSub: { fontSize: 12, marginBottom: 16 },
+  editModalRow: { flexDirection: "row", gap: 12, marginBottom: 12 },
+  editModalField: { flex: 1 },
+  editModalLabel: { fontSize: 13, fontWeight: "600", marginBottom: 6 },
+  editModalInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+  },
+  editModalTextArea: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    minHeight: 72,
+  },
+  editModalHint: { fontSize: 12, marginTop: 10 },
+  editModalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+    marginTop: 18,
+  },
+  editModalBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+    minWidth: 88,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   ratingDate: { fontSize: 14, fontWeight: "600", marginBottom: 4 },
   ratingScorer: { fontSize: 12 },
   ratingScores: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
