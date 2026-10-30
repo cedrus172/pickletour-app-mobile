@@ -40,6 +40,7 @@ import LeaderboardSection from "@/components/home/LeaderboardSection";
 import EventLiveBanner from "@/components/home/EventLiveBanner";
 import CourtBookingBanner from "@/components/home/CourtBookingBanner";
 import YoutubeClipsHome from "@/components/home/YoutubeClipsHome";
+import HomeFeatureIcon from "@/components/home/HomeFeatureIcon";
 import {
   HomePage,
   HomeSectionHeader,
@@ -71,30 +72,6 @@ const BG_3D = SHOULD_RENDER_NATIVE_LOTTIE
 const LOGO_V2_BADGE = require("@/assets/images/logo-v2-badge.png");
 const LOGO_V2_EMBLEM = require("@/assets/images/logo-v2-emblem.png");
 const BADGE_ASPECT = 1237 / 1088; // tỉ lệ file badge đã trim
-
-/* Bộ icon thể thao V2 (tạo bằng Stability AI, badge navy đồng nhất) — theo id FEATURES */
-const V2_ICONS: Record<number, any> = {
-  21: require("@/assets/images/v2icons/court.png"),
-  42: require("@/assets/images/v2icons/clipcam.png"),
-  1: require("@/assets/images/v2icons/calendar.png"),
-  2: require("@/assets/images/v2icons/trophy.png"),
-  3: require("@/assets/images/v2icons/stats.png"),
-  4: require("@/assets/images/v2icons/guide.png"),
-  5: require("@/assets/images/v2icons/news.png"),
-  6: require("@/assets/images/v2icons/live.png"),
-  8: require("@/assets/images/v2icons/club.png"),
-  9: require("@/assets/images/v2icons/match.png"),
-  10: require("@/assets/images/v2icons/support.png"),
-  11: require("@/assets/images/v2icons/radar.png"),
-  12: require("@/assets/images/v2icons/h2h.png"),
-  13: require("@/assets/images/v2icons/feed.png"),
-  16: require("@/assets/images/v2icons/bell.png"),
-  14: require("@/assets/images/v2icons/messages.png"),
-  15: require("@/assets/images/v2icons/friends.png"),
-  17: require("@/assets/images/v2icons/coach.png"),
-  19: require("@/assets/images/v2icons/market.png"),
-  20: require("@/assets/images/v2icons/findplayers.png"),
-};
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.8;
@@ -1011,10 +988,8 @@ function FeatureItem({ item, theme, colWidth }) {
     { Ionicons, MaterialIcons, FontAwesome, FontAwesome5 }[item.iconLib] ||
     Ionicons;
 
-  const v2Icon = v2 ? V2_ICONS[item.id] : null;
-
-  // V2 Modern: icon badge thể thao (ảnh) — layout gọn kiểu app grid
-  if (v2Icon) {
+  // V2: bộ biểu tượng vector đồng nhất theo thứ tự tính năng trên trang chủ.
+  if (v2) {
     return (
       <TouchableOpacity
         activeOpacity={1}
@@ -1025,13 +1000,7 @@ function FeatureItem({ item, theme, colWidth }) {
       >
         <Animated.View style={[styles.featureV2, { transform: [{ scale: scaleVal }] }]}>
           <View style={styles.featureV2IconWrap}>
-            {v2Icon ? (
-              <Image source={v2Icon} style={styles.featureV2Icon} contentFit="contain" />
-            ) : (
-              <View style={[styles.featureV2Icon, { alignItems: "center", justifyContent: "center" }]}>
-                <Lib name={item.icon} size={28} color={item.color} />
-              </View>
-            )}
+            <HomeFeatureIcon id={item.id} />
             {item.isNew ? (
               <View style={[styles.newBadge, styles.newBadgeV2, hot && styles.newBadgeV2Hot]} pointerEvents="none">
                 <Text style={[styles.newBadgeText, hot && { color: "#04121f" }]}>
@@ -2090,22 +2059,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderRadius: 19,
     borderWidth: 1,
-    borderColor: "rgba(90,180,230,0.23)",
-    backgroundColor: "rgba(7,27,52,0.78)",
-    shadowColor: "#020B1C",
-    shadowOpacity: 0.22,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    borderColor: "rgba(18,201,238,0.18)",
+    backgroundColor: "#061B33",
   },
   featureV2IconWrap: { position: "relative", marginBottom: 8 },
-  featureV2Icon: {
-    width: 54,
-    height: 54,
-    shadowColor: "#12B6F3",
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 4 },
-  },
   newBadgeV2: { top: -6, right: -8 },
   newBadgeV2Hot: { backgroundColor: "#CDE818", borderColor: "rgba(255,255,255,0.92)" },
   v2RoleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 1 },
