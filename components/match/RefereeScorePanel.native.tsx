@@ -1388,7 +1388,6 @@ const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightNa
   rightName: string;
   onApply: (side: "left" | "right") => void;
 }) {
-  const t = useTokens();
   const [mode, setMode] = useState<"color" | "coin" | "wheel">("coin");
   const [phase, setPhase] = useState<"idle" | "running" | "done">("idle");
   const [result, setResult] = useState<"left" | "right" | null>(null);
@@ -1430,12 +1429,11 @@ const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightNa
     }, 2200);
   };
   const modes = [
-    { key: "color", label: "Bốc màu", hint: "Chọn ngẫu nhiên một đội", icon: "palette" },
-    { key: "coin", label: "Tung đồng xu", hint: "Ngửa hoặc sấp", icon: "monetization-on" },
-    { key: "wheel", label: "Vòng quay đội", hint: "Quay chọn một đội", icon: "casino" },
+    { key: "color", label: "Bốc màu", hint: "Chọn 1 trong 2 màu" },
+    { key: "coin", label: "Tung đồng xu", hint: "Ngửa hoặc Sấp" },
+    { key: "wheel", label: "Vòng quay đội", hint: "Chọn ngẫu nhiên 1 đội" },
   ] as const;
   const shownSide = result || previewSide;
-  const methodLabel = mode === "coin" ? "ĐỒNG XU" : mode === "wheel" ? "VÒNG QUAY" : "BỐC MÀU";
   const leftChoice = mode === "coin" ? "Ngửa" : mode === "color" ? "Xanh dương" : "Bên trái";
   const rightChoice = mode === "coin" ? "Sấp" : mode === "color" ? "Xanh lá" : "Bên phải";
 
@@ -1450,53 +1448,60 @@ const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightNa
                 key={option.key}
                 onPress={() => chooseMode(option.key)}
                 disabled={phase === "running"}
-                rippleContainerBorderRadius={12}
-                style={[s.serveDrawMode, { backgroundColor: selected ? (t.dark ? "#073a5c" : "#e0f7ff") : t.colors.card, borderColor: selected ? "#0dc5f4" : t.colors.border }]}
+                rippleContainerBorderRadius={14}
+                style={[s.serveDrawMode, selected && s.serveDrawModeSelected]}
               >
-                <MaterialIcons name={option.icon} size={24} color={selected ? "#0dc5f4" : t.subtext} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: selected ? "#0dc5f4" : t.colors.text, fontWeight: "800", fontSize: 15 }}>{option.label}</Text>
-                  <Text style={{ color: t.subtext, fontSize: 11 }}>{option.hint}</Text>
+                <View style={s.serveDrawModeIcon}>
+                  <Image source={option.key === "color" ? require("@/assets/images/serve-draw-colors.png") : option.key === "coin" ? require("@/assets/images/serve-draw-toss.png") : require("@/assets/images/serve-draw-wheel.png")} style={{ width: 44, height: 44 }} contentFit="contain" />
                 </View>
-                <MaterialIcons name={selected ? "radio-button-checked" : "radio-button-unchecked"} size={21} color={selected ? "#0dc5f4" : t.muted} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: selected ? "#12c8f8" : "#f0f5ff", fontWeight: "900", fontSize: 17 }}>{option.label}</Text>
+                  <Text style={{ color: "#91a9c4", fontSize: 12 }}>{option.hint}</Text>
+                </View>
+                <MaterialIcons name={selected ? "radio-button-checked" : "radio-button-unchecked"} size={25} color={selected ? "#12c8f8" : "#8da6c0"} />
               </Ripple>
             );
           })}
         </View>
-        <View style={[s.serveDrawStage, { backgroundColor: t.dark ? "#071b33" : t.colors.card, borderColor: t.colors.border }]}>
-          <Text style={{ color: t.subtext, fontWeight: "800", letterSpacing: 1 }}>{methodLabel}</Text>
+        <LinearGradient colors={["#082441", "#061b32", "#04182f"]} style={s.serveDrawStage}>
           <View style={s.serveDrawTeams}>
             <View style={s.serveDrawTeam}>
-              <Text style={{ color: t.subtext, fontSize: 11 }}>Đội bên trái</Text>
-              <Text style={{ color: "#0dc5f4", fontWeight: "800" }} numberOfLines={1}>{leftName || "Đội bên trái"}</Text>
-              <Text style={{ color: "#0dc5f4", fontSize: 16, fontWeight: "900" }}>{leftChoice}</Text>
+              <Text style={s.serveDrawTeamCaption}>Đội bên trái</Text>
+              <Text style={[s.serveDrawTeamName, { color: "#10c6f6" }]} numberOfLines={1}>{leftName || "Đội bên trái"}</Text>
+              <View style={[s.serveDrawChoice, { borderColor: "#0878a7", backgroundColor: "#073451" }]}>
+                <Text style={s.serveDrawChoiceText}>{leftChoice}</Text>
+                <View style={[s.serveDrawChoiceLine, { backgroundColor: "#10c6f6" }]} />
+              </View>
             </View>
-            <View style={[s.serveDrawToken, { borderColor: shownSide === "left" ? "#0dc5f4" : "#a3e635", backgroundColor: shownSide === "left" ? "#0b6f9b" : "#3f6212" }]}>
-              <MaterialIcons name={mode === "coin" ? "sports-tennis" : mode === "wheel" ? "casino" : "palette"} size={30} color="#fff" />
+            <View style={s.serveDrawToken}>
+              <Image source={mode === "coin" ? require("@/assets/images/serve-draw-coin.png") : mode === "wheel" ? require("@/assets/images/serve-draw-wheel.png") : require("@/assets/images/serve-draw-colors.png")} style={{ width: "100%", height: "100%" }} contentFit="contain" />
             </View>
             <View style={s.serveDrawTeam}>
-              <Text style={{ color: t.subtext, fontSize: 11 }}>Đội bên phải</Text>
-              <Text style={{ color: "#a3e635", fontWeight: "800" }} numberOfLines={1}>{rightName || "Đội bên phải"}</Text>
-              <Text style={{ color: "#a3e635", fontSize: 16, fontWeight: "900" }}>{rightChoice}</Text>
+              <Text style={s.serveDrawTeamCaption}>Đội bên phải</Text>
+              <Text style={[s.serveDrawTeamName, { color: "#eaf3ff" }]} numberOfLines={1}>{rightName || "Đội bên phải"}</Text>
+              <View style={[s.serveDrawChoice, { borderColor: "#405570", backgroundColor: "#182c44" }]}>
+                <Text style={s.serveDrawChoiceText}>{rightChoice}</Text>
+                <View style={[s.serveDrawChoiceLine, { backgroundColor: "#9badc4" }]} />
+              </View>
             </View>
           </View>
-          <View style={[s.serveDrawResult, { borderColor: phase === "done" ? (result === "left" ? "#0dc5f4" : "#a3e635") : t.colors.border }]}>
-            <Text style={{ color: t.subtext, fontSize: 12 }}>Kết quả</Text>
-            <Text style={{ color: phase === "done" ? (result === "left" ? "#0dc5f4" : "#a3e635") : t.colors.text, fontWeight: "900", fontSize: 18, textAlign: "center" }}>
+          <View style={[s.serveDrawResult, { borderColor: phase === "done" ? (result === "left" ? "#0dc5f4" : "#a3e635") : "#0b78a8" }]}>
+            <Text style={{ color: "#91a9c4", fontSize: 14 }}>Kết quả:</Text>
+            <Text style={{ color: phase === "done" ? (result === "left" ? "#0dc5f4" : "#a3e635") : "#f0f5ff", fontWeight: "900", fontSize: 21, textAlign: "center" }}>
               {phase === "done" ? `Đội bên ${result === "left" ? "trái" : "phải"} giao trước` : phase === "running" ? "Đang bốc thăm..." : "Chạm bắt đầu để bốc thăm"}
             </Text>
           </View>
-        </View>
+        </LinearGradient>
       </View>
       <View style={s.serveDrawFooter}>
-        <Text style={{ color: t.subtext, fontSize: 11, flex: 1 }}>Kết quả chỉ áp dụng sau khi xác nhận</Text>
-        <Ripple onPress={startDraw} disabled={phase === "running"} style={[s.serveDrawFooterButton, { borderColor: t.colors.border, backgroundColor: t.colors.card }]}>
-          <MaterialIcons name={phase === "idle" ? "casino" : "refresh"} size={18} color={t.colors.text} />
-          <Text style={{ color: t.colors.text, fontWeight: "800" }}>{phase === "idle" ? "Bắt đầu" : "Tung lại"}</Text>
+        <View style={s.serveDrawFooterNote}><MaterialIcons name="info-outline" size={19} color="#8da6c0" /><Text style={{ color: "#91a9c4", fontSize: 12 }}>Kết quả chỉ áp dụng sau khi xác nhận</Text></View>
+        <Ripple onPress={startDraw} disabled={phase === "running"} style={[s.serveDrawFooterButton, s.serveDrawRetry]}>
+          <MaterialIcons name={phase === "idle" ? "casino" : "refresh"} size={21} color="#f0f5ff" />
+          <Text style={{ color: "#f0f5ff", fontWeight: "900", fontSize: 15 }}>{phase === "idle" ? "Bắt đầu" : "Tung lại"}</Text>
         </Ripple>
-        <Ripple onPress={() => result && onApply?.(result)} disabled={phase !== "done"} style={[s.serveDrawFooterButton, { backgroundColor: "#0dc5f4", opacity: phase === "done" ? 1 : 0.45 }]}>
-          <MaterialIcons name="check-circle" size={18} color="#042033" />
-          <Text style={{ color: "#042033", fontWeight: "900" }}>Áp dụng đội giao trước</Text>
+        <Ripple onPress={() => result && onApply?.(result)} disabled={phase !== "done"} style={[s.serveDrawFooterButton, s.serveDrawApply, { opacity: phase === "done" ? 1 : 0.45 }]}>
+          <MaterialIcons name="check-circle" size={21} color="#042033" />
+          <Text style={{ color: "#042033", fontWeight: "900", fontSize: 15 }}>Áp dụng đội giao trước</Text>
         </Ripple>
       </View>
     </View>
@@ -5163,21 +5168,25 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
           style={[
             s.fullModalWrap,
             {
-              backgroundColor: t.colors.background,
+              backgroundColor: "#041329",
               paddingLeft: insets.left,
               paddingRight: insets.right,
               paddingBottom: insets.bottom,
             },
           ]}
         >
-          <View style={[s.rowBetween, { padding: 12 }]}>
-            <Text style={[s.h6, { color: t.colors.text }]}>Bốc thăm giao trước</Text>
+          <View style={s.serveDrawHeader}>
+            <View style={s.serveDrawHeaderTitle}>
+              <View style={s.serveDrawHeaderIcon}><MaterialIcons name="casino" size={27} color="#12c8f8" /></View>
+              <Text style={s.serveDrawHeaderText}>Bốc thăm giao trước</Text>
+              <View style={s.serveDrawMatchCode}><Text style={{ color: "#eaf3ff", fontWeight: "800", fontSize: 14 }}>{baseCode}</Text></View>
+            </View>
             <Ripple
               onPress={() => setMenuOpen(false)}
-              style={[s.iconBtn, { backgroundColor: t.colors.card }]}
-              rippleContainerBorderRadius={8}
+              style={s.serveDrawClose}
+              rippleContainerBorderRadius={100}
             >
-              <MaterialIcons name="close" size={20} color={t.colors.text} />
+              <MaterialIcons name="close" size={25} color="#eaf3ff" />
             </Ripple>
           </View>
 
@@ -5867,17 +5876,33 @@ const s = StyleSheet.create({
 
   fullModalWrap: { flex: 1, backgroundColor: "#fff" },
   fullModalBody: { flex: 1 },
-  serveDrawWrap: { flex: 1, paddingHorizontal: 12, paddingBottom: 10, gap: 10 },
-  serveDrawBody: { flex: 1, flexDirection: "row", gap: 10, minHeight: 0 },
-  serveDrawModes: { width: "31%", gap: 8, justifyContent: "center" },
-  serveDrawMode: { flexDirection: "row", alignItems: "center", gap: 9, borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 10, minHeight: 60 },
-  serveDrawStage: { flex: 1, borderWidth: 1.5, borderRadius: 14, padding: 10, alignItems: "center", justifyContent: "space-around", minWidth: 0 },
-  serveDrawTeams: { width: "100%", flexDirection: "row", alignItems: "center", gap: 8 },
-  serveDrawTeam: { flex: 1, alignItems: "center", gap: 2, minWidth: 0 },
-  serveDrawToken: { width: 68, height: 68, borderRadius: 34, borderWidth: 4, alignItems: "center", justifyContent: "center" },
-  serveDrawResult: { width: "100%", borderWidth: 1, borderRadius: 12, paddingVertical: 6, paddingHorizontal: 10, alignItems: "center" },
-  serveDrawFooter: { flexDirection: "row", alignItems: "center", gap: 8 },
-  serveDrawFooterButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 10, borderWidth: 1, borderColor: "transparent", minHeight: 44, paddingHorizontal: 12 },
+  serveDrawHeader: { minHeight: 60, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  serveDrawHeaderTitle: { flexDirection: "row", alignItems: "center", gap: 12, flexShrink: 1 },
+  serveDrawHeaderIcon: { width: 40, height: 40, borderRadius: 10, borderWidth: 1, borderColor: "#0d4772", backgroundColor: "#082846", alignItems: "center", justifyContent: "center" },
+  serveDrawHeaderText: { fontSize: 21, fontWeight: "900", color: "#f0f5ff" },
+  serveDrawMatchCode: { minHeight: 35, paddingHorizontal: 12, borderWidth: 1, borderColor: "#0d4772", borderRadius: 8, backgroundColor: "#08213d", alignItems: "center", justifyContent: "center" },
+  serveDrawClose: { width: 39, height: 39, borderRadius: 20, borderWidth: 1, borderColor: "#31455f", backgroundColor: "#12263f", alignItems: "center", justifyContent: "center" },
+  serveDrawWrap: { flex: 1, paddingHorizontal: 12, paddingBottom: 8, gap: 4 },
+  serveDrawBody: { flex: 1, flexDirection: "row", gap: 7, minHeight: 0, borderWidth: 1, borderColor: "#144670", borderRadius: 17, padding: 7, backgroundColor: "#041a33" },
+  serveDrawModes: { width: "32%", gap: 8, borderWidth: 2, borderColor: "#10416a", borderRadius: 13, padding: 8, backgroundColor: "#061e39" },
+  serveDrawMode: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1.5, borderColor: "#314960", borderRadius: 13, paddingHorizontal: 10, minHeight: 0, backgroundColor: "#0d223d" },
+  serveDrawModeSelected: { borderWidth: 2, borderColor: "#0dc5f4", backgroundColor: "#06304e" },
+  serveDrawModeIcon: { width: 45, alignItems: "center", justifyContent: "center" },
+  serveDrawStage: { flex: 1, borderWidth: 2, borderColor: "#10416a", borderRadius: 13, padding: 11, justifyContent: "space-between", minWidth: 0 },
+  serveDrawTeams: { flex: 1, width: "100%", flexDirection: "row", alignItems: "center", gap: 8, minHeight: 0 },
+  serveDrawTeam: { flex: 1, alignItems: "center", gap: 3, minWidth: 0 },
+  serveDrawTeamCaption: { color: "#9db0c8", fontSize: 12 },
+  serveDrawTeamName: { fontWeight: "900", fontSize: 14, textAlign: "center" },
+  serveDrawChoice: { width: "100%", maxWidth: 164, height: 55, marginTop: 10, borderWidth: 1, borderRadius: 13, alignItems: "center", justifyContent: "center", gap: 5 },
+  serveDrawChoiceText: { color: "#f0f5ff", fontSize: 19, fontWeight: "900" },
+  serveDrawChoiceLine: { width: "67%", height: 4, borderRadius: 3 },
+  serveDrawToken: { width: 122, height: 122, alignItems: "center", justifyContent: "center" },
+  serveDrawResult: { width: "100%", minHeight: 72, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#061a33" },
+  serveDrawFooter: { minHeight: 61, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, borderRadius: 15, backgroundColor: "#061e39" },
+  serveDrawFooterNote: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
+  serveDrawFooterButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 11, borderWidth: 1, minHeight: 49, paddingHorizontal: 16 },
+  serveDrawRetry: { borderColor: "#17618d", backgroundColor: "#09213c" },
+  serveDrawApply: { borderColor: "#0dc5f4", backgroundColor: "#0dc5f4" },
   fullModalText: { fontSize: 20, fontWeight: "800", color: "#0f172a" },
 
   btnPrimary: {
