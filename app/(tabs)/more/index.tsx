@@ -198,6 +198,18 @@ const MORE_ITEMS = [
   },
 ];
 
+// Gom lối tắt theo nhóm cho gọn (danh sách kiểu iOS Settings). Mỗi nhóm là danh
+// sách `key` của MORE_ITEMS theo thứ tự hiển thị; key nào không có (vd mục admin
+// khi không phải admin) sẽ tự bỏ qua.
+const SECTIONS: { title: string; keys: string[] }[] = [
+  { title: "Cá nhân", keys: ["profile", "my_tournament", "my-events", "chat", "messages", "friends"] },
+  { title: "Đặt sân", keys: ["courts", "my-bookings", "my-packages"] },
+  { title: "Khám phá", keys: ["marketplace", "play", "coaches"] },
+  { title: "Xem trực tiếp", keys: ["live", "youtube-library", "clip-cam"] },
+  { title: "Trọng tài", keys: ["referee-clusters", "referee-scan"] },
+  { title: "Chủ sân & Quản trị", keys: ["owner", "live-control", "fb-to-youtube", "admin-cam-clip", "my-live-grants"] },
+];
+
 function MoreGlassSurface({
   children,
   effect = "regular",
@@ -235,7 +247,6 @@ export default function MoreIndexScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const r = useResponsive();
-  const itemW: any = r.isLarge ? "32.2%" : r.isWide ? "48.6%" : "100%";
   const userInfo = useSelector((state: any) => state.auth?.userInfo || null);
   const isAdmin = !!(userInfo?.isAdmin || userInfo?.role === "admin" || userInfo?.isSuperAdmin);
   const isCommentator = !!userInfo?.isCommentator;
@@ -321,6 +332,95 @@ export default function MoreIndexScreen() {
     skip: !isAuthed,
   });
 
+  // ── Dựng nhóm theo SECTIONS; mục không thuộc nhóm nào dồn vào "Khác" ──────────
+  const byKey: Record<string, any> = {};
+  for (const it of moreItems) byKey[it.key] = it;
+  const usedKeys = new Set<string>(["notif-settings"]);
+  for (const s of SECTIONS) for (const k of s.keys) usedKeys.add(k);
+  const leftover = moreItems.filter((it) => !usedKeys.has(it.key));
+  // Mục ngôn ngữ (đặc biệt: bên phải là nút gạt VI/EN thay cho chevron).
+  const langItem = { key: "language", title: "Ngôn ngữ / Language", icon: "language" as const, accent: "#2563EB" };
+
+  // Một hàng trong nhóm. Dùng hàm (không phải component) để tránh remount thừa.
+  const renderRow = (item: any, isLast: boolean) => {
+    const isLang = item.key === "language";
+    const badge =
+      item.key === "friends"
+        ? friendCounts?.incoming ?? 0
+        : item.key === "notifications"
+          ? notifCount?.count ?? 0
+          : 0;
+    return (
+      <React.Fragment key={item.key}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={
+            isLang
+              ? () => setLang(lang === "vi" ? "en" : "vi")
+              : () =>
+                  router.push(
+                    (!isAuthed && item.key === "profile"
+                      ? buildLoginHref("/more/profile")
+                      : item.route) as any,
+                  )
+          }
+          style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}
+        >
+          <View style={styles.row}>
+            <View style={[styles.rowIcon, { backgroundColor: `${item.accent}1F` }]}>
+              <Ionicons name={item.icon} size={18} color={item.accent} />
+            </View>
+            <Text style={[styles.rowTitle, { color: theme.colors.text }]} numberOfLines={1}>
+              {item.title}
+            </Text>
+            {badge > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{badge > 99 ? "99+" : badge}</Text>
+              </View>
+            )}
+            {isLang ? (
+              <View style={[styles.langPill, { borderColor }]}>
+                <Text
+                  style={[
+                    styles.langSeg,
+                    { color: lang === "vi" ? "#fff" : theme.colors.text, backgroundColor: lang === "vi" ? "#2563EB" : "transparent" },
+                  ]}
+                >
+                  VI
+                </Text>
+                <Text
+                  style={[
+                    styles.langSeg,
+                    { color: lang === "en" ? "#fff" : theme.colors.text, backgroundColor: lang === "en" ? "#2563EB" : "transparent" },
+                  ]}
+                >
+                  EN
+                </Text>
+              </View>
+            ) : (
+              <Ionicons name="chevron-forward" size={18} color={isDark ? "#71717A" : "#C4C4CC"} />
+            )}
+          </View>
+        </Pressable>
+        {!isLast && <View style={[styles.divider, { backgroundColor: borderColor }]} />}
+      </React.Fragment>
+    );
+  };
+
+  const renderGroup = (title: string, items: any[]) =>
+    items.length ? (
+      <View style={styles.section} key={title}>
+        <Text style={[styles.sectionTitle, { color: subText }]}>{title}</Text>
+        <MoreGlassSurface
+          effect="clear"
+          tintColor={isDark ? "rgba(17,19,24,0.58)" : "rgba(255,255,255,0.66)"}
+          style={[styles.groupCard, { backgroundColor: cardBg, borderColor }]}
+        >
+          {items.map((it, idx) => renderRow(it, idx === items.length - 1))}
+        </MoreGlassSurface>
+      </View>
+    ) : null;
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: pageBg }}
@@ -331,297 +431,40 @@ export default function MoreIndexScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          {
-            paddingTop: 18,
-            paddingBottom: insets.bottom + 28,
-          },
+          { paddingTop: 14, paddingBottom: insets.bottom + 28 },
+          r.isWide && { maxWidth: r.contentMaxWidth, alignSelf: "center", width: "100%" },
         ]}
       >
+        {/* Hero gọn */}
         <MoreGlassSurface
           effect="clear"
-          tintColor={
-            isDark ? "rgba(17,19,24,0.58)" : "rgba(255,255,255,0.68)"
-          }
+          tintColor={isDark ? "rgba(17,19,24,0.58)" : "rgba(255,255,255,0.68)"}
           style={[
             styles.heroCard,
             IOS_26_LIQUID_GLASS_ENABLED && [
               styles.heroCardGlass,
-              {
-                shadowColor: isDark ? "#8B5CF6" : "#CBD5E1",
-                shadowOpacity: isDark ? 0.2 : 0.16,
-              },
+              { shadowColor: isDark ? "#8B5CF6" : "#CBD5E1", shadowOpacity: isDark ? 0.2 : 0.16 },
             ],
-            {
-              backgroundColor: cardBg,
-              borderColor,
-            },
+            { backgroundColor: cardBg, borderColor },
           ]}
         >
-          <MoreGlassSurface
-            effect="clear"
-            tintColor={
-              isDark ? "rgba(139,92,246,0.26)" : "rgba(139,92,246,0.18)"
-            }
-            style={[
-              styles.heroBadge,
-              {
-                backgroundColor: isDark
-                  ? "rgba(139,92,246,0.18)"
-                  : "rgba(139,92,246,0.10)",
-              },
-              IOS_26_LIQUID_GLASS_ENABLED && styles.heroBadgeGlass,
-            ]}
-          >
-            <Ionicons
-              name="apps-outline"
-              size={16}
-              color={theme.colors.primary}
-            />
-            <Text
-              style={[
-                styles.heroBadgeText,
-                {
-                  color: theme.colors.primary,
-                },
-              ]}
-            >
-              Tiện ích bổ sung
-            </Text>
-          </MoreGlassSurface>
-
-          <Text
-            style={[
-              styles.heroTitle,
-              {
-                color: theme.colors.text,
-              },
-            ]}
-          >
-            Khám phá thêm
-          </Text>
-
-          <Text
-            style={[
-              styles.heroDescription,
-              {
-                color: subText,
-              },
-            ]}
-          >
-            Truy cập nhanh hồ sơ, trợ lý và các tiện ích cá nhân của PickleTour
-            trong một nơi gọn gàng hơn.
+          <View style={styles.heroBadge}>
+            <Ionicons name="apps-outline" size={15} color={theme.colors.primary} />
+            <Text style={[styles.heroBadgeText, { color: theme.colors.primary }]}>Tiện ích bổ sung</Text>
+          </View>
+          <Text style={[styles.heroTitle, { color: theme.colors.text }]}>Khám phá thêm</Text>
+          <Text style={[styles.heroDescription, { color: subText }]}>
+            Tất cả tiện ích cá nhân của PickleTour, gom gọn theo nhóm.
           </Text>
         </MoreGlassSurface>
 
-        <View style={styles.section}>
-          <Text
-            style={[
-              styles.sectionTitle,
-              {
-                color: isDark ? "#A1A1AA" : "#64748B",
-              },
-            ]}
-          >
-            Lối tắt nhanh
-          </Text>
-
-          {/* Đổi ngôn ngữ / Language */}
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setLang(lang === "vi" ? "en" : "vi")}
-            style={({ pressed }) => [
-              styles.itemPressable,
-              { opacity: pressed ? 0.92 : 1 },
-            ]}
-          >
-            <View
-              style={[
-                styles.itemCard,
-                { backgroundColor: cardBg, borderColor },
-              ]}
-            >
-              <View
-                style={[
-                  styles.itemIconWrap,
-                  { backgroundColor: "#2563EB18" },
-                ]}
-              >
-                <Ionicons name="language" size={22} color="#2563EB" />
-              </View>
-              <View style={styles.itemBody}>
-                <Text style={[styles.itemTitle, { color: theme.colors.text }]}>
-                  Ngôn ngữ / Language
-                </Text>
-                <Text style={{ fontSize: 13, marginTop: 2, color: theme.colors.text, opacity: 0.6 }}>
-                  {lang === "vi" ? "Tiếng Việt" : "English"}
-                </Text>
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  borderRadius: 999,
-                  overflow: "hidden",
-                  borderWidth: 1,
-                  borderColor,
-                }}
-              >
-                <Text
-                  style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    fontWeight: "800",
-                    fontSize: 13,
-                    color: lang === "vi" ? "#fff" : theme.colors.text,
-                    backgroundColor: lang === "vi" ? "#2563EB" : "transparent",
-                  }}
-                >
-                  VI
-                </Text>
-                <Text
-                  style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    fontWeight: "800",
-                    fontSize: 13,
-                    color: lang === "en" ? "#fff" : theme.colors.text,
-                    backgroundColor: lang === "en" ? "#2563EB" : "transparent",
-                  }}
-                >
-                  EN
-                </Text>
-              </View>
-            </View>
-          </Pressable>
-
-          <View style={r.isWide ? { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 18 } : undefined}>
-          {moreItems.map((item) => (
-            <Pressable
-              key={item.key}
-              accessibilityRole="button"
-              onPress={() =>
-                router.push(
-                  (!isAuthed && item.key === "profile"
-                    ? buildLoginHref("/more/profile")
-                    : item.route) as any,
-                )
-              }
-              style={({ pressed }) => [
-                styles.itemPressable,
-                r.isWide && { width: itemW },
-                {
-                  opacity: pressed ? 0.92 : 1,
-                },
-              ]}
-            >
-              <MoreGlassSurface
-                interactive
-                effect="clear"
-                tintColor={
-                  isDark ? "rgba(17,19,24,0.58)" : "rgba(255,255,255,0.66)"
-                }
-                style={[
-                  styles.itemCard,
-                  IOS_26_LIQUID_GLASS_ENABLED && [
-                    styles.itemCardGlass,
-                    {
-                      shadowOpacity: isDark ? 0.24 : 0.08,
-                    },
-                  ],
-                  {
-                    backgroundColor: cardBg,
-                    borderColor,
-                  },
-                ]}
-              >
-                <MoreGlassSurface
-                  effect="clear"
-                  tintColor={`${item.accent}24`}
-                  style={[
-                    styles.itemIconWrap,
-                    IOS_26_LIQUID_GLASS_ENABLED && styles.itemIconGlass,
-                    {
-                      backgroundColor: `${item.accent}18`,
-                    },
-                  ]}
-                >
-                  <Ionicons name={item.icon} size={22} color={item.accent} />
-                </MoreGlassSurface>
-
-                <View style={styles.itemBody}>
-                  <View
-                    style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-                  >
-                    <Text
-                      style={[
-                        styles.itemTitle,
-                        {
-                          color: theme.colors.text,
-                        },
-                      ]}
-                    >
-                      {item.title}
-                    </Text>
-                    {item.key === "friends" && (friendCounts?.incoming ?? 0) > 0 && (
-                      <View
-                        style={{
-                          minWidth: 20,
-                          height: 20,
-                          borderRadius: 10,
-                          paddingHorizontal: 6,
-                          backgroundColor: "#EF4444",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>
-                          {friendCounts.incoming > 99 ? "99+" : friendCounts.incoming}
-                        </Text>
-                      </View>
-                    )}
-                    {item.key === "notifications" && (notifCount?.count ?? 0) > 0 && (
-                      <View
-                        style={{
-                          minWidth: 20,
-                          height: 20,
-                          borderRadius: 10,
-                          paddingHorizontal: 6,
-                          backgroundColor: "#EF4444",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>
-                          {notifCount.count > 99 ? "99+" : notifCount.count}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text
-                    style={[
-                      styles.itemDescription,
-                      {
-                        color: subText,
-                      },
-                    ]}
-                  >
-                    {item.description}
-                  </Text>
-                </View>
-
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={isDark ? "#71717A" : "#A1A1AA"}
-                />
-              </MoreGlassSurface>
-            </Pressable>
-          ))}
-          </View>
-        </View>
+        {SECTIONS.map((s) => renderGroup(s.title, s.keys.map((k) => byKey[k]).filter(Boolean)))}
+        {renderGroup("Khác", leftover)}
+        {renderGroup("Cài đặt", [langItem, byKey["notif-settings"]].filter(Boolean))}
 
         <Text
           style={{
-            marginTop: 18,
+            marginTop: 10,
             textAlign: "center",
             fontSize: 12,
             color: isDark ? "#71717A" : "#A1A1AA",
@@ -647,14 +490,14 @@ export default function MoreIndexScreen() {
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: 18,
-    gap: 18,
+    paddingHorizontal: 16,
+    gap: 16,
   },
   heroCard: {
-    borderRadius: 24,
+    borderRadius: 22,
     borderWidth: 1,
-    padding: 20,
-    gap: 12,
+    padding: 16,
+    gap: 8,
   },
   heroCardGlass: {
     borderColor: "rgba(255,255,255,0.18)",
@@ -669,79 +512,82 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  heroBadgeGlass: {
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-    overflow: "hidden",
   },
   heroBadgeText: {
     fontSize: 12,
     fontWeight: "700",
   },
   heroTitle: {
-    fontSize: 30,
+    fontSize: 22,
     fontWeight: "800",
-    letterSpacing: 0,
   },
   heroDescription: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 13.5,
+    lineHeight: 20,
   },
   section: {
-    gap: 12,
+    gap: 8,
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: "700",
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
     textTransform: "uppercase",
+    marginLeft: 4,
   },
-  itemPressable: {
-    borderRadius: 20,
+  groupCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    overflow: "hidden",
   },
-  itemCard: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 12,
+    minHeight: 54,
   },
-  itemCardGlass: {
-    borderColor: "rgba(255,255,255,0.16)",
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.24,
-    shadowRadius: 18,
-    overflow: "hidden",
-  },
-  itemIconWrap: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
+  rowIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
   },
-  itemIconGlass: {
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
-    overflow: "hidden",
-  },
-  itemBody: {
+  rowTitle: {
     flex: 1,
-    marginRight: 12,
+    fontSize: 15,
+    fontWeight: "600",
   },
-  itemTitle: {
-    fontSize: 16,
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 60,
+  },
+  badge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    backgroundColor: "#EF4444",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 11,
     fontWeight: "700",
   },
-  itemDescription: {
-    marginTop: 4,
-    fontSize: 13,
-    lineHeight: 19,
+  langPill: {
+    flexDirection: "row",
+    borderRadius: 999,
+    overflow: "hidden",
+    borderWidth: 1,
+  },
+  langSeg: {
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    fontWeight: "800",
+    fontSize: 12.5,
   },
 });
