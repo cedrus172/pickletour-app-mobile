@@ -32,7 +32,15 @@ type Access = {
   hasAccess: boolean;
   source: "admin" | "owner" | "manager" | "manual" | "booking" | null;
   expiresAt: string | null;
+  cameras?: number[] | null; // null/thiếu = tất cả camera; mảng = chỉ các channel id này
 };
+
+/** Lọc camera theo quyền: cams null/rỗng = tất cả; có id = chỉ các camera đó. */
+function filterChannels(list: Channel[], cams?: number[] | null): Channel[] {
+  if (!cams || cams.length === 0) return list;
+  const set = new Set(cams);
+  return list.filter((ch) => set.has(ch.id));
+}
 
 function accessLabel(a: Access): string {
   if (!a.hasAccess) return "Chưa có quyền";
@@ -47,17 +55,17 @@ function accessLabel(a: Access): string {
 }
 
 /** Khung camera của 1 venue (dùng ở pane phải khi màn lớn — two-pane master-detail). */
-function CamerasPane({ base, venueName, C }: { base: string; venueName: string; C: ThemeTokens }) {
+function CamerasPane({ base, venueName, cameras, C }: { base: string; venueName: string; cameras?: number[] | null; C: ThemeTokens }) {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
   const load = useCallback(async () => {
     setErr(""); setLoading(true);
-    try { setChannels(await fetchChannels(base)); }
+    try { setChannels(filterChannels(await fetchChannels(base), cameras)); }
     catch (e: any) { setChannels([]); setErr(e?.message || "Không tải được camera"); }
     finally { setLoading(false); }
-  }, [base]);
+  }, [base, cameras]);
   useEffect(() => { load(); }, [load]);
 
   const open = (ch: Channel) =>
@@ -127,7 +135,7 @@ export default function ClipCamScreen() {
     if (twoPane) {
       setSelectedId(v.venueId); // chọn → hiện camera ở pane phải (không chuyển màn)
     } else {
-      router.push({ pathname: "/clip-cam/channels", params: { base: v.piBaseUrl, venueName: v.venueName } } as any);
+      router.push({ pathname: "/clip-cam/channels", params: { base: v.piBaseUrl, venueName: v.venueName, cams: (v.cameras || []).join(",") } } as any);
     }
   }, [twoPane]);
 
@@ -207,7 +215,7 @@ export default function ClipCamScreen() {
           <View style={{ width: 400, borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: C.border }}>{venueScroll}</View>
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 18 }}>
             {selectedVenue?.hasAccess ? (
-              <CamerasPane base={selectedVenue.piBaseUrl} venueName={selectedVenue.venueName} C={C} />
+              <CamerasPane base={selectedVenue.piBaseUrl} venueName={selectedVenue.venueName} cameras={selectedVenue.cameras} C={C} />
             ) : (
               <View style={styles.center}>
                 <Ionicons name="videocam-outline" size={44} color={C.muted} />

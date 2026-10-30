@@ -19,6 +19,11 @@ export const camClipApiSlice = apiSlice.injectEndpoints({
       query: (venueId) => `/api/cam-clip/venues/${encodeURIComponent(venueId)}/grants`,
       providesTags: (r, e, venueId) => [{ type: "CamClip", id: venueId }],
     }),
+    // Danh sách camera của sân (proxy từ Pi) để chọn khi cấp quyền từng camera.
+    camClipCameras: builder.query({
+      query: (venueId) => `/api/cam-clip/venues/${encodeURIComponent(venueId)}/cameras`,
+      providesTags: (r, e, venueId) => [{ type: "CamClip", id: venueId }],
+    }),
     addCamClipGrant: builder.mutation({
       query: ({ venueId, ...body }) => ({
         url: `/api/cam-clip/venues/${encodeURIComponent(venueId)}/grants`,
@@ -30,6 +35,14 @@ export const camClipApiSlice = apiSlice.injectEndpoints({
     setCamClipConfig: builder.mutation({
       query: ({ venueId, ...body }) => ({
         url: `/api/cam-clip/venues/${encodeURIComponent(venueId)}/config`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: (r, e, { venueId }) => [{ type: "CamClip", id: venueId }, "CamClip"],
+    }),
+    updateCamClipGrant: builder.mutation({
+      query: ({ id, venueId, ...body }) => ({
+        url: `/api/cam-clip/grants/${encodeURIComponent(id)}`,
         method: "PUT",
         body,
       }),
@@ -49,7 +62,9 @@ export const {
   useMyCamClipAccessQuery,
   useAdminCamClipVenuesQuery,
   useCamClipGrantsQuery,
+  useCamClipCamerasQuery,
   useAddCamClipGrantMutation,
+  useUpdateCamClipGrantMutation,
   useSetCamClipConfigMutation,
   useRemoveCamClipGrantMutation,
 } = camClipApiSlice;

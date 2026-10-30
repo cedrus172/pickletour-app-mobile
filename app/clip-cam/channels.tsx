@@ -23,8 +23,21 @@ export default function ClipCamChannelsScreen() {
   const rsp = useResponsive();
   const camCols = rsp.isLarge ? 4 : rsp.isWide ? 3 : 2;
   const camCardW: any = `${100 / camCols - 1.5}%`;
-  const { base, venueName } = useLocalSearchParams<{ base: string; venueName: string }>();
+  const { base, venueName, cams } = useLocalSearchParams<{ base: string; venueName: string; cams?: string }>();
   const baseUrl = String(base || "");
+  // cams = csv channel id được cấp; rỗng = tất cả camera.
+  // LƯU Ý: Number("") === 0 (không phải NaN) → phải loại chuỗi rỗng TRƯỚC khi ép số,
+  // nếu không cams rỗng sẽ thành [0] và lọc sạch mọi camera.
+  const allowed = useMemo(
+    () =>
+      String(cams || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s !== "")
+        .map(Number)
+        .filter((n) => Number.isInteger(n)),
+    [cams],
+  );
 
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,12 +48,14 @@ export default function ClipCamChannelsScreen() {
   const load = useCallback(async () => {
     setErr("");
     try {
-      setChannels(await fetchChannels(baseUrl));
+      const list = await fetchChannels(baseUrl);
+      const arr = Array.isArray(list) ? list : [];
+      setChannels(allowed.length ? arr.filter((ch) => allowed.includes(ch.id)) : arr);
     } catch (e: any) {
       setChannels([]);
       setErr(e?.message || "Không tải được danh sách sân");
     }
-  }, [baseUrl]);
+  }, [baseUrl, allowed]);
 
   useEffect(() => {
     let alive = true;

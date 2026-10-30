@@ -21,8 +21,10 @@ import I18nTextInput from "@/components/ui/i18nTextInput";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
 import {
   useCamClipGrantsQuery,
+  useCamClipCamerasQuery,
   useSetCamClipConfigMutation,
   useAddCamClipGrantMutation,
+  useUpdateCamClipGrantMutation,
   useRemoveCamClipGrantMutation,
 } from "@/slices/camClipApiSlice";
 
@@ -50,8 +52,10 @@ export default function ClipCamGrantsScreen() {
   const venueId = String(id || "");
 
   const { data, isLoading, refetch } = useCamClipGrantsQuery(venueId, { skip: !venueId });
+  const { data: camData } = useCamClipCamerasQuery(venueId, { skip: !venueId });
   const [setConfig, { isLoading: savingCfg }] = useSetCamClipConfigMutation();
   const [addGrant, { isLoading: adding }] = useAddCamClipGrantMutation();
+  const [updateGrant, { isLoading: updating }] = useUpdateCamClipGrantMutation();
   const [removeGrant] = useRemoveCamClipGrantMutation();
 
   // Cấu hình
@@ -64,10 +68,18 @@ export default function ClipCamGrantsScreen() {
     }
   }, [data?.config]);
 
-  // Cấp quyền mới
+  // Cấp quyền mới / sửa quyền đã cấp (editingId != null → đang sửa)
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
   const [phone, setPhone] = useState("");
-  const [days, setDays] = useState(30);
+  const [days, setDays] = useState<number>(30); // -1 = giữ nguyên hạn (chỉ khi sửa)
   const [note, setNote] = useState("");
+  const [camMode, setCamMode] = useState<"all" | "pick">("all");
+  const [picked, setPicked] = useState<number[]>([]);
+  const cameras: { id: number; name: string }[] = camData?.cameras || [];
+  const camName = (camId: number) => cameras.find((c) => c.id === camId)?.name || `Camera ${camId}`;
+  const togglePick = (camId: number) =>
+    setPicked((prev) => (prev.includes(camId) ? prev.filter((x) => x !== camId) : [...prev, camId]));
 
   const onSaveConfig = async () => {
     try {
@@ -78,15 +90,49 @@ export default function ClipCamGrantsScreen() {
     }
   };
 
-  const onAdd = async () => {
-    const p = phone.trim();
-    if (!p) { Alert.alert("Thiếu số điện thoại", "Nhập số điện thoại người được cấp quyền."); return; }
+  const resetForm = () => {
+    setEditingId(null); setEditingName(""); setPhone(""); setDays(30);
+    setNote(""); setCamMode("all"); setPicked([]);
+  };
+
+  // Nạp quyền đã cấp vào form để sửa (phạm vi camera, ghi chú, hạn).
+  const startEdit = (g: any) => {
+    setEditingId(g._id);
+    setEditingName(g.user?.name || g.user?.nickname || g.user?.phone || "Người dùng");
+    setPhone(g.user?.phone || "");
+    setNote(g.note || "");
+    const cams: number[] = Array.isArray(g.cameras) ? g.cameras : [];
+    setCamMode(cams.length ? "pick" : "all");
+    setPicked(cams);
+    setDays(-1); // mặc định giữ nguyên hạn khi sửa
+  };
+
+  const onSubmit = async () => {
+    if (camMode === "pick" && picked.length === 0) {
+      Alert.alert("Chưa chọn camera", "Chọn ít nhất một camera hoặc đổi sang Tất cả camera."); return;
+    }
+    const cameras = camMode === "pick" ? picked : [];
     try {
-      await addGrant({ venueId, phone: p, durationDays: days, note: note.trim() }).unwrap();
-      setPhone(""); setNote("");
-      Alert.alert("Đã cấp quyền", "Người dùng đã được cấp quyền cắt cam.");
+      if (editingId) {
+        await updateGrant({
+          id: editingId,
+          venueId,
+          cameras,
+          note: note.trim(),
+          // days === -1 → bỏ qua, giữ nguyên hạn; ngược lại đặt hạn mới.
+          ...(days >= 0 ? { durationDays: days } : {}),
+        }).unwrap();
+        resetForm();
+        Alert.alert("Đã lưu", "Quyền cắt cam đã được cập nhật.");
+      } else {
+        const p = phone.trim();
+        if (!p) { Alert.alert("Thiếu số điện thoại", "Nhập số điện thoại người được cấp quyền."); return; }
+        await addGrant({ venueId, phone: p, durationDays: days, note: note.trim(), cameras }).unwrap();
+        resetForm();
+        Alert.alert("Đã cấp quyền", "Người dùng đã được cấp quyền cắt cam.");
+      }
     } catch (e: any) {
-      Alert.alert("Không cấp được", e?.data?.message || e?.message || "Vui lòng thử lại.");
+      Alert.alert(editingId ? "Không lưu được" : "Không cấp được", e?.data?.message || e?.message || "Vui lòng thử lại.");
     }
   };
 
@@ -138,21 +184,39 @@ export default function ClipCamGrantsScreen() {
                 </Pressable>
               </View>
 
-              {/* Cấp quyền */}
-              <View style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}>
-                <Text style={[styles.cardTitle, { color: C.text }]}>Cấp quyền cho người dùng</Text>
-                <Text style={[styles.label, { color: C.sub }]}>Số điện thoại</Text>
-                <PtInput
-                  value={phone}
-                  onChangeText={setPhone}
-                  placeholder="VD: 0912345678"
-                  placeholderTextColor={C.muted}
-                  keyboardType="phone-pad"
-                  style={[styles.input, { backgroundColor: C.field, color: C.text, borderColor: C.border }]}
-                />
+              {/* Cấp quyền / Sửa quyền */}
+              <View style={[styles.card, { backgroundColor: C.card, borderColor: editingId ? C.primary : C.border }]}>
+                <View style={styles.rowBetween}>
+                  <Text style={[styles.cardTitle, { color: C.text, marginBottom: 0 }]}>
+                    {editingId ? `Sửa quyền — ${editingName}` : "Cấp quyền cho người dùng"}
+                  </Text>
+                  {editingId && (
+                    <Pressable onPress={resetForm} style={{ padding: 4 }}>
+                      <Text style={{ color: C.sub, fontWeight: "700" }}>Huỷ</Text>
+                    </Pressable>
+                  )}
+                </View>
+                {editingId ? (
+                  <View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Ionicons name="person-circle-outline" size={20} color={C.sub} />
+                    <Text style={{ color: C.sub, fontSize: 13 }}>{phone || "—"}</Text>
+                  </View>
+                ) : (
+                  <>
+                    <Text style={[styles.label, { color: C.sub }]}>Số điện thoại</Text>
+                    <PtInput
+                      value={phone}
+                      onChangeText={setPhone}
+                      placeholder="VD: 0912345678"
+                      placeholderTextColor={C.muted}
+                      keyboardType="phone-pad"
+                      style={[styles.input, { backgroundColor: C.field, color: C.text, borderColor: C.border }]}
+                    />
+                  </>
+                )}
                 <Text style={[styles.label, { color: C.sub }]}>Thời hạn</Text>
                 <View style={styles.chipsRow}>
-                  {DURATIONS.map((d) => {
+                  {(editingId ? [{ label: "Giữ nguyên", days: -1 }, ...DURATIONS] : DURATIONS).map((d) => {
                     const on = days === d.days;
                     return (
                       <Pressable key={d.label} onPress={() => setDays(d.days)} style={[styles.chip, { backgroundColor: on ? C.primary : C.field, borderColor: on ? C.primary : C.border }]}>
@@ -161,6 +225,38 @@ export default function ClipCamGrantsScreen() {
                     );
                   })}
                 </View>
+                <Text style={[styles.label, { color: C.sub }]}>Phạm vi camera</Text>
+                <View style={styles.chipsRow}>
+                  {(["all", "pick"] as const).map((m) => {
+                    const on = camMode === m;
+                    return (
+                      <Pressable key={m} onPress={() => setCamMode(m)} style={[styles.chip, { backgroundColor: on ? C.primary : C.field, borderColor: on ? C.primary : C.border }]}>
+                        <Text style={{ color: on ? C.onPrimary : C.text, fontWeight: "700" }}>
+                          {m === "all" ? "Tất cả camera" : "Chọn camera"}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {camMode === "pick" && (
+                  cameras.length === 0 ? (
+                    <Text style={{ color: C.sub, fontSize: 12, marginTop: 8 }}>
+                      {camData?.error || "Chưa tải được camera của sân (kiểm tra Pi base URL và lưu cấu hình)."}
+                    </Text>
+                  ) : (
+                    <View style={[styles.chipsRow, { marginTop: 8 }]}>
+                      {cameras.map((c) => {
+                        const on = picked.includes(c.id);
+                        return (
+                          <Pressable key={c.id} onPress={() => togglePick(c.id)} style={[styles.chip, { backgroundColor: on ? C.greenText : C.field, borderColor: on ? C.greenText : C.border }]}>
+                            <Text style={{ color: on ? "#fff" : C.text, fontWeight: "700" }}>{c.name}</Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  )
+                )}
+
                 <Text style={[styles.label, { color: C.sub }]}>Ghi chú (tuỳ chọn)</Text>
                 <I18nTextInput
                   value={note}
@@ -169,9 +265,9 @@ export default function ClipCamGrantsScreen() {
                   placeholderTextColor={C.muted}
                   style={[styles.input, { backgroundColor: C.field, color: C.text, borderColor: C.border }]}
                 />
-                <Pressable onPress={onAdd} disabled={adding} style={[styles.primaryBtn, { backgroundColor: C.primary, opacity: adding ? 0.6 : 1 }]}>
-                  {adding ? <ActivityIndicator color={C.onPrimary} size="small" /> : <Ionicons name="person-add-outline" size={16} color={C.onPrimary} />}
-                  <Text style={{ color: C.onPrimary, fontWeight: "700", marginLeft: 6 }}>Cấp quyền</Text>
+                <Pressable onPress={onSubmit} disabled={adding || updating} style={[styles.primaryBtn, { backgroundColor: C.primary, opacity: adding || updating ? 0.6 : 1 }]}>
+                  {adding || updating ? <ActivityIndicator color={C.onPrimary} size="small" /> : <Ionicons name={editingId ? "save-outline" : "person-add-outline"} size={16} color={C.onPrimary} />}
+                  <Text style={{ color: C.onPrimary, fontWeight: "700", marginLeft: 6 }}>{editingId ? "Lưu thay đổi" : "Cấp quyền"}</Text>
                 </Pressable>
               </View>
 
@@ -198,10 +294,16 @@ export default function ClipCamGrantsScreen() {
                       <Text style={{ color: C.sub, fontSize: 12 }}>
                         {g.user?.phone || ""}{g.note ? ` · ${g.note}` : ""}
                       </Text>
+                      <Text numberOfLines={1} style={{ color: g.cameras?.length ? C.primary : C.sub, fontSize: 11.5, marginTop: 1 }}>
+                        {g.cameras?.length ? `📷 ${g.cameras.map(camName).join(", ")}` : "📷 Tất cả camera"}
+                      </Text>
                     </View>
-                    <Text style={{ color: g.expired ? C.redText : C.greenText, fontSize: 12, fontWeight: "700", marginRight: 10 }}>
+                    <Text style={{ color: g.expired ? C.redText : C.greenText, fontSize: 12, fontWeight: "700", marginRight: 6 }}>
                       {expiryLabel(g.expiresAt, g.expired)}
                     </Text>
+                    <Pressable onPress={() => startEdit(g)} style={{ padding: 6 }}>
+                      <Ionicons name="create-outline" size={18} color={C.primary} />
+                    </Pressable>
                     <Pressable onPress={() => onRemove(g)} style={{ padding: 6 }}>
                       <Ionicons name="trash-outline" size={18} color={C.redText} />
                     </Pressable>
