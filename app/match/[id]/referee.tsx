@@ -25,7 +25,7 @@ export default function RefereeScreen() {
     Boolean((globalThis as any)[HOT_UPDATE_RELOAD_KEY]),
   );
   const orientationTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const preferredOrientation = useRef<"portrait" | "landscape">("portrait");
+  const preferredOrientation = useRef<"portrait" | "landscape">("landscape");
   const orientationQueue = useRef<Promise<unknown>>(Promise.resolve());
   const applyOrientation = useCallback(() => {
     const lock = preferredOrientation.current === "portrait"

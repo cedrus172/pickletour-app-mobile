@@ -31,6 +31,7 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
+  SafeAreaProvider,
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
@@ -754,6 +755,7 @@ const TeamSimple = memo(
             padding: layout.padding,
             gap: layout.gap,
             ...(layout.portrait ? { flex: 1, minHeight: layout.teamMinHeight } : {}),
+            ...(!layout.stacked ? { width: layout.columnWidth, flexBasis: layout.columnWidth, flexGrow: 0, flexShrink: 0 } : {}),
             backgroundColor: panelBg,
             borderColor: accent,
             borderWidth: isServing ? 4 : 3,
@@ -4834,6 +4836,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
                     useWideAiryScoreboard &&
                     s.centerColAiryWide,
                   {
+                    ...(!boardLayout.stacked ? { width: boardLayout.columnWidth, flexBasis: boardLayout.columnWidth, flexGrow: 0, flexShrink: 0 } : {}),
                     paddingVertical: boardLayout.padding,
                     paddingHorizontal: boardLayout.padding,
                     justifyContent: "space-evenly",
@@ -5429,17 +5432,11 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
           "landscape",
         ]}
       >
+        <SafeAreaProvider style={{ flex: 1, backgroundColor: "#041329" }}>
         <SafeAreaView
-          edges={["top"]}
-          style={[
-            s.fullModalWrap,
-            {
-              backgroundColor: "#041329",
-              paddingLeft: insets.left,
-              paddingRight: insets.right,
-              paddingBottom: insets.bottom,
-            },
-          ]}
+          testID="serve-draw-safe-area"
+          edges={["top", "right", "bottom", "left"]}
+          style={[s.fullModalWrap, { backgroundColor: "#041329" }]}
         >
           <View style={[s.serveDrawHeader, isTightLandscape && { minHeight: 50, paddingHorizontal: 10 }]}>
             <View style={[s.serveDrawHeaderTitle, { flex: 1, paddingRight: 8 }, width < 540 && { flexWrap: "wrap", paddingVertical: 6, gap: 6 }]}>
@@ -5471,6 +5468,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
             />
           </View>
         </SafeAreaView>
+        </SafeAreaProvider>
       </Modal>
 
       {/* ===== Court assign fullscreen modal ===== */}
@@ -5781,6 +5779,7 @@ const s = StyleSheet.create({
 
   centerCol: {
     flex: 1,
+    minWidth: 0,
     borderWidth: 2,
     borderColor: "#e5e7eb",
     borderRadius: 12,
