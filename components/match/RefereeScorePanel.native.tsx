@@ -59,6 +59,7 @@ import { BASE_URL } from "@/slices/apiSlice";
 import { mergeRefereeMatchSnapshot } from "@/utils/refereeMatchRoute";
 import { getRefereeBoardLayout, type RefereeBoardLayout } from "@/utils/refereeLayout";
 import RefereePortraitHeader from "./RefereePortraitHeader.native";
+import RefereePortraitScore from "./RefereePortraitScore.native";
 import { formatMatchElapsed, matchTimestamp } from "@/utils/refereeElapsedTime";
 import { CoinFace, DrawCard, DrawColorPair, TwoTeamWheel, DRAW_BLUE, DRAW_RED, DRAW_GOLD } from "./ServeDrawVisuals.native";
 
@@ -4869,9 +4870,11 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
                       { flex: 1, minHeight: 0, gap: boardLayout.gap, paddingVertical: 0 },
                     ]}
                   >
+                    {!isLandscape ? <RefereePortraitScore left={leftGameScore} right={rightGameScore} height={Math.ceil(boardLayout.scoreLine * Math.min(Math.max(fontScale, 1), 1.3))} color={t.colors.text} /> : (
                     <Text testID="referee-score-digits" minimumFontScale={0.7} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.3} style={[s.refereeCenterScore, { color: t.colors.text, fontSize: boardLayout.scoreFont, lineHeight: boardLayout.scoreLine, width: "100%", height: Math.ceil(boardLayout.scoreLine * Math.min(Math.max(fontScale, 1), 1.3)), flexShrink: 0 }]}>
                       {leftGameScore} : {rightGameScore}
                     </Text>
+                    )}
                     <Text
                       style={[
                         s.preStartLabel,
@@ -4927,7 +4930,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
                   </View>
                 ) : !isLandscape ? (
                   <>
-                    <Text testID="referee-score-digits" minimumFontScale={0.7} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit style={[s.refereeCenterScore, { color: t.colors.text, fontSize: boardLayout.scoreFont, lineHeight: boardLayout.scoreLine, width: "100%", height: Math.ceil(boardLayout.scoreLine * Math.min(Math.max(fontScale, 1), 1.3)), flexShrink: 0 }]}>{leftGameScore} : {rightGameScore}</Text>
+                    <RefereePortraitScore left={leftGameScore} right={rightGameScore} height={Math.ceil(boardLayout.scoreLine * Math.min(Math.max(fontScale, 1), 1.3))} color={t.colors.text} />
                     <Ripple accessibilityLabel="Đổi người giao bóng" onPress={toggleServerNum} disabled={incBusy || undoBusy || isOpeningServeLocked} style={[s.refereeServeChip, { minHeight: 32, minWidth: 0, borderColor: "#0b679c", backgroundColor: "#082f52b8", paddingVertical: 3 }]}>
                       <Text maxFontSizeMultiplier={1.3} style={[s.refereeServeChipText, { fontSize: boardLayout.chipFont }]}>Lượt giao {activeServerNum} · GAME {curIdx + 1}</Text>
                     </Ripple>
