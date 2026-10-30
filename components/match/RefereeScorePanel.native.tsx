@@ -9,6 +9,8 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Modal,
   Platform,
   StyleSheet,
@@ -1440,41 +1442,88 @@ const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightNa
   const [phase, setPhase] = useState<"idle" | "running" | "done">("idle");
   const [result, setResult] = useState<"left" | "right" | null>(null);
   const [previewSide, setPreviewSide] = useState<"left" | "right">("left");
+  const drawProgress = useRef(new Animated.Value(0)).current;
+  const spinAngle = useRef(new Animated.Value(0)).current;
+  const resultReveal = useRef(new Animated.Value(1)).current;
+  const drawAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const resultAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const drawingRef = useRef(false);
+  const drawGenerationRef = useRef(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const stopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clearDraw = useCallback(() => {
+    drawGenerationRef.current += 1;
     if (tickRef.current) clearInterval(tickRef.current);
-    if (stopRef.current) clearTimeout(stopRef.current);
+    drawAnimationRef.current?.stop();
+    resultAnimationRef.current?.stop();
+    drawAnimationRef.current = null;
+    resultAnimationRef.current = null;
+    drawingRef.current = false;
     tickRef.current = null;
-    stopRef.current = null;
   }, []);
   useEffect(() => () => clearDraw(), [clearDraw]);
   useEffect(() => {
     if (!visible) {
       clearDraw();
+      drawProgress.setValue(0);
+      spinAngle.setValue(0);
+      resultReveal.setValue(1);
       setPhase("idle");
       setResult(null);
     }
-  }, [visible, clearDraw]);
+  }, [visible, clearDraw, drawProgress, spinAngle, resultReveal]);
 
   const chooseMode = (nextMode: "color" | "coin" | "wheel") => {
+    if (drawingRef.current) return;
     clearDraw();
+    drawProgress.setValue(0);
+    spinAngle.setValue(0);
+    resultReveal.setValue(1);
     setMode(nextMode);
     setPhase("idle");
     setResult(null);
+    setPreviewSide("left");
   };
   const startDraw = () => {
+    if (drawingRef.current) return;
     clearDraw();
+    drawingRef.current = true;
+    const generation = drawGenerationRef.current;
+    drawProgress.setValue(0);
+    spinAngle.setValue(0);
+    resultReveal.setValue(1);
     const winner = Math.random() < 0.5 ? "left" : "right";
     setResult(null);
+    setPreviewSide("left");
     setPhase("running");
-    tickRef.current = setInterval(() => setPreviewSide((side) => side === "left" ? "right" : "left"), 110);
-    stopRef.current = setTimeout(() => {
+    const finishAngle = mode === "coin"
+      ? 1800 + (winner === "right" ? 180 : 0)
+      : 2160 + (winner === "right" ? 60 : 0);
+    const startedAt = Date.now();
+    tickRef.current = setInterval(() => {
+      const progress = Math.min(1, (Date.now() - startedAt) / 2200);
+      const angle = finishAngle * (1 - Math.pow(1 - progress, 3));
+      const sector = mode === "coin" ? 180 : 60;
+      const choice = mode === "color" ? Math.floor(progress * 14) : Math.floor((angle + sector / 2) / sector);
+      setPreviewSide(mode === "color" && progress > 0.86 ? winner : choice % 2 === 0 ? "left" : "right");
+    }, 80);
+    const animation = Animated.parallel([
+      Animated.timing(drawProgress, { toValue: 1, duration: 2200, easing: Easing.linear, useNativeDriver: true }),
+      Animated.timing(spinAngle, { toValue: finishAngle, duration: 2200, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    ]);
+    drawAnimationRef.current = animation;
+    animation.start(({ finished }) => {
+      if (!finished || generation !== drawGenerationRef.current) return;
+      drawAnimationRef.current = null;
       clearDraw();
       setPreviewSide(winner);
       setResult(winner);
       setPhase("done");
-    }, 2200);
+      resultReveal.setValue(0);
+      const reveal = Animated.timing(resultReveal, { toValue: 1, duration: 320, easing: Easing.out(Easing.quad), useNativeDriver: true });
+      resultAnimationRef.current = reveal;
+      const revealGeneration = drawGenerationRef.current;
+      reveal.start(({ finished: revealed }) => { if (revealed && revealGeneration === drawGenerationRef.current) resultAnimationRef.current = null; });
+    });
   };
   const modes = [
     { key: "color", label: "Bốc màu", hint: "Chọn 1 trong 2 màu" },
@@ -1482,6 +1531,34 @@ const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightNa
     { key: "wheel", label: "Vòng quay đội", hint: "Chọn ngẫu nhiên 1 đội" },
   ] as const;
   const shownSide = result || previewSide;
+  const highlightedSide = phase === "idle" ? null : shownSide;
+  const rotation = useMemo(() => spinAngle.interpolate({ inputRange: [0, 360], outputRange: ["0deg", "360deg"] }), [spinAngle]);
+  const tokenTransform = useMemo<Animated.WithAnimatedValue<ViewStyle["transform"]>>(() => mode === "coin" ? [
+    { perspective: 700 },
+    { translateY: drawProgress.interpolate({ inputRange: [0, 0.15, 0.48, 0.78, 1], outputRange: [0, small ? -10 : -18, small ? -14 : -24, -5, 0] }) },
+    { rotateY: rotation },
+    { rotateZ: drawProgress.interpolate({ inputRange: [0, 0.35, 0.7, 1], outputRange: ["0deg", "-12deg", "8deg", "0deg"] }) },
+  ] : mode === "wheel" ? [{ rotate: rotation }] : [
+    { scale: drawProgress.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: [1, 0.9, 1.04, 0.94, 1] }) },
+  ], [mode, small, rotation, drawProgress]);
+  const tokenSize = small ? tiny ? 70 : 90 : 122;
+  const shuffleTransforms = useMemo(() => {
+    const travel = tokenSize * 0.24;
+    const inputRange = [0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1];
+    const left: Animated.WithAnimatedValue<ViewStyle["transform"]> = [
+      { translateX: drawProgress.interpolate({ inputRange, outputRange: [0, travel, 0, travel, 0, travel, 0, 0] }) },
+      { rotate: drawProgress.interpolate({ inputRange: [0, 0.3, 0.6, 1], outputRange: ["-8deg", "8deg", "-8deg", "-8deg"] }) },
+    ];
+    const right: Animated.WithAnimatedValue<ViewStyle["transform"]> = [
+      { translateX: drawProgress.interpolate({ inputRange, outputRange: [0, -travel, 0, -travel, 0, -travel, 0, 0] }) },
+      { rotate: drawProgress.interpolate({ inputRange: [0, 0.3, 0.6, 1], outputRange: ["8deg", "-8deg", "8deg", "8deg"] }) },
+    ];
+    return { left, right };
+  }, [drawProgress, tokenSize]);
+  const resultAnimatedStyle = useMemo(() => ({
+    opacity: resultReveal.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] }),
+    transform: [{ scale: resultReveal.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1] }) }],
+  }), [resultReveal]);
   const leftChoice = mode === "coin" ? "Ngửa" : mode === "color" ? "Xanh dương" : "Bên trái";
   const rightChoice = mode === "coin" ? "Sấp" : mode === "color" ? "Xanh lá" : "Bên phải";
 
@@ -1517,29 +1594,39 @@ const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightNa
             <View style={s.serveDrawTeam}>
               <Text maxFontSizeMultiplier={1.3} style={[s.serveDrawTeamCaption, small && { fontSize: 10 }]}>Đội bên trái</Text>
               <Text maxFontSizeMultiplier={1.3} style={[s.serveDrawTeamName, { color: "#10c6f6", fontSize: small ? 11 : 14 }]} numberOfLines={2}>{leftName || "Đội bên trái"}</Text>
-              <View style={[s.serveDrawChoice, small && { height: 44, marginTop: 5 }, { borderColor: "#0878a7", backgroundColor: "#073451" }]}>
+              <View style={[s.serveDrawChoice, small && { height: 44, marginTop: 5 }, { borderColor: highlightedSide === "left" ? "#10c6f6" : "#0878a7", borderWidth: highlightedSide === "left" ? 2 : 1, backgroundColor: highlightedSide === "left" ? "#075779" : "#073451", shadowColor: "#10c6f6", shadowOpacity: highlightedSide === "left" ? 0.6 : 0, shadowRadius: 8 }]}>
                 <Text numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.3} style={[s.serveDrawChoiceText, small && { fontSize: 14 }]}>{leftChoice}</Text>
                 <View style={[s.serveDrawChoiceLine, { backgroundColor: "#10c6f6" }]} />
               </View>
             </View>
-            <View style={[s.serveDrawToken, small && { width: tiny ? 70 : 90, height: tiny ? 70 : 90 }]}>
-              <Image source={mode === "coin" ? require("@/assets/images/serve-draw-coin.png") : mode === "wheel" ? require("@/assets/images/serve-draw-wheel.png") : require("@/assets/images/serve-draw-colors.png")} style={{ width: "100%", height: "100%" }} contentFit="contain" />
+            <View testID="serve-draw-token" style={[s.serveDrawToken, small && { width: tiny ? 70 : 90, height: tiny ? 70 : 90 }]}>
+              <Animated.View testID="serve-draw-motion" style={{ width: "100%", height: "100%", transform: tokenTransform }}>
+                {mode === "color" && phase === "running" ? <>
+                  <Animated.View testID="serve-draw-card-left" style={[s.serveDrawShuffleCard, { left: "12%", zIndex: previewSide === "left" ? 2 : 1, borderColor: "#77e8ff", transform: shuffleTransforms.left }]}>
+                    <LinearGradient colors={["#14d4ff", "#007be0"]} style={StyleSheet.absoluteFill} />
+                  </Animated.View>
+                  <Animated.View testID="serve-draw-card-right" style={[s.serveDrawShuffleCard, { left: "36%", zIndex: previewSide === "right" ? 2 : 1, borderColor: "#e2ff71", transform: shuffleTransforms.right }]}>
+                    <LinearGradient colors={["#dfff43", "#8acb13"]} style={StyleSheet.absoluteFill} />
+                  </Animated.View>
+                </> : <Image source={mode === "coin" ? require("@/assets/images/serve-draw-coin.png") : mode === "wheel" ? require("@/assets/images/serve-draw-wheel.png") : require("@/assets/images/serve-draw-colors.png")} style={{ width: "100%", height: "100%" }} contentFit="contain" />}
+              </Animated.View>
+              {mode === "wheel" ? <View pointerEvents="none" style={{ position: "absolute", top: -4, alignSelf: "center", borderLeftWidth: 7, borderRightWidth: 7, borderTopWidth: 12, borderLeftColor: "transparent", borderRightColor: "transparent", borderTopColor: "#f0f5ff" }} /> : null}
             </View>
             <View style={s.serveDrawTeam}>
               <Text maxFontSizeMultiplier={1.3} style={[s.serveDrawTeamCaption, small && { fontSize: 10 }]}>Đội bên phải</Text>
               <Text maxFontSizeMultiplier={1.3} style={[s.serveDrawTeamName, { color: "#eaf3ff", fontSize: small ? 11 : 14 }]} numberOfLines={2}>{rightName || "Đội bên phải"}</Text>
-              <View style={[s.serveDrawChoice, small && { height: 44, marginTop: 5 }, { borderColor: "#405570", backgroundColor: "#182c44" }]}>
+              <View style={[s.serveDrawChoice, small && { height: 44, marginTop: 5 }, { borderColor: highlightedSide === "right" ? "#a3e635" : "#405570", borderWidth: highlightedSide === "right" ? 2 : 1, backgroundColor: highlightedSide === "right" ? "#294c16" : "#182c44", shadowColor: "#a3e635", shadowOpacity: highlightedSide === "right" ? 0.6 : 0, shadowRadius: 8 }]}>
                 <Text numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.3} style={[s.serveDrawChoiceText, small && { fontSize: 14 }]}>{rightChoice}</Text>
                 <View style={[s.serveDrawChoiceLine, { backgroundColor: "#9badc4" }]} />
               </View>
             </View>
           </View>
-          <View style={[s.serveDrawResult, small && { minHeight: 55 }, { borderColor: phase === "done" ? (result === "left" ? "#0dc5f4" : "#a3e635") : "#0b78a8" }]}>
+          <Animated.View testID="serve-draw-result" style={[s.serveDrawResult, small && { minHeight: 55 }, resultAnimatedStyle, { borderColor: phase === "done" ? (result === "left" ? "#0dc5f4" : "#a3e635") : "#0b78a8" }]}>
             <Text maxFontSizeMultiplier={1.3} style={{ color: "#91a9c4", fontSize: small ? 11 : 14 }}>Kết quả:</Text>
             <Text numberOfLines={2} maxFontSizeMultiplier={1.3} style={{ color: phase === "done" ? (result === "left" ? "#0dc5f4" : "#a3e635") : "#f0f5ff", fontWeight: "900", fontSize: small ? 15 : 21, textAlign: "center" }}>
               {phase === "done" ? `Đội bên ${result === "left" ? "trái" : "phải"} giao trước` : phase === "running" ? "Đang bốc thăm..." : "Chạm bắt đầu để bốc thăm"}
             </Text>
-          </View>
+          </Animated.View>
         </LinearGradient>
       </View>
       </ScrollView>
@@ -4904,7 +4991,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
 	              </View>
 	            ) : needsStartAction ? (
               /* Pre-match: CTA buttons inline in 1 row */
-              <View style={[s.row, s.refereePreStartActions, s.refereeActionGroup]}>
+              <View style={[s.row, s.refereePreStartActions, s.refereeActionGroup, { minWidth: Math.min(398, width - insets.left - insets.right - 24), flexWrap: "wrap" }]}>
                 {cta && (
                   <Ripple
                     onPress={cta.onPress}
@@ -4913,6 +5000,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                       s.bigActionBtn,
                       isTightLandscape && s.bigActionBtnCompact,
                       s.refereePreStartPrimary,
+                      { minWidth: 160 },
                       cta.danger
                         ? { backgroundColor: "#ef4444", borderColor: "#b91c1c" }
                         : { backgroundColor: t.success, borderColor: t.success },
@@ -4927,6 +5015,8 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                         { color: "#fff" },
                       ]}
                       numberOfLines={1}
+                      adjustsFontSizeToFit
+                      maxFontSizeMultiplier={1.3}
                     >
                       {cta.label === "Bắt đầu" ? "Bắt đầu trận" : cta.label}
                     </Text>
@@ -4941,6 +5031,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                       s.bigActionBtn,
                       isTightLandscape && s.bigActionBtnCompact,
                       s.refereePreStartSecondary,
+                      { minWidth: 104 },
                       {
                         backgroundColor: t.dark ? "#071b35" : t.colors.card,
                         borderColor: t.dark ? "#1597d2" : t.colors.border,
@@ -4959,6 +5050,8 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                         { color: t.colors.text },
                       ]}
                       numberOfLines={1}
+                      adjustsFontSizeToFit
+                      maxFontSizeMultiplier={1.3}
                     >
                       Đổi bên
                     </Text>
@@ -4973,6 +5066,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                       s.bigActionBtn,
                       isTightLandscape && s.bigActionBtnCompact,
                       s.refereePreStartSecondary,
+                      { minWidth: 118 },
                       {
                         borderColor: "#04c6f5",
                         backgroundColor: t.dark ? "#052c4c" : "#0a84ff15",
@@ -4991,6 +5085,8 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                         { color: t.colors.primary },
                       ]}
                       numberOfLines={1}
+                      adjustsFontSizeToFit
+                      maxFontSizeMultiplier={1.3}
                     >
                       Bốc thăm
                     </Text>
@@ -5983,6 +6079,7 @@ const s = StyleSheet.create({
   serveDrawChoiceText: { color: "#f0f5ff", fontSize: 19, fontWeight: "900" },
   serveDrawChoiceLine: { width: "67%", height: 4, borderRadius: 3 },
   serveDrawToken: { width: 122, height: 122, alignItems: "center", justifyContent: "center" },
+  serveDrawShuffleCard: { position: "absolute", top: "11%", width: "54%", height: "78%", borderRadius: 9, borderWidth: 1.5, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.35, shadowRadius: 5, shadowOffset: { width: 2, height: 4 } },
   serveDrawResult: { width: "100%", minHeight: 72, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#061a33" },
   serveDrawFooter: { minHeight: 61, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, borderRadius: 15, backgroundColor: "#061e39" },
   serveDrawFooterNote: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
