@@ -540,29 +540,14 @@ const NameBadge = memo(
     );
 
     const showIcon = !avatarUri || imgError;
-    const AV_SIZE = compact ? 28 : 34;
-    const badgeLabel =
-      compact
-        ? primaryName
-        : secondaryName && secondaryName !== primaryName
-          ? secondaryName
-          : "";
+    const AV_SIZE = compact ? 37 : 42;
+    const badgeLabel = primaryName;
 
     return (
-      <View style={{ alignItems: "center", width: "100%" }}>
-        {!compact ? (
-          <Text
-            style={[s.fullNameText, { color: t.colors.text, flexShrink: 1, paddingHorizontal: 4 }]}
-            numberOfLines={1}
-          >
-            {primaryName}
-          </Text>
-        ) : null}
-
+      <View style={{ alignItems: "center", width: "90%" }}>
         <View
           style={{
             position: "relative",
-            marginTop: compact ? 0 : 6,
             width: "100%",
             alignItems: "center",
           }}
@@ -571,10 +556,16 @@ const NameBadge = memo(
             style={[
               s.badgeName,
               compact && s.badgeNameCompact,
+              s.refereePlayerBadge,
               {
-                paddingRight: compact ? 30 : 34,
-                backgroundColor: accent ? `${accent}18` : t.chipInfoBg,
-                borderColor: isServer && accent ? accent : t.chipInfoBd,
+                minHeight: compact ? 48 : 58,
+                paddingRight: 12,
+                backgroundColor: accent ? `${accent}16` : t.chipInfoBg,
+                borderColor: isServer && accent ? accent : `${accent}55`,
+                borderWidth: isServer ? 2 : 1,
+                shadowColor: isServer ? accent : "transparent",
+                shadowOpacity: isServer ? 0.7 : 0,
+                shadowRadius: isServer ? 9 : 0,
               },
             ]}
           >
@@ -586,13 +577,13 @@ const NameBadge = memo(
                   width: AV_SIZE,
                   height: AV_SIZE,
                   borderRadius: AV_SIZE / 2,
-                  backgroundColor: t.colors.card,
+                  backgroundColor: t.dark ? "#061a31" : t.colors.card,
                   alignItems: "center",
                   justifyContent: "center",
                   marginRight: 6,
                 }}
               >
-                <MaterialIcons name="person" size={20} color={t.muted} />
+                <MaterialIcons name="person" size={25} color={t.muted} />
               </Ripple>
             ) : (
               <Ripple
@@ -619,7 +610,7 @@ const NameBadge = memo(
               style={[
                 s.nickText,
                 compact && s.nickTextCompact,
-                { color: t.colors.text, flexShrink: 1 },
+                { color: t.colors.text, flexShrink: 1, fontSize: compact ? 15 : 18 },
               ]}
               numberOfLines={1}
             >
@@ -631,9 +622,10 @@ const NameBadge = memo(
             <View
               style={[
                 s.serveIconBadge,
+                s.refereeServeIconBadge,
                 {
-                  backgroundColor: t.colors.primary,
-                  borderColor: t.chipInfo2Bd,
+                  backgroundColor: accent || "#0bbef0",
+                  borderColor: accent || "#34dcff",
                 },
               ]}
             >
@@ -686,9 +678,9 @@ const TeamSimple = memo(
     preStart = false,
   }) {
     const t = useTokens();
-    const accent = panelSide === "left" ? "#10bff0" : "#a3e635";
+    const accent = panelSide === "left" ? "#08c9f7" : "#9fe92f";
     const panelBg = t.dark
-      ? panelSide === "left" ? "#072840" : "#0b2b21"
+      ? panelSide === "left" ? "#03253aa0" : "#06271baa"
       : panelSide === "left" ? "#eaf9ff" : "#f3fce4";
 
     const ordered = useMemo(() => {
@@ -723,13 +715,20 @@ const TeamSimple = memo(
           airy && s.teamBoxAiry,
           airyWide && s.teamBoxAiryWide,
           s.refereeTeamBox,
-          { backgroundColor: panelBg, borderColor: accent, borderWidth: isServing ? 3 : 2 },
+          {
+            backgroundColor: panelBg,
+            borderColor: accent,
+            borderWidth: isServing ? 4 : 3,
+            shadowColor: accent,
+            shadowOpacity: t.dark ? 0.55 : 0,
+            shadowRadius: 12,
+          },
         ]}
       >
         <View
             style={{
               paddingHorizontal: 8,
-              paddingVertical: 4,
+              paddingVertical: compact ? 6 : 10,
               borderBottomWidth: 1,
               borderBottomColor: `${accent}66`,
               marginBottom: compact ? 2 : 6,
@@ -739,9 +738,9 @@ const TeamSimple = memo(
             <Text
               numberOfLines={1}
               style={{
-                fontSize: compact ? 11 : 13,
-                fontWeight: "800",
-                color: isServing ? accent : t.colors.text,
+                fontSize: compact ? 15 : 19,
+                fontWeight: "900",
+                color: t.colors.text,
                 textAlign: "center",
               }}
             >
@@ -781,8 +780,8 @@ const TeamSimple = memo(
               rippleContainerBorderRadius={10}
               accessibilityLabel={`Đổi vị trí hai vận động viên đội ${panelSide === "left" ? "bên trái" : "bên phải"}`}
             >
-              <MaterialIcons name="swap-vert" size={compact ? 16 : 18} color={accent} />
-              <Text style={{ color: accent, fontSize: compact ? 10 : 12, fontWeight: "800" }}>Đổi vị trí</Text>
+              <MaterialIcons name="swap-vert" size={compact ? 19 : 22} color={accent} />
+              <Text style={{ color: accent, fontSize: compact ? 12 : 14, fontWeight: "800" }}>Đổi vị trí</Text>
             </Ripple>
           )}
 
@@ -805,14 +804,17 @@ const TeamSimple = memo(
             accessibilityLabel={`Timeout đội ${panelSide === "left" ? "bên trái" : "bên phải"}, còn ${timeoutRemaining} trên ${timeoutLimit} quyền`}
             style={[
               s.refereeBreakButton,
-              { backgroundColor: t.dark ? "#9a5a0b" : "#fff0c2", borderColor: "#f59e0b" },
+              { backgroundColor: preStart ? "#26384f" : "#9a5a0b", borderColor: preStart ? "#62758a" : "#ffc238" },
               (breakDisabled || timeoutRemaining <= 0) && s.btnDisabled,
+              preStart && { opacity: 0.9 },
             ]}
           >
-            <MaterialIcons name="timer" size={compact ? 15 : 18} color={t.dark ? "#fff" : "#854d0e"} />
-            <Text style={[s.refereeBreakText, { color: t.dark ? "#fff" : "#854d0e" }]} numberOfLines={1} adjustsFontSizeToFit>
-              Timeout {timeoutRemaining}/{timeoutLimit}
-            </Text>
+            {!preStart ? <LinearGradient colors={["#b8730b", "#805012"]} style={StyleSheet.absoluteFill} pointerEvents="none" /> : null}
+            <MaterialIcons name="timer" size={compact ? 22 : 28} color={preStart ? "#becbdb" : "#fff"} />
+            <View style={{ alignItems: "center" }}>
+              <Text style={[s.refereeBreakText, preStart && s.refereeBreakPreStartText]}>Timeout</Text>
+              <Text style={[s.refereeBreakCount, preStart && s.refereeBreakPreStartText]}>{timeoutRemaining}/{timeoutLimit}</Text>
+            </View>
           </Ripple>
           <Ripple
             onPress={() => onMedical?.(panelSide)}
@@ -821,14 +823,17 @@ const TeamSimple = memo(
             accessibilityLabel={`Nghỉ y tế đội ${panelSide === "left" ? "bên trái" : "bên phải"}, còn ${medicalRemaining} trên ${medicalLimit} quyền`}
             style={[
               s.refereeBreakButton,
-              { backgroundColor: t.dark ? "#9f2938" : "#ffe4e7", borderColor: "#ef4444" },
+              { backgroundColor: preStart ? "#26384f" : "#a52b3a", borderColor: preStart ? "#62758a" : "#f04b5b" },
               (breakDisabled || medicalRemaining <= 0) && s.btnDisabled,
+              preStart && { opacity: 0.9 },
             ]}
           >
-            <MaterialIcons name="medical-services" size={compact ? 15 : 18} color={t.dark ? "#fff" : "#9f1239"} />
-            <Text style={[s.refereeBreakText, { color: t.dark ? "#fff" : "#9f1239" }]} numberOfLines={1} adjustsFontSizeToFit>
-              Y tế {medicalRemaining}/{medicalLimit}
-            </Text>
+            {!preStart ? <LinearGradient colors={["#c33948", "#8e2637"]} style={StyleSheet.absoluteFill} pointerEvents="none" /> : null}
+            <MaterialIcons name="medical-services" size={compact ? 22 : 28} color={preStart ? "#becbdb" : "#fff"} />
+            <View style={{ alignItems: "center" }}>
+              <Text style={[s.refereeBreakText, preStart && s.refereeBreakPreStartText]}>Y tế</Text>
+              <Text style={[s.refereeBreakCount, preStart && s.refereeBreakPreStartText]}>{medicalRemaining}/{medicalLimit}</Text>
+            </View>
           </Ripple>
         </View>
       </View>
@@ -4136,12 +4141,21 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
   const rightGameScore = rightSide === "A" ? curA : curB;
   const leftSetWins = leftSide === "A" ? aWins : bWins;
   const rightSetWins = rightSide === "A" ? aWins : bWins;
+  const leftMatchWins = match?.status === "finished" && leftSetWins >= needSetWinsVal ? 1 : 0;
+  const rightMatchWins = match?.status === "finished" && rightSetWins >= needSetWinsVal ? 1 : 0;
 
   return (
     <SafeAreaView
       edges={pageSafeEdges}
-      style={[s.page, { backgroundColor: t.colors.background }]}
+      style={[s.page, { backgroundColor: t.dark ? "#031129" : t.colors.background }]}
     >
+      {t.dark ? (
+        <LinearGradient
+          colors={["#061c37", "#03132b", "#020d20"]}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+      ) : null}
       <View
         style={{
           flex: 1,
@@ -4156,9 +4170,17 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
             s.card,
             s.topCard,
             useCompactTopChrome && s.topCardCompact,
-            { backgroundColor: t.colors.card, borderColor: t.colors.border },
+            {
+              backgroundColor: t.dark ? "#071b35" : t.colors.card,
+              borderColor: t.dark ? "#123d62" : t.colors.border,
+              marginLeft: t.dark ? -insets.left : 0,
+              marginRight: t.dark ? -insets.right : 0,
+              paddingLeft: t.dark ? insets.left + 10 : undefined,
+              paddingRight: t.dark ? insets.right + 10 : undefined,
+            },
           ]}
         >
+          {t.dark ? <LinearGradient colors={["#0a2545", "#06172e"]} style={[StyleSheet.absoluteFill, { borderRadius: 18 }]} pointerEvents="none" /> : null}
           <View
             style={[
               s.topHeaderRow,
@@ -4176,7 +4198,11 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                   style={[
                     s.iconBtn,
                     useCompactTopChrome && s.iconBtnCompact,
-                    { backgroundColor: t.colors.card },
+                    {
+                      backgroundColor: t.dark ? "#0a2342" : t.colors.card,
+                      borderWidth: t.dark ? 1 : 0,
+                      borderColor: "#1b557f",
+                    },
                   ]}
                   rippleContainerBorderRadius={8}
                 >
@@ -4196,8 +4222,8 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                     {
                       paddingVertical: 6,
                       paddingHorizontal: 10,
-                      backgroundColor: t.chipInfoBg,
-                      borderColor: t.chipInfoBd,
+                      backgroundColor: t.dark ? "#0c2746" : t.chipInfoBg,
+                      borderColor: t.dark ? "#1c5079" : t.chipInfoBd,
                     },
                   ]}
                 >
@@ -4254,6 +4280,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                           useCompactTopActions && s.btnUndoSmCompact,
                           (undoBusy || !canUndoLive) &&
                             s.btnDisabled,
+                          t.dark && { backgroundColor: "#8c5a1a", borderColor: "#f5c243", opacity: (undoBusy || !canUndoLive) ? 0.65 : 1 },
                         ]}
                         rippleContainerBorderRadius={10}
                       >
@@ -4263,7 +4290,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                           <MaterialIcons
                             name="undo"
                             size={16}
-                            color="#92400e"
+                            color={t.dark ? "#fff1bf" : "#92400e"}
                           />
                         )}
                         {showTopActionLabels ? (
@@ -4271,6 +4298,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                             style={[
                               s.btnUndoSmText,
                               useCompactTopActions && s.btnUndoSmTextCompact,
+                              t.dark && { color: "#fff1bf" },
                             ]}
                             numberOfLines={1}
                           >
@@ -4285,8 +4313,8 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                           s.btnSwapSm,
                           useCompactTopActions && s.topSecondaryBtnCompact,
                           {
-                            backgroundColor: t.chipInfo2Bg,
-                            borderColor: t.chipInfo2Bd,
+                            backgroundColor: t.dark ? "#0a2a49" : t.chipInfo2Bg,
+                            borderColor: t.dark ? "#0995cf" : t.chipInfo2Bd,
                           },
                         ]}
                         rippleContainerBorderRadius={10}
@@ -4412,7 +4440,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                           ? isVoiceListening
                             ? t.colors.primary
                             : "#f59e0b"
-                          : t.chipInfoBg,
+                          : t.dark ? "#0b2747" : t.chipInfoBg,
                       },
                     ]}
                   >
@@ -4450,11 +4478,11 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                         borderRadius: 20,
                         backgroundColor: voiceEnabled
                           ? t.colors.primary
-                          : t.chipInfoBg,
+                          : t.dark ? "#0b2747" : t.chipInfoBg,
                         borderWidth: 1,
                         borderColor: voiceEnabled
                           ? t.colors.primary
-                          : t.chipInfoBd,
+                          : t.dark ? "#2b648d" : t.chipInfoBd,
                       },
                     ]}
                   >
@@ -4473,9 +4501,9 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                       useCompactTopChrome && s.iconBtnSettingCompact,
                       {
                         borderRadius: 20,
-                        backgroundColor: t.chipInfoBg,
+                        backgroundColor: t.dark ? "#0b2747" : t.chipInfoBg,
                         borderWidth: 1,
-                        borderColor: t.chipInfoBd,
+                        borderColor: t.dark ? "#2b648d" : t.chipInfoBd,
                       },
                     ]}
                   >
@@ -4518,9 +4546,28 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
             s.card,
             s.scoreboardCard,
             isTightLandscape && s.scoreboardCardCompact,
-            { backgroundColor: t.dark ? "#061a31" : t.colors.card, borderColor: t.dark ? "#16466c" : t.colors.border },
+            {
+              backgroundColor: t.dark ? "#05172d" : t.colors.card,
+              borderColor: t.dark ? "#0c5076" : t.colors.border,
+              marginLeft: isLandscape ? -Math.max(0, insets.left - 10) : 0,
+              marginRight: isLandscape ? -Math.max(0, insets.right - 10) : 0,
+            },
           ]}
         >
+          {t.dark ? (
+            <Image
+              source={require("@/assets/images/referee-court-bg.png")}
+              style={s.refereeCourtBackground}
+              contentFit="fill"
+            />
+          ) : null}
+          {t.dark ? (
+            <Image
+              source={require("@/assets/images/referee-pickleball.png")}
+              style={s.refereeCourtBall}
+              contentFit="contain"
+            />
+          ) : null}
           <View style={s.scoreboardBody}>
             <View
               style={[
@@ -4562,7 +4609,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                     useWideAiryScoreboard &&
                     s.centerColAiryWide,
                   {
-                    backgroundColor: t.dark ? "#071b33" : t.colors.card,
+                    backgroundColor: t.dark ? "#06172b85" : t.colors.card,
                     borderColor: t.dark ? "#16466c" : t.colors.border,
                   },
                 ]}
@@ -4574,14 +4621,15 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                       isCompactLandscape && s.preStartCenterCompact,
                     ]}
                   >
-                    <Text style={[s.refereeCenterScore, isCompactLandscape && s.refereeCenterScoreCompact, { color: t.colors.text }]}>
+                    <Text style={[s.refereeCenterScore, isCompactLandscape && s.refereeCenterScorePreStartCompact, { color: t.colors.text }]}>
                       {leftGameScore} : {rightGameScore}
                     </Text>
                     <Text
                       style={[
                         s.preStartLabel,
                         isCompactLandscape && s.preStartLabelCompact,
-                        { color: t.subtext },
+                        s.refereePreStartPill,
+                        { color: t.colors.text },
                       ]}
                     >
                       Chưa bắt đầu
@@ -4593,8 +4641,8 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                         s.preStartServeBtn,
                         isCompactLandscape && s.preStartServeBtnCompact,
                         {
-                          borderColor: t.colors.primary,
-                          backgroundColor: t.dark ? "#0a84ff22" : "#0a84ff15",
+                          borderColor: "#04c6f5",
+                          backgroundColor: t.dark ? "#063053" : "#0a84ff15",
                         },
                       ]}
                     >
@@ -4626,112 +4674,34 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                   </View>
                 ) : (
                   <>
-                    <Text style={[s.refereeScoreEyebrow, { color: t.subtext }]}>ĐIỂM GAME {curIdx + 1}</Text>
-                    <Text style={[s.refereeCenterScore, isCompactLandscape && s.refereeCenterScoreCompact, { color: t.colors.text }]}>
+                    <View style={s.refereeCenterTop}>
+                      <View style={[s.refereeServeChip, { borderColor: "#0b679c", backgroundColor: "#082f52b8" }]}>
+                        <Text style={s.refereeServeChipText}>Lượt giao {activeServerNum}</Text>
+                      </View>
+                      <Text style={[s.refereeCallout, { color: t.subtext }]} numberOfLines={1}>
+                        {callout || "—"}
+                      </Text>
+                    </View>
+                    <Text style={[s.refereeCenterScore, isCompactLandscape && s.refereeCenterScoreCompact, { color: t.colors.text }]} adjustsFontSizeToFit numberOfLines={1}>
                       {leftGameScore} : {rightGameScore}
                     </Text>
-                    <View style={[s.refereeServeChip, { borderColor: t.colors.primary, backgroundColor: t.dark ? "#0a84ff22" : "#e0f2fe" }]}>
-                      <MaterialIcons name="sports-tennis" size={isCompactLandscape ? 14 : 17} color={t.colors.primary} />
-                      <Text style={{ color: t.colors.primary, fontWeight: "800", fontSize: isCompactLandscape ? 11 : 13 }}>
-                        Lượt giao {activeServerNum}
-                      </Text>
+                    <View style={[s.refereeGameChip, { borderColor: "#0b679c", backgroundColor: "#082f52b8" }]}>
+                      <Text style={s.refereeGameChipText}>GAME {curIdx + 1}</Text>
                     </View>
-                    <Text
-                      style={[
-                        s.refereeCallout,
-                        { color: t.subtext },
-                      ]}
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                    >
-                      Đọc điểm: {callout || "—"}
-                    </Text>
-
-                    <View
-                      style={[
-                        s.rowBetween,
-                        s.centerScoreRow,
-                        isCompactLandscape && s.centerScoreRowCompact,
-                        s.refereeSummaryRow,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          s.scoreNow,
-                          isCompactLandscape && s.scoreNowCompact,
-                          isUltraTightLandscape && s.scoreNowUltraCompact,
-                          s.refereeSummaryNumber,
-                          { color: t.success },
-                        ]}
-                      >
-                        {leftGameScore}
-                      </Text>
-                      <Text
-                        style={[
-                          s.centerScoreLabel,
-                          isCompactLandscape && s.centerScoreLabelCompact,
-                          isUltraTightLandscape && s.centerScoreLabelUltraCompact,
-                          s.refereeSummaryLabel,
-                          { color: t.colors.text },
-                        ]}
-                      >
-                        Game
-                      </Text>
-                      <Text
-                        style={[
-                          s.scoreNow,
-                          isCompactLandscape && s.scoreNowCompact,
-                          isUltraTightLandscape && s.scoreNowUltraCompact,
-                          s.refereeSummaryNumber,
-                          { color: t.success },
-                        ]}
-                      >
-                        {rightGameScore}
-                      </Text>
-                    </View>
-
-                    <View
-                      style={[
-                        s.rowBetween,
-                        s.centerScoreRow,
-                        s.centerMatchRow,
-                        isCompactLandscape && s.centerScoreRowCompact,
-                        s.refereeSummaryRow,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          s.setWin,
-                          isCompactLandscape && s.setWinCompact,
-                          isUltraTightLandscape && s.setWinUltraCompact,
-                          s.refereeSummaryNumber,
-                          { color: t.colors.text },
-                        ]}
-                      >
-                        {leftSetWins}
-                      </Text>
-                      <Text
-                        style={[
-                          s.centerMatchLabel,
-                          isCompactLandscape && s.centerScoreLabelCompact,
-                          isUltraTightLandscape && s.centerScoreLabelUltraCompact,
-                          s.refereeSummaryLabel,
-                          { color: t.colors.text },
-                        ]}
-                      >
-                        Match
-                      </Text>
-                      <Text
-                        style={[
-                          s.setWin,
-                          isCompactLandscape && s.setWinCompact,
-                          isUltraTightLandscape && s.setWinUltraCompact,
-                          s.refereeSummaryNumber,
-                          { color: t.colors.text },
-                        ]}
-                      >
-                        {rightSetWins}
-                      </Text>
+                    <View style={s.refereeResultGrid}>
+                      <View style={s.refereeResultTeam}>
+                        <Text style={[s.refereeResultNumber, { color: "#08c9f7" }]}>{leftSetWins}</Text>
+                        <Text style={s.refereeResultLabel}>GAME</Text>
+                        <Text style={[s.refereeResultNumber, { color: "#fff" }]}>{leftMatchWins}</Text>
+                        <Text style={s.refereeResultLabel}>MATCH</Text>
+                      </View>
+                      <View style={s.refereeResultDivider} />
+                      <View style={s.refereeResultTeam}>
+                        <Text style={[s.refereeResultNumber, { color: "#9fe92f" }]}>{rightSetWins}</Text>
+                        <Text style={s.refereeResultLabel}>GAME</Text>
+                        <Text style={[s.refereeResultNumber, { color: "#fff" }]}>{rightMatchWins}</Text>
+                        <Text style={s.refereeResultLabel}>MATCH</Text>
+                      </View>
                     </View>
                   </>
                 )}
@@ -4771,9 +4741,17 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
             s.card,
             s.bottomCard,
             isTightLandscape && s.bottomCardCompact,
-            { backgroundColor: t.colors.card, borderColor: t.colors.border },
+            {
+              backgroundColor: t.dark ? "#071b35" : t.colors.card,
+              borderColor: t.dark ? "#123d62" : t.colors.border,
+              marginLeft: t.dark ? -insets.left : 0,
+              marginRight: t.dark ? -insets.right : 0,
+              paddingLeft: t.dark ? insets.left + 10 : undefined,
+              paddingRight: t.dark ? insets.right + 10 : undefined,
+            },
           ]}
         >
+          {t.dark ? <LinearGradient colors={["#0a2545", "#06172e"]} style={[StyleSheet.absoluteFill, { borderRadius: 20 }]} pointerEvents="none" /> : null}
           <View style={[
             s.bottomBar,
             isTightLandscape && s.bottomBarCompact,
@@ -4798,14 +4776,10 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                 {activeBreak.type === "medical" ? "Nghỉ y tế" : "Timeout"}
               </Text>
             ) : (
-              <LiveClock
-                style={[
-                  s.clockText,
-                  !needsStartAction && s.clockAbsolute,
-                  !needsStartAction && isTightLandscape && s.clockInline,
-                  { color: t.colors.text },
-                ]}
-              />
+              <View style={[s.refereeClockPill, !needsStartAction && s.refereeClockAbsolute]}>
+                <MaterialIcons name="schedule" size={isTightLandscape ? 16 : 19} color={t.colors.text} />
+                <LiveClock style={[s.clockText, { color: t.colors.text, fontSize: isTightLandscape ? 15 : 18 }]} />
+              </View>
             )}
 
             {activeBreak ? (
@@ -4854,7 +4828,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
 	              </View>
 	            ) : needsStartAction ? (
               /* Pre-match: CTA buttons inline in 1 row */
-              <View style={[s.row, { gap: 8 }]}>
+              <View style={[s.row, s.refereePreStartActions]}>
                 {cta && (
                   <Ripple
                     onPress={cta.onPress}
@@ -4862,11 +4836,14 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                     style={[
                       s.bigActionBtn,
                       isTightLandscape && s.bigActionBtnCompact,
+                      s.refereePreStartPrimary,
                       cta.danger
                         ? { backgroundColor: "#ef4444", borderColor: "#b91c1c" }
                         : { backgroundColor: t.success, borderColor: t.success },
                     ]}
                   >
+                    {!cta.danger ? <LinearGradient colors={["#42f448", "#00bf35"]} style={StyleSheet.absoluteFill} pointerEvents="none" /> : null}
+                    <MaterialIcons name="play-arrow" size={isTightLandscape ? 20 : 25} color="#fff" />
                     <Text
                       style={[
                         s.bigActionText,
@@ -4875,7 +4852,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                       ]}
                       numberOfLines={1}
                     >
-                      {cta.label}
+                      {cta.label === "Bắt đầu" ? "Bắt đầu trận" : cta.label}
                     </Text>
                   </Ripple>
                 )}
@@ -4887,9 +4864,10 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                     style={[
                       s.bigActionBtn,
                       isTightLandscape && s.bigActionBtnCompact,
+                      s.refereePreStartSecondary,
                       {
-                        backgroundColor: t.colors.card,
-                        borderColor: t.colors.border,
+                        backgroundColor: t.dark ? "#071b35" : t.colors.card,
+                        borderColor: t.dark ? "#1597d2" : t.colors.border,
                       },
                     ]}
                   >
@@ -4918,9 +4896,10 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                     style={[
                       s.bigActionBtn,
                       isTightLandscape && s.bigActionBtnCompact,
+                      s.refereePreStartSecondary,
                       {
-                        borderColor: t.colors.primary,
-                        backgroundColor: t.dark ? "#0a84ff22" : "#0a84ff15",
+                        borderColor: "#04c6f5",
+                        backgroundColor: t.dark ? "#052c4c" : "#0a84ff15",
                       },
                     ]}
                   >
@@ -4959,22 +4938,24 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                     s.bigActionBtn,
                     isTightLandscape && s.bigActionBtnCompact,
                     {
-                      backgroundColor: t.colors.card,
-                      borderColor: t.colors.border,
+                      backgroundColor: t.dark ? "#071d37" : t.colors.card,
+                      borderColor: t.dark ? "#1c456c" : t.colors.border,
                     },
                     activeSide === leftSide && {
-                      backgroundColor: t.colors.primary,
-                      borderColor: t.colors.primary,
+                      backgroundColor: "#08bff2",
+                      borderColor: "#3be0ff",
                     },
+                    s.refereeBottomAction,
                     !leftEnabled && s.btnDisabled,
                   ]}
                 >
+                  {activeSide === leftSide ? <LinearGradient colors={["#13cff9", "#009fe4"]} style={StyleSheet.absoluteFill} pointerEvents="none" /> : null}
                   {incBusy ? (
                     <ActivityIndicator />
                     ) : (
                       <MaterialIcons
                         name="add"
-                        size={isTightLandscape ? 18 : 22}
+                        size={isTightLandscape ? 21 : 26}
                         color={
                           activeSide === leftSide ? "#fff" : t.colors.text
                         }
@@ -4984,6 +4965,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                       style={[
                         s.bigActionText,
                         isTightLandscape && s.bigActionTextCompact,
+                        s.refereeBottomActionText,
                         { color: t.colors.text },
                         activeSide === leftSide && s.bigActionTextActive,
                       ]}
@@ -5000,15 +4982,17 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                   style={[
                     s.toggleBtn,
                     isTightLandscape && s.toggleBtnCompact,
+                    s.refereeBottomAction,
                     (incBusy || undoBusy) && s.btnDisabled,
                   ]}
                 >
+                  <LinearGradient colors={["#ff9c12", "#dc6900"]} style={StyleSheet.absoluteFill} pointerEvents="none" />
                   <MaterialIcons
                     name={midIcon}
-                    size={isTightLandscape ? 18 : 22}
+                    size={isTightLandscape ? 21 : 26}
                     color="#fff"
                   />
-                  <Text style={[s.toggleText, isTightLandscape && s.bigActionTextCompact]}>
+                  <Text style={[s.toggleText, isTightLandscape && s.bigActionTextCompact, s.refereeBottomActionText]}>
                     {midLabel}
                   </Text>
                 </Ripple>
@@ -5021,24 +5005,26 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                     s.bigActionBtn,
                     isTightLandscape && s.bigActionBtnCompact,
                     {
-                      backgroundColor: t.colors.card,
-                      borderColor: t.colors.border,
+                      backgroundColor: t.dark ? "#071d37" : t.colors.card,
+                      borderColor: t.dark ? "#1c456c" : t.colors.border,
                     },
                     activeSide === rightSide && {
-                      backgroundColor: t.colors.primary,
-                      borderColor: t.colors.primary,
+                      backgroundColor: "#93db2b",
+                      borderColor: "#b3f448",
                     },
+                    s.refereeBottomAction,
                     !rightEnabled && s.btnDisabled,
                   ]}
                 >
+                  {activeSide === rightSide ? <LinearGradient colors={["#9ee938", "#68bb1b"]} style={StyleSheet.absoluteFill} pointerEvents="none" /> : null}
                   {incBusy ? (
                     <ActivityIndicator />
                     ) : (
                       <MaterialIcons
                         name="add"
-                        size={isTightLandscape ? 18 : 22}
+                        size={isTightLandscape ? 21 : 26}
                         color={
-                          activeSide === rightSide ? "#fff" : t.colors.text
+                          activeSide === rightSide ? "#06240f" : t.colors.text
                         }
                     />
                   )}
@@ -5046,8 +5032,10 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                       style={[
                         s.bigActionText,
                         isTightLandscape && s.bigActionTextCompact,
+                        s.refereeBottomActionText,
                         { color: t.colors.text },
                         activeSide === rightSide && s.bigActionTextActive,
+                        activeSide === rightSide && { color: "#06240f" },
                       ]}
                   >
                     Đội bên phải
@@ -5358,6 +5346,7 @@ const s = StyleSheet.create({
   },
   topCard: {
     padding: 10,
+    borderRadius: 18,
     borderWidth: 0,
     borderColor: "transparent",
     shadowColor: "transparent",
@@ -5370,6 +5359,7 @@ const s = StyleSheet.create({
   },
   bottomCard: {
     paddingVertical: 10,
+    borderRadius: 20,
     borderWidth: 0,
     borderColor: "transparent",
     shadowColor: "transparent",
@@ -5381,8 +5371,25 @@ const s = StyleSheet.create({
     paddingVertical: 6,
   },
 
-  scoreboardCard: { flex: 1, minHeight: 0, padding: 10 },
-  scoreboardCardCompact: { padding: 8 },
+  scoreboardCard: { flex: 1, minHeight: 0, padding: 7, borderRadius: 20, position: "relative" },
+  scoreboardCardCompact: { padding: 6 },
+  refereeCourtBackground: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: 18,
+  },
+  refereeCourtBall: {
+    position: "absolute",
+    zIndex: 5,
+    top: -18,
+    left: "50%",
+    width: 44,
+    height: 44,
+    transform: [{ translateX: -22 }],
+  },
   scoreboardBody: { flex: 1, justifyContent: "center" },
   scoreboardRow: {
     flexDirection: "row",
@@ -5521,19 +5528,29 @@ const s = StyleSheet.create({
     gap: 6,
   },
   refereeScoreEyebrow: { fontSize: 12, fontWeight: "800", letterSpacing: 1 },
-  refereeCenterScore: { fontSize: 72, fontWeight: "900", letterSpacing: 1, textAlign: "center" },
-  refereeCenterScoreCompact: { fontSize: 48 },
+  refereeCenterScore: { fontSize: 96, fontWeight: "900", letterSpacing: 1, textAlign: "center", lineHeight: 106 },
+  refereeCenterScoreCompact: { fontSize: 74, lineHeight: 82 },
+  refereeCenterScorePreStartCompact: { fontSize: 74, lineHeight: 82 },
+  refereeCenterTop: { alignItems: "center", gap: 2, marginTop: 11 },
   refereeServeChip: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
     borderWidth: 1,
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    minWidth: 112,
+    paddingHorizontal: 12,
+    paddingVertical: 3,
   },
+  refereeServeChipText: { color: "#d7e9ff", fontWeight: "800", fontSize: 12 },
   refereeCallout: { fontSize: 11, fontWeight: "700", textAlign: "center" },
+  refereeGameChip: { borderWidth: 1, borderRadius: 999, minWidth: 120, paddingHorizontal: 12, paddingVertical: 3, alignItems: "center" },
+  refereeGameChipText: { color: "#fff", fontWeight: "900", fontSize: 14 },
+  refereeResultGrid: { width: "100%", flexDirection: "row", alignItems: "stretch", borderTopWidth: 1, borderTopColor: "#0b679c", paddingTop: 6, marginTop: 2 },
+  refereeResultTeam: { flex: 1, alignItems: "center", gap: 0 },
+  refereeResultDivider: { width: 1, backgroundColor: "#0b679c", marginVertical: 3 },
+  refereeResultNumber: { fontSize: 22, fontWeight: "900", lineHeight: 24 },
+  refereeResultLabel: { fontSize: 10, color: "#bcd6ef", fontWeight: "700", lineHeight: 13 },
   refereeSummaryRow: { marginTop: 2 },
   refereeSummaryNumber: { fontSize: 18 },
   refereeSummaryLabel: { fontSize: 10 },
@@ -5555,10 +5572,21 @@ const s = StyleSheet.create({
     letterSpacing: 1,
   },
   preStartLabelCompact: {
-    fontSize: 11,
+    fontSize: 13,
     letterSpacing: 0.6,
   },
+  refereePreStartPill: {
+    minWidth: 150,
+    textAlign: "center",
+    borderWidth: 1,
+    borderColor: "#125688",
+    borderRadius: 999,
+    backgroundColor: "#082f52",
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+  },
   preStartServeBtn: {
+    width: "95%",
     minWidth: 124,
     minHeight: 52,
     borderRadius: 999,
@@ -5571,7 +5599,7 @@ const s = StyleSheet.create({
   },
   preStartServeBtnCompact: {
     minWidth: 104,
-    minHeight: 42,
+    minHeight: 48,
     gap: 6,
     paddingHorizontal: 10,
   },
@@ -5580,7 +5608,7 @@ const s = StyleSheet.create({
     fontWeight: "800",
   },
   preStartServeBtnTextCompact: {
-    fontSize: 12,
+    fontSize: 14,
   },
   preStartHint: {
     fontSize: 12,
@@ -5588,7 +5616,7 @@ const s = StyleSheet.create({
     textAlign: "center",
   },
   preStartHintCompact: {
-    fontSize: 10,
+    fontSize: 11,
   },
   callout: {
     fontSize: 30,
@@ -5658,9 +5686,11 @@ const s = StyleSheet.create({
   teamBoxAiryWide: {
     paddingVertical: 24,
   },
-  refereeTeamBox: { justifyContent: "space-between", minWidth: 0, overflow: "hidden" },
-  refereeTeamSide: { fontSize: 10, fontWeight: "800", letterSpacing: 1, marginTop: 3 },
+  refereeTeamBox: { justifyContent: "space-between", minWidth: 0, borderRadius: 20 },
+  refereeTeamSide: { fontSize: 12, fontWeight: "900", letterSpacing: 1, marginTop: 3 },
   refereeTeamStack: { flex: 1, justifyContent: "space-evenly", gap: 3, minHeight: 0 },
+  refereePlayerBadge: { width: "100%", borderRadius: 14, paddingHorizontal: 8, alignItems: "center" },
+  refereeServeIconBadge: { right: -15, width: 33, height: 33, borderRadius: 17, transform: [{ translateY: -16 }], shadowColor: "#0dc5f4", shadowOpacity: 0.7, shadowRadius: 8 },
   refereeSwapPlayers: {
     alignSelf: "center",
     flexDirection: "row",
@@ -5670,23 +5700,27 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 7,
-    paddingVertical: 3,
+    paddingVertical: 4,
+    minHeight: 31,
   },
   refereeBreakRow: { flexDirection: "row", alignItems: "center", gap: 6, width: "100%" },
   refereeBreakRowCompact: { gap: 4 },
   refereeBreakButton: {
     flex: 1,
     minWidth: 0,
-    minHeight: 40,
-    borderWidth: 1,
-    borderRadius: 10,
+    minHeight: 59,
+    borderWidth: 1.5,
+    borderRadius: 12,
     paddingHorizontal: 5,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+    gap: 5,
+    overflow: "hidden",
   },
-  refereeBreakText: { fontSize: 11, fontWeight: "800", flexShrink: 1 },
+  refereeBreakText: { fontSize: 13, fontWeight: "900", color: "#fff" },
+  refereeBreakCount: { fontSize: 18, fontWeight: "900", color: "#fff", lineHeight: 21 },
+  refereeBreakPreStartText: { color: "#becbdb" },
   teamStack: {
     alignItems: "center",
     justifyContent: "center",
@@ -5721,6 +5755,30 @@ const s = StyleSheet.create({
   nickTextCompact: { fontSize: 12 },
 
   clockText: { fontWeight: "900", color: "#0f172a" },
+  refereeClockPill: {
+    minHeight: 40,
+    minWidth: 128,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#194a73",
+    backgroundColor: "#06162c",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+  },
+  refereeClockAbsolute: {
+    position: "absolute",
+    left: 8,
+    top: "50%",
+    transform: [{ translateY: -20 }],
+  },
+  refereeBottomAction: { minHeight: 46, borderRadius: 11, overflow: "hidden", borderWidth: 1.5 },
+  refereeBottomActionText: { fontSize: 15, fontWeight: "900" },
+  refereePreStartActions: { flex: 1, gap: 8, marginLeft: 12 },
+  refereePreStartPrimary: { flex: 2, minHeight: 48, justifyContent: "center", overflow: "hidden" },
+  refereePreStartSecondary: { flex: 1, minHeight: 48, justifyContent: "center" },
   bigActionBtn: {
     backgroundColor: "#f8fafc",
     borderWidth: 1,
