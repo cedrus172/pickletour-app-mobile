@@ -33,8 +33,11 @@ import {
   humanSize,
   isClipAlive,
   MAX_CLIP_MINUTES,
+  MAX_RANGE_MINUTES,
   pollClip,
-  QUICK_MINUTES,
+  quickLabel,
+  QUICK_SECONDS,
+  splitRange,
   startRecord,
   stopRecord,
   startStream,
@@ -195,29 +198,32 @@ export default function ClipCutScreen() {
   }, [baseUrl]);
 
   // ── Chọn khoảng cắt ───────────────────────────────────────────────────────
-  const [quickMin, setQuickMin] = useState<number>(5);
+  const [quickSec, setQuickSec] = useState<number>(300); // mặc định 5 phút
   const [useCustom, setUseCustom] = useState(false);
   const [start, setStart] = useState<Date>(() => new Date(Date.now() - 5 * 60 * 1000));
   const [end, setEnd] = useState<Date>(() => new Date());
   const [picker, setPicker] = useState<null | "start" | "end">(null);
 
   const customMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
-  const customValid = useCustom ? end > start && customMinutes <= MAX_CLIP_MINUTES : true;
+  const customParts = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (MAX_CLIP_MINUTES * 60000)));
+  const customValid = useCustom ? end > start && customMinutes <= MAX_RANGE_MINUTES : true;
   // Thông báo cụ thể lý do (tránh gộp chung gây khó hiểu).
   const customMsg = !useCustom
     ? ""
     : end <= start
       ? "Giờ kết thúc phải sau giờ bắt đầu."
-      : customMinutes > MAX_CLIP_MINUTES
-        ? `Khoảng cắt ${customMinutes} phút — tối đa ${MAX_CLIP_MINUTES} phút/clip, hãy chọn ngắn lại.`
-        : `Độ dài: ${customMinutes} phút`;
+      : customMinutes > MAX_RANGE_MINUTES
+        ? `Khoảng cắt ${customMinutes} phút — tối đa ${MAX_RANGE_MINUTES} phút, hãy chọn ngắn lại.`
+        : customParts > 1
+          ? `Độ dài ${customMinutes} phút — sẽ chia thành ${customParts} file, mỗi file tối đa ${MAX_CLIP_MINUTES} phút.`
+          : `Độ dài: ${customMinutes} phút`;
 
-  // Khoảng thời gian đang chọn → {start,end} dạng chuỗi cho API.
+  // Khoảng thời gian đang chọn → {start,end} dạng chuỗi cho API (dùng để xem trước).
   const selectedRange = useCallback(() => {
     if (useCustom) return { start: fmtClipTime(start), end: fmtClipTime(end) };
     const now = new Date();
-    return { start: fmtClipTime(new Date(now.getTime() - quickMin * 60000)), end: fmtClipTime(now) };
-  }, [useCustom, start, end, quickMin]);
+    return { start: fmtClipTime(new Date(now.getTime() - quickSec * 1000)), end: fmtClipTime(now) };
+  }, [useCustom, start, end, quickSec]);
 
   // Xem trước (phát lại) đoạn sắp cắt — tua được để kiểm tra đúng đoạn rồi mới cắt.
   const startRangePreview = useCallback(async () => {
@@ -288,7 +294,7 @@ export default function ClipCutScreen() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [pct, setPct] = useState(0);
   const [statusText, setStatusText] = useState("");
-  const [result, setResult] = useState<{ clipId: string; name: string; size?: number } | null>(null);
+  const [results, setResults] = useState<{ clipId: string; name: string; size?: number }[]>([]);
   const pollingRef = useRef<{ stop: boolean }>({ stop: false });
   const lastCutRef = useRef(0);
   const [retentionHuman, setRetentionHuman] = useState("");
@@ -298,76 +304,105 @@ export default function ClipCutScreen() {
     return () => { pollingRef.current.stop = true; };
   }, [baseUrl]);
 
+  // Cắt 1 đoạn (≤5 phút) → tạo clip + poll tới khi xong. Trả về kết quả hoặc ném lỗi.
+  const cutOneSegment = useCallback(async (
+    seg: { start: Date; end: Date }, idx: number, total: number,
+  ): Promise<{ clipId: string; name: string; size?: number }> => {
+    const prefix = total > 1 ? `File ${idx}/${total} · ` : "";
+    const { clip_id, name } = await createClip(baseUrl, {
+      channel_id: channelId, start: fmtClipTime(seg.start), end: fmtClipTime(seg.end),
+    });
+    const deadline = Date.now() + 20 * 60 * 1000; // timeout 20 phút / file
+    // Vòng poll 1.5s.
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      if (pollingRef.current.stop) throw new Error("__stop__");
+      if (Date.now() > deadline) throw new Error("Quá thời gian xử lý, thử lại.");
+      await new Promise((r) => setTimeout(r, 1500));
+      let s: ClipStatus;
+      try { s = await pollClip(baseUrl, clip_id); } catch { continue; }
+      if (s.status === "done") {
+        const item: ClipHistoryItem = {
+          clipId: clip_id, name: s.name || name, baseUrl, venueName: String(venueName || ""),
+          channelName, createdAt: Date.now(), size: s.size,
+        };
+        addHistory(item);
+        setHistory((h) => [item, ...h.filter((x) => x.clipId !== clip_id)]);
+        return { clipId: clip_id, name: s.name || name, size: s.size };
+      }
+      if (s.status === "error") throw new Error(s.err || "Cắt clip thất bại");
+      setPct(computeProgress(s));
+      setStatusText(
+        prefix + (s.phase === "fast_download" ? "Đang tải nhanh từ đầu ghi…"
+          : s.phase === "rtsp_fallback" ? `Đang ghi lại (×${(s.progress?.speed || 0).toFixed(2)})…`
+            : "Đang xử lý…"),
+      );
+    }
+  }, [baseUrl, channelId, venueName, channelName]);
+
   const onCut = useCallback(async (override?: { start: Date; end: Date }) => {
     if (phase === "creating" || phase === "running") return;
     const now = Date.now();
     if (now - lastCutRef.current < 2000) return; // debounce 2s
     lastCutRef.current = now;
-    if (override) {
-      const mins = Math.round((override.end.getTime() - override.start.getTime()) / 60000);
-      if (override.end <= override.start || mins > MAX_CLIP_MINUTES) {
-        Alert.alert("Không cắt được", `Đoạn phải hợp lệ và tối đa ${MAX_CLIP_MINUTES} phút.`);
-        return;
-      }
-    } else if (useCustom && !customValid) {
-      Alert.alert("Thời gian không hợp lệ", customMsg);
+
+    // Xác định khoảng cắt tổng [s,e].
+    const range = override
+      ? { start: new Date(override.start), end: new Date(override.end) }
+      : useCustom
+        ? { start: new Date(start), end: new Date(end) }
+        : { start: new Date(now - quickSec * 1000), end: new Date(now) };
+    const totalMin = Math.round((range.end.getTime() - range.start.getTime()) / 60000);
+    if (range.end <= range.start) {
+      Alert.alert("Thời gian không hợp lệ", "Giờ kết thúc phải sau giờ bắt đầu.");
       return;
     }
+    if (totalMin > MAX_RANGE_MINUTES) {
+      Alert.alert("Không cắt được", `Khoảng cắt tối đa ${MAX_RANGE_MINUTES} phút.`);
+      return;
+    }
+
+    // Chia thành các đoạn ≤ 5 phút (mỗi đoạn = 1 file).
+    const segs = splitRange(range.start, range.end);
     setPhase("creating");
     setPct(0);
-    setResult(null);
-    setStatusText("Đang tạo yêu cầu…");
+    setResults([]);
+    setStatusText(segs.length > 1 ? `Đang tạo ${segs.length} file…` : "Đang tạo yêu cầu…");
+    pollingRef.current = { stop: false };
+    const acc: { clipId: string; name: string; size?: number }[] = [];
     try {
-      const body = override
-        ? { channel_id: channelId, start: fmtClipTime(override.start), end: fmtClipTime(override.end) }
-        : useCustom
-          ? { channel_id: channelId, start: fmtClipTime(start), end: fmtClipTime(end) }
-          : { channel_id: channelId, quick_min: quickMin };
-      const { clip_id, name } = await createClip(baseUrl, body);
       setPhase("running");
-      pollingRef.current = { stop: false };
-      const deadline = Date.now() + 20 * 60 * 1000; // timeout 20 phút
-      // Vòng poll 1.5s.
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
+      for (let i = 0; i < segs.length; i++) {
         if (pollingRef.current.stop) return;
-        if (Date.now() > deadline) throw new Error("Quá thời gian xử lý, thử lại.");
-        await new Promise((r) => setTimeout(r, 1500));
-        let s: ClipStatus;
-        try { s = await pollClip(baseUrl, clip_id); } catch { continue; }
-        if (s.status === "done") {
-          setPct(100);
-          setPhase("done");
-          setResult({ clipId: clip_id, name: s.name || name, size: s.size });
-          setStatusText("");
-          const item: ClipHistoryItem = {
-            clipId: clip_id, name: s.name || name, baseUrl, venueName: String(venueName || ""),
-            channelName, createdAt: Date.now(), size: s.size,
-          };
-          addHistory(item);
-          setHistory((h) => [item, ...h.filter((x) => x.clipId !== clip_id)]);
-          return;
-        }
-        if (s.status === "error") throw new Error(s.err || "Cắt clip thất bại");
-        setPct(computeProgress(s));
-        setStatusText(
-          s.phase === "fast_download" ? "Đang tải nhanh từ đầu ghi…"
-            : s.phase === "rtsp_fallback" ? `Đang ghi lại (×${(s.progress?.speed || 0).toFixed(2)})…`
-              : "Đang xử lý…",
-        );
+        setPct(0);
+        const r = await cutOneSegment(segs[i], i + 1, segs.length);
+        acc.push(r);
+        setResults([...acc]);
       }
+      setPct(100);
+      setPhase("done");
+      setStatusText("");
     } catch (e: any) {
-      setPhase("error");
-      setStatusText(e?.message || "Có lỗi, vui lòng thử lại.");
+      if (e?.message === "__stop__") return;
+      // Đã xong một số file trước đó → vẫn giữ kết quả, chỉ báo lỗi phần còn lại.
+      if (acc.length > 0) {
+        setResults([...acc]);
+        setPhase("done");
+        setStatusText("");
+        Alert.alert("Cắt chưa trọn", `Đã cắt được ${acc.length}/${segs.length} file. Phần còn lại lỗi: ${e?.message || "thử lại."}`);
+      } else {
+        setPhase("error");
+        setStatusText(e?.message || "Có lỗi, vui lòng thử lại.");
+      }
     }
-  }, [phase, useCustom, customValid, customMsg, channelId, start, end, quickMin, baseUrl, venueName, channelName]);
+  }, [phase, useCustom, start, end, quickSec, cutOneSegment]);
 
-  // Cắt từ vị trí đang tua trên dòng thời gian (quickMin phút kể từ đó).
+  // Cắt từ vị trí đang tua trên dòng thời gian (quickSec giây kể từ đó).
   const cutFromScrub = useCallback(() => {
     const s = new Date(scrubTime);
-    const e = new Date(Math.min(s.getTime() + quickMin * 60000, Date.now()));
+    const e = new Date(Math.min(s.getTime() + quickSec * 1000, Date.now()));
     onCut({ start: s, end: e });
-  }, [scrubTime, quickMin, onCut]);
+  }, [scrubTime, quickSec, onCut]);
 
   // ── Ghi hình trực tiếp (như nút record DMSS) ────────────────────────────────
   const [recId, setRecId] = useState<string | null>(null);
@@ -387,7 +422,7 @@ export default function ClipCutScreen() {
         setRecSec(0);
         if (r.status === "done") {
           setPhase("done");
-          setResult({ clipId: r.clip_id, name: r.name, size: r.size });
+          setResults([{ clipId: r.clip_id, name: r.name, size: r.size }]);
           setStatusText("");
         } else {
           Alert.alert("Ghi hình lỗi", "Không lưu được bản ghi, thử lại.");
@@ -575,21 +610,21 @@ export default function ClipCutScreen() {
         </Text>
         <Pressable onPress={cutFromScrub} disabled={busy} style={[styles.previewBtn, { borderColor: C.primary, marginTop: 12, opacity: busy ? 0.6 : 1 }]}>
           <Ionicons name="cut" size={17} color={C.primary} />
-          <Text style={{ color: C.primary, fontWeight: "700", marginLeft: 8 }}>Cắt {quickMin} phút từ {hhmmss(scrubTime)}</Text>
+          <Text style={{ color: C.primary, fontWeight: "700", marginLeft: 8 }}>Cắt {quickLabel(quickSec)} từ {hhmmss(scrubTime)}</Text>
         </Pressable>
 
         {/* Chọn khoảng cắt */}
         <Text style={[styles.sectionTitle, { color: C.text }]}>Chọn khoảng cắt</Text>
         <View style={styles.chipsRow}>
-          {QUICK_MINUTES.map((m) => {
-            const on = !useCustom && quickMin === m;
+          {QUICK_SECONDS.map((sec) => {
+            const on = !useCustom && quickSec === sec;
             return (
               <Pressable
-                key={m}
-                onPress={() => { setUseCustom(false); setQuickMin(m); }}
+                key={sec}
+                onPress={() => { setUseCustom(false); setQuickSec(sec); }}
                 style={[styles.chip, { backgroundColor: on ? C.primary : C.field, borderColor: on ? C.primary : C.border }]}
               >
-                <Text style={{ color: on ? C.onPrimary : C.text, fontWeight: "700" }}>{m} phút</Text>
+                <Text style={{ color: on ? C.onPrimary : C.text, fontWeight: "700" }}>{quickLabel(sec)}</Text>
               </Pressable>
             );
           })}
@@ -655,22 +690,42 @@ export default function ClipCutScreen() {
         )}
 
         {/* Kết quả */}
-        {phase === "done" && result && (
+        {phase === "done" && results.length === 1 && (
           <View style={[styles.resultCard, { backgroundColor: C.greenSoft, borderColor: C.greenText }]}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Ionicons name="checkmark-circle" size={22} color={C.greenText} />
               <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text numberOfLines={1} style={{ color: C.text, fontWeight: "700" }}>{result.name}</Text>
-                {!!result.size && <Text style={{ color: C.sub, fontSize: 12 }}>{humanSize(result.size)}</Text>}
+                <Text numberOfLines={1} style={{ color: C.text, fontWeight: "700" }}>{results[0].name}</Text>
+                {!!results[0].size && <Text style={{ color: C.sub, fontSize: 12 }}>{humanSize(results[0].size)}</Text>}
               </View>
             </View>
             <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
               {/* Nút "Lưu vào máy" tạm ẩn — cần build native (expo-media-library) mới bật. */}
-              <Pressable onPress={() => shareClip(result.clipId, result.name)} disabled={sharing} style={[styles.resBtn, { backgroundColor: C.primary }]}>
+              <Pressable onPress={() => shareClip(results[0].clipId, results[0].name)} disabled={sharing} style={[styles.resBtn, { backgroundColor: C.primary }]}>
                 {sharing ? <ActivityIndicator color={C.onPrimary} size="small" /> : <Ionicons name="share-social" size={16} color={C.onPrimary} />}
                 <Text style={{ color: C.onPrimary, fontWeight: "700", marginLeft: 6 }}>Tải / Chia sẻ</Text>
               </Pressable>
             </View>
+          </View>
+        )}
+        {phase === "done" && results.length > 1 && (
+          <View style={[styles.resultCard, { backgroundColor: C.greenSoft, borderColor: C.greenText }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+              <Ionicons name="checkmark-circle" size={22} color={C.greenText} />
+              <Text style={{ color: C.text, fontWeight: "800", marginLeft: 10 }}>Đã cắt {results.length} file (mỗi file tối đa {MAX_CLIP_MINUTES} phút)</Text>
+            </View>
+            {results.map((r, i) => (
+              <View key={r.clipId} style={{ flexDirection: "row", alignItems: "center", paddingTop: i === 0 ? 0 : 10, marginTop: i === 0 ? 0 : 10, borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth, borderTopColor: C.border }}>
+                <View style={{ flex: 1, marginRight: 10 }}>
+                  <Text numberOfLines={1} style={{ color: C.text, fontWeight: "700", fontSize: 13 }}>{r.name}</Text>
+                  {!!r.size && <Text style={{ color: C.sub, fontSize: 12 }}>{humanSize(r.size)}</Text>}
+                </View>
+                <Pressable onPress={() => shareClip(r.clipId, r.name)} disabled={sharing} style={[styles.shareBtn, { backgroundColor: C.primary }]}>
+                  <Ionicons name="share-social" size={15} color={C.onPrimary} />
+                  <Text style={{ color: C.onPrimary, fontWeight: "700", marginLeft: 5 }}>Tải</Text>
+                </Pressable>
+              </View>
+            ))}
           </View>
         )}
         {phase === "error" && (

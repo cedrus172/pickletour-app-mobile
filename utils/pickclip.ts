@@ -26,8 +26,35 @@ export type ClipStatus = {
 };
 export type Retention = { ttl_secs: number; ttl_human: string };
 
-export const QUICK_MINUTES = [5, 10, 15, 30] as const;
-export const MAX_CLIP_MINUTES = 30;
+// Khoảng cắt nhanh (giây). 30 giây / 1 phút / 2 phút / 5 phút.
+export const QUICK_SECONDS = [30, 60, 120, 300] as const;
+// Tối đa mỗi FILE clip = 5 phút. Đoạn dài hơn tự chia nhiều file 5 phút.
+export const MAX_CLIP_SECONDS = 300;
+export const MAX_CLIP_MINUTES = 5;
+// Tổng độ dài tối đa cho "Tuỳ chọn" (tự chia 5'/file). 60 phút = tối đa 12 file.
+export const MAX_RANGE_MINUTES = 60;
+
+/** Nhãn chip khoảng cắt: "30 giây" hoặc "N phút". */
+export function quickLabel(sec: number): string {
+  return sec < 60 ? `${sec} giây` : `${sec / 60} phút`;
+}
+
+/** Chia [start,end] thành các đoạn liên tiếp ≤ segSec giây (mỗi đoạn = 1 file). */
+export function splitRange(
+  start: Date,
+  end: Date,
+  segSec = MAX_CLIP_SECONDS,
+): { start: Date; end: Date }[] {
+  const out: { start: Date; end: Date }[] = [];
+  let s = start.getTime();
+  const e = end.getTime();
+  while (s < e) {
+    const segEnd = Math.min(s + segSec * 1000, e);
+    out.push({ start: new Date(s), end: new Date(segEnd) });
+    s = segEnd;
+  }
+  return out;
+}
 
 const trimBase = (b: string) => (b || "").replace(/\/+$/, "");
 
