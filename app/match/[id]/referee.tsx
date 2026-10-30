@@ -25,6 +25,24 @@ export default function RefereeScreen() {
     Boolean((globalThis as any)[HOT_UPDATE_RELOAD_KEY]),
   );
   const orientationTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const preferredOrientation = useRef<"portrait" | "landscape">("portrait");
+  const orientationQueue = useRef<Promise<unknown>>(Promise.resolve());
+  const applyOrientation = useCallback(() => {
+    const lock = preferredOrientation.current === "portrait"
+      ? ScreenOrientation.OrientationLock.PORTRAIT_UP
+      : ScreenOrientation.OrientationLock.LANDSCAPE;
+    const pending = orientationQueue.current.catch(() => {}).then(async () => {
+      if (!isUnmounting.current) await ScreenOrientation.lockAsync(lock);
+    });
+    orientationQueue.current = pending;
+    return pending;
+  }, []);
+  const toggleOrientation = useCallback(async () => {
+    const previous = preferredOrientation.current;
+    preferredOrientation.current = previous === "portrait" ? "landscape" : "portrait";
+    try { await applyOrientation(); }
+    catch (error) { preferredOrientation.current = previous; throw error; }
+  }, [applyOrientation]);
 
   React.useEffect(() => {
     if ((globalThis as any)[HOT_UPDATE_RELOAD_KEY]) {
@@ -49,12 +67,9 @@ export default function RefereeScreen() {
 
       (async () => {
         try {
-          await ScreenOrientation.unlockAsync();
-          await ScreenOrientation.lockAsync(
-            ScreenOrientation.OrientationLock.LANDSCAPE
-          );
+          await applyOrientation();
         } catch (error) {
-          console.warn("Lock landscape error:", error);
+          console.warn("Referee orientation error:", error);
         }
       })();
 
@@ -68,11 +83,9 @@ export default function RefereeScreen() {
           ) {
             (async () => {
               try {
-                await ScreenOrientation.lockAsync(
-                  ScreenOrientation.OrientationLock.LANDSCAPE
-                );
+                await applyOrientation();
               } catch (error) {
-                console.warn("Re-lock landscape error:", error);
+                console.warn("Referee orientation restore error:", error);
               }
             })();
           }
@@ -112,10 +125,10 @@ export default function RefereeScreen() {
           orientationTimeouts.current.push(timeoutId);
         });
       };
-    }, [])
+    }, [applyOrientation])
   );
 
   if (!matchId) return null;
 
-  return <RefereeJudgePanel matchId={matchId} initialMatch={initialMatch} />;
+  return <RefereeJudgePanel matchId={matchId} initialMatch={initialMatch} onToggleOrientation={toggleOrientation} />;
 }

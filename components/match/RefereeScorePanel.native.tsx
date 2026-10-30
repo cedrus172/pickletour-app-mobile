@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
+  AppState,
   Animated,
   Easing,
   Modal,
@@ -56,6 +57,9 @@ import { useMatchLiveActivity } from "@/hooks/useMatchLiveActivity";
 import { BASE_URL } from "@/slices/apiSlice";
 import { mergeRefereeMatchSnapshot } from "@/utils/refereeMatchRoute";
 import { getRefereeBoardLayout, type RefereeBoardLayout } from "@/utils/refereeLayout";
+import RefereePortraitHeader from "./RefereePortraitHeader.native";
+import { formatMatchElapsed, matchTimestamp } from "@/utils/refereeElapsedTime";
+import { CoinFace, DrawCard, DrawColorPair, TwoTeamWheel, DRAW_BLUE, DRAW_RED, DRAW_GOLD } from "./ServeDrawVisuals.native";
 
 const VOICE_API_URL = `${BASE_URL}/api/voice/parse`;
 /* ---------- Theme tokens ---------- */
@@ -550,7 +554,7 @@ const NameBadge = memo(
     const badgeLabel = primaryName;
 
     return (
-      <View testID={`referee-player-${userIdOf(user)}`} style={{ alignItems: "center", width: "100%", flexShrink: 0 }}>
+      <View testID={`referee-player-${userIdOf(user)}`} style={{ alignItems: "center", ...(layout.portrait ? { flex: 1, minWidth: 0 } : { width: "100%", flexShrink: 0 }) }}>
         <View
           style={{
             position: "relative",
@@ -722,6 +726,21 @@ const TeamSimple = memo(
     const isServerP2 =
       teamKey === activeSide && playerMatchesId(p2, serverUidShow);
 
+    const swapPlayersButton = (ordered.length > 1 && (
+            <Ripple
+              onPress={onSwap}
+              style={[
+                s.refereeSwapPlayers,
+                { height: layout.swapHeight, minHeight: layout.swapHeight, paddingVertical: 0, borderColor: `${accent}99`, backgroundColor: `${accent}1c` },
+              ]}
+              rippleContainerBorderRadius={10}
+              accessibilityLabel={`Đổi vị trí hai vận động viên đội ${panelSide === "left" ? "bên trái" : "bên phải"}`}
+            >
+              <MaterialIcons name="swap-vert" size={Math.round(18 * layout.scale)} color={accent} />
+              <Text numberOfLines={1} maxFontSizeMultiplier={1.3} style={{ color: accent, fontSize: Math.max(11, Math.round(13 * layout.scale)), fontWeight: "800" }}>Đổi vị trí</Text>
+            </Ripple>
+          ));
+
     return (
       <View
         testID={`referee-team-${panelSide}`}
@@ -734,6 +753,7 @@ const TeamSimple = memo(
           {
             padding: layout.padding,
             gap: layout.gap,
+            ...(layout.portrait ? { flex: 1, minHeight: layout.teamMinHeight } : {}),
             backgroundColor: panelBg,
             borderColor: accent,
             borderWidth: isServing ? 4 : 3,
@@ -743,7 +763,12 @@ const TeamSimple = memo(
           },
         ]}
       >
-        <View
+        {layout.portrait ? <View style={{ width: "100%", minWidth: 0, flexDirection: "row", alignItems: "center", gap: layout.gap, height: layout.headerHeight }}>
+          <Text numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.3} style={{ flex: 1, minWidth: 0, fontSize: layout.titleFont, fontWeight: "900", color: accent }}>
+            ĐỘI {teamKey}{isServing && !preStart ? " · ĐANG GIAO" : ""}{teamName && source?.meta?.mlp?.dualId ? ` · ${teamName}` : ""}
+          </Text>
+          {swapPlayersButton}
+        </View> : (<View
             style={{
               width: "100%",
               height: layout.headerHeight,
@@ -773,7 +798,7 @@ const TeamSimple = memo(
             <Text numberOfLines={1} maxFontSizeMultiplier={1.3} style={[s.refereeTeamSide, { color: accent, fontSize: layout.sideFont, lineHeight: layout.sideLine, marginTop: 1 }]}>
               {isServing && !preStart ? "ĐANG GIAO" : panelSide === "left" ? "ĐỘI BÊN TRÁI" : "ĐỘI BÊN PHẢI"}
             </Text>
-        </View>
+        </View>)}
         <View
           testID={`referee-players-${panelSide}`}
           style={[
@@ -783,6 +808,7 @@ const TeamSimple = memo(
             airyWide && s.teamStackAiryWide,
             s.refereeTeamStack,
             { minHeight: ordered.length > 1 ? layout.stackHeight : layout.badgeHeight, gap: layout.gap, paddingVertical: 0 },
+            layout.portrait && { flex: 0, flexDirection: "row", alignItems: "center", justifyContent: "flex-start" },
           ]}
         >
           {p1 ? (
@@ -797,20 +823,7 @@ const TeamSimple = memo(
             />
           ) : null}
 
-          {ordered.length > 1 && (
-            <Ripple
-              onPress={onSwap}
-              style={[
-                s.refereeSwapPlayers,
-                { height: layout.swapHeight, minHeight: layout.swapHeight, paddingVertical: 0, borderColor: `${accent}99`, backgroundColor: `${accent}1c` },
-              ]}
-              rippleContainerBorderRadius={10}
-              accessibilityLabel={`Đổi vị trí hai vận động viên đội ${panelSide === "left" ? "bên trái" : "bên phải"}`}
-            >
-              <MaterialIcons name="swap-vert" size={Math.round(18 * layout.scale)} color={accent} />
-              <Text numberOfLines={1} maxFontSizeMultiplier={1.3} style={{ color: accent, fontSize: Math.max(11, Math.round(13 * layout.scale)), fontWeight: "800" }}>Đổi vị trí</Text>
-            </Ripple>
-          )}
+          {!layout.portrait && swapPlayersButton}
 
           {p2 ? (
             <NameBadge
@@ -895,6 +908,15 @@ const TeamSimple = memo(
   },
 );
 
+function RefereeScoreActions({ portrait, children, style }) {
+  const [left, middle, right] = React.Children.toArray(children);
+  if (!portrait) return <View style={style}>{children}</View>;
+  return <View style={[style, { flexDirection: "column", flex: 1 }]}>
+    <View style={{ flexDirection: "row", gap: 8, width: "100%" }}>{left}{right}</View>
+    <View style={{ flexDirection: "row", width: "100%" }}>{middle}</View>
+  </View>;
+}
+
 function RefereeBoardRow({ layout, style, children }: {
   layout: RefereeBoardLayout;
   style?: StyleProp<ViewStyle>;
@@ -902,6 +924,10 @@ function RefereeBoardRow({ layout, style, children }: {
 }) {
   const [left, center, right] = React.Children.toArray(children);
   if (!layout.stacked) return <View style={style}>{children}</View>;
+  if (layout.portrait) return <View style={[style, { flexDirection: "column" }]}>
+    <View style={{ height: layout.centerMinHeight, flexShrink: 0 }}>{center}</View>
+    {left}{right}
+  </View>;
   return (
     <View style={[style, { flexDirection: "column" }]}>
       <View style={{ height: layout.centerMinHeight }}>{center}</View>
@@ -970,22 +996,21 @@ function WinTargetTuner({ value, base, onToggle }) {
   );
 }
 
-// Đặt cái này ở bên ngoài RefereeJudgePanel hoặc trong file riêng
-const LiveClock = memo(function LiveClock({ style }) {
-  const [now, setNow] = useState(new Date());
-
+const MatchElapsedClock = memo(function MatchElapsedClock({ startedAt, finishedAt, running, style }) {
+  const [now, setNow] = useState(Date.now);
   useEffect(() => {
-    const tmr = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(tmr);
-  }, []);
-
-  const timeString = [
-    now.getHours().toString().padStart(2, "0"),
-    now.getMinutes().toString().padStart(2, "0"),
-    now.getSeconds().toString().padStart(2, "0"),
-  ].join(":");
-
-  return <Text style={style}>{timeString}</Text>;
+    const tick = () => setNow(Date.now());
+    tick();
+    if (!running) return;
+    const interval = setInterval(tick, 1000);
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") tick();
+    });
+    return () => { clearInterval(interval); subscription.remove(); };
+  }, [startedAt, finishedAt, running]);
+  return <Text testID="referee-elapsed-time" accessibilityLabel="Thời gian trận đấu" maxFontSizeMultiplier={1.2} style={style}>
+    {formatMatchElapsed(startedAt, finishedAt || now)}
+  </Text>;
 });
 
 // Đặt cái này ở bên ngoài RefereeJudgePanel
@@ -1428,10 +1453,12 @@ const ColorCoinToss = memo(function ColorCoinToss({ disabled, onClose }) {
   );
 });
 
-const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightName, onApply }: {
+const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightName, leftCode = "A", rightCode = "B", onApply }: {
   visible: boolean;
   leftName: string;
   rightName: string;
+  leftCode?: string;
+  rightCode?: string;
   onApply: (side: "left" | "right") => void;
 }) {
   const { width, height } = useWindowDimensions();
@@ -1497,13 +1524,12 @@ const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightNa
     setPhase("running");
     const finishAngle = mode === "coin"
       ? 1800 + (winner === "right" ? 180 : 0)
-      : 2160 + (winner === "right" ? 60 : 0);
+      : 2160 + (winner === "right" ? 270 : 90);
     const startedAt = Date.now();
     tickRef.current = setInterval(() => {
       const progress = Math.min(1, (Date.now() - startedAt) / 2200);
       const angle = finishAngle * (1 - Math.pow(1 - progress, 3));
-      const sector = mode === "coin" ? 180 : 60;
-      const choice = mode === "color" ? Math.floor(progress * 14) : Math.floor((angle + sector / 2) / sector);
+      const choice = mode === "color" ? Math.floor(progress * 14) : Math.floor((angle + (mode === "coin" ? 90 : 0)) / 180);
       setPreviewSide(mode === "color" && progress > 0.86 ? winner : choice % 2 === 0 ? "left" : "right");
     }, 80);
     const animation = Animated.parallel([
@@ -1533,15 +1559,15 @@ const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightNa
   const shownSide = result || previewSide;
   const highlightedSide = phase === "idle" ? null : shownSide;
   const rotation = useMemo(() => spinAngle.interpolate({ inputRange: [0, 360], outputRange: ["0deg", "360deg"] }), [spinAngle]);
+  const backRotation = useMemo(() => spinAngle.interpolate({ inputRange: [0, 360], outputRange: ["180deg", "540deg"] }), [spinAngle]);
+  const counterRotation = useMemo(() => spinAngle.interpolate({ inputRange: [0, 360], outputRange: ["0deg", "-360deg"] }), [spinAngle]);
   const tokenTransform = useMemo<Animated.WithAnimatedValue<ViewStyle["transform"]>>(() => mode === "coin" ? [
-    { perspective: 700 },
     { translateY: drawProgress.interpolate({ inputRange: [0, 0.15, 0.48, 0.78, 1], outputRange: [0, small ? -10 : -18, small ? -14 : -24, -5, 0] }) },
-    { rotateY: rotation },
     { rotateZ: drawProgress.interpolate({ inputRange: [0, 0.35, 0.7, 1], outputRange: ["0deg", "-12deg", "8deg", "0deg"] }) },
   ] : mode === "wheel" ? [{ rotate: rotation }] : [
     { scale: drawProgress.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: [1, 0.9, 1.04, 0.94, 1] }) },
   ], [mode, small, rotation, drawProgress]);
-  const tokenSize = small ? tiny ? 70 : 90 : 122;
+  const tokenSize = mode === "wheel" ? small ? tiny ? 92 : 110 : 144 : small ? tiny ? 70 : 90 : 122;
   const shuffleTransforms = useMemo(() => {
     const travel = tokenSize * 0.24;
     const inputRange = [0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1];
@@ -1559,8 +1585,10 @@ const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightNa
     opacity: resultReveal.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] }),
     transform: [{ scale: resultReveal.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1] }) }],
   }), [resultReveal]);
-  const leftChoice = mode === "coin" ? "Ngửa" : mode === "color" ? "Xanh dương" : "Bên trái";
-  const rightChoice = mode === "coin" ? "Sấp" : mode === "color" ? "Xanh lá" : "Bên phải";
+  const leftChoice = mode === "coin" ? "Ngửa" : mode === "color" ? "Xanh dương" : `Đội ${leftCode}`;
+  const rightChoice = mode === "coin" ? "Sấp" : mode === "color" ? "Đỏ" : `Đội ${rightCode}`;
+  const rightAccent = mode === "coin" ? DRAW_GOLD : DRAW_RED;
+  const resultLabel = result === "left" ? `Đội ${leftCode}` : `Đội ${rightCode}`;
 
   return (
     <View style={s.serveDrawWrap}>
@@ -1578,9 +1606,9 @@ const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightNa
                 style={[s.serveDrawMode, small && { paddingHorizontal: 5, gap: 5 }, narrow && { flexDirection: "column", justifyContent: "center", paddingVertical: 6 }, selected && s.serveDrawModeSelected]}
               >
                 <View style={[s.serveDrawModeIcon, small && { width: 28 }]}>
-                  <Image source={option.key === "color" ? require("@/assets/images/serve-draw-colors.png") : option.key === "coin" ? require("@/assets/images/serve-draw-toss.png") : require("@/assets/images/serve-draw-wheel.png")} style={{ width: small ? 28 : 44, height: small ? 28 : 44 }} contentFit="contain" />
+                  {option.key === "color" ? <DrawColorPair size={small ? 28 : 44} /> : option.key === "wheel" ? <TwoTeamWheel size={small ? 28 : 44} /> : <Image source={require("@/assets/images/serve-draw-toss.png")} style={{ width: small ? 28 : 44, height: small ? 28 : 44 }} contentFit="contain" />}
                 </View>
-                <View style={[{ flex: 1, minWidth: 0 }, narrow && { flex: undefined, flexGrow: 0, flexShrink: 0, width: "100%" }]}>
+                <View style={[{ flex: 1, minWidth: 0 }, narrow && { flex: 0, flexBasis: "auto", flexShrink: 0, width: "100%" }]}>
                   <Text numberOfLines={2} maxFontSizeMultiplier={1.3} style={{ color: selected ? "#12c8f8" : "#f0f5ff", fontWeight: "900", fontSize: small ? 12 : 17 }}>{option.label}</Text>
                   <Text numberOfLines={2} maxFontSizeMultiplier={1.3} style={{ color: "#91a9c4", fontSize: small ? 10 : 12 }}>{option.hint}</Text>
                 </View>
@@ -1592,39 +1620,42 @@ const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightNa
         <LinearGradient colors={["#082441", "#061b32", "#04182f"]} style={[s.serveDrawStage, small && { padding: 7 }]}>
           <View style={s.serveDrawTeams}>
             <View style={s.serveDrawTeam}>
-              <Text maxFontSizeMultiplier={1.3} style={[s.serveDrawTeamCaption, small && { fontSize: 10 }]}>Đội bên trái</Text>
+              <Text maxFontSizeMultiplier={1.3} style={[s.serveDrawTeamCaption, small && { fontSize: 10 }]}>{`Đội ${leftCode}${width > height ? " · Bên trái" : ""}`}</Text>
               <Text maxFontSizeMultiplier={1.3} style={[s.serveDrawTeamName, { color: "#10c6f6", fontSize: small ? 11 : 14 }]} numberOfLines={2}>{leftName || "Đội bên trái"}</Text>
               <View style={[s.serveDrawChoice, small && { height: 44, marginTop: 5 }, { borderColor: highlightedSide === "left" ? "#10c6f6" : "#0878a7", borderWidth: highlightedSide === "left" ? 2 : 1, backgroundColor: highlightedSide === "left" ? "#075779" : "#073451", shadowColor: "#10c6f6", shadowOpacity: highlightedSide === "left" ? 0.6 : 0, shadowRadius: 8 }]}>
                 <Text numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.3} style={[s.serveDrawChoiceText, small && { fontSize: 14 }]}>{leftChoice}</Text>
                 <View style={[s.serveDrawChoiceLine, { backgroundColor: "#10c6f6" }]} />
               </View>
             </View>
-            <View testID="serve-draw-token" style={[s.serveDrawToken, small && { width: tiny ? 70 : 90, height: tiny ? 70 : 90 }]}>
+            <View testID="serve-draw-token" style={[s.serveDrawToken, { width: tokenSize, height: tokenSize }]}>
               <Animated.View testID="serve-draw-motion" style={{ width: "100%", height: "100%", transform: tokenTransform }}>
                 {mode === "color" && phase === "running" ? <>
-                  <Animated.View testID="serve-draw-card-left" style={[s.serveDrawShuffleCard, { left: "12%", zIndex: previewSide === "left" ? 2 : 1, borderColor: "#77e8ff", transform: shuffleTransforms.left }]}>
-                    <LinearGradient colors={["#14d4ff", "#007be0"]} style={StyleSheet.absoluteFill} />
+                  <Animated.View testID="serve-draw-card-left" style={[s.serveDrawShuffleCard, { left: "12%", zIndex: previewSide === "left" ? 2 : 1, borderWidth: 0, transform: shuffleTransforms.left }]}>
+                    <DrawCard side="left" code={leftCode} />
                   </Animated.View>
-                  <Animated.View testID="serve-draw-card-right" style={[s.serveDrawShuffleCard, { left: "36%", zIndex: previewSide === "right" ? 2 : 1, borderColor: "#e2ff71", transform: shuffleTransforms.right }]}>
-                    <LinearGradient colors={["#dfff43", "#8acb13"]} style={StyleSheet.absoluteFill} />
+                  <Animated.View testID="serve-draw-card-right" style={[s.serveDrawShuffleCard, { left: "36%", zIndex: previewSide === "right" ? 2 : 1, borderWidth: 0, transform: shuffleTransforms.right }]}>
+                    <DrawCard side="right" code={rightCode} />
                   </Animated.View>
-                </> : <Image source={mode === "coin" ? require("@/assets/images/serve-draw-coin.png") : mode === "wheel" ? require("@/assets/images/serve-draw-wheel.png") : require("@/assets/images/serve-draw-colors.png")} style={{ width: "100%", height: "100%" }} contentFit="contain" />}
+                </> : mode === "color" ? phase === "done" && result ? <DrawCard side={result} code={result === "left" ? leftCode : rightCode} size={tokenSize} /> : <DrawColorPair size={tokenSize} /> : mode === "wheel" ? <TwoTeamWheel size={tokenSize} leftCode={leftCode} rightCode={rightCode} counterRotation={counterRotation} /> : phase === "running" ? <>
+                  <Animated.View testID="serve-coin-front-motion" style={{ position: "absolute", backfaceVisibility: "hidden", transform: [{ perspective: 700 }, { rotateY: rotation }] }}><CoinFace side="left" size={tokenSize} /></Animated.View>
+                  <Animated.View testID="serve-coin-back-motion" style={{ position: "absolute", backfaceVisibility: "hidden", transform: [{ perspective: 700 }, { rotateY: backRotation }] }}><CoinFace side="right" size={tokenSize} /></Animated.View>
+                </> : <CoinFace side={result || "left"} size={tokenSize} />}
               </Animated.View>
               {mode === "wheel" ? <View pointerEvents="none" style={{ position: "absolute", top: -4, alignSelf: "center", borderLeftWidth: 7, borderRightWidth: 7, borderTopWidth: 12, borderLeftColor: "transparent", borderRightColor: "transparent", borderTopColor: "#f0f5ff" }} /> : null}
             </View>
             <View style={s.serveDrawTeam}>
-              <Text maxFontSizeMultiplier={1.3} style={[s.serveDrawTeamCaption, small && { fontSize: 10 }]}>Đội bên phải</Text>
+              <Text maxFontSizeMultiplier={1.3} style={[s.serveDrawTeamCaption, small && { fontSize: 10 }]}>{`Đội ${rightCode}${width > height ? " · Bên phải" : ""}`}</Text>
               <Text maxFontSizeMultiplier={1.3} style={[s.serveDrawTeamName, { color: "#eaf3ff", fontSize: small ? 11 : 14 }]} numberOfLines={2}>{rightName || "Đội bên phải"}</Text>
-              <View style={[s.serveDrawChoice, small && { height: 44, marginTop: 5 }, { borderColor: highlightedSide === "right" ? "#a3e635" : "#405570", borderWidth: highlightedSide === "right" ? 2 : 1, backgroundColor: highlightedSide === "right" ? "#294c16" : "#182c44", shadowColor: "#a3e635", shadowOpacity: highlightedSide === "right" ? 0.6 : 0, shadowRadius: 8 }]}>
+              <View style={[s.serveDrawChoice, small && { height: 44, marginTop: 5 }, { borderColor: highlightedSide === "right" ? rightAccent : "#405570", borderWidth: highlightedSide === "right" ? 2 : 1, backgroundColor: highlightedSide === "right" ? `${rightAccent}35` : "#182c44", shadowColor: rightAccent, shadowOpacity: highlightedSide === "right" ? 0.6 : 0, shadowRadius: 8 }]}>
                 <Text numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.3} style={[s.serveDrawChoiceText, small && { fontSize: 14 }]}>{rightChoice}</Text>
-                <View style={[s.serveDrawChoiceLine, { backgroundColor: "#9badc4" }]} />
+                <View style={[s.serveDrawChoiceLine, { backgroundColor: rightAccent }]} />
               </View>
             </View>
           </View>
-          <Animated.View testID="serve-draw-result" style={[s.serveDrawResult, small && { minHeight: 55 }, resultAnimatedStyle, { borderColor: phase === "done" ? (result === "left" ? "#0dc5f4" : "#a3e635") : "#0b78a8" }]}>
+          <Animated.View testID="serve-draw-result" style={[s.serveDrawResult, small && { minHeight: 55 }, resultAnimatedStyle, { borderColor: phase === "done" ? (result === "left" ? DRAW_BLUE : rightAccent) : "#0b78a8" }]}>
             <Text maxFontSizeMultiplier={1.3} style={{ color: "#91a9c4", fontSize: small ? 11 : 14 }}>Kết quả:</Text>
-            <Text numberOfLines={2} maxFontSizeMultiplier={1.3} style={{ color: phase === "done" ? (result === "left" ? "#0dc5f4" : "#a3e635") : "#f0f5ff", fontWeight: "900", fontSize: small ? 15 : 21, textAlign: "center" }}>
-              {phase === "done" ? `Đội bên ${result === "left" ? "trái" : "phải"} giao trước` : phase === "running" ? "Đang bốc thăm..." : "Chạm bắt đầu để bốc thăm"}
+            <Text numberOfLines={2} maxFontSizeMultiplier={1.3} style={{ color: phase === "done" ? (result === "left" ? DRAW_BLUE : rightAccent) : "#f0f5ff", fontWeight: "900", fontSize: small ? 15 : 21, textAlign: "center" }}>
+              {phase === "done" ? `${resultLabel} giao trước` : phase === "running" ? "Đang bốc thăm..." : "Chạm bắt đầu để bốc thăm"}
             </Text>
           </Animated.View>
         </LinearGradient>
@@ -2239,7 +2270,7 @@ const normalizeRefereeLayout = (layout) =>
     ? { left: "B", right: "A" }
     : { left: "A", right: "B" };
 
-export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
+export default function RefereeJudgePanel({ matchId, initialMatch = null, onToggleOrientation = null }) {
   const params = useLocalSearchParams();
   const { userMatch } = params;
   useUserMatchHeader(userMatch && "user");
@@ -2256,11 +2287,24 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
   const pageBottomInset = insets.bottom;
   const { width, height, fontScale } = useWindowDimensions();
   const [boardViewport, setBoardViewport] = useState({ width: 0, height: 0 });
-  const boardLayout = useMemo(
-    () => getRefereeBoardLayout(boardViewport.width || width - 20, boardViewport.height || height * 0.65, fontScale),
-    [boardViewport.width, boardViewport.height, width, height, fontScale],
-  );
   const isLandscape = width > height;
+  const [orientationBusy, setOrientationBusy] = useState(false);
+  const orientationBusyRef = useRef(false);
+  const rotateScreen = useCallback(async () => {
+    if (orientationBusyRef.current) return;
+    orientationBusyRef.current = true;
+    setOrientationBusy(true);
+    try {
+      if (onToggleOrientation) await onToggleOrientation();
+      else await ScreenOrientation.lockAsync(isLandscape ? ScreenOrientation.OrientationLock.PORTRAIT_UP : ScreenOrientation.OrientationLock.LANDSCAPE);
+    } catch {
+      Toast.show({ type: "error", text1: "Không thể xoay màn hình", text2: "Vui lòng thử lại." });
+    } finally {
+      orientationBusyRef.current = false;
+      setOrientationBusy(false);
+    }
+  }, [isLandscape, onToggleOrientation]);
+  const [localClockStart, setLocalClockStart] = useState({ matchId: "", at: 0 });
   const shortEdge = Math.min(width, height);
   const longEdge = Math.max(width, height);
   const isCompactLandscape = isLandscape && (shortEdge < 520 || longEdge < 920);
@@ -2404,6 +2448,16 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
   }, [breakState?.active, breakState?.afterGame, curA, curB, curIdx]);
   const waitingStartActive = waitingStart || syncedWaitingStart;
   const needsStartAction = isPreMatch || waitingStartActive;
+  const boardLayout = useMemo(
+    () => getRefereeBoardLayout(boardViewport.width || width - 20, boardViewport.height || height * 0.65, fontScale, !isLandscape, needsStartAction),
+    [boardViewport.width, boardViewport.height, width, height, fontScale, isLandscape, needsStartAction],
+  );
+  const firstStartLog = match?.liveLog?.find?.((entry) => entry?.type === "start");
+  const optimisticStartedAt = localClockStart.matchId === String(matchId) ? localClockStart.at : 0;
+  const matchStartedAt = (!isPreMatch || optimisticStartedAt)
+    ? matchTimestamp(match?.startedAt) || matchTimestamp(firstStartLog?.at) || optimisticStartedAt
+    : 0;
+  const matchFinishedAt = matchStatus === "finished" ? matchTimestamp(match?.finishedAt) : 0;
 
   const playersA = useMemo(
     () => playersForSide(match, "A", eventType),
@@ -3223,6 +3277,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
   // ====== actions ======
   const onStart = useCallback(async () => {
     if (!match || !ensureLiveOwner()) return;
+    if (!matchStartedAt) setLocalClockStart({ matchId: String(matchId), at: Date.now() });
     try {
       const startServe = buildPreStartServe({
         preferCurrentServerId: !isUserMatch,
@@ -3260,6 +3315,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
       }
       setWaitingStart(false);
     } catch (e) {
+      setLocalClockStart({ matchId: "", at: 0 });
       Toast.show({
         type: "error",
         text1: "Lỗi",
@@ -3272,6 +3328,8 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
     curIdx,
     ensureLiveOwner,
     buildPreStartServe,
+    matchId,
+    matchStartedAt,
     liveApi,
     liveSync?.online,
     isUserMatch,
@@ -4292,6 +4350,127 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
   const leftMatchWins = match?.status === "finished" && leftSetWins >= needSetWinsVal ? 1 : 0;
   const rightMatchWins = match?.status === "finished" && rightSetWins >= needSetWinsVal ? 1 : 0;
 
+  const clockControl = <View testID="referee-match-clock" style={[s.refereeClockPill, { minWidth: isLandscape ? 94 : 100, minHeight: 40, paddingHorizontal: 7, gap: 5 }, !t.dark && { backgroundColor: t.colors.card, borderColor: t.colors.border }]}>
+    <MaterialIcons name="schedule" size={15} color={t.colors.text} />
+    <MatchElapsedClock startedAt={matchStartedAt} finishedAt={matchFinishedAt} running={Boolean(matchStartedAt) && matchStatus !== "finished"} style={[s.clockText, { color: t.colors.text, fontSize: 14, fontVariant: ["tabular-nums"] }]} />
+  </View>;
+  const utilityControls = (
+              <View
+                style={[
+                  s.topUtilityControls,
+                  useCompactTopChrome && s.topUtilityControlsCompact,
+                ]}
+              >
+                {isLandscape ? clockControl : null}
+                <TouchableOpacity testID="referee-rotate" accessibilityLabel={isLandscape ? "Chuyển sang màn hình dọc" : "Chuyển sang màn hình ngang"} disabled={orientationBusy} onPress={rotateScreen}>
+                  <View style={[s.iconBtnSetting, useCompactTopChrome && s.iconBtnSettingCompact, { backgroundColor: t.dark ? "#0b2747" : t.chipInfoBg }]}>
+                    {orientationBusy ? <ActivityIndicator size="small" color={t.chipInfoFg} /> : <MaterialIcons name="screen-rotation" size={18} color={t.chipInfoFg} />}
+                  </View>
+                </TouchableOpacity>
+                {/* Nút Voice Commands */}
+                <TouchableOpacity
+                  onPress={() => {
+                    const next = !voiceCommandEnabled;
+                    setVoiceCommandEnabled(next);
+                    Toast.show({
+                      type: next ? "success" : "info",
+                      text1: next
+                        ? "Đã bật voice command"
+                        : "Đã tắt voice command",
+                      text2: next
+                        ? 'Có thể nói: "điểm", "đổi giao", "đổi tay", "timeout", "bắt đầu"...'
+                        : undefined,
+                      visibilityTime: 2000,
+                    });
+                  }}
+                >
+                  <View
+                    style={[
+                      s.iconBtnSetting,
+                      useCompactTopChrome && s.iconBtnSettingCompact,
+                      {
+                        borderRadius: 20,
+                        backgroundColor: voiceCommandEnabled
+                          ? isVoiceListening
+                            ? t.colors.primary
+                            : "#f59e0b"
+                          : t.dark ? "#0b2747" : t.chipInfoBg,
+                      },
+                    ]}
+                  >
+                    {isVoiceProcessing ? (
+                      <ActivityIndicator size="small" color={t.chipInfoFg} />
+                    ) : (
+                      <MaterialIcons
+                        name={
+                          voiceCommandEnabled
+                            ? "keyboard-voice"
+                            : "voice-over-off"
+                        }
+                        size={useCompactTopChrome ? 18 : 20}
+                        color={voiceCommandEnabled ? "#fff" : t.chipInfoFg}
+                      />
+                    )}
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    const nextState = !voiceEnabled;
+                    setVoiceEnabled(nextState);
+                    if (nextState) {
+                      Speech.speak("Bật âm thanh");
+                    } else {
+                      Speech.stop();
+                    }
+                  }}
+                >
+                  <View
+                    style={[
+                      s.iconBtnSetting,
+                      useCompactTopChrome && s.iconBtnSettingCompact,
+                      {
+                        borderRadius: 20,
+                        backgroundColor: voiceEnabled
+                          ? t.colors.primary
+                          : t.dark ? "#0b2747" : t.chipInfoBg,
+                        borderWidth: 1,
+                        borderColor: voiceEnabled
+                          ? t.colors.primary
+                          : t.dark ? "#2b648d" : t.chipInfoBd,
+                      },
+                    ]}
+                  >
+                    <MaterialIcons
+                      name={voiceEnabled ? "volume-up" : "volume-off"}
+                      size={useCompactTopChrome ? 18 : 20}
+                      color={voiceEnabled ? "#fff" : t.chipInfoFg}
+                    />
+                  </View>
+                </TouchableOpacity>
+                {/* NÚT SETTINGS GÓC PHẢI */}
+                <TouchableOpacity onPress={() => setSettingsOpen(true)}>
+                  <View
+                    style={[
+                      s.iconBtnSetting,
+                      useCompactTopChrome && s.iconBtnSettingCompact,
+                      {
+                        borderRadius: 20,
+                        backgroundColor: t.dark ? "#0b2747" : t.chipInfoBg,
+                        borderWidth: 1,
+                        borderColor: t.dark ? "#2b648d" : t.chipInfoBd,
+                      },
+                    ]}
+                  >
+                    <MaterialIcons
+                      name="settings"
+                      size={useCompactTopChrome ? 18 : 20}
+                      color={t.chipInfoFg}
+                    />
+                  </View>
+                </TouchableOpacity>
+              </View>
+  );
+
   return (
     <SafeAreaView
       edges={pageSafeEdges}
@@ -4323,12 +4502,16 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
               borderColor: t.dark ? "#123d62" : t.colors.border,
               marginLeft: t.dark ? -insets.left : 0,
               marginRight: t.dark ? -insets.right : 0,
-              paddingLeft: t.dark ? insets.left + 10 : undefined,
-              paddingRight: t.dark ? insets.right + 10 : undefined,
+              paddingLeft: t.dark ? insets.left + 7 : undefined,
+              paddingRight: t.dark ? insets.right + 7 : undefined,
             },
           ]}
         >
           {t.dark ? <LinearGradient colors={["#0a2545", "#06172e"]} style={[StyleSheet.absoluteFill, { borderRadius: 18 }]} pointerEvents="none" /> : null}
+          {!isLandscape ? <RefereePortraitHeader code={baseCode} detail={`BO${Number(rules?.bestOf || 1)} · GAME ${curIdx + 1}`} utilities={utilityControls} clock={clockControl}
+            onBack={handleBack} onUndo={onUndo} onSwap={swapSides} onCourt={isPreMatch && userMatch !== "true" ? () => setCourtOpen(true) : undefined}
+            preStart={isPreMatch} undoDisabled={undoBusy || !canUndoLive} undoBusy={undoBusy} courtLabel={currentCourtId ? "Đổi sân" : "Gán sân"}
+            colors={{ text: t.colors.text, card: t.dark ? "#0a2342" : t.colors.card, border: t.colors.border }} /> : (
           <View
             style={[
               s.topHeaderRow,
@@ -4557,115 +4740,9 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                     </Ripple>
                   )}
                 </View>
-              <View
-                style={[
-                  s.topUtilityControls,
-                  useCompactTopChrome && s.topUtilityControlsCompact,
-                ]}
-              >
-                {/* Nút Voice Commands */}
-                <TouchableOpacity
-                  onPress={() => {
-                    const next = !voiceCommandEnabled;
-                    setVoiceCommandEnabled(next);
-                    Toast.show({
-                      type: next ? "success" : "info",
-                      text1: next
-                        ? "Đã bật voice command"
-                        : "Đã tắt voice command",
-                      text2: next
-                        ? 'Có thể nói: "điểm", "đổi giao", "đổi tay", "timeout", "bắt đầu"...'
-                        : undefined,
-                      visibilityTime: 2000,
-                    });
-                  }}
-                >
-                  <View
-                    style={[
-                      s.iconBtnSetting,
-                      useCompactTopChrome && s.iconBtnSettingCompact,
-                      {
-                        borderRadius: 20,
-                        backgroundColor: voiceCommandEnabled
-                          ? isVoiceListening
-                            ? t.colors.primary
-                            : "#f59e0b"
-                          : t.dark ? "#0b2747" : t.chipInfoBg,
-                      },
-                    ]}
-                  >
-                    {isVoiceProcessing ? (
-                      <ActivityIndicator size="small" color={t.chipInfoFg} />
-                    ) : (
-                      <MaterialIcons
-                        name={
-                          voiceCommandEnabled
-                            ? "keyboard-voice"
-                            : "voice-over-off"
-                        }
-                        size={useCompactTopChrome ? 18 : 20}
-                        color={voiceCommandEnabled ? "#fff" : t.chipInfoFg}
-                      />
-                    )}
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => {
-                    const nextState = !voiceEnabled;
-                    setVoiceEnabled(nextState);
-                    if (nextState) {
-                      Speech.speak("Bật âm thanh");
-                    } else {
-                      Speech.stop();
-                    }
-                  }}
-                >
-                  <View
-                    style={[
-                      s.iconBtnSetting,
-                      useCompactTopChrome && s.iconBtnSettingCompact,
-                      {
-                        borderRadius: 20,
-                        backgroundColor: voiceEnabled
-                          ? t.colors.primary
-                          : t.dark ? "#0b2747" : t.chipInfoBg,
-                        borderWidth: 1,
-                        borderColor: voiceEnabled
-                          ? t.colors.primary
-                          : t.dark ? "#2b648d" : t.chipInfoBd,
-                      },
-                    ]}
-                  >
-                    <MaterialIcons
-                      name={voiceEnabled ? "volume-up" : "volume-off"}
-                      size={useCompactTopChrome ? 18 : 20}
-                      color={voiceEnabled ? "#fff" : t.chipInfoFg}
-                    />
-                  </View>
-                </TouchableOpacity>
-                {/* NÚT SETTINGS GÓC PHẢI */}
-                <TouchableOpacity onPress={() => setSettingsOpen(true)}>
-                  <View
-                    style={[
-                      s.iconBtnSetting,
-                      useCompactTopChrome && s.iconBtnSettingCompact,
-                      {
-                        borderRadius: 20,
-                        backgroundColor: t.dark ? "#0b2747" : t.chipInfoBg,
-                        borderWidth: 1,
-                        borderColor: t.dark ? "#2b648d" : t.chipInfoBd,
-                      },
-                    ]}
-                  >
-                    <MaterialIcons
-                      name="settings"
-                      size={useCompactTopChrome ? 18 : 20}
-                      color={t.chipInfoFg}
-                    />
-                  </View>
-                </TouchableOpacity>
-              </View>
-          </View>
+              {utilityControls}
+          </View>)}
+
         </View>
 
         {currentCourtId && !!currentCourtName ? (
@@ -4766,7 +4843,11 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                   },
                 ]}
               >
-                {t.dark ? <Image source={require("@/assets/images/referee-pickleball.png")} style={{ width: boardLayout.ballSize, height: boardLayout.ballSize, flexShrink: 0 }} contentFit="contain" /> : null}
+                {t.dark ? <Image source={require("@/assets/images/referee-pickleball.png")} style={[{ width: boardLayout.ballSize, height: boardLayout.ballSize, flexShrink: 0 }, !isLandscape && { position: "absolute", top: boardLayout.padding, alignSelf: "center" }]} contentFit="contain" /> : null}
+                {!isLandscape && <View style={{ width: "100%", flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 8 }}>
+                  <Text style={{ color: "#08c9f7", fontSize: boardLayout.chipFont, fontWeight: "900" }}>ĐỘI {leftSide}</Text>
+                  <Text style={{ color: "#9fe92f", fontSize: boardLayout.chipFont, fontWeight: "900" }}>ĐỘI {rightSide}</Text>
+                </View>}
                 {needsStartAction ? (
                   <View
                     style={[
@@ -4831,6 +4912,18 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                       {preStartServeHint}
                     </Text>
                   </View>
+                ) : !isLandscape ? (
+                  <>
+                    <Text maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit style={[s.refereeCenterScore, { color: t.colors.text, fontSize: boardLayout.scoreFont, lineHeight: boardLayout.scoreLine }]}>{leftGameScore} : {rightGameScore}</Text>
+                    <Ripple accessibilityLabel="Đổi người giao bóng" onPress={toggleServerNum} disabled={incBusy || undoBusy || isOpeningServeLocked} style={[s.refereeServeChip, { minHeight: 32, minWidth: 0, borderColor: "#0b679c", backgroundColor: "#082f52b8", paddingVertical: 3 }]}>
+                      <Text maxFontSizeMultiplier={1.3} style={[s.refereeServeChipText, { fontSize: boardLayout.chipFont }]}>Lượt giao {activeServerNum} · GAME {curIdx + 1}</Text>
+                    </Ripple>
+                    <Text maxFontSizeMultiplier={1.3} style={{ color: t.subtext, fontSize: boardLayout.calloutFont, fontWeight: "700" }}>Đọc điểm: {callout || "—"}</Text>
+                    <View style={{ flexDirection: "row", justifyContent: "center", gap: 18, paddingTop: 4, borderTopWidth: 1, borderTopColor: "#16466c", width: "100%" }}>
+                      <Text maxFontSizeMultiplier={1.3} style={{ color: t.colors.text, fontSize: boardLayout.chipFont, fontWeight: "800" }}>GAME {leftSetWins} – {rightSetWins}</Text>
+                      <Text maxFontSizeMultiplier={1.3} style={{ color: t.colors.text, fontSize: boardLayout.chipFont, fontWeight: "800" }}>MATCH {leftMatchWins} – {rightMatchWins}</Text>
+                    </View>
+                  </>
                 ) : (
                   <>
                     <View style={[s.refereeCenterTop, { marginTop: 0, flexShrink: 0 }]}>
@@ -4918,7 +5011,6 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
             isTightLandscape && s.bottomBarCompact,
             s.refereeBottomBar,
           ]}>
-            {/* Clock / Break label — always on the left */}
             {activeBreak ? (
               <Text
                 style={[
@@ -4936,12 +5028,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
               >
                 {activeBreak.type === "medical" ? "Nghỉ y tế" : "Timeout"}
               </Text>
-            ) : (
-              <View style={[s.refereeClockPill, { minWidth: width < 740 ? 96 : 128, minHeight: 44 }]}>
-                <MaterialIcons name="schedule" size={isTightLandscape ? 16 : 19} color={t.colors.text} />
-                <LiveClock style={[s.clockText, { color: t.colors.text, fontSize: isTightLandscape ? 15 : 18 }]} />
-              </View>
-            )}
+            ) : null}
 
             {activeBreak ? (
               <View
@@ -4991,7 +5078,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
 	              </View>
 	            ) : needsStartAction ? (
               /* Pre-match: CTA buttons inline in 1 row */
-              <View style={[s.row, s.refereePreStartActions, s.refereeActionGroup, { minWidth: Math.min(398, width - insets.left - insets.right - 24), flexWrap: "wrap" }]}>
+              <View style={[s.row, s.refereePreStartActions, s.refereeActionGroup, { minWidth: 0, width: "100%", flexBasis: "100%", gap: boardLayout.gap, flexWrap: "wrap" }]}>
                 {cta && (
                   <Ripple
                     onPress={cta.onPress}
@@ -5001,6 +5088,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                       isTightLandscape && s.bigActionBtnCompact,
                       s.refereePreStartPrimary,
                       { minWidth: 160 },
+                      !isLandscape && { flexBasis: "100%" },
                       cta.danger
                         ? { backgroundColor: "#ef4444", borderColor: "#b91c1c" }
                         : { backgroundColor: t.success, borderColor: t.success },
@@ -5095,13 +5183,13 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
               </View>
             ) : (
               /* In-game: score buttons centered */
-              <View
+              <RefereeScoreActions portrait={!isLandscape}
                 style={[
                   s.row,
                   s.bottomActions,
                   isTightLandscape && s.bottomActionsCompact,
                   s.refereeActionGroup,
-                  { minWidth: Math.min(330, width - insets.left - insets.right - 24) },
+                  { minWidth: 0, width: "100%", flexBasis: "100%", gap: boardLayout.gap },
                 ]}
               >
                 <Ripple
@@ -5149,7 +5237,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                       adjustsFontSizeToFit
                       maxFontSizeMultiplier={1.3}
                   >
-                    Đội bên trái
+                    {isLandscape ? "Đội bên trái" : `Điểm đội ${leftSide}`}
                   </Text>
                 </Ripple>
 
@@ -5223,16 +5311,17 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
                       adjustsFontSizeToFit
                       maxFontSizeMultiplier={1.3}
                   >
-                    Đội bên phải
+                    {isLandscape ? "Đội bên phải" : `Điểm đội ${rightSide}`}
                   </Text>
                 </Ripple>
-              </View>
+              </RefereeScoreActions>
             )}
             {/* Keep the game CTA in normal flow so it cannot cover score buttons. */}
             {!needsStartAction && cta && (
               <View
                 style={[
                   s.refereeFooterCta,
+                  { flexBasis: "100%" },
                 ]}
               >
                 <Ripple
@@ -5369,6 +5458,8 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null }) {
 
           <View style={s.fullModalBody}>
             <ServeDrawPanel
+              leftCode={leftSide}
+              rightCode={rightSide}
               visible={menuOpen}
               leftName={leftSide === "A" ? teamNameA : teamNameB}
               rightName={rightSide === "A" ? teamNameA : teamNameB}
