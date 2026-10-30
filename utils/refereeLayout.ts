@@ -7,7 +7,6 @@ export function getRefereeBoardLayout(width: number, height: number, fontScale =
   const textScale = clamp(fontScale, 1, 1.3);
   const px = (value: number, min = 0) => Math.max(min, Math.round(value * scale));
   const gap = px(8, 6);
-  const columnWidth = stacked ? undefined : Math.max(0, (width - gap * 2) / 3);
   const padding = px(8, 6);
   const titleFont = px(portrait ? 14 : 16, 12);
   const sideFont = px(11, 10);
@@ -40,7 +39,7 @@ export function getRefereeBoardLayout(width: number, height: number, fontScale =
   const scoreLine = Math.ceil(scoreFont * 1.1);
   const centerMinHeight = portrait ? Math.ceil((preStart ? 226 : 194) * scale * textScale) : centerFixedHeight + Math.ceil(scoreLine * textScale);
   const minHeight = portrait ? teamMinHeight * 2 + centerMinHeight + gap * 2 : stacked ? teamMinHeight + centerMinHeight + gap : Math.max(teamMinHeight, centerMinHeight);
-  return { scale, portrait, stacked, breakStacked, columnWidth, teamMinHeight, centerMinHeight, gap, padding, titleFont, titleLine, sideFont, sideLine, headerHeight,
+  return { scale, portrait, stacked, breakStacked, teamMinHeight, centerMinHeight, gap, padding, titleFont, titleLine, sideFont, sideLine, headerHeight,
     avatarSize, badgeHeight, playerFont, swapHeight, breakFont, breakCountFont,
     breakLine, breakCountLine, breakHeight, stackHeight, ballSize, chipFont,
     chipHeight, calloutFont, calloutLine, resultFont, resultLine, resultLabelFont,

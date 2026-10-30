@@ -755,7 +755,6 @@ const TeamSimple = memo(
             padding: layout.padding,
             gap: layout.gap,
             ...(layout.portrait ? { flex: 1, minHeight: layout.teamMinHeight } : {}),
-            ...(!layout.stacked ? { width: layout.columnWidth, flexBasis: layout.columnWidth, flexGrow: 0, flexShrink: 0 } : {}),
             backgroundColor: panelBg,
             borderColor: accent,
             borderWidth: isServing ? 4 : 3,
@@ -913,9 +912,19 @@ const TeamSimple = memo(
 function RefereeScoreActions({ portrait, children, style }) {
   const [left, middle, right] = React.Children.toArray(children);
   if (!portrait) return <View style={style}>{children}</View>;
-  return <View style={[style, { flexDirection: "column", flex: 1 }]}>
-    <View style={{ flexDirection: "row", gap: 8, width: "100%" }}>{left}{right}</View>
-    <View style={{ flexDirection: "row", width: "100%" }}>{middle}</View>
+  const fitButton = (button) => {
+    if (!React.isValidElement(button)) return button;
+    const element = button as React.ReactElement<{ style?: StyleProp<ViewStyle> }>;
+    return React.cloneElement(element, {
+      style: [element.props.style, { width: "100%", minWidth: 0, flex: 0, flexBasis: "auto", flexGrow: 0, flexShrink: 0 }],
+    });
+  };
+  return <View testID="referee-portrait-actions" style={[style, { flexDirection: "column", flex: 0, flexBasis: "auto", width: "100%", minWidth: 0, alignItems: "stretch" }]}>
+    <View style={{ flexDirection: "row", gap: 8, width: "100%", minWidth: 0 }}>
+      <View style={{ flex: 1, flexBasis: 0, width: 0, minWidth: 0 }}>{fitButton(left)}</View>
+      <View style={{ flex: 1, flexBasis: 0, width: 0, minWidth: 0 }}>{fitButton(right)}</View>
+    </View>
+    {fitButton(middle)}
   </View>;
 }
 
@@ -925,7 +934,9 @@ function RefereeBoardRow({ layout, style, children }: {
   children: React.ReactNode;
 }) {
   const [left, center, right] = React.Children.toArray(children);
-  if (!layout.stacked) return <View style={style}>{children}</View>;
+  if (!layout.stacked) return <View testID="referee-landscape-columns" style={[style, { width: "100%", minWidth: 0 }]}>
+    {[left, center, right].map((child, index) => <View key={index} testID={`referee-column-${index}`} style={{ flex: 1, flexBasis: 0, width: 0, minWidth: 0, alignItems: "stretch" }}>{child}</View>)}
+  </View>;
   if (layout.portrait) return <View style={[style, { flexDirection: "column" }]}>
     <View style={{ height: layout.centerMinHeight, flexShrink: 0 }}>{center}</View>
     {left}{right}
@@ -4791,7 +4802,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
           <View style={s.scoreboardBody} onLayout={({ nativeEvent: { layout } }) => {
             setBoardViewport((current) => Math.abs(current.width - layout.width) < 1 && Math.abs(current.height - layout.height) < 1 ? current : { width: layout.width, height: layout.height });
           }}>
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, minHeight: boardLayout.minHeight }} bounces={false}>
+            <ScrollView style={{ flex: 1, minWidth: 0 }} contentContainerStyle={{ flexGrow: 1, width: "100%", minHeight: boardLayout.minHeight }} bounces={false}>
             <RefereeBoardRow
               layout={boardLayout}
               style={[
@@ -4836,7 +4847,6 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
                     useWideAiryScoreboard &&
                     s.centerColAiryWide,
                   {
-                    ...(!boardLayout.stacked ? { width: boardLayout.columnWidth, flexBasis: boardLayout.columnWidth, flexGrow: 0, flexShrink: 0 } : {}),
                     paddingVertical: boardLayout.padding,
                     paddingHorizontal: boardLayout.padding,
                     justifyContent: "space-evenly",
@@ -4859,7 +4869,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
                       { flex: 1, minHeight: 0, gap: boardLayout.gap, paddingVertical: 0 },
                     ]}
                   >
-                    <Text numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.3} style={[s.refereeCenterScore, { color: t.colors.text, fontSize: boardLayout.scoreFont, lineHeight: boardLayout.scoreLine }]}>
+                    <Text testID="referee-score-digits" minimumFontScale={0.7} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.3} style={[s.refereeCenterScore, { color: t.colors.text, fontSize: boardLayout.scoreFont, lineHeight: boardLayout.scoreLine, width: "100%", height: Math.ceil(boardLayout.scoreLine * Math.min(Math.max(fontScale, 1), 1.3)), flexShrink: 0 }]}>
                       {leftGameScore} : {rightGameScore}
                     </Text>
                     <Text
@@ -4917,7 +4927,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
                   </View>
                 ) : !isLandscape ? (
                   <>
-                    <Text maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit style={[s.refereeCenterScore, { color: t.colors.text, fontSize: boardLayout.scoreFont, lineHeight: boardLayout.scoreLine }]}>{leftGameScore} : {rightGameScore}</Text>
+                    <Text testID="referee-score-digits" minimumFontScale={0.7} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit style={[s.refereeCenterScore, { color: t.colors.text, fontSize: boardLayout.scoreFont, lineHeight: boardLayout.scoreLine, width: "100%", height: Math.ceil(boardLayout.scoreLine * Math.min(Math.max(fontScale, 1), 1.3)), flexShrink: 0 }]}>{leftGameScore} : {rightGameScore}</Text>
                     <Ripple accessibilityLabel="Đổi người giao bóng" onPress={toggleServerNum} disabled={incBusy || undoBusy || isOpeningServeLocked} style={[s.refereeServeChip, { minHeight: 32, minWidth: 0, borderColor: "#0b679c", backgroundColor: "#082f52b8", paddingVertical: 3 }]}>
                       <Text maxFontSizeMultiplier={1.3} style={[s.refereeServeChipText, { fontSize: boardLayout.chipFont }]}>Lượt giao {activeServerNum} · GAME {curIdx + 1}</Text>
                     </Ripple>
@@ -4937,7 +4947,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
                         {callout || "—"}
                       </Text>
                     </View>
-                    <Text maxFontSizeMultiplier={1.3} style={[s.refereeCenterScore, { color: t.colors.text, fontSize: boardLayout.scoreFont, lineHeight: boardLayout.scoreLine, flexShrink: 0 }]} adjustsFontSizeToFit numberOfLines={1}>
+                    <Text testID="referee-score-digits" minimumFontScale={0.7} maxFontSizeMultiplier={1.3} style={[s.refereeCenterScore, { color: t.colors.text, fontSize: boardLayout.scoreFont, lineHeight: boardLayout.scoreLine, width: "100%", height: Math.ceil(boardLayout.scoreLine * Math.min(Math.max(fontScale, 1), 1.3)), flexShrink: 0 }]} adjustsFontSizeToFit numberOfLines={1}>
                       {leftGameScore} : {rightGameScore}
                     </Text>
                     <View style={[s.refereeGameChip, { minWidth: 0, minHeight: boardLayout.chipHeight, paddingVertical: 0, flexShrink: 0, borderColor: "#0b679c", backgroundColor: "#082f52b8" }]}>
