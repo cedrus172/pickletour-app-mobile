@@ -662,21 +662,25 @@ export default function ClipCutScreen() {
           Phát lại đoạn đã chọn để kiểm tra đúng chưa, rồi hãy cắt.
         </Text>
 
-        {/* Nút cắt */}
-        <Pressable
-          onPress={() => onCut()}
-          disabled={busy || (useCustom && !customValid)}
-          style={[styles.cutBtn, { backgroundColor: C.primary, opacity: busy || (useCustom && !customValid) ? 0.6 : 1, marginTop: 12 }]}
-        >
-          {busy ? <ActivityIndicator color={C.onPrimary} /> : <Ionicons name="cut" size={18} color={C.onPrimary} />}
-          <Text style={{ color: C.onPrimary, fontWeight: "800", fontSize: 16, marginLeft: 8 }}>
-            {busy ? "Đang cắt…" : "Cắt clip"}
-          </Text>
-        </Pressable>
-        {!!retentionHuman && (
-          <Text style={{ color: C.muted, fontSize: 12, textAlign: "center", marginTop: 8 }}>
-            Clip tự xoá sau {retentionHuman} — nhớ tải/chia sẻ sớm.
-          </Text>
+        {/* Nút cắt — chỉ hiện ở chế độ Tuỳ chọn (chế độ nhanh cắt bằng nút trên dòng thời gian). */}
+        {useCustom && (
+          <>
+            <Pressable
+              onPress={() => onCut()}
+              disabled={busy || !customValid}
+              style={[styles.cutBtn, { backgroundColor: C.primary, opacity: busy || !customValid ? 0.6 : 1, marginTop: 12 }]}
+            >
+              {busy ? <ActivityIndicator color={C.onPrimary} /> : <Ionicons name="cut" size={18} color={C.onPrimary} />}
+              <Text style={{ color: C.onPrimary, fontWeight: "800", fontSize: 16, marginLeft: 8 }}>
+                {busy ? "Đang cắt…" : "Cắt clip"}
+              </Text>
+            </Pressable>
+            {!!retentionHuman && (
+              <Text style={{ color: C.muted, fontSize: 12, textAlign: "center", marginTop: 8 }}>
+                Clip tự xoá sau {retentionHuman} — nhớ tải/chia sẻ sớm.
+              </Text>
+            )}
+          </>
         )}
 
         {/* Tiến trình */}
