@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // app/owner/venue/[id]/staff.tsx — Quản lý nhân viên & phân quyền cụm sân
 import React, { useMemo, useState, useEffect } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal, TextInput, Image, ActivityIndicator, FlatList, KeyboardAvoidingView, Platform } from "react-native";
@@ -50,9 +51,9 @@ export default function VenueStaffScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <Stack.Screen options={{ title: "Nhân viên & phân quyền", headerRight: () => (
+      <Stack.Screen options={{ title: "Nhân viên & phân quyền", headerRight: withNotificationHeader(() => (
         <TouchableOpacity onPress={() => setEditor({ add: true })} hitSlop={8}><Ionicons name="person-add" size={22} color={C.accent} /></TouchableOpacity>
-      ) }} />
+      )) }} />
       {isLoading ? (
         <ActivityIndicator color={C.accent} style={{ marginTop: 40 }} />
       ) : (

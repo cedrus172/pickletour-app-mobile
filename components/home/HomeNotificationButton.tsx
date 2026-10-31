@@ -3,8 +3,11 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { t } from "@/utils/i18n";
 import HomeFeatureIcon from "./HomeFeatureIcon";
+import HotUpdateIndicator from "@/components/HotUpdateIndicator";
 
-export default function HomeNotificationButton({ unreadCount }: { unreadCount: number }) {
+export type NotificationUpdate = { visible: boolean; progress: number; status: "downloading" | "done" | "error" };
+
+export default function HomeNotificationButton({ unreadCount, update }: { unreadCount: number; update?: NotificationUpdate }) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -15,6 +18,7 @@ export default function HomeNotificationButton({ unreadCount }: { unreadCount: n
     >
       <HomeFeatureIcon id={16} size={30} />
       {unreadCount > 0 ? <View testID="notification-unread-dot" style={styles.dot} /> : null}
+      {update ? <HotUpdateIndicator {...update} inline isDark accentColor="#08CDF5" /> : null}
     </Pressable>
   );
 }

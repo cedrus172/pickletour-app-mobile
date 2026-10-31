@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // app/news/[slug].jsx
 import React, { useMemo } from "react";
 import {
@@ -131,7 +132,7 @@ export default function NewsDetailScreen() {
               <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
             </TouchableOpacity>
           ),
-          headerRight: () =>
+          headerRight: withNotificationHeader(() =>
             sourceLabel || article?.sourceUrl ? (
               <View style={styles.newsHeaderRight}>
                 {sourceLabel ? (
@@ -156,7 +157,7 @@ export default function NewsDetailScreen() {
                   </TouchableOpacity>
                 ) : null}
               </View>
-            ) : null,
+            ) : null),
         }}
       />
 

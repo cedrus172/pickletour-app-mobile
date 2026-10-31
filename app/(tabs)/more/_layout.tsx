@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 import { t } from "@/utils/i18n";
 import { useTheme } from "@react-navigation/native";
 import { Stack } from "expo-router";
@@ -9,6 +10,7 @@ export default function MoreLayout() {
   return (
     <Stack
       screenOptions={{
+        headerRight: withNotificationHeader(),
         headerTitleAlign: "center",
         headerBackTitle: t("Quay lại"),
         headerStyle: {

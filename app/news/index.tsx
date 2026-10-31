@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // app/news/index.jsx
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import {
@@ -315,7 +316,7 @@ export default function NewsListScreen() {
               <Text style={styles.newsHeaderTitle}>PickleTour News</Text>
             </View>
           ),
-          headerRight: () => (
+          headerRight: withNotificationHeader(() => (
             <View style={styles.newsHeaderRight}>
               <TouchableOpacity
                 onPress={() => setSearchVisible((v) => !v)}
@@ -334,7 +335,7 @@ export default function NewsListScreen() {
                 <Ionicons name="options" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
-          ),
+          )),
         }}
       />
 

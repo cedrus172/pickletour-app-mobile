@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // NOTE: nhiều component trong file shadow `t` bằng getThemeTokens (tokens theme),
 // nên i18n phải dùng alias `tr` để không gọi nhầm object tokens như một hàm.
 import { t as tr } from "@/utils/i18n";
@@ -3529,7 +3530,7 @@ ${html.replace(/<html>|<\/html>|<head>.*?<\/head>|<!doctype[^>]*>/gis, "")}
           headerStyle: { backgroundColor: manageHeaderBackground(colors, dark) },
           headerTintColor: colors.text,
           headerTitleStyle: { color: colors.text },
-          headerRight: () => (
+          headerRight: withNotificationHeader(() => (
             <Pressable
               onPress={() => setHdrMenuOpen(true)}
               style={({ pressed }) => [
@@ -3561,7 +3562,7 @@ ${html.replace(/<html>|<\/html>|<head>.*?<\/head>|<!doctype[^>]*>/gis, "")}
                 </Text>
               </View>
             </Pressable>
-          ),
+          )),
         }}
       />
       <View

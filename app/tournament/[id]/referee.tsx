@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 import { t } from "@/utils/i18n";
 import { useUiVersion } from "@/hooks/uiVersion";
 // app/(app)/tournament/[id]/referee.jsx
@@ -1326,7 +1327,7 @@ export default function RefereeCenterScreen() {
           headerStyle: { backgroundColor: T.cardBg },
           headerTitleStyle: { color: T.text },
           headerTintColor: T.text,
-          headerRight: () => (
+          headerRight: withNotificationHeader(() => (
             <IconBtnRef
               ref={hdrBtnRef}
               name="more-vert"
@@ -1335,7 +1336,7 @@ export default function RefereeCenterScreen() {
               onPress={onToggleHdrMenu}
               style={{ paddingHorizontal: 10, paddingVertical: 6 }}
             />
-          ),
+          )),
         }}
       />
 

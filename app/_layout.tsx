@@ -50,7 +50,7 @@ import { loadExpoNotifications } from "@/lib/expoNotifications";
 import ForceUpdateModal from "@/components/ForceUpdateModal";
 import HotUpdateModal from "@/components/HotUpdateModal";
 import HotUpdateIndicator from "@/components/HotUpdateIndicator";
-import GlobalNotificationShell from "@/components/GlobalNotificationShell";
+import GlobalNotificationShell, { withNotificationHeader } from "@/components/GlobalNotificationShell";
 import { isRefereeScoringRoute } from "@/utils/hotUpdateReloadPolicy";
 import CrashFeedbackModal from "@/components/CrashFeedbackModal";
 import MatchLiveActivityBootstrap from "@/components/match/MatchLiveActivityBootstrap";
@@ -1838,6 +1838,7 @@ function RootLayout() {
                   <GlobalNotificationShell
                     visible={fontsReady && mobileAppShellReady}
                     backgroundColor={bg}
+                    update={{ visible: hotUpdateVisible && !hotUpdateBlocking, progress: hotUpdateProgress, status: hotUpdateStatus }}
                   >
                   <SafeAreaView
                     style={{ flex: 1, backgroundColor: bg }}
@@ -2061,6 +2062,7 @@ function RootLayout() {
                         <PikoraProvider>
                           <Stack
                             screenOptions={{
+        headerRight: withNotificationHeader(),
                               headerStyle: {
                                 backgroundColor: navTheme.colors.card,
                               },
@@ -2432,7 +2434,7 @@ function RootLayout() {
                   </SafeAreaView>
                   </GlobalNotificationShell>
                   <HotUpdateIndicator
-                    visible={hotUpdateVisible && !hotUpdateBlocking}
+                    visible={hotUpdateVisible && !hotUpdateBlocking && !(fontsReady && mobileAppShellReady)}
                     progress={hotUpdateProgress}
                     status={hotUpdateStatus}
                     isDark={isDark}

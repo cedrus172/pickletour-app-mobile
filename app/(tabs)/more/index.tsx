@@ -1,3 +1,4 @@
+import { NotificationHeaderActions } from "@/components/GlobalNotificationShell";
 import {
   Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
@@ -448,7 +449,8 @@ export default function MoreIndexScreen() {
             { backgroundColor: cardBg, borderColor },
           ]}
         >
-          <View style={styles.heroBadge}>
+          <View style={{ position: "absolute", top: 12, right: 12, zIndex: 2 }}><NotificationHeaderActions /></View>
+          <View style={[styles.heroBadge, { alignSelf: "flex-start", maxWidth: "80%", marginRight: 44 }]}>
             <Ionicons name="apps-outline" size={15} color={theme.colors.primary} />
             <Text style={[styles.heroBadgeText, { color: theme.colors.primary }]}>Tiện ích bổ sung</Text>
           </View>

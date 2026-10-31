@@ -1,3 +1,4 @@
+import { NotificationHeaderActions } from "@/components/GlobalNotificationShell";
 // app/browser.tsx
 import React, { useMemo, useRef, useState, useCallback } from "react";
 import {
@@ -389,7 +390,7 @@ export default function InAppBrowserScreen() {
             </Text>
           </View>
 
-          <View style={styles.headerRight}>
+          <NotificationHeaderActions>
             <TouchableOpacity
               onPress={doCopy}
               style={[styles.iconBtn, { backgroundColor: C.chipBg }]}
@@ -415,7 +416,7 @@ export default function InAppBrowserScreen() {
             >
               <Ionicons name="ellipsis-vertical" size={18} color={C.icon} />
             </TouchableOpacity>
-          </View>
+          </NotificationHeaderActions>
         </View>
 
         {/* Progress bar */}

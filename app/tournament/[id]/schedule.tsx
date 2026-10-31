@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // app/tournament/[id]/EnhancedSchedule.jsx
 import { useUiVersion } from "@/hooks/uiVersion";
 /* eslint-disable react/prop-types */
@@ -2544,7 +2545,7 @@ export default function TournamentScheduleNative() {
               <Ionicons name="chevron-back" size={24} color={T.text} />
             </Pressable>
           ),
-          headerRight: () => {
+          headerRight: withNotificationHeader(() => {
             if (manager || referee)
               return (
                 <View style={{ flexDirection: "row", gap: 8 }}>
@@ -2598,7 +2599,7 @@ export default function TournamentScheduleNative() {
                   )}
                 </View>
               );
-          },
+          }),
         }}
       />
 

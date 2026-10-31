@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // app/messages/[cid].tsx — Chat window (Messenger-like)
 import {
   Ionicons } from "@expo/vector-icons";
@@ -866,7 +867,7 @@ export default function ChatWindow() {
                 </Pressable>
               )
             : undefined,
-          headerRight: dmPeer?._id
+          headerRight: withNotificationHeader(dmPeer?._id
             ? () => (
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <Pressable
@@ -890,7 +891,7 @@ export default function ChatWindow() {
                   />
                 </View>
               )
-            : undefined,
+            : undefined),
         }}
       />
       <KeyboardAvoidingView

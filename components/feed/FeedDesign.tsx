@@ -1,3 +1,4 @@
+import { NotificationHeaderActions } from "@/components/GlobalNotificationShell";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { memo, type ReactNode } from "react";
@@ -55,6 +56,7 @@ export const FeedHeader = memo(function FeedHeader() {
         </View>
       </View>
 
+      <View style={{ position: "absolute", top: 8, right: 0, zIndex: 3 }}><NotificationHeaderActions /></View>
       <View style={styles.headerCopy}>
         <View style={styles.titleRow}>
           <Text style={styles.titleWhite}>Bảng </Text>

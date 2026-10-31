@@ -1,4 +1,5 @@
-import React, { memo, type ReactNode } from "react";
+import { NotificationHeaderActions } from "@/components/GlobalNotificationShell";
+import React, { memo, useState, type ReactNode } from "react";
 import {
   FlatList,
   Pressable,
@@ -57,7 +58,8 @@ export const RankingPage = memo(function RankingPage({
   );
 });
 
-const GradientTitle = memo(function GradientTitle() {
+const GradientTitle = memo(function GradientTitle({ availableWidth }: { availableWidth: number }) {
+  const scale = availableWidth > 0 ? Math.min(1, availableWidth / 252) : 1;
   return (
     <View
       accessible
@@ -65,14 +67,14 @@ const GradientTitle = memo(function GradientTitle() {
       accessibilityLabel="Bảng xếp hạng"
       style={styles.titleLine}
     >
-      <Text style={styles.titleWhite}>Bảng</Text>
+      <Text style={[styles.titleWhite, { fontSize: 31 * scale, lineHeight: 38 * scale }]}>Bảng</Text>
       <Svg
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
-        width={166}
-        height={42}
+        width={166 * scale}
+        height={42 * scale}
         viewBox="0 0 166 42"
-        style={styles.titleGradientSvg}
+        style={[styles.titleGradientSvg, { marginLeft: 7 * scale }]}
       >
         <Defs>
           <SvgLinearGradient id="rankingTitleGradient" x1="0" y1="0" x2="1" y2="0">
@@ -105,6 +107,7 @@ export const RankingHeader = memo(function RankingHeader({
   onBack?: () => void;
   rightAccessory?: ReactNode;
 }) {
+  const [titleWidth, setTitleWidth] = useState(0);
   return (
     <View style={styles.header}>
       <View pointerEvents="none" style={styles.sportArtwork}>
@@ -134,13 +137,11 @@ export const RankingHeader = memo(function RankingHeader({
               <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
             </Pressable>
           ) : null}
-          <View style={styles.headerCopy}>
-            <GradientTitle />
+          <View style={styles.headerCopy} onLayout={({ nativeEvent }) => setTitleWidth(nativeEvent.layout.width)}>
+            <GradientTitle availableWidth={titleWidth} />
           </View>
         </View>
-        {rightAccessory ? (
-          <View style={styles.headerAccessory}>{rightAccessory}</View>
-        ) : null}
+        <View style={styles.headerAccessory}><NotificationHeaderActions>{rightAccessory}</NotificationHeaderActions></View>
       </View>
       <Text style={styles.subtitle} numberOfLines={2}>
         Cập nhật thứ hạng vận động viên theo điểm thi đấu

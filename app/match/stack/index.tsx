@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 import { t } from "@/utils/i18n";
 // app/matches/stack.jsx
 import React, { useMemo, useState, useRef, useCallback } from "react";
@@ -409,7 +410,7 @@ export default function MatchesStackScreen() {
           //     <Ionicons name="chevron-back" size={24} />
           //   </TouchableOpacity>
           // ),
-          headerRight: () => (
+          headerRight: withNotificationHeader(() => (
             <View
               style={{
                 flexDirection: "row",
@@ -458,7 +459,7 @@ export default function MatchesStackScreen() {
                 <Ionicons name="add" size={16} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
-          ),
+          )),
         }}
       />
 

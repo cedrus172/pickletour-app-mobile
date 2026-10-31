@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // Gói giờ / thẻ tháng (chủ sân) + kích hoạt lượt mua
 import React, { useMemo, useState } from "react";
 import PtInput from "@/components/ui/PtInput";
@@ -42,9 +43,9 @@ export default function OwnerPackagesScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <Stack.Screen options={{ title: "Gói giờ / thẻ tháng", headerRight: () => (
+      <Stack.Screen options={{ title: "Gói giờ / thẻ tháng", headerRight: withNotificationHeader(() => (
         <TouchableOpacity onPress={() => setOpen(true)} hitSlop={8}><Ionicons name="add-circle" size={24} color={C.accent} /></TouchableOpacity>
-      ) }} />
+      )) }} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {pending.length > 0 && (
           <>

@@ -17,6 +17,7 @@ import { Text } from "@/components/ui/i18nText";
 import { TextInput } from "@/components/ui/i18nTextInput";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import { tournamentDateLabel, tournamentDateParts } from "@/utils/tournamentPresentation";
+import { NotificationHeaderActions } from "@/components/GlobalNotificationShell";
 
 export const TOURNAMENT_COLORS = {
   background: "#041021",
@@ -66,6 +67,7 @@ export const TournamentHeader = memo(function TournamentHeader({ isBack, onBack 
           </Pressable>
         ) : null}
         <Text accessibilityRole="header" style={styles.title}>Giải đấu</Text>
+        <View style={{ marginLeft: "auto", paddingLeft: 8 }}><NotificationHeaderActions /></View>
       </View>
       <Text style={styles.subtitle}>Tìm giải đấu, chinh phục thử thách</Text>
     </View>
@@ -273,7 +275,7 @@ export const TournamentList = React.forwardRef<FlatList<any>, FlatListProps<any>
 const styles = StyleSheet.create({
   page: { flex: 1 },
   header: { minHeight: 90, paddingTop: 5, paddingBottom: 10, justifyContent: "center" },
-  heroArtwork: { position: "absolute", top: 0, right: -8 },
+  heroArtwork: { position: "absolute", top: 0, right: 48 },
   headerTitleRow: { flexDirection: "row", alignItems: "center" },
   backButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginRight: 4 },
   title: { color: "#FFFFFF", fontSize: 34, lineHeight: 43, fontWeight: "900", letterSpacing: -0.9 },

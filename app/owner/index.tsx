@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // app/owner/index.tsx — Trang chủ chủ sân: hero tổng quan + cụm sân của tôi
 import React, { useMemo } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, ActivityIndicator, Image } from "react-native";
@@ -85,11 +86,11 @@ export default function OwnerHomeScreen() {
       <Stack.Screen
         options={{
           title: "Quản lý sân",
-          headerRight: () => (
+          headerRight: withNotificationHeader(() => (
             <TouchableOpacity onPress={() => router.push("/owner/scan")} hitSlop={8} style={[styles.hdrBtn, { backgroundColor: C.accentSoft }]}>
               <Ionicons name="qr-code-outline" size={18} color={C.accent} />
             </TouchableOpacity>
-          ),
+          )),
         }}
       />
       {isLoading ? (

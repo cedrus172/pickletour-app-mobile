@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // POS — bán hàng & tồn kho
 import React, { useMemo, useState } from "react";
 import PtInput from "@/components/ui/PtInput";
@@ -105,9 +106,9 @@ export default function ProductsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <Stack.Screen options={{ title: "Bán hàng & kho", headerRight: () => (
+      <Stack.Screen options={{ title: "Bán hàng & kho", headerRight: withNotificationHeader(() => (
         <TouchableOpacity onPress={() => setEditing({ new: true })} hitSlop={8}><Ionicons name="add-circle" size={24} color={C.accent} /></TouchableOpacity>
-      ) }} />
+      )) }} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: hasAnything ? 210 : 40 }}>
         {sales ? (
           <View style={[styles.todayBar, { backgroundColor: C.card, borderColor: C.border }]}>

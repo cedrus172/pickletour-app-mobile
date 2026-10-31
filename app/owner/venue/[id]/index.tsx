@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // app/owner/venue/[id]/index.tsx — Bảng điều khiển cụm sân: hero + menu + lịch đặt trong ngày
 import React, { useMemo, useState } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, ActivityIndicator, Image, Modal, Alert, Linking } from "react-native";
@@ -89,11 +90,11 @@ export default function OwnerVenueHub() {
       <Stack.Screen
         options={{
           title: venue?.name || "Cụm sân",
-          headerRight: () => (
+          headerRight: withNotificationHeader(() => (
             <TouchableOpacity onPress={() => router.push("/owner/scan")} hitSlop={8} style={[styles.hdrBtn, { backgroundColor: C.accentSoft }]}>
               <Ionicons name="qr-code-outline" size={18} color={C.accent} />
             </TouchableOpacity>
-          ),
+          )),
         }}
       />
       <ScrollView

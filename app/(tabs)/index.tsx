@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 import { t } from "@/utils/i18n";
 // app/index.jsx  (Home)
 import React, { useCallback, useMemo, useEffect, useRef, useState } from "react";
@@ -1885,41 +1886,7 @@ export default function HomeScreen() {
               )}
             </View>
           ),
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => router.push("/notifications")}
-              style={styles.headerIconTouch}
-            >
-              {IOS_26_LIQUID_GLASS_ENABLED ? (
-                <AppleLiquidGlassView
-                  fallback="view"
-                  glassEffectStyle="regular"
-                  glassTintColor="rgba(255, 255, 255, 0.42)"
-                  isInteractive
-                  style={styles.headerIconGlass}
-                >
-                  <Ionicons
-                    name="notifications"
-                    size={24}
-                    color={theme?.colors?.primary ?? "#0a84ff"}
-                  />
-                </AppleLiquidGlassView>
-              ) : (
-                <View
-                  style={[
-                    styles.headerIconGlass,
-                    { backgroundColor: theme?.colors?.card ?? "#fff" },
-                  ]}
-                >
-                  <Ionicons
-                    name="notifications"
-                    size={24}
-                    color={theme?.colors?.primary ?? "#0a84ff"}
-                  />
-                </View>
-              )}
-            </TouchableOpacity>
-          ),
+          headerRight: withNotificationHeader(),
         }}
       />
       <HomePage>

@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // app/courts/index.tsx — Tìm sân để đặt (danh sách + bản đồ + gần tôi)
 import React, { useMemo, useState, useCallback } from "react";
 import { View, FlatList, TextInput, TouchableOpacity, Image, StyleSheet, RefreshControl, ActivityIndicator, Alert } from "react-native";
@@ -89,7 +90,7 @@ export default function CourtsBrowseScreen() {
       <Stack.Screen
         options={{
           title: "Đặt sân",
-          headerRight: () => (
+          headerRight: withNotificationHeader(() => (
             <View style={{ flexDirection: "row", gap: 8 }}>
               <TouchableOpacity onPress={() => setMode(mode === "list" ? "map" : "list")} hitSlop={6} style={[styles.hdrBtn, { backgroundColor: C.accentSoft }]}>
                 <Ionicons name={mode === "list" ? "map-outline" : "list-outline"} size={18} color={C.accent} />
@@ -101,7 +102,7 @@ export default function CourtsBrowseScreen() {
                 <Ionicons name="ticket-outline" size={18} color={C.accent} />
               </TouchableOpacity>
             </View>
-          ),
+          )),
         }}
       />
       <View style={[styles.search, { backgroundColor: C.card, borderColor: C.border }, shadow(C.dark, 1)]}>

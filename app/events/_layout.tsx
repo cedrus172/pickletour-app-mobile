@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 import { Stack } from "expo-router";
 import { useTheme } from "@react-navigation/native";
 import AppBackButton from "@/components/ui/AppBackButton";
@@ -9,6 +10,7 @@ export default function EventsLayout() {
   return (
     <Stack
       screenOptions={{
+        headerRight: withNotificationHeader(),
         headerStyle: { backgroundColor: C.bg },
         headerTintColor: C.text,
         headerTitleStyle: { fontWeight: "800", fontSize: 17 },

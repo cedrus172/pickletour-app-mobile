@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 import { t } from "@/utils/i18n";
 import React, { useMemo, useState } from "react";
 import {
@@ -113,7 +114,7 @@ export default function SupportInboxScreen() {
           headerStyle: { backgroundColor: colors.card },
           headerTintColor: colors.text,
           headerShadowVisible: false,
-          headerRight: () => (
+          headerRight: withNotificationHeader(() => (
             <TouchableOpacity
               onPress={() => router.push("/support/new")}
               style={{ paddingHorizontal: 12 }}
@@ -124,7 +125,7 @@ export default function SupportInboxScreen() {
                 color={colors.primary}
               />
             </TouchableOpacity>
-          ),
+          )),
         }}
       />
 

@@ -9,10 +9,11 @@ type Props = {
   isDark: boolean;
   accentColor: string;
   rightOffset?: number;
+  inline?: boolean;
 };
 
 /** Background download status only. Never captures touches or opens a native modal. */
-export default function HotUpdateIndicator({ visible, progress, status, isDark, accentColor, rightOffset = 0 }: Props) {
+export default function HotUpdateIndicator({ visible, progress, status, isDark, accentColor, rightOffset = 0, inline = false }: Props) {
   const insets = useSafeAreaInsets();
   if (!visible || status === "error") return null;
   const percentage = Math.round(Math.max(0, Math.min(1, Number.isFinite(progress) ? progress : 0)) * 100);
@@ -25,16 +26,16 @@ export default function HotUpdateIndicator({ visible, progress, status, isDark, 
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={status === "done" ? 100 : percentage}
-      style={[styles.container, {
+      style={inline ? styles.inline : [styles.container, {
         top: insets.top + 8,
         right: insets.right + 12 + rightOffset,
         backgroundColor: isDark ? "#071b2d" : "#ffffff",
         borderColor: isDark ? "#214563" : "#dbe5ed",
       }]}
     >
-      <Text numberOfLines={1} style={[styles.label, { color: isDark ? "#bed0e0" : "#486176" }]}>
+      {!inline ? <Text numberOfLines={1} style={[styles.label, { color: isDark ? "#bed0e0" : "#486176" }]}>
         {status === "done" ? "Đã tải cập nhật" : `Tải cập nhật · ${percentage}%`}
-      </Text>
+      </Text> : null}
       <View style={[styles.track, { backgroundColor: isDark ? "#19364d" : "#e6eef4" }]}>
         <View style={[styles.fill, { width: `${status === "done" ? 100 : percentage}%`, backgroundColor: accentColor }]} />
       </View>
@@ -43,6 +44,7 @@ export default function HotUpdateIndicator({ visible, progress, status, isDark, 
 }
 
 const styles = StyleSheet.create({
+  inline: { position: "absolute", left: 0, right: 0, bottom: -6 },
   container: { position: "absolute", zIndex: 1000, width: 144, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
   label: { fontSize: 10, lineHeight: 13, marginBottom: 4 },
   track: { height: 3, borderRadius: 2, overflow: "hidden" },

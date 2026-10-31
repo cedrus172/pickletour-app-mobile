@@ -1,3 +1,4 @@
+import { NotificationHeaderActions } from "@/components/GlobalNotificationShell";
 // app/screens/PickleBall/match/RefereeJudgePanel.native.jsx
 import React, {
   useEffect,
@@ -4374,6 +4375,13 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
     <MaterialIcons name="schedule" size={15} color={t.colors.text} />
     <MatchElapsedClock startedAt={matchStartedAt} finishedAt={matchFinishedAt} running={Boolean(matchStartedAt) && matchStatus !== "finished"} style={[s.clockText, { color: t.colors.text, fontSize: 14, fontVariant: ["tabular-nums"] }]} />
   </View>;
+  const orientationControl = (
+    <TouchableOpacity testID="referee-rotate" accessibilityLabel={isLandscape ? "Chuyển sang màn hình dọc" : "Chuyển sang màn hình ngang"} disabled={orientationBusy} onPress={rotateScreen}>
+                  <View style={[s.iconBtnSetting, useCompactTopChrome && s.iconBtnSettingCompact, { backgroundColor: t.dark ? "#0b2747" : t.chipInfoBg }]}>
+                    {orientationBusy ? <ActivityIndicator size="small" color={t.chipInfoFg} /> : <MaterialIcons name="screen-rotation" size={18} color={t.chipInfoFg} />}
+                  </View>
+                </TouchableOpacity>
+  );
   const utilityControls = (
               <View
                 style={[
@@ -4381,12 +4389,8 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
                   useCompactTopChrome && s.topUtilityControlsCompact,
                 ]}
               >
-                {isLandscape ? clockControl : null}
-                <TouchableOpacity testID="referee-rotate" accessibilityLabel={isLandscape ? "Chuyển sang màn hình dọc" : "Chuyển sang màn hình ngang"} disabled={orientationBusy} onPress={rotateScreen}>
-                  <View style={[s.iconBtnSetting, useCompactTopChrome && s.iconBtnSettingCompact, { backgroundColor: t.dark ? "#0b2747" : t.chipInfoBg }]}>
-                    {orientationBusy ? <ActivityIndicator size="small" color={t.chipInfoFg} /> : <MaterialIcons name="screen-rotation" size={18} color={t.chipInfoFg} />}
-                  </View>
-                </TouchableOpacity>
+                  {isLandscape ? clockControl : null}
+                {isLandscape ? orientationControl : null}
                 {/* Nút Voice Commands */}
                 <TouchableOpacity
                   onPress={() => {
@@ -4488,6 +4492,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
                     />
                   </View>
                 </TouchableOpacity>
+              <NotificationHeaderActions />
               </View>
   );
 
@@ -4528,7 +4533,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
           ]}
         >
           {t.dark ? <LinearGradient colors={["#0a2545", "#06172e"]} style={[StyleSheet.absoluteFill, { borderRadius: 18 }]} pointerEvents="none" /> : null}
-          {!isLandscape ? <RefereePortraitHeader code={baseCode} detail={`BO${Number(rules?.bestOf || 1)} · GAME ${curIdx + 1}`} utilities={utilityControls} clock={clockControl}
+          {!isLandscape ? <RefereePortraitHeader code={baseCode} detail={`BO${Number(rules?.bestOf || 1)} · GAME ${curIdx + 1}`} utilities={utilityControls} clock={<View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>{clockControl}{orientationControl}</View>}
             onBack={handleBack} onUndo={onUndo} onSwap={swapSides} onCourt={isPreMatch && userMatch !== "true" ? () => setCourtOpen(true) : undefined}
             preStart={isPreMatch} undoDisabled={undoBusy || !canUndoLive} undoBusy={undoBusy} courtLabel={currentCourtId ? "Đổi sân" : "Gán sân"}
             colors={{ text: t.colors.text, card: t.dark ? "#0a2342" : t.colors.card, border: t.colors.border }} /> : (

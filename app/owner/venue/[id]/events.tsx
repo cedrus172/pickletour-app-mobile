@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // app/owner/venue/[id]/events.tsx — Chủ sân: quản lý sự kiện xé vé / social
 import React, { useMemo, useState } from "react";
 import PtInput from "@/components/ui/PtInput";
@@ -36,9 +37,9 @@ export default function OwnerEventsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <Stack.Screen options={{ title: "Sự kiện xé vé", headerRight: () => (
+      <Stack.Screen options={{ title: "Sự kiện xé vé", headerRight: withNotificationHeader(() => (
         <TouchableOpacity onPress={() => setEditor({ new: true })} hitSlop={8}><Ionicons name="add-circle" size={24} color={C.accent} /></TouchableOpacity>
-      ) }} />
+      )) }} />
       {isLoading ? <ActivityIndicator color={C.accent} style={{ marginTop: 40 }} /> : (
         <ScrollView contentContainerStyle={{ padding: SP.lg, paddingBottom: 48 }}>
           <PrimaryButton C={C} icon="add" label="Tạo sự kiện mới" onPress={() => setEditor({ new: true })} style={{ marginBottom: SP.md }} />

@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // app/referee/clusters.tsx
 // Trọng tài CHỌN CỤM SÂN (thay vì chọn giải) để vào tìm sân/trận chấm.
 import React, { useCallback, useMemo } from "react";
@@ -226,7 +227,7 @@ export default function RefereeClustersScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <Stack.Screen
-        options={{ title: "Chấm trận theo cụm sân", headerRight: ScanButton }}
+        options={{ title: "Chấm trận theo cụm sân", headerRight: withNotificationHeader(ScanButton) }}
       />
       {isLoading ? (
         <View

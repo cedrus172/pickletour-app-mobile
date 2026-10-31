@@ -1,3 +1,4 @@
+import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // app/match/[id]/home.tsx
 import { useUiVersion } from "@/hooks/uiVersion";
 import React, { useEffect, useMemo, useCallback, useState } from "react";
@@ -200,7 +201,7 @@ export default function MatchHomePage() {
               <Ionicons name="chevron-back" size={22} color={T.text} />
             </Pressable>
           ),
-          headerRight: () => (
+          headerRight: withNotificationHeader(() => (
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Pressable
                 onPress={onRefresh}
@@ -210,7 +211,7 @@ export default function MatchHomePage() {
                 <MaterialIcons name="refresh" size={22} color={T.text} />
               </Pressable>
             </View>
-          ),
+          )),
         }}
       />
 
