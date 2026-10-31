@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "source": "AI-generated from the approved cyan/silver PickleTour icon mockup, 2026-10-31",
+  "size": 256,
+  "icons": [
+    {
+      "id": 21,
+      "file": "court.png",
+      "sha256": "3bbaade1b094ee34c02fd55ee3e81bdb9182e368acfc0046dc438d44b5396a9a"
+    },
+    {
+      "id": 42,
+      "file": "camera-cut.png",
+      "sha256": "aa1ecd367cb0c6642e2eefad3995943c488ef904a2468a70bae76aee625932fe"
+    },
+    {
+      "id": 1,
+      "file": "calendar.png",
+      "sha256": "bad40bbe9e90d1014c141d8becda4cb394bcd74252e96f72ed6b092024772716"
+    },
+    {
+      "id": 2,
+      "file": "trophy.png",
+      "sha256": "44c1dd37caf5ff693353f386806318e577b0e8300811e5c1098dc3bc17a387b2"
+    },
+    {
+      "id": 3,
+      "file": "statistics.png",
+      "sha256": "f10a09fcd6fa0063ff8261a22be5e3f20b9a64f705ae6f1dc04c69312fc6f333"
+    },
+    {
+      "id": 4,
+      "file": "guide.png",
+      "sha256": "b277007b5842db3bae1be6d1fd481995265c283b727a559255c260d3b576fdf6"
+    },
+    {
+      "id": 5,
+      "file": "news.png",
+      "sha256": "d4ceb3f612386318f0c548bc25d7cb14502c24536636ddbf6dcd0442599e9e29"
+    },
+    {
+      "id": 6,
+      "file": "live.png",
+      "sha256": "5150de878b6a9b80cd718ddcbcbbe2ac5160ad819e3e3c3c24f8bc0a19b799c9"
+    },
+    {
+      "id": 8,
+      "file": "club.png",
+      "sha256": "5624f5b3efbeb15955cb0ce9831b6d8e804211a71cb264cce1392ecc1edc6473"
+    },
+    {
+      "id": 9,
+      "file": "match.png",
+      "sha256": "740ac041aa835428ce96d045462ca491e0821895c2a6236d41da8ed6b096540f"
+    },
+    {
+      "id": 10,
+      "file": "support.png",
+      "sha256": "4640100894266f8b599d7a478cf8dc2926e68420498de8a942a560994b1ed9e7"
+    },
+    {
+      "id": 11,
+      "file": "nearby.png",
+      "sha256": "e6f6b9a90b31178ee6bdb7b28dfdf6ba10c3c5af1d9f326468aa178e263b1581"
+    },
+    {
+      "id": 12,
+      "file": "head-to-head.png",
+      "sha256": "267d311702791932af9b2ef8dcf21a637f2d0e8edd4215e4020a708491785b25"
+    },
+    {
+      "id": 13,
+      "file": "feed.png",
+      "sha256": "e4800358d0f697b8a09110e420e172dd58eabc0add5193ba20d273f3e9b1c3c5"
+    },
+    {
+      "id": 16,
+      "file": "notifications.png",
+      "sha256": "3eb029d4e47eea354a21fdfe812ed636b3af29e75c9d5443a7dff293a47bbe13"
+    },
+    {
+      "id": 14,
+      "file": "chat.png",
+      "sha256": "2ced30303da2e7a264e8f58d40de622087f3f69469d42a4c8ac48d0fe5756fbb"
+    },
+    {
+      "id": 15,
+      "file": "friends.png",
+      "sha256": "c631117436d6b349f258df43571328b4a1242f381687fe926c00360c6bb72bc9"
+    },
+    {
+      "id": 17,
+      "file": "coach.png",
+      "sha256": "9c6bdc6c3e0d401ce2e4bb862f62f7a0054c8164d2937b5ce213debee3cbb421"
+    },
+    {
+      "id": 19,
+      "file": "market.png",
+      "sha256": "cb847c8d461168e6809108359f84f936e4fc21e4c3026f045c4757d74385469e"
+    },
+    {
+      "id": 20,
+      "file": "find-player.png",
+      "sha256": "15b6e9cf499cde5acf94edfefaa97bfcdc9b71926fbca4781601fb0f85e06bb7"
+    }
+  ]
+}

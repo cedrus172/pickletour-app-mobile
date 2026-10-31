@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import SportBottomBar from "./SportBottomBar";
 
 interface Props extends BottomTabBarProps {
   isDark: boolean;
@@ -188,12 +189,18 @@ export function BottomNavigation({
       state.routes.filter((route) => {
         const opt = descriptors[route.key].options;
         if (shouldHideRoute(route.name)) return false;
+        // Expo Router consumes href:null before descriptors reach custom tab bars.
+        if (v2 && route.name === "notifications") return false;
         return opt.href !== null;
       }),
-    [descriptors, state.routes],
+    [descriptors, state.routes, v2],
   );
 
   const bottomPad = Math.max(insets.bottom, Platform.OS === "ios" ? 8 : 6);
+
+  if (v2) {
+    return <SportBottomBar state={state} descriptors={descriptors} navigation={navigation} visibleRoutes={visibleRoutes} insets={insets} />;
+  }
 
   return (
     <View style={styles.outer} pointerEvents="box-none">

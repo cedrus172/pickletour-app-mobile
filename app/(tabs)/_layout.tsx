@@ -243,6 +243,7 @@ export default function TabLayout() {
         })}
         options={{
           title: t("Thông báo"),
+          href: v2 ? null : undefined,
           tabBarIcon: makeIcon("bell.fill", "bell"),
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
         }}

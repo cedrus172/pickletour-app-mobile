@@ -41,6 +41,8 @@ import EventLiveBanner from "@/components/home/EventLiveBanner";
 import CourtBookingBanner from "@/components/home/CourtBookingBanner";
 import YoutubeClipsHome from "@/components/home/YoutubeClipsHome";
 import HomeFeatureIcon from "@/components/home/HomeFeatureIcon";
+import HomeNotificationButton from "@/components/home/HomeNotificationButton";
+import { useNotifUnreadCountQuery } from "@/slices/notificationCenterApiSlice";
 import {
   HomePage,
   HomeSectionHeader,
@@ -1827,6 +1829,12 @@ export default function HomeScreen() {
   const isDark = !!theme?.dark;
   const v2 = useUiVersion() === "v2";
   const heroTopBleed = Platform.OS === "ios" ? insets.top : 0;
+  const userInfo = useSelector((state: any) => state.auth?.userInfo);
+  const isAuthed = Boolean(userInfo?.token || userInfo?._id || userInfo?.email);
+  const { data: unreadData } = useNotifUnreadCountQuery(undefined, {
+    skip: !isAuthed,
+    pollingInterval: 30000,
+  });
 
   useEffect(() => {
     if (!SHOULD_RENDER_NATIVE_LOTTIE || !BG_3D) return;
@@ -1923,6 +1931,11 @@ export default function HomeScreen() {
         }}
       />
       <HomePage>
+      {v2 ? (
+        <View style={[styles.homeNotification, { top: insets.top + 8, right: Math.max(insets.right, 16) }]}>
+          <HomeNotificationButton unreadCount={Number(unreadData?.count || 0)} />
+        </View>
+      ) : null}
       <View style={[styles.homeRoot, { backgroundColor: "transparent" }]}>
         {!v2 ? <HomeLiquidGlassBackdrop isDark={isDark} active={isFocused} /> : null}
         <ScrollView
@@ -1988,6 +2001,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  homeNotification: { position: "absolute", zIndex: 10, elevation: 8 },
   /* ============ V2 MODERN ============ */
   v2HeaderLogo: { flexDirection: "row", alignItems: "center", gap: 8 },
   v2HeaderEmblem: { width: 30, height: 30 },
