@@ -23,7 +23,7 @@ export default function SportBottomBar({ state, descriptors, navigation, visible
   const dockPath = `M23 1 ${notch} H${dockWidth - 23} Q${dockWidth - 1} 1 ${dockWidth - 1} 23 V41 Q${dockWidth - 1} 63 ${dockWidth - 23} 63 H23 Q1 63 1 41 V23 Q1 1 23 1 Z`;
   return (
     <View pointerEvents="box-none" testID="raised-sport-navigation" style={[styles.bar, {
-      paddingBottom: Math.max(insets.bottom, 8),
+      paddingBottom: Math.max(insets.bottom - 8, 8),
       paddingLeft: insets.left + 12,
       paddingRight: insets.right + 12,
     }]}>
