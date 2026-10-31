@@ -1,141 +1,49 @@
-// app/clip-cam/channels.tsx — lưới camera của 1 venue (đã có quyền) → cắt clip.
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Image,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+// Camera của sân được cấp quyền; cache ảnh không thay đổi luồng xem/cắt clip.
+import React, { useCallback } from "react";
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/i18nText";
-import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
-import { useResponsive } from "@/hooks/useResponsive";
-import { fetchChannels, thumbnailUrl, type Channel } from "@/utils/pickclip";
+import { useThemeTokens } from "@/hooks/useThemeTokens";
+import { cameraAccessActive, useClipCameraAccess, useClipCameraPreviews } from "@/hooks/useClipCameraPreviews";
+import CameraPreviewGrid, { cameraPreviewColors } from "@/components/clipCam/CameraPreviewGrid";
+import type { Channel } from "@/utils/pickclip";
 
 export default function ClipCamChannelsScreen() {
-  const C = useThemeTokens();
-  const styles = useMemo(() => mkStyles(C), [C]);
-  const rsp = useResponsive();
-  const camCols = rsp.isLarge ? 4 : rsp.isWide ? 3 : 2;
-  const camCardW: any = `${100 / camCols - 1.5}%`;
-  const { base, venueName, cams } = useLocalSearchParams<{ base: string; venueName: string; cams?: string }>();
+  const C = useThemeTokens(), P = cameraPreviewColors(C);
+  const { base, venueName, venueId } = useLocalSearchParams<{ base: string; venueName: string; venueId?: string; cams?: string }>();
   const baseUrl = String(base || "");
-  // cams = csv channel id được cấp; rỗng = tất cả camera.
-  // LƯU Ý: Number("") === 0 (không phải NaN) → phải loại chuỗi rỗng TRƯỚC khi ép số,
-  // nếu không cams rỗng sẽ thành [0] và lọc sạch mọi camera.
-  const allowed = useMemo(
-    () =>
-      String(cams || "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s !== "")
-        .map(Number)
-        .filter((n) => Number.isInteger(n)),
-    [cams],
-  );
-
-  const [channels, setChannels] = useState<Channel[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
-  const [refreshing, setRefreshing] = useState(false);
-  const [thumbTick, setThumbTick] = useState(0);
-
-  const load = useCallback(async () => {
-    setErr("");
-    try {
-      const list = await fetchChannels(baseUrl);
-      const arr = Array.isArray(list) ? list : [];
-      setChannels(allowed.length ? arr.filter((ch) => allowed.includes(ch.id)) : arr);
-    } catch (e: any) {
-      setChannels([]);
-      setErr(e?.message || "Không tải được danh sách sân");
-    }
-  }, [baseUrl, allowed]);
-
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    load().finally(() => alive && setLoading(false));
-    return () => { alive = false; };
-  }, [load]);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    setThumbTick((t) => t + 1);
-    await load();
-    setRefreshing(false);
-  }, [load]);
-
+  const access = useClipCameraAccess();
+  const venue = access.venues.find((v) => venueId ? v.venueId === String(venueId) : v.piBaseUrl.replace(/\/+$/, "") === baseUrl.replace(/\/+$/, ""));
+  const allowed = !!venue && cameraAccessActive(venue, access.now);
+  const scope = allowed ? { userId: access.userId, base: venue.piBaseUrl, cameras: venue.cameras } : null;
+  const state = useClipCameraPreviews(scope);
+  const { refetch, userId } = access;
+  const { refresh: refreshImages } = state;
+  const refresh = useCallback(() => userId ? Promise.allSettled([refetch(), refreshImages()]) : Promise.resolve(), [userId, refetch, refreshImages]);
   const openCut = (ch: Channel) => {
-    router.push({
-      pathname: "/clip-cam/cut",
-      params: { base: baseUrl, venueName: String(venueName || ""), chId: String(ch.id), chName: ch.name },
-    } as any);
+    if (!venue || !cameraAccessActive(venue)) return;
+    router.push({ pathname: "/clip-cam/cut", params: { base: venue.piBaseUrl, venueName: venue.venueName || String(venueName || ""), chId: String(ch.id), chName: ch.name } } as any);
   };
-
+  const headerButton = { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: P.border, alignItems: "center" as const, justifyContent: "center" as const };
   return (
-    <SafeAreaView style={styles.root} edges={["bottom"]}>
-      <Stack.Screen options={{ title: String(venueName || "Cắt Cam Sân"), headerShown: true }} />
-      <ScrollView
-        contentContainerStyle={{ padding: 14, paddingBottom: 32 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.primary} />}
-      >
-        <View style={styles.hintRow}>
-          <Ionicons name="cut-outline" size={16} color={C.primary} />
-          <Text style={styles.hint}>Chọn camera sân để xem và cắt highlight (tối đa 30 phút/clip).</Text>
-        </View>
-
-        {loading ? (
-          <View style={styles.center}><ActivityIndicator color={C.primary} /></View>
-        ) : err ? (
-          <View style={styles.center}>
-            <Ionicons name="videocam-off-outline" size={40} color={C.muted} />
-            <Text style={{ color: C.sub, marginTop: 10, textAlign: "center" }}>{err}</Text>
-            <Pressable onPress={load} style={[styles.retryBtn, { borderColor: C.border }]}>
-              <Text style={{ color: C.primary, fontWeight: "700" }}>Thử lại</Text>
-            </Pressable>
-          </View>
-        ) : channels.length === 0 ? (
-          <View style={styles.center}>
-            <Ionicons name="videocam-off-outline" size={40} color={C.muted} />
-            <Text style={{ color: C.sub, marginTop: 10 }}>Chưa có camera nào ở sân này.</Text>
-          </View>
-        ) : (
-          <View style={styles.grid}>
-            {channels.map((ch) => (
-              <Pressable key={ch.id} onPress={() => openCut(ch)} style={[styles.card, { backgroundColor: C.card, borderColor: C.border, width: camCardW }]}>
-                <View style={styles.thumbWrap}>
-                  <Image source={{ uri: `${thumbnailUrl(baseUrl, ch.id)}?t=${thumbTick}` }} style={styles.thumb} resizeMode="cover" />
-                  <View style={styles.playBadge}><Ionicons name="cut" size={16} color="#fff" /></View>
-                </View>
-                <Text numberOfLines={1} style={[styles.cardName, { color: C.text }]}>{ch.name}</Text>
-                {!!ch.description && <Text numberOfLines={1} style={[styles.cardDesc, { color: C.sub }]}>{ch.description}</Text>}
-              </Pressable>
-            ))}
+    <SafeAreaView style={{ flex: 1, backgroundColor: P.bg }} edges={["bottom", "left", "right"]}>
+      <Stack.Screen options={{
+        title: venue?.venueName || String(venueName || "Cắt Cam Sân"), headerShown: true,
+        headerStyle: { backgroundColor: P.card }, headerTintColor: P.text, headerTitleAlign: "center",
+        headerTitleStyle: { fontSize: 17, fontWeight: "700" }, headerShadowVisible: false,
+        ...(C.isV2 ? { headerBackVisible: false, headerLeft: () => <Pressable accessibilityRole="button" accessibilityLabel="Quay lại" onPress={() => router.back()} style={headerButton}><Ionicons name="chevron-back" size={24} color={P.text} /></Pressable> } : {}),
+        headerRight: () => <Pressable accessibilityRole="button" accessibilityLabel="Làm mới camera" onPress={refresh} disabled={state.refreshing || access.isFetching || !access.userId} style={headerButton}>{state.refreshing ? <ActivityIndicator size="small" color={P.primary} /> : <Ionicons name="refresh-outline" size={23} color={P.text} />}</Pressable>,
+      }} />
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 28, width: "100%", maxWidth: 1180, alignSelf: "center" }} refreshControl={<RefreshControl refreshing={state.refreshing} onRefresh={refresh} tintColor={P.primary} />}>
+        {allowed ? <CameraPreviewGrid C={C} state={state} onOpen={openCut} onRefresh={refresh} /> : (
+          <View style={{ paddingVertical: 50, alignItems: "center", gap: 12 }}>
+            {access.isLoading ? <ActivityIndicator color={P.primary} /> : <Ionicons name="lock-closed-outline" size={35} color={P.sub} />}
+            <Text style={{ color: P.sub, textAlign: "center" }}>{access.isLoading ? "Đang kiểm tra quyền camera…" : !access.userId ? "Đăng nhập để xem camera được cấp quyền." : access.isError ? "Chưa kiểm tra được quyền camera. Kéo xuống để thử lại." : "Bạn chưa có quyền hoặc quyền camera đã hết hạn."}</Text>
           </View>
         )}
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const mkStyles = (C: ThemeTokens) =>
-  StyleSheet.create({
-    root: { flex: 1, backgroundColor: C.bg },
-    hintRow: { flexDirection: "row", alignItems: "center", marginBottom: 14, gap: 6 },
-    hint: { color: C.sub, flex: 1, fontSize: 13 },
-    center: { alignItems: "center", justifyContent: "center", paddingVertical: 48 },
-    retryBtn: { marginTop: 14, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, borderWidth: 1 },
-    grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
-    card: { width: "48.5%", borderRadius: 14, borderWidth: 1, padding: 8, marginBottom: 12 },
-    thumbWrap: { borderRadius: 10, overflow: "hidden", backgroundColor: "#000", aspectRatio: 16 / 10 },
-    thumb: { width: "100%", height: "100%" },
-    playBadge: { position: "absolute", right: 8, bottom: 8, backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 999, padding: 7 },
-    cardName: { fontWeight: "700", fontSize: 14, marginTop: 8 },
-    cardDesc: { fontSize: 12, marginTop: 2 },
-  });

@@ -18,29 +18,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/i18nText";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
 import { useResponsive } from "@/hooks/useResponsive";
-import { useMyCamClipAccessQuery } from "@/slices/camClipApiSlice";
-import { fetchChannels, thumbnailUrl, type Channel } from "@/utils/pickclip";
+import type { Channel } from "@/utils/pickclip";
+import { refreshCameraPreviews, type ClipCameraScope } from "@/utils/clipCameraCache";
+import { cameraAccessActive, useClipCameraAccess, useClipCameraPreviews, type CameraVenueAccess } from "@/hooks/useClipCameraPreviews";
+import CameraPreviewGrid from "@/components/clipCam/CameraPreviewGrid";
 
-type Access = {
-  venueId: string;
-  venueName: string;
-  logo?: string;
-  address?: string;
-  province?: string;
-  images?: string[];
-  piBaseUrl: string;
-  hasAccess: boolean;
-  source: "admin" | "owner" | "manager" | "manual" | "booking" | null;
-  expiresAt: string | null;
-  cameras?: number[] | null; // null/thiếu = tất cả camera; mảng = chỉ các channel id này
-};
-
-/** Lọc camera theo quyền: cams null/rỗng = tất cả; có id = chỉ các camera đó. */
-function filterChannels(list: Channel[], cams?: number[] | null): Channel[] {
-  if (!cams || cams.length === 0) return list;
-  const set = new Set(cams);
-  return list.filter((ch) => set.has(ch.id));
-}
+type Access = CameraVenueAccess;
 
 function accessLabel(a: Access): string {
   if (!a.hasAccess) return "Chưa có quyền";
@@ -55,52 +38,16 @@ function accessLabel(a: Access): string {
 }
 
 /** Khung camera của 1 venue (dùng ở pane phải khi màn lớn — two-pane master-detail). */
-function CamerasPane({ base, venueName, cameras, C }: { base: string; venueName: string; cameras?: number[] | null; C: ThemeTokens }) {
-  const [channels, setChannels] = useState<Channel[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
-
-  const load = useCallback(async () => {
-    setErr(""); setLoading(true);
-    try { setChannels(filterChannels(await fetchChannels(base), cameras)); }
-    catch (e: any) { setChannels([]); setErr(e?.message || "Không tải được camera"); }
-    finally { setLoading(false); }
-  }, [base, cameras]);
-  useEffect(() => { load(); }, [load]);
-
-  const open = (ch: Channel) =>
-    router.push({ pathname: "/clip-cam/cut", params: { base, venueName, chId: String(ch.id), chName: ch.name } } as any);
-
+function CamerasPane({ scope, venueName, C }: { scope: ClipCameraScope; venueName: string; C: ThemeTokens }) {
+  const state = useClipCameraPreviews(scope);
+  const open = (ch: Channel) => router.push({ pathname: "/clip-cam/cut", params: { base: scope.base, venueName, chId: String(ch.id), chName: ch.name } } as any);
   return (
-    <View style={{ flex: 1 }}>
-      <Text style={{ color: C.text, fontWeight: "800", fontSize: 16, marginBottom: 10 }}>{venueName}</Text>
-      {loading ? (
-        <View style={{ paddingVertical: 48, alignItems: "center" }}><ActivityIndicator color={C.primary} /></View>
-      ) : err ? (
-        <View style={{ paddingVertical: 36, alignItems: "center" }}>
-          <Ionicons name="videocam-off-outline" size={36} color={C.muted} />
-          <Text style={{ color: C.sub, marginTop: 8 }}>{err}</Text>
-        </View>
-      ) : channels.length === 0 ? (
-        <View style={{ paddingVertical: 36, alignItems: "center" }}>
-          <Ionicons name="videocam-off-outline" size={36} color={C.muted} />
-          <Text style={{ color: C.sub, marginTop: 8 }}>Chưa có camera.</Text>
-        </View>
-      ) : (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
-          {channels.map((ch) => (
-            <Pressable key={ch.id} onPress={() => open(ch)} style={{ width: "48.5%", borderRadius: 14, borderWidth: 1, borderColor: C.border, backgroundColor: C.card, padding: 8, marginBottom: 12 }}>
-              <View style={{ borderRadius: 10, overflow: "hidden", backgroundColor: "#000", aspectRatio: 16 / 10 }}>
-                <Image source={{ uri: thumbnailUrl(base, ch.id) }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-                <View style={{ position: "absolute", right: 8, bottom: 8, backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 999, padding: 7 }}>
-                  <Ionicons name="cut" size={16} color="#fff" />
-                </View>
-              </View>
-              <Text numberOfLines={1} style={{ color: C.text, fontWeight: "700", fontSize: 14, marginTop: 8 }}>{ch.name}</Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
+    <View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 18 }}>
+        <Text style={{ color: C.text, fontWeight: "800", fontSize: 17, flex: 1 }}>{venueName}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Làm mới camera" onPress={state.refresh} style={{ padding: 10 }}><Ionicons name="refresh-outline" size={23} color={C.primary} /></Pressable>
+      </View>
+      <CameraPreviewGrid state={state} C={C} onOpen={open} onRefresh={state.refresh} />
     </View>
   );
 }
@@ -109,8 +56,12 @@ export default function ClipCamScreen() {
   const C = useThemeTokens();
   const styles = useMemo(() => mkStyles(C), [C]);
   const rsp = useResponsive();
-  const { data, isLoading, isError, refetch, isFetching } = useMyCamClipAccessQuery(undefined);
-  const venues: Access[] = Array.isArray(data) ? data : [];
+  const { venues, scopes, userId, active, now, isLoading, isError, refetch, isFetching } = useClipCameraAccess();
+  // Tải trước tối đa hai sân, sáu camera/sân; cache chung giới hạn hai download đồng thời.
+  useEffect(() => {
+    if (!active) return;
+    for (const scope of scopes.slice(0, 2)) void refreshCameraPreviews(scope, false, 6);
+  }, [active, scopes]);
   const twoPane = rsp.isLarge; // iPhone Duo mở / iPad: hiện venue | camera cạnh nhau
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -118,13 +69,13 @@ export default function ClipCamScreen() {
   // Màn lớn: tự chọn sân có quyền đầu tiên để pane phải không trống.
   useEffect(() => {
     if (twoPane && !selectedId) {
-      const first = venues.find((v) => v.hasAccess);
+      const first = venues.find((v) => cameraAccessActive(v, now));
       if (first) setSelectedId(first.venueId);
     }
-  }, [twoPane, selectedId, venues]);
+  }, [twoPane, selectedId, venues, now]);
 
   const onPress = useCallback((v: Access) => {
-    if (!v.hasAccess) {
+    if (!cameraAccessActive(v)) {
       Alert.alert(
         "Chưa có quyền cắt cam",
         "Đặt sân qua app để được cắt cam miễn phí 48 giờ sau khi nhận sân, hoặc liên hệ chủ sân để được cấp quyền.",
@@ -135,7 +86,7 @@ export default function ClipCamScreen() {
     if (twoPane) {
       setSelectedId(v.venueId); // chọn → hiện camera ở pane phải (không chuyển màn)
     } else {
-      router.push({ pathname: "/clip-cam/channels", params: { base: v.piBaseUrl, venueName: v.venueName, cams: (v.cameras || []).join(",") } } as any);
+      router.push({ pathname: "/clip-cam/channels", params: { base: v.piBaseUrl, venueName: v.venueName, venueId: v.venueId, cams: (v.cameras || []).join(",") } } as any);
     }
   }, [twoPane]);
 
@@ -212,10 +163,10 @@ export default function ClipCamScreen() {
       <Stack.Screen options={{ title: "Cắt Cam Sân", headerShown: true }} />
       {twoPane && venues.length > 0 ? (
         <View style={{ flexDirection: "row", flex: 1 }}>
-          <View style={{ width: 400, borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: C.border }}>{venueScroll}</View>
+          <View style={{ width: Math.min(360, rsp.width * 0.4), borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: C.border }}>{venueScroll}</View>
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 18 }}>
-            {selectedVenue?.hasAccess ? (
-              <CamerasPane base={selectedVenue.piBaseUrl} venueName={selectedVenue.venueName} cameras={selectedVenue.cameras} C={C} />
+            {selectedVenue && cameraAccessActive(selectedVenue, now) ? (
+              <CamerasPane scope={{ userId, base: selectedVenue.piBaseUrl, cameras: selectedVenue.cameras }} venueName={selectedVenue.venueName} C={C} />
             ) : (
               <View style={styles.center}>
                 <Ionicons name="videocam-outline" size={44} color={C.muted} />
