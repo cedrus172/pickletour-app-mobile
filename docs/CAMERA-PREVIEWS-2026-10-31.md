@@ -33,4 +33,12 @@ Nhánh `codex/backup-before-camera-previews-20261031` tại `9a52f8c`. Backup ng
 
 62/62 test cache/font/OTA/route thông báo/ngày giờ đạt. ESLint 5 file TypeScript sửa không có lỗi/cảnh báo. TypeScript toàn repo còn lỗi cũ ở các màn khác; không có diagnostic thuộc các file camera sửa. Harness React Native Web chạy chính hai màn/hook/cache/grid, mock native filesystem và API quyền: 6 viewport 320×568, 375×812, 440×956, 844×390, 768×1024, 1366×1024; ảnh thật tải thành công, không tràn ngang, route cắt đúng, giữ ảnh khi offline, ẩn khi thu hồi quyền/logout và xoay màn đều đạt. Không thay thế kiểm tra native trên máy thật.
 
-ID OTA được bổ sung sau khi xác minh gói phát hành.
+Source **`a5a31ef`**, đã commit/push trước build. Build iOS rồi Android disabled, xác minh SHA-256 zip local/server/metadata, 20 PNG icon, 10 TTF cách ly và marker camera/các màn trước; sau đó mới bật. Public check từ bản font `6dbb27f` trả UPDATE đúng cả hai ID. Chính sách allowed=true/forceUpdate=false; giữ tự reload ngoài bắt trận, đang bắt trận chờ rời màn.
+
+| Nền tảng | Bundle ID | Kênh | Target | Bật | Bắt buộc |
+|---|---|---|---|---|---|
+| ios | `01a19283-147f-7195-954f-ffccd69caa06` | `production` | `1.1.x` | `true` | `false` |
+| android | `01a19283-caff-7311-9b3b-b0e4f0c02066` | `production` | `1.1.x` | `true` | `false` |
+
+Xác minh UTC: `2026-10-31T15:12:50.968Z`. URLSession Foundation trên Mac cũng trả HTTP 200 ảnh JPEG 27.663 byte và header capturedAt, mất 1,574 giây; đây là kiểm tra kết nối Apple networking, không phải chạy app trên iPhone. Cần user kiểm tra bản native sau khi app nhận đúng OTA.
+
