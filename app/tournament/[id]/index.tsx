@@ -48,6 +48,7 @@ import {
 } from "@/slices/subscriptionApiSlice";
 import { useGetReviewSummaryQuery } from "@/slices/reviewApiSlice";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import OverviewHeroArt, { overviewHeading } from "@/components/tournament/OverviewHeroArt";
 import {
   getMatchCourtStationName,
   getPairDisplayName,
@@ -168,31 +169,31 @@ function useTokens() {
   return useMemo(
     () => ({
       scheme,
-      dark,
-      bg: v2 ? "#040E20" : dark ? "#0b0d10" : "#f5f8fa",
-      card: v2 ? "#0A1B34" : dark ? "#12151a" : "#ffffff",
-      soft: v2 ? "#0E2244" : dark ? "#1a1f26" : "#f1f5f9",
-      border: v2 ? "rgba(92,180,255,0.16)" : dark ? "#2a313a" : "#e2e8f0",
-      text: v2 ? "#EAF3FF" : dark ? "#eef2f7" : "#0f172a",
-      sub: v2 ? "#C4D6EC" : dark ? "#cbd5e1" : "#475569",
-      muted: v2 ? "#8CA6C8" : dark ? "#94a3b8" : "#64748b",
-      tint: v2 ? "#12B6F3" : dark ? "#63b3ed" : "#2563eb",
+      dark, v2,
+      bg: v2 ? "#041329" : dark ? "#0b0d10" : "#f5f8fa",
+      card: v2 ? "#082138" : dark ? "#12151a" : "#ffffff",
+      soft: v2 ? "#0C2945" : dark ? "#1a1f26" : "#f1f5f9",
+      border: v2 ? "#174A6C" : dark ? "#2a313a" : "#e2e8f0",
+      text: v2 ? "#F0F6FF" : dark ? "#eef2f7" : "#0f172a",
+      sub: v2 ? "#A9C2D9" : dark ? "#cbd5e1" : "#475569",
+      muted: v2 ? "#94B3D0" : dark ? "#94a3b8" : "#64748b",
+      tint: v2 ? "#12C8EC" : dark ? "#63b3ed" : "#2563eb",
 
       live: "#e65100",
       ok: dark ? "#4ade80" : "#16a34a",
       warn: dark ? "#facc15" : "#ca8a04",
       err: dark ? "#f87171" : "#dc2626",
 
-      gradA: dark ? "#0b2a4a" : "#1d4ed8",
-      gradB: dark ? "#0a1626" : "#0b3aa6",
+      gradA: v2 ? "#093453" : dark ? "#0b2a4a" : "#1d4ed8",
+      gradB: v2 ? "#041329" : dark ? "#0a1626" : "#0b3aa6",
 
       skel: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
       shadow: {
         shadowColor: "#000",
-        shadowOpacity: dark ? 0.32 : 0.08,
+        shadowOpacity: v2 ? 0 : dark ? 0.32 : 0.08,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 6 },
-        elevation: 3,
+        elevation: v2 ? 0 : 3,
       },
     }),
     [scheme, v2]
@@ -222,23 +223,25 @@ function StatCard({ icon, label, value, hint, tone, T }) {
 
   return (
     <View
+      testID={`overview-stat-${label}`}
       style={[
         S.statCard,
+        T.v2 && O.statCard,
         { backgroundColor: T.card, borderColor: T.border, ...T.shadow },
       ]}
     >
-      <View style={[S.statIcon, { backgroundColor: toneObj.bg }]}>
-        {React.cloneElement(icon, { size: 18, color: toneObj.c })}
+      <View style={[S.statIcon, { backgroundColor: toneObj.bg }, T.v2 && O.statIcon]}>
+        {React.cloneElement(icon, { size: T.v2 ? 22 : 18, color: toneObj.c })}
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={[S.statLabel, { color: T.muted }]} numberOfLines={1}>
+        <Text style={[S.statLabel, { color: T.muted }, T.v2 && O.statLabel]} numberOfLines={T.v2 ? 2 : 1}>
           {label}
         </Text>
-        <Text style={[S.statValue, { color: T.text }]} numberOfLines={1}>
+        <Text style={[S.statValue, { color: T.text }, T.v2 && O.statValue]} numberOfLines={1}>
           {String(value)}
         </Text>
         {!!hint && (
-          <Text style={[S.statHint, { color: T.sub }]} numberOfLines={1}>
+          <Text style={[S.statHint, { color: T.sub }, T.v2 && O.statHint]} numberOfLines={T.v2 ? 2 : 1}>
             {hint}
           </Text>
         )}
@@ -496,49 +499,6 @@ export default function TournamentOverviewScreen() {
     return arr;
   }, [matches]);
 
-  const stats = useMemo(() => {
-    const total = allSorted.length;
-    const live = allSorted.filter(isLive).length;
-    const finished = allSorted.filter(isFinished).length;
-    const upcoming = allSorted.filter(
-      (m) => !isLive(m) && !isFinished(m)
-    ).length;
-
-    const courtsMap = new Map();
-    allSorted.forEach((m) => {
-      const c = courtNameOf(m);
-      if (!courtsMap.has(c)) courtsMap.set(c, { name: c, live: 0, queued: 0 });
-      const obj = courtsMap.get(c);
-      if (isLive(m)) obj.live += 1;
-      else if (!isFinished(m)) obj.queued += 1;
-    });
-    const courts = Array.from(courtsMap.values());
-    const courtsTotal = courts.length;
-    const courtsLive = courts.filter((x) => x.live > 0).length;
-
-    const regTotal = Array.isArray(regs) ? regs.length : 0;
-    const paidCount = Array.isArray(regs)
-      ? regs.filter(
-          (r) => String(r?.payment?.status || "").toLowerCase() === "paid"
-        ).length
-      : 0;
-
-    const donePct = total > 0 ? Math.round((finished / total) * 100) : 0;
-
-    return {
-      total,
-      live,
-      finished,
-      upcoming,
-      courtsTotal,
-      courtsLive,
-      regTotal,
-      paidCount,
-      bracketCount: bracketsCount,
-      donePct,
-    };
-  }, [allSorted, regs, brackets]);
-
   const liveMatches = useMemo(
     () => allSorted.filter(isLive).slice(0, 4),
     [allSorted]
@@ -583,6 +543,49 @@ export default function TournamentOverviewScreen() {
     : Array.isArray(brackets)
       ? brackets.length
       : 0;
+
+  const stats = useMemo(() => {
+    const total = allSorted.length;
+    const live = allSorted.filter(isLive).length;
+    const finished = allSorted.filter(isFinished).length;
+    const upcoming = allSorted.filter(
+      (m) => !isLive(m) && !isFinished(m)
+    ).length;
+
+    const courtsMap = new Map();
+    allSorted.forEach((m) => {
+      const c = courtNameOf(m);
+      if (!courtsMap.has(c)) courtsMap.set(c, { name: c, live: 0, queued: 0 });
+      const obj = courtsMap.get(c);
+      if (isLive(m)) obj.live += 1;
+      else if (!isFinished(m)) obj.queued += 1;
+    });
+    const courts = Array.from(courtsMap.values());
+    const courtsTotal = courts.length;
+    const courtsLive = courts.filter((x) => x.live > 0).length;
+
+    const regTotal = Array.isArray(regs) ? regs.length : 0;
+    const paidCount = Array.isArray(regs)
+      ? regs.filter(
+          (r) => String(r?.payment?.status || "").toLowerCase() === "paid"
+        ).length
+      : 0;
+
+    const donePct = total > 0 ? Math.round((finished / total) * 100) : 0;
+
+    return {
+      total,
+      live,
+      finished,
+      upcoming,
+      courtsTotal,
+      courtsLive,
+      regTotal,
+      paidCount,
+      bracketCount: bracketsCount,
+      donePct,
+    };
+  }, [allSorted, regs, bracketsCount]);
 
   const errorMsg =
     (tError && (tError.data?.message || tError.error)) ||
@@ -692,6 +695,8 @@ export default function TournamentOverviewScreen() {
     { skip: !id }
   );
 
+  const heading = useMemo(() => overviewHeading(tournament?.name), [tournament?.name]);
+  const titleEnd = heading.title.match(/^(.*\s)(\d+)$/);
   const col2 = width >= 900;
 
   if (loading && !tournament) return <OverviewSkeleton T={T} insets={insets} />;
@@ -701,14 +706,16 @@ export default function TournamentOverviewScreen() {
       <Stack.Screen
         options={{
           title: t("Tổng quan giải đấu"),
-          headerStyle: { backgroundColor: T.card },
-          headerTitleStyle: { color: T.text },
+          headerStyle: { backgroundColor: T.v2 ? "#061D33" : T.card },
+          headerTitleStyle: { color: T.text, ...(T.v2 ? { fontSize: 18, fontWeight: "800" } : {}) },
+          ...(T.v2 ? { headerTitleAlign: "center", headerRight: () => null } : {}),
           headerShadowVisible: false,
           headerLeft: () => (
             <Pressable
+              accessibilityRole="button" accessibilityLabel="Quay lại"
               onPress={() => router.back()}
               hitSlop={12}
-              style={{ paddingHorizontal: 6, paddingVertical: 4 }}
+              style={T.v2 ? O.headerBack : { paddingHorizontal: 6, paddingVertical: 4 }}
             >
               <Ionicons name="chevron-back" size={24} color={T.text} />
             </Pressable>
@@ -738,7 +745,8 @@ export default function TournamentOverviewScreen() {
         ) : null}
 
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 24 }}
+          testID="tournament-overview-scroll"
+          contentContainerStyle={[{ paddingBottom: 24 }, T.v2 && { width: "100%", maxWidth: 1100, alignSelf: "center", paddingBottom: Math.max(insets.bottom, 12) + 16 }]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -749,8 +757,9 @@ export default function TournamentOverviewScreen() {
           {/* HERO */}
           <LinearGradient
             colors={[T.gradA, T.gradB]}
-            style={[S.hero, { paddingTop: insets.top + 12 }]}
+            style={[S.hero, { paddingTop: insets.top + 12 }, T.v2 && O.hero]}
           >
+            {T.v2 ? <OverviewHeroArt /> : null}
             <View
               style={{
                 flexDirection: "row",
@@ -758,7 +767,7 @@ export default function TournamentOverviewScreen() {
                 justifyContent: "space-between",
               }}
             >
-              <View style={S.heroBadge}>
+              <View style={[S.heroBadge, T.v2 && O.heroBadge]}>
                 <MaterialCommunityIcons
                   name="trophy-variant"
                   size={16}
@@ -775,6 +784,7 @@ export default function TournamentOverviewScreen() {
                 <View
                   style={[
                     S.heroCountdown,
+                    T.v2 && O.heroCountdown,
                     { borderColor: "rgba(255,255,255,0.25)" },
                   ]}
                 >
@@ -786,11 +796,20 @@ export default function TournamentOverviewScreen() {
               )}
             </View>
 
-            <Text style={S.heroTitle} numberOfLines={2}>
-              {tournament?.name || "Giải đấu"}
+            <Text testID="tournament-overview-title" style={[S.heroTitle, T.v2 && O.heroTitle]} numberOfLines={T.v2 ? undefined : 2}>
+              {T.v2 ? titleEnd ? <>{titleEnd[1]}<Text style={{ color: T.tint }}>{titleEnd[2]}</Text></> : heading.title : tournament?.name || "Giải đấu"}
             </Text>
+            {T.v2 && !!heading.category ? <View style={O.category}><Text style={O.categoryText}>{heading.category}</Text></View> : null}
 
             <View style={{ marginTop: 10, gap: 8 }}>
+              {T.v2 ? (<View
+                style={{ flexDirection: "row", gap: 8, alignItems: "center" }}
+              >
+                <Ionicons name="calendar" size={14} color="#fff" />
+                <Text style={[S.heroMeta, T.v2 && O.heroDate]} numberOfLines={T.v2 ? undefined : 1}>
+                  {dateRange}
+                </Text>
+              </View>) : null}
               {!!tournament?.location && (
                 <View
                   style={{
@@ -805,52 +824,56 @@ export default function TournamentOverviewScreen() {
                     color="#fff"
                     style={{ marginTop: 2 }}
                   />
-                  <Text style={S.heroMeta} numberOfLines={2}>
+                  <Text style={[S.heroMeta, T.v2 && O.heroLocation]} numberOfLines={T.v2 ? undefined : 2}>
                     {tournament.location}
                   </Text>
                 </View>
               )}
 
-              <View
+              {!T.v2 ? (<View
                 style={{ flexDirection: "row", gap: 8, alignItems: "center" }}
               >
                 <Ionicons name="calendar" size={14} color="#fff" />
-                <Text style={S.heroMeta} numberOfLines={1}>
+                <Text style={[S.heroMeta, T.v2 && O.heroDate]} numberOfLines={T.v2 ? undefined : 1}>
                   {dateRange}
                 </Text>
-              </View>
+              </View>) : null}
             </View>
 
             {/* shortcuts */}
-            <View style={[S.shortcutsWrap, { marginTop: 14 }]}>
+            <View testID="tournament-overview-shortcuts" style={[S.shortcutsWrap, { marginTop: 14 }, T.v2 && O.shortcutsWrap]}>
               <Pressable
+                testID="overview-shortcut-schedule" accessibilityRole="button" accessibilityLabel="Lịch"
                 onPress={() => go("/tournament/[id]/schedule")}
                 style={({ pressed }) => [
                   S.shortcut,
+                  T.v2 && O.shortcut,
                   { opacity: pressed ? 0.85 : 1 },
                 ]}
               >
-                <View style={S.shortcutIcon}>
-                  <MaterialIcons name="event-note" size={18} color="#fff" />
+                <View style={[S.shortcutIcon, T.v2 && O.shortcutIcon]}>
+                  <MaterialIcons name="event-note" size={T.v2 ? 23 : 18} color="#fff" />
                 </View>
-                <Text numberOfLines={2} style={S.shortcutText}>Lịch</Text>
+                <Text numberOfLines={T.v2 ? undefined : 2} style={[S.shortcutText, T.v2 && O.shortcutText]}>Lịch</Text>
               </Pressable>
 
               <Pressable
+                testID="overview-shortcut-bracket" accessibilityRole="button" accessibilityLabel="Sơ đồ"
                 onPress={() => go("/tournament/[id]/bracket")}
                 style={({ pressed }) => [
                   S.shortcut,
+                  T.v2 && O.shortcut,
                   { opacity: pressed ? 0.85 : 1 },
                 ]}
               >
-                <View style={S.shortcutIcon}>
+                <View style={[S.shortcutIcon, T.v2 && O.shortcutIcon]}>
                   <MaterialCommunityIcons
                     name="tournament"
-                    size={18}
+                    size={T.v2 ? 23 : 18}
                     color="#fff"
                   />
                 </View>
-                <Text numberOfLines={2} style={S.shortcutText}>Sơ đồ</Text>
+                <Text numberOfLines={T.v2 ? undefined : 2} style={[S.shortcutText, T.v2 && O.shortcutText]}>Sơ đồ</Text>
               </Pressable>
 
               {(tournament as any)?.tournamentMode === "mlp" && (
@@ -858,6 +881,7 @@ export default function TournamentOverviewScreen() {
                   onPress={() => go("/tournament/[id]/mlp/duals")}
                   style={({ pressed }) => [
                     S.shortcut,
+                    T.v2 && O.shortcut,
                     { opacity: pressed ? 0.85 : 1 },
                   ]}
                 >
@@ -865,33 +889,38 @@ export default function TournamentOverviewScreen() {
                     style={[
                       S.shortcutIcon,
                       { backgroundColor: "#F59E0B" },
+                      T.v2 && O.shortcutIcon,
                     ]}
                   >
                     <MaterialCommunityIcons
                       name="shield-star"
-                      size={18}
+                      size={T.v2 ? 23 : 18}
                       color="#fff"
                     />
                   </View>
-                  <Text numberOfLines={2} style={S.shortcutText}>MLP</Text>
+                  <Text numberOfLines={T.v2 ? undefined : 2} style={[S.shortcutText, T.v2 && O.shortcutText]}>MLP</Text>
                 </Pressable>
               )}
 
               {/* NOTE: nếu route đăng ký của bạn khác, đổi pathname ở đây */}
               <Pressable
+                testID="overview-shortcut-register" accessibilityRole="button" accessibilityLabel="Đăng ký"
                 onPress={() => go("/tournament/[id]/register")}
                 style={({ pressed }) => [
                   S.shortcut,
+                  T.v2 && O.shortcut,
+                  T.v2 && O.shortcutPrimary,
                   { opacity: pressed ? 0.85 : 1 },
                 ]}
               >
-                <View style={S.shortcutIcon}>
-                  <Ionicons name="create-outline" size={18} color="#fff" />
+                <View style={[S.shortcutIcon, T.v2 && O.shortcutIcon]}>
+                  <Ionicons name="create-outline" size={T.v2 ? 23 : 18} color={T.v2 ? "#032139" : "#fff"} />
                 </View>
-                <Text numberOfLines={2} style={S.shortcutText}>Đăng ký</Text>
+                <Text numberOfLines={T.v2 ? undefined : 2} style={[S.shortcutText, T.v2 && O.shortcutText, T.v2 && { color: "#032139" }]}>Đăng ký</Text>
               </Pressable>
 
               <Pressable
+                testID="overview-shortcut-zalo" accessibilityRole="button" accessibilityLabel="Nhóm Zalo"
                 onPress={() =>
                   Linking.openURL(
                     String(
@@ -901,26 +930,29 @@ export default function TournamentOverviewScreen() {
                 }
                 style={({ pressed }) => [
                   S.shortcut,
+                  T.v2 && O.shortcut,
                   { opacity: pressed ? 0.85 : 1 },
                 ]}
               >
-                <View style={[S.shortcutIcon, { backgroundColor: "#0068FF" }]}>
-                  <Ionicons name="chatbubbles" size={18} color="#fff" />
+                <View style={[S.shortcutIcon, { backgroundColor: "#0068FF" }, T.v2 && O.shortcutIcon]}>
+                  <Ionicons name="chatbubbles" size={T.v2 ? 23 : 18} color={T.v2 ? "#168CFA" : "#fff"} />
                 </View>
-                <Text numberOfLines={2} style={S.shortcutText}>Nhóm Zalo</Text>
+                <Text numberOfLines={T.v2 ? undefined : 2} style={[S.shortcutText, T.v2 && O.shortcutText]}>Nhóm Zalo</Text>
               </Pressable>
 
               <Pressable
+                testID="overview-shortcut-reviews" accessibilityRole="button" accessibilityLabel="Đánh giá"
                 onPress={() => go("/tournament/[id]/reviews")}
                 style={({ pressed }) => [
                   S.shortcut,
+                  T.v2 && O.shortcut,
                   { opacity: pressed ? 0.85 : 1 },
                 ]}
               >
-                <View style={[S.shortcutIcon, { backgroundColor: "#F59E0B" }]}>
-                  <Ionicons name="star" size={18} color="#fff" />
+                <View style={[S.shortcutIcon, { backgroundColor: "#F59E0B" }, T.v2 && O.shortcutIcon]}>
+                  <Ionicons name="star" size={T.v2 ? 23 : 18} color={T.v2 ? "#FFBB15" : "#fff"} />
                 </View>
-                <Text numberOfLines={2} style={S.shortcutText}>
+                <Text numberOfLines={T.v2 ? undefined : 2} style={[S.shortcutText, T.v2 && O.shortcutText]}>
                   {reviewSummary?.summary?.count
                     ? `Đánh giá ${reviewSummary.summary.avg?.toFixed(1)}★`
                     : "Đánh giá"}
@@ -929,8 +961,10 @@ export default function TournamentOverviewScreen() {
 
               <Pressable
                 onPress={toggleFollow}
+                testID="overview-shortcut-follow" accessibilityRole="button" accessibilityLabel={isFollowing ? "Đang theo dõi" : "Theo dõi"}
                 style={({ pressed }) => [
                   S.shortcut,
+                  T.v2 && O.shortcut,
                   { opacity: pressed ? 0.85 : 1 },
                 ]}
               >
@@ -938,15 +972,16 @@ export default function TournamentOverviewScreen() {
                   style={[
                     S.shortcutIcon,
                     { backgroundColor: isFollowing ? "#22c55e" : "#6366f1" },
+                    T.v2 && O.shortcutIcon,
                   ]}
                 >
                   <Ionicons
                     name={isFollowing ? "notifications" : "notifications-outline"}
-                    size={18}
-                    color="#fff"
+                    size={T.v2 ? 23 : 18}
+                    color={T.v2 ? isFollowing ? "#4ADE80" : "#9C67FF" : "#fff"}
                   />
                 </View>
-                <Text numberOfLines={2} style={S.shortcutText}>
+                <Text numberOfLines={T.v2 ? undefined : 2} style={[S.shortcutText, T.v2 && O.shortcutText]}>
                   {isFollowing ? "Đang theo dõi" : "Theo dõi"}
                 </Text>
               </Pressable>
@@ -954,7 +989,7 @@ export default function TournamentOverviewScreen() {
           </LinearGradient>
 
           {/* STATS (overlap) */}
-          <View style={{ paddingHorizontal: 16, marginTop: -28 }}>
+          <View testID="tournament-overview-stats" style={{ paddingHorizontal: 16, marginTop: T.v2 ? 0 : -28 }}>
             <View style={{ flexDirection: "row", gap: 10 }}>
               <View style={{ flex: 1 }}>
                 <StatCard
@@ -1005,6 +1040,7 @@ export default function TournamentOverviewScreen() {
             <View
               style={[
                 S.progressWrap,
+                T.v2 && O.progressWrap,
                 { backgroundColor: T.card, borderColor: T.border, ...T.shadow },
               ]}
             >
@@ -1015,7 +1051,7 @@ export default function TournamentOverviewScreen() {
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: T.text, fontWeight: "800" }}>
+                <Text style={{ color: T.text, fontWeight: "800", fontSize: T.v2 ? 18 : undefined }}>
                   Tiến độ giải
                 </Text>
                 <Text style={{ color: T.sub, fontWeight: "700" }}>
@@ -1029,6 +1065,7 @@ export default function TournamentOverviewScreen() {
                 ]}
               >
                 <View
+                  testID="overview-progress-fill"
                   style={[
                     S.progressFill,
                     {
@@ -1073,7 +1110,7 @@ export default function TournamentOverviewScreen() {
                       color={T.text}
                     />
                   }
-                  text={`${stats.bracketCount} bracket`}
+                  text={T.v2 && !stats.bracketCount ? "Chưa có bracket" : `${stats.bracketCount} bracket`}
                   color={T.text}
                   bg={T.soft}
                   bd={T.border}
@@ -1102,6 +1139,7 @@ export default function TournamentOverviewScreen() {
                 <View
                   style={[
                     S.block,
+                    T.v2 && O.block,
                     {
                       backgroundColor: T.card,
                       borderColor: T.border,
@@ -1109,7 +1147,7 @@ export default function TournamentOverviewScreen() {
                     },
                   ]}
                 >
-                  <View style={S.blockHead}>
+                  <View style={[S.blockHead, T.v2 && O.blockHead]}>
                     <View
                       style={{
                         flexDirection: "row",
@@ -1122,7 +1160,7 @@ export default function TournamentOverviewScreen() {
                         size={18}
                         color={T.live}
                       />
-                      <Text style={[S.blockTitle, { color: T.text }]}>
+                      <Text style={[S.blockTitle, { color: T.text }, T.v2 && O.blockTitle]}>
                         Đang diễn ra
                       </Text>
                     </View>
@@ -1158,6 +1196,7 @@ export default function TournamentOverviewScreen() {
                 <View
                   style={[
                     S.block,
+                    T.v2 && O.block,
                     {
                       backgroundColor: T.card,
                       borderColor: T.border,
@@ -1166,7 +1205,7 @@ export default function TournamentOverviewScreen() {
                     },
                   ]}
                 >
-                  <View style={S.blockHead}>
+                  <View style={[S.blockHead, T.v2 && O.blockHead]}>
                     <View
                       style={{
                         flexDirection: "row",
@@ -1175,7 +1214,7 @@ export default function TournamentOverviewScreen() {
                       }}
                     >
                       <Ionicons name="play-forward" size={18} color={T.tint} />
-                      <Text style={[S.blockTitle, { color: T.text }]}>
+                      <Text style={[S.blockTitle, { color: T.text }, T.v2 && O.blockTitle]}>
                         Sắp tới
                       </Text>
                     </View>
@@ -1209,6 +1248,7 @@ export default function TournamentOverviewScreen() {
                 <View
                   style={[
                     S.block,
+                    T.v2 && O.block,
                     {
                       backgroundColor: T.card,
                       borderColor: T.border,
@@ -1216,7 +1256,7 @@ export default function TournamentOverviewScreen() {
                     },
                   ]}
                 >
-                  <View style={S.blockHead}>
+                  <View style={[S.blockHead, T.v2 && O.blockHead]}>
                     <View
                       style={{
                         flexDirection: "row",
@@ -1229,7 +1269,7 @@ export default function TournamentOverviewScreen() {
                         size={18}
                         color={T.tint}
                       />
-                      <Text style={[S.blockTitle, { color: T.text }]}>
+                      <Text style={[S.blockTitle, { color: T.text }, T.v2 && O.blockTitle]}>
                         Bracket
                       </Text>
                     </View>
@@ -1284,6 +1324,7 @@ export default function TournamentOverviewScreen() {
                 <View
                   style={[
                     S.block,
+                    T.v2 && O.block,
                     {
                       backgroundColor: T.card,
                       borderColor: T.border,
@@ -1292,7 +1333,7 @@ export default function TournamentOverviewScreen() {
                     },
                   ]}
                 >
-                  <View style={S.blockHead}>
+                  <View style={[S.blockHead, T.v2 && O.blockHead]}>
                     <View
                       style={{
                         flexDirection: "row",
@@ -1301,17 +1342,18 @@ export default function TournamentOverviewScreen() {
                       }}
                     >
                       <Ionicons name="flash-outline" size={18} color={T.warn} />
-                      <Text style={[S.blockTitle, { color: T.text }]}>
+                      <Text style={[S.blockTitle, { color: T.text }, T.v2 && O.blockTitle]}>
                         Thao tác nhanh
                       </Text>
                     </View>
                   </View>
 
-                  <View style={{ gap: 10 }}>
+                  <View style={[{ gap: 10 }, T.v2 && O.quickList]}>
                     <Pressable
                       onPress={() => go("/tournament/[id]/schedule")}
                       style={({ pressed }) => [
                         S.actionRow,
+                        T.v2 && O.quickRow,
                         {
                           borderColor: T.border,
                           backgroundColor: T.soft,
@@ -1340,6 +1382,7 @@ export default function TournamentOverviewScreen() {
                       onPress={() => go("/tournament/[id]/bracket")}
                       style={({ pressed }) => [
                         S.actionRow,
+                        T.v2 && O.quickRow,
                         {
                           borderColor: T.border,
                           backgroundColor: T.soft,
@@ -1369,6 +1412,8 @@ export default function TournamentOverviewScreen() {
                       onPress={() => go("/tournament/[id]/register")}
                       style={({ pressed }) => [
                         S.actionRow,
+                        T.v2 && O.quickRow,
+                        T.v2 && { borderBottomWidth: 0 },
                         {
                           borderColor: T.border,
                           backgroundColor: T.soft,
@@ -1592,4 +1637,33 @@ const S = StyleSheet.create({
     borderRadius: 14,
     padding: 12,
   },
+});
+
+// Giao diện V2 theo ảnh duyệt; style V1 ở S được giữ nguyên.
+const O = StyleSheet.create({
+  headerBack: { width: 40, height: 40, borderWidth: 1, borderColor: "#21577A", borderRadius: 20, backgroundColor: "#082239", alignItems: "center", justifyContent: "center" },
+  hero: { paddingTop: 12, paddingBottom: 16, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
+  heroBadge: { backgroundColor: "#123A59", borderColor: "#246389" },
+  heroCountdown: { backgroundColor: "#061E33", borderColor: "#246389" },
+  heroTitle: { fontSize: 25, lineHeight: 32, marginTop: 12, textTransform: "uppercase", textShadowRadius: 0 },
+  category: { alignSelf: "flex-start", marginTop: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 18, backgroundColor: "#1A3E63", maxWidth: "100%" },
+  categoryText: { color: "#B9D9F2", fontWeight: "800", fontSize: 13, lineHeight: 19 },
+  heroLocation: { flex: 1, minWidth: 0, fontSize: 12, lineHeight: 19, color: "#B4CCE2", fontWeight: "500" },
+  heroDate: { flexShrink: 1, fontSize: 13, lineHeight: 20 },
+  shortcutsWrap: { flexWrap: "wrap", gap: 10, marginTop: 18 },
+  shortcut: { flexBasis: "30%", flexGrow: 1, flexShrink: 0, minWidth: 0, minHeight: 54, paddingVertical: 12, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#07233B", borderColor: "#1A6086", borderRadius: 12 },
+  shortcutPrimary: { backgroundColor: "#12C8EC", borderColor: "#0AAAD4" },
+  shortcutIcon: { width: 24, height: 26, borderRadius: 0, backgroundColor: "transparent" },
+  shortcutText: { fontSize: 12, lineHeight: 17, fontWeight: "800", flexShrink: 1 },
+  statCard: { minHeight: 86, padding: 12, gap: 10 },
+  statIcon: { width: 40, height: 44, borderRadius: 12 },
+  statLabel: { fontSize: 10.5, lineHeight: 14 },
+  statValue: { fontSize: 21, lineHeight: 27 },
+  statHint: { fontSize: 10.5, lineHeight: 15, fontWeight: "500" },
+  progressWrap: { padding: 14, marginTop: 12 },
+  block: { padding: 14 },
+  blockHead: { gap: 10, flexWrap: "wrap" },
+  blockTitle: { fontSize: 18, lineHeight: 24 },
+  quickList: { gap: 0, borderWidth: 1, borderColor: "#174A6C", borderRadius: 12, overflow: "hidden" },
+  quickRow: { minHeight: 48, borderWidth: 0, borderBottomWidth: 1, borderRadius: 0, paddingVertical: 13 },
 });
