@@ -49,6 +49,7 @@ import { useExpoPushToken } from "@/hooks/useExpoPushToken";
 import { loadExpoNotifications } from "@/lib/expoNotifications";
 import ForceUpdateModal from "@/components/ForceUpdateModal";
 import HotUpdateModal from "@/components/HotUpdateModal";
+import HotUpdateIndicator from "@/components/HotUpdateIndicator";
 import CrashFeedbackModal from "@/components/CrashFeedbackModal";
 import MatchLiveActivityBootstrap from "@/components/match/MatchLiveActivityBootstrap";
 import CheckpointRealtimeGate from "@/components/auth/CheckpointRealtimeGate";
@@ -525,6 +526,9 @@ const handleHotUpdateNotifyTelemetry = async (payload: {
     return;
   }
 
+  // A downloaded background update is not active until the next runtime starts.
+  if (String(HotUpdater?.getBundleId?.() || "") !== pending.bundleId) return;
+
   if (payload.status === "PROMOTED" || payload.status === "STABLE") {
     const success = await reportHotUpdateTelemetry({
       status: "promoted",
@@ -683,11 +687,13 @@ function RootLayout() {
   const otaLastCheckAtRef = React.useRef(0);
   const otaIgnoredUpdateIdRef = React.useRef<string | null>(null);
   const otaInitialCheckDoneRef = React.useRef(false);
+  const otaCompletionTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const mobileAppShellWebViewRef = React.useRef<WebView>(null);
   const mobileAppShellCanGoBackRef = React.useRef(false);
   const mobileAppShellActiveRef = React.useRef(false);
 
   const [hotUpdateVisible, setHotUpdateVisible] = React.useState(false);
+  const [hotUpdateBlocking, setHotUpdateBlocking] = React.useState(false);
   const [hotUpdateProgress, setHotUpdateProgress] = React.useState(0);
   const [hotUpdateStatus, setHotUpdateStatus] = React.useState<
     "downloading" | "done" | "error"
@@ -887,7 +893,11 @@ function RootLayout() {
     nativeAuthUserInfo,
   ]);
 
-  const startHotUpdate = React.useCallback(async (updateInfo: any) => {
+  React.useEffect(() => () => {
+    if (otaCompletionTimerRef.current) clearTimeout(otaCompletionTimerRef.current);
+  }, []);
+
+  const startHotUpdate = React.useCallback(async (updateInfo: any, applyImmediately = false) => {
     if (!HotUpdater || !updateInfo?.updateBundle) return;
 
     const startedAt = Date.now();
@@ -905,6 +915,8 @@ function RootLayout() {
 
     otaCheckInFlightRef.current = true;
     otaIgnoredUpdateIdRef.current = null;
+    if (otaCompletionTimerRef.current) clearTimeout(otaCompletionTimerRef.current);
+    setHotUpdateBlocking(applyImmediately);
     setHotUpdateVisible(true);
     setHotUpdateStatus("downloading");
     setHotUpdateProgress(0);
@@ -928,7 +940,7 @@ function RootLayout() {
       }
 
       await savePendingHotUpdate(pendingPayload);
-      await reportHotUpdateTelemetry({
+      void reportHotUpdateTelemetry({
         status: "downloaded",
         bundleId: pendingPayload.bundleId,
         currentBundleId: pendingPayload.currentBundleId,
@@ -941,9 +953,16 @@ function RootLayout() {
       setHotUpdateProgress(1);
       setHotUpdateStatus("done");
       otaIgnoredUpdateIdRef.current = pendingPayload.bundleId;
+      if (!applyImmediately) {
+        otaDiag("đã tải ngầm; chờ lần khởi động app kế tiếp");
+        setHotUpdateMessage(null);
+        otaCompletionTimerRef.current = setTimeout(() => setHotUpdateVisible(false), 2000);
+        otaCheckInFlightRef.current = false;
+        return;
+      }
       setHotUpdateMessage("Bản cập nhật đã tải xong. Đang mở lại ứng dụng...");
 
-      setTimeout(() => {
+      otaCompletionTimerRef.current = setTimeout(() => {
         (globalThis as any)[HOT_UPDATE_RELOAD_KEY] = true;
         DeviceEventEmitter.emit(HOT_UPDATE_RELOAD_EVENT);
         HotUpdater.reload().catch((error: unknown) => {
@@ -984,7 +1003,7 @@ function RootLayout() {
         await saveRecoveredHotUpdateBundle(pendingPayload.bundleId);
       }
       await clearPendingHotUpdate();
-      await reportHotUpdateTelemetry({
+      void reportHotUpdateTelemetry({
         status: "failed",
         bundleId: pendingPayload.bundleId,
         currentBundleId: pendingPayload.currentBundleId,
@@ -998,6 +1017,7 @@ function RootLayout() {
       });
       setHotUpdateStatus("error");
       setHotUpdateMessage("Không thể tải bản cập nhật. Vui lòng thử lại sau.");
+      if (!applyImmediately) setHotUpdateVisible(false);
       otaCheckInFlightRef.current = false;
     }
   }, []);
@@ -1073,7 +1093,9 @@ function RootLayout() {
         return;
       }
 
-      if (!isRollbackUpdate && updateId && pendingBundleId === updateId) {
+      const isForceUpdate =
+        updateInfo.shouldForceUpdate === true || remoteForceUpdate;
+      if (!isRollbackUpdate && pendingBundleId && pendingBundleId !== currentBundleId && !isForceUpdate) {
         otaIgnoredUpdateIdRef.current = updateId;
         otaCheckInFlightRef.current = false;
         return;
@@ -1122,53 +1144,10 @@ function RootLayout() {
         otaCheckInFlightRef.current = false;
         return;
       }
-      const isForceUpdate =
-        updateInfo.shouldForceUpdate === true || remoteForceUpdate;
       if (otaIgnoredUpdateIdRef.current === updateInfo.id && !isForceUpdate) {
         otaCheckInFlightRef.current = false;
         return;
       }
-      const title = isForceUpdate
-        ? "Cần cập nhật ứng dụng"
-        : "Có bản cập nhật mới";
-      const message =
-        updateInfo.message ||
-        "Đã có bản cập nhật mới. Bạn có muốn tải và áp dụng ngay bây giờ không?";
-
-      const buttons = isForceUpdate
-        ? [
-            {
-              text: "Cập nhật",
-              onPress: () => {
-                void startHotUpdate(updateInfo);
-              },
-            },
-          ]
-        : [
-            {
-              text: "Để sau",
-              style: "cancel" as const,
-              onPress: () => {
-                otaIgnoredUpdateIdRef.current = updateInfo.id;
-                void reportHotUpdateTelemetry({
-                  status: "dismissed",
-                  bundleId: updateInfo?.id,
-                  currentBundleId: updateInfo?.currentBundleId,
-                  channel: updateInfo?.channel,
-                  appVersion: getHotUpdateAppVersion(),
-                  message: updateInfo?.message,
-                });
-                otaCheckInFlightRef.current = false;
-              },
-            },
-            {
-              text: "Cập nhật",
-              onPress: () => {
-                void startHotUpdate(updateInfo);
-              },
-            },
-          ];
-
       void reportHotUpdateTelemetry({
         status: "update_available",
         bundleId: updateInfo?.id,
@@ -1177,7 +1156,13 @@ function RootLayout() {
         appVersion: getHotUpdateAppVersion(),
         message: updateInfo?.message,
       });
-      Alert.alert(title, message, buttons, { cancelable: false });
+      if (isForceUpdate) {
+        Alert.alert("Cần cập nhật ứng dụng", updateInfo.message || "Cần áp dụng bản cập nhật bắt buộc.", [
+          { text: "Cập nhật", onPress: () => { void startHotUpdate(updateInfo, true); } },
+        ], { cancelable: false });
+      } else {
+        await startHotUpdate(updateInfo);
+      }
     } catch (error) {
       console.error("[HotUpdater] Check error:", error);
       otaDiag(`lỗi: ${String((error as any)?.message || error).slice(0, 80)}`);
@@ -1205,14 +1190,7 @@ function RootLayout() {
     }) => {
       if (!payload || payload.status === "STABLE") return;
 
-      if (payload.status === "PROMOTED") {
-        Toast.show({
-          type: "success",
-          text1: "Ứng dụng đã được cập nhật",
-          text2: "Bản cập nhật mới đã được áp dụng thành công.",
-        });
-        return;
-      }
+      if (payload.status === "PROMOTED") return;
 
       Toast.show({
         type: "error",
@@ -2410,6 +2388,13 @@ function RootLayout() {
                       </ThemeProvider>
                     </View>
                   </SafeAreaView>
+                  <HotUpdateIndicator
+                    visible={hotUpdateVisible && !hotUpdateBlocking}
+                    progress={hotUpdateProgress}
+                    status={hotUpdateStatus}
+                    isDark={isDark}
+                    accentColor={navTheme.colors.primary}
+                  />
                 </SafeAreaProvider>
               </GlassAppearanceProvider>
             </Boot>
@@ -2417,7 +2402,7 @@ function RootLayout() {
           <AppBootSplash isAppReady={isBootSplashReady} isDark={isDark} />
           <ForceUpdateModal />
           <HotUpdateModal
-            visible={hotUpdateVisible}
+            visible={hotUpdateVisible && hotUpdateBlocking}
             progress={hotUpdateProgress}
             status={hotUpdateStatus}
             message={hotUpdateMessage}
