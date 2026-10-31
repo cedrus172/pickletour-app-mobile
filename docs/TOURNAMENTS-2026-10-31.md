@@ -1,5 +1,7 @@
 # Trang Giải đấu theo ảnh duyệt — 31/10/2026
 
+> Bản tiếp theo `7bfb47c` hoàn thiện các nút Lịch đấu, Chấm trận, Sơ đồ và Chi tiết, giữ logic/quyền hiện có; xem [TOURNAMENT-ACTIONS-HOME-BELL-2026-10-31.md](TOURNAMENT-ACTIONS-HOME-BELL-2026-10-31.md).
+
 > Bản phát hành sau `65ba11a` giữ giao diện này và chuyển chuông vào header/góc trang, bỏ hàng chuông riêng; xem [NOTIFICATION-CORNER-2026-10-31.md](NOTIFICATION-CORNER-2026-10-31.md). Các ID bên dưới là đợt phát `d75b0ca`.
 
 ## Trạng thái phát hành

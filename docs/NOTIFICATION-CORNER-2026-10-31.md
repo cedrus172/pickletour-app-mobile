@@ -1,5 +1,7 @@
 # Chuông Thông báo ở góc trang — 31/10/2026
 
+> Bản kế tiếp `7bfb47c` giữ cách bố trí này và gắn chuông trực tiếp vào HomePage để sửa lỗi mất nút trang chủ; đồng thời hoàn thiện các nút Giải đấu. Xem [TOURNAMENT-ACTIONS-HOME-BELL-2026-10-31.md](TOURNAMENT-ACTIONS-HOME-BELL-2026-10-31.md). Hướng dẫn revert `65ba11a` bên dưới áp dụng cho thời điểm bản này; từ `7bfb47c` phải đảo `7bfb47c` trước vì HomeDesign đã import helper trong shell.
+
 ## Trạng thái
 
 - Commit giao diện: `65ba11ad308130236b3945d7a14fbb4946f34d93`, đã push nhánh `feat/ui-v2-modern`.

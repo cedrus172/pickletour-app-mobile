@@ -1,6 +1,6 @@
 # Chuông Thông báo toàn app — 31/10/2026
 
-> Ghi chép phát hành lịch sử `9817013`/`7aa07d0`. User đã yêu cầu bỏ hàng riêng; bố trí hiện tại là góc trang/header ở `65ba11a`, xem [NOTIFICATION-CORNER-2026-10-31.md](NOTIFICATION-CORNER-2026-10-31.md). Khi revert bản này cần đảo `65ba11a` trước để gỡ import helper trong các page header.
+> Ghi chép phát hành lịch sử `9817013`/`7aa07d0`. User đã yêu cầu bỏ hàng riêng; bố trí hiện tại là góc trang/header ở `65ba11a`, xem [NOTIFICATION-CORNER-2026-10-31.md](NOTIFICATION-CORNER-2026-10-31.md). Khi revert bản này từ trạng thái mới nhất cần đảo `7bfb47c` rồi `65ba11a` trước để gỡ import helper trong các page header.
 
 ## Trạng thái
 
