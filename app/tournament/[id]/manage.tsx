@@ -70,6 +70,19 @@ import * as IntentLauncher from "expo-intent-launcher";
 import FileViewerModal from "@/components/FileViewerModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// Màu chỉ áp dụng trong trang quản lý; giữ theme V1 sáng/tối và các màn khác.
+function useManageTheme() {
+  const theme = useTheme() as any;
+  return useMemo(() => theme.version === "v2" ? {
+    ...theme,
+    colors: {
+      ...theme.colors,
+      primary: "#08C9EA", background: "#041021", card: "#082035",
+      border: "#29475F", text: "#F2F7FF",
+    },
+  } : theme, [theme]);
+}
+
 const NAME_MODE_STORAGE_KEY = "pickletour:manage:nameDisplayMode";
 import {
   getMatchCourtStationName,
@@ -409,6 +422,16 @@ const scoreText = (m) => {
     return m.scoreText;
   return "";
 };
+const scoreColumnsOf = (text: string): string[][] => {
+  if (!text) return [];
+  const games: string[][] = [];
+  for (const part of text.split(",")) {
+    const game = part.trim().match(/^(\d+)\s*[-:–]\s*(\d+)$/);
+    if (!game) return [];
+    games.push([game[1], game[2]]);
+  }
+  return games;
+};
 const courtNameOf = (m) => getMatchCourtStationName(m) || "";
 const normStatus = (s) => {
   const k = String(s || "").toLowerCase();
@@ -599,7 +622,7 @@ const buildExportHTML = ({ tourName, typeLabel, sections }) => {
 
 function getThemeTokens(colors, dark) {
   const tint = colors.primary;
-  const muted = dark ? "#9aa0a6" : "#64748b";
+  const muted = dark ? "#9AB1CD" : "#64748b";
   const placeholder = dark ? "#8b97a8" : "#94a3b8";
   const disabled = dark ? "#475569" : "#94a3b8";
   const chipDefaultBg = dark ? "#1f2937" : "#eef2f7";
@@ -620,11 +643,11 @@ function getThemeTokens(colors, dark) {
   const courtBg = dark ? "#241b4b" : "#ede9fe";
   const courtFg = dark ? "#c4b5fd" : "#5b21b6";
   const statusTone = (s) => {
-    const k = String(s || "").toLowerCase();
+    const k = normStatus(s);
     if (k === "scheduled")
       return {
-        bg: dark ? "#1f2937" : "#e5e7eb",
-        fg: dark ? "#e5e7eb" : "#111827",
+        bg: dark ? "#30270F" : "#fffbeb",
+        fg: dark ? "#F1BD45" : "#92400e",
         label: "Chưa xếp",
       };
     if (k === "queued")
@@ -633,8 +656,8 @@ function getThemeTokens(colors, dark) {
       return { bg: courtBg, fg: courtFg, label: "Đã gán sân" };
     if (k === "live")
       return {
-        bg: dark ? "#3b2308" : "#fff7ed",
-        fg: dark ? "#fdba74" : "#9a3412",
+        bg: dark ? "#062D28" : "#dcfce7",
+        fg: dark ? "#39DFAC" : "#166534",
         label: "Đang thi đấu",
       };
     if (k === "finished")
@@ -668,7 +691,7 @@ function getThemeTokens(colors, dark) {
 }
 
 const MANAGE_LIGHT_BACKGROUND = "#fff";
-const MANAGE_DARK_BACKGROUND = "#05070a";
+const MANAGE_DARK_BACKGROUND = "#041021";
 const manageScreenBackground = (dark) =>
   dark ? MANAGE_DARK_BACKGROUND : MANAGE_LIGHT_BACKGROUND;
 const manageHeaderBackground = (colors, dark) =>
@@ -705,7 +728,7 @@ const colorWithAlpha = (color, alpha) => {
 };
 
 const manageGlassTint = (dark, alpha = dark ? 0.6 : 0.7) =>
-  dark ? `rgba(15, 23, 42, ${alpha})` : `rgba(255, 255, 255, ${alpha})`;
+  dark ? `rgba(7, 26, 44, ${alpha})` : `rgba(255, 255, 255, ${alpha})`;
 
 const manageAccentTint = (color, dark, alpha = dark ? 0.24 : 0.18) =>
   colorToRgba(color || (dark ? "#60a5fa" : "#2563eb"), alpha);
@@ -731,7 +754,7 @@ const GlassFill = memo(function GlassFill({
           pointerEvents="none"
           colors={
             dark
-              ? ["rgba(255,255,255,0.10)", "rgba(255,255,255,0.02)"]
+              ? ["rgba(4,38,61,0.10)", "rgba(4,18,32,0)"]
               : ["rgba(255,255,255,0.34)", "rgba(255,255,255,0.04)"]
           }
           start={{ x: 0, y: 0 }}
@@ -754,7 +777,7 @@ const GlassFill = memo(function GlassFill({
 });
 
 const ManageWhiteBackdrop = memo(function ManageWhiteBackdrop() {
-  const { dark } = useTheme();
+  const { dark } = useManageTheme();
   const liquidGlassEnabled = useLiquidGlassEnabled();
   if (!IOS_26_LIQUID_GLASS_ENABLED || !liquidGlassEnabled) return null;
   return (
@@ -769,7 +792,7 @@ const ManageWhiteBackdrop = memo(function ManageWhiteBackdrop() {
 });
 
 const BtnOutline = memo(({ onPress, children, disabled }) => {
-  const { colors, dark } = useTheme();
+  const { colors, dark } = useManageTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -799,18 +822,24 @@ const BtnOutline = memo(({ onPress, children, disabled }) => {
 });
 
 const PickerChip = memo(({ label, onPress, icon, colorsTheme }) => {
-  const { dark } = useTheme();
+  const { dark } = useManageTheme();
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
       style={({ pressed }) => [
         {
           flexDirection: "row",
+          flexGrow: 1,
+          flexBasis: label.startsWith("Sắp xếp:") ? "40%" : "27%",
+          minWidth: label.startsWith("Sắp xếp:") ? 160 : label.startsWith("Sân:") ? 110 : 100,
           alignItems: "center",
-          gap: 6,
-          paddingHorizontal: 10,
-          paddingVertical: 6,
-          borderRadius: 999,
+          gap: 4,
+          paddingHorizontal: 8,
+          paddingVertical: 8,
+          minHeight: 40,
+          borderRadius: 10,
           backgroundColor: IOS_26_LIQUID_GLASS_ENABLED
             ? "transparent"
             : colorsTheme?.bg,
@@ -831,8 +860,8 @@ const PickerChip = memo(({ label, onPress, icon, colorsTheme }) => {
       {icon ? (
         <MaterialIcons name={icon} size={14} color={colorsTheme?.fg} />
       ) : null}
-      <Text
-        style={{ color: colorsTheme?.fg, fontSize: 12, fontWeight: "700" }}
+      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} maxFontSizeMultiplier={1.15}
+        style={{ color: colorsTheme?.fg, fontSize: 12, fontWeight: "700", flexShrink: 1 }}
       >
         {label}
       </Text>
@@ -841,9 +870,9 @@ const PickerChip = memo(({ label, onPress, icon, colorsTheme }) => {
 });
 
 const CheckChip = memo(({ checked, label, onPress }) => {
-  const { dark } = useTheme();
-  const onBg = "#dcfce7";
-  const onFg = "#166534";
+  const { dark } = useManageTheme();
+  const onBg = dark ? "#062D28" : "#dcfce7";
+  const onFg = dark ? "#39DFAC" : "#166534";
   const offBg = "#eef2f7";
   const offFg = "#263238";
   const inactiveFg =
@@ -851,14 +880,19 @@ const CheckChip = memo(({ checked, label, onPress }) => {
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      aria-checked={checked}
+      accessibilityLabel={label}
       style={({ pressed }) => [
         {
           flexDirection: "row",
           alignItems: "center",
           gap: 6,
           paddingHorizontal: 10,
-          paddingVertical: 6,
-          borderRadius: 999,
+          paddingVertical: 8,
+          minHeight: 40,
+          borderRadius: 10,
           backgroundColor: IOS_26_LIQUID_GLASS_ENABLED
             ? "transparent"
             : checked
@@ -876,11 +910,11 @@ const CheckChip = memo(({ checked, label, onPress }) => {
     >
       <GlassFill
         dark={dark}
-        tintColor={checked ? manageAccentTint(onFg, dark) : manageGlassTint(dark)}
+        tintColor={checked ? onBg : manageGlassTint(dark)}
       />
       <MaterialIcons
         name={checked ? "check-box" : "check-box-outline-blank"}
-        size={14}
+        size={16}
         color={checked ? onFg : inactiveFg}
       />
       <Text
@@ -897,7 +931,7 @@ const CheckChip = memo(({ checked, label, onPress }) => {
 });
 
 const MenuItem = memo(({ icon, label, onPress, danger }) => {
-  const { colors, dark } = useTheme();
+  const { colors, dark } = useManageTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -935,7 +969,7 @@ const MenuItem = memo(({ icon, label, onPress, danger }) => {
 });
 
 const Pill = memo(({ label, kind = "default" }) => {
-  const { colors, dark } = useTheme();
+  const { colors, dark } = useManageTheme();
   const t = useMemo(() => getThemeTokens(colors, dark), [colors, dark]);
   const st =
     kind === "primary"
@@ -962,25 +996,13 @@ const Pill = memo(({ label, kind = "default" }) => {
 });
 
 const StatusPill = memo(({ status }) => {
-  const { colors, dark } = useTheme();
+  const { colors, dark } = useManageTheme();
   const t = useMemo(() => getThemeTokens(colors, dark), [colors, dark]);
   const v = t.statusTone(status);
   return (
-    <View
-      style={[
-        {
-          backgroundColor: IOS_26_LIQUID_GLASS_ENABLED
-            ? "transparent"
-            : v.bg,
-          paddingHorizontal: 8,
-          paddingVertical: 2,
-          borderRadius: 8,
-        },
-        IOS_26_LIQUID_GLASS_ENABLED && styles.glassPill,
-      ]}
-    >
-      <GlassFill dark={dark} tintColor={manageAccentTint(v.fg, dark, 0.16)} />
-      <Text style={{ color: v.fg, fontSize: 12 }}>{v.label}</Text>
+    <View style={[styles.manageStatus, { backgroundColor: v.bg, borderColor: colorToRgba(v.fg, 0.42) }]}>
+      <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: v.fg }} />
+      <Text style={{ color: v.fg, fontSize: 11, fontWeight: "700", flexShrink: 1 }}>{v.label}</Text>
     </View>
   );
 });
@@ -998,8 +1020,8 @@ const BusyChip = memo(({ court }) => (
   </View>
 ));
 
-const MiniChipBtn = memo(({ icon, label, onPress, color }) => {
-  const { colors, dark } = useTheme();
+const MiniChipBtn = memo(({ icon, label, onPress, color, grid = false, primary = false, style }: any) => {
+  const { colors, dark } = useManageTheme();
   const scale = useRef(new Animated.Value(1)).current;
   const accent = color || (dark ? "#7fb0eb" : colors.primary);
   const borderColor =
@@ -1026,6 +1048,24 @@ const MiniChipBtn = memo(({ icon, label, onPress, color }) => {
       bounciness: 6,
     }).start();
   };
+  if (grid) {
+    const fg = primary ? "#042139" : color || (dark ? "#A4CAEE" : colors.primary);
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={(event) => { event?.stopPropagation?.(); onPress?.(); }}
+        style={({ pressed }) => [styles.manageAction, {
+          backgroundColor: primary ? colors.primary : color ? colorToRgba(color, 0.09) : dark ? "#0C243C" : "#EEF5FC",
+          borderColor: primary ? colors.primary : color || (dark ? "#577A9D" : "#AAC0D7"),
+        }, style, pressed && { opacity: 0.75 }]}
+      >
+        <MaterialIcons name={icon} size={17} color={fg} />
+        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} maxFontSizeMultiplier={1.15}
+          style={{ color: fg, fontSize: 12, fontWeight: "700", flexShrink: 1, textAlign: "center" }}>{label}</Text>
+      </Pressable>
+    );
+  }
   return (
     <Pressable
       onPress={onPress}
@@ -1086,7 +1126,7 @@ const MiniChipBtn = memo(({ icon, label, onPress, color }) => {
 });
 
 const VideoPill = memo(({ has }) => {
-  const { colors, dark } = useTheme();
+  const { colors, dark } = useManageTheme();
   const t = useMemo(() => getThemeTokens(colors, dark), [colors, dark]);
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -1135,7 +1175,7 @@ const VideoPill = memo(({ has }) => {
 });
 
 const CourtPill = memo(({ name }) => {
-  const { colors, dark } = useTheme();
+  const { colors, dark } = useManageTheme();
   const t = useMemo(() => getThemeTokens(colors, dark), [colors, dark]);
   return name ? (
     <View
@@ -1163,7 +1203,7 @@ const CourtPill = memo(({ name }) => {
 });
 
 const StagePill = memo(function StagePill({ label }) {
-  const { dark } = useTheme();
+  const { dark } = useManageTheme();
   if (!label || label === "—") return null;
   const c = roundStageChipColors(label, dark);
   return (
@@ -1189,11 +1229,12 @@ const StagePill = memo(function StagePill({ label }) {
 });
 
 const ScorePill = memo(({ textVal }) => {
-  const { colors, dark } = useTheme();
+  const { colors, dark } = useManageTheme();
   return textVal ? (
-    <View
+    <View testID="manage-score-summary"
       style={[
         {
+          maxWidth: "100%",
           borderColor: colors.border,
           borderWidth: 1,
           paddingHorizontal: 8,
@@ -1340,8 +1381,6 @@ const ActionButtons = memo(
     canManage,
     onOpenRefReport,
   }) => {
-    const { colors, dark } = useTheme();
-    const t = useMemo(() => getThemeTokens(colors, dark), [colors, dark]);
     const has = !!m?.video;
     const canStart = isUserRefereeOfMatch(m, me) && m?.status !== "finished";
 
@@ -1362,51 +1401,29 @@ const ActionButtons = memo(
       router.push(refereeRouteOf(m));
     }, [m]);
 
+    const [areaWidth, setAreaWidth] = useState(0);
+    const columns = areaWidth >= 330 ? 3 : 2;
+    const cell = { width: columns === 3 ? "31.5%" as const : "48%" as const, flexGrow: 1 };
     return (
-      <EdgeFadedHScroll
-        contentContainerStyle={styles.actionsWrap}
-        bgColor={colors.card}
-        chevronColor={t.muted}
-      >
-        <MiniChipBtn icon="print" label="Biên bản TT" onPress={onOpenRefNote} />
-        <MiniChipBtn
-          icon="stadium"
-          label="Gán sân"
-          onPress={() => onOpenSheet("court", m)}
-        />
-        <MiniChipBtn
-          icon="how-to-reg"
-          label="Gán trọng tài"
-          onPress={() => onOpenSheet("ref", m)}
-        />
-        {has && (
-          <MiniChipBtn
-            icon="open-in-new"
-            label="Mở"
-            onPress={handleOpenVideo}
-          />
-        )}
-        <MiniChipBtn
-          icon="edit"
-          label={has ? "Sửa video" : "Thêm video"}
-          onPress={() => onOpenVideoDlg(m)}
-        />
-        {(canStart || canManage) && (
-          <MiniChipBtn
-            icon="play-arrow"
-            label="Bắt trận"
-            onPress={handleStartMatch}
-          />
-        )}
-        {has && (
-          <MiniChipBtn
-            icon="link-off"
-            label="Xoá"
-            color="#ef4444"
-            onPress={() => onOpenVideoDlg(m, "")}
-          />
-        )}
-      </EdgeFadedHScroll>
+      <View testID="manage-match-actions" style={styles.manageActions}
+        onLayout={({ nativeEvent: { layout } }) => setAreaWidth(layout.width)}>
+        <View style={styles.manageActionRow}>
+          <MiniChipBtn grid style={cell} icon="print" label="Biên bản TT" onPress={onOpenRefNote} />
+          <MiniChipBtn grid style={cell} icon="stadium" label="Gán sân" onPress={() => onOpenSheet("court", m)} />
+          <MiniChipBtn grid style={cell} icon="how-to-reg" label="Gán trọng tài" onPress={() => onOpenSheet("ref", m)} />
+        </View>
+        {has ? (
+          <View style={styles.manageActionRow}>
+            <MiniChipBtn grid style={cell} icon="play-arrow" label="Mở video" onPress={handleOpenVideo} />
+            <MiniChipBtn grid style={cell} icon="edit" label="Sửa video" onPress={() => onOpenVideoDlg(m)} />
+            <MiniChipBtn grid style={cell} icon="delete-outline" label="Xóa video" color="#EF6E7A" onPress={() => onOpenVideoDlg(m, "")} />
+          </View>
+        ) : null}
+        <View style={[styles.manageActionRow, { justifyContent: "flex-end" }]}>
+          {!has ? <MiniChipBtn grid style={{ flex: 1 }} icon="add-circle-outline" label="Thêm video" onPress={() => onOpenVideoDlg(m)} /> : null}
+          {(canStart || canManage) ? <MiniChipBtn grid primary style={{ width: has && columns === 3 ? "31.5%" : "48%", flexGrow: has ? 0 : 1 }} icon="play-arrow" label="Bắt trận" onPress={handleStartMatch} /> : null}
+        </View>
+      </View>
     );
   }
 );
@@ -1445,7 +1462,7 @@ const MatchRowCard = memo(function MatchRowCard({
   matchesOfBracket = [],
   bracket = null,
 }) {
-  const { colors, dark } = useTheme();
+  const { colors, dark } = useManageTheme();
   const t = useMemo(() => getThemeTokens(colors, dark), [colors, dark]);
   const hasVideo = !!match?.video;
   const score = scoreText(match);
@@ -1470,91 +1487,59 @@ const MatchRowCard = memo(function MatchRowCard({
     [onToggleSelect, match?._id]
   );
 
+  const scoreColumns = scoreColumnsOf(score);
+  const inlineScores = scoreColumns.length > 0 && scoreColumns.length <= 3;
+  const live = isLive(match);
   return (
-    <Pressable
-      onPress={handleOpenMatch}
-      style={[
-        styles.matchRow,
-        {
-          borderColor: colors.border,
-          backgroundColor: IOS_26_LIQUID_GLASS_ENABLED
-            ? "transparent"
-            : colors.card,
-        },
-        IOS_26_LIQUID_GLASS_ENABLED && styles.glassCardSurface,
-      ]}
-    >
-      <GlassFill dark={dark} tintColor={manageGlassTint(dark, 0.52)} />
-      <Pressable
-        onPress={handleToggleSelect}
-        style={[
-          styles.selectRow,
-          { borderColor: colors.border },
-          IOS_26_LIQUID_GLASS_ENABLED && styles.glassInlineControl,
-        ]}
-      >
-        <GlassFill dark={dark} tintColor={manageGlassTint(dark, 0.32)} />
-        <MaterialIcons
-          name={selected ? "check-box" : "check-box-outline-blank"}
-          size={20}
-          color={selected ? colors.primary : t.muted}
-        />
-        <Text style={{ color: colors.text, fontWeight: "700" }}>
-          {selected ? "Đã chọn" : ""}
-        </Text>
-        <View style={{ flex: 1 }} />
-        <Text style={{ color: t.muted, fontSize: 12 }}>{matchCode(match)}</Text>
-      </Pressable>
-      <ActionButtons
-        m={match}
-        tour={tour}
-        me={me}
-        canManage={canManage}
-        onOpenVideoDlg={onOpenVideoDlg}
-        onOpenSheet={onOpenSheet}
-        onOpenRefReport={onOpenRefReport}
-      />
-      <View style={styles.contentBlock}>
-        <Text style={[styles.code, { color: colors.text }]} numberOfLines={1}>
-          {matchCode(match)}
-        </Text>
-        <View style={styles.teamRow}>
-          <Text
-            style={[styles.teamLabel, { color: colors.text }]}
-            numberOfLines={1}
-          >
-            {teamLabel(match, "A")}
-          </Text>
-          {busyCourtA ? <BusyChip court={busyCourtA} /> : null}
-        </View>
-        <Text style={[styles.vsText, { color: t.muted }]}>vs</Text>
-        <View style={styles.teamRow}>
-          <Text
-            style={[styles.teamLabel, { color: colors.text }]}
-            numberOfLines={1}
-          >
-            {teamLabel(match, "B")}
-          </Text>
-          {busyCourtB ? <BusyChip court={busyCourtB} /> : null}
-        </View>
-        <View style={styles.metaRow}>
-          <StatusPill status={match?.status} />
-          <CourtPill name={courtLabel} />
-          <StagePill label={roundLabel} />
-          <ScorePill textVal={score} />
-          <Text style={{ color: t.muted, fontSize: 12 }}>
-            Thứ tự {ordNum != null && !Number.isNaN(ordNum) ? ordNum + 1 : "—"}
-          </Text>
-          <VideoPill has={hasVideo} />
-        </View>
+    <Pressable testID={`manage-match-${match?._id}`} onPress={handleOpenMatch}
+      accessibilityLabel={`Trận ${matchCode(match)}`}
+      style={[styles.matchRow, {
+        borderColor: selected ? colors.primary : live ? "#28D9AA" : colors.border,
+        borderLeftColor: live ? "#28D9AA" : selected ? colors.primary : dark ? "#607B98" : colors.border,
+        backgroundColor: colors.card,
+      }]}>
+      <View style={styles.manageMatchHeader}>
+        <Pressable onPress={handleToggleSelect} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} aria-checked={selected}
+          accessibilityLabel={`Chọn trận ${matchCode(match)}`} style={styles.manageSelectBox}>
+          <MaterialIcons name={selected ? "check-box" : "check-box-outline-blank"} size={22} color={selected ? colors.primary : colors.text} />
+        </Pressable>
+        <Text numberOfLines={1} style={{ flex: 1, color: t.muted, fontSize: 13, minWidth: 0 }}>{matchCode(match)}</Text>
+        <StatusPill status={match?.status} />
       </View>
+      <View testID="manage-match-teams">
+        {["A", "B"].map((side, index) => (
+          <View key={side} style={[styles.manageTeam, { borderColor: colors.border }]}>
+            <View style={[styles.manageTeamMarker, { backgroundColor: dark ? "#294358" : "#E2EAF3" }]}>
+              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 12 }}>{side}</Text>
+            </View>
+            <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+              <Text style={{ color: colors.text, fontSize: 14 }} numberOfLines={2}>{teamLabel(match, side)}</Text>
+              {(index === 0 ? busyCourtA : busyCourtB) ? <BusyChip court={index === 0 ? busyCourtA : busyCourtB} /> : null}
+            </View>
+            <View style={styles.manageScoreColumns} accessibilityLabel={`Điểm đội ${side}: ${inlineScores ? scoreColumns.map((game) => game[index]).join(", ") : "—"}`}>
+              {inlineScores ? scoreColumns.map((game, gameIndex) => (
+                <Text key={gameIndex} testID={`manage-score-${side}-${gameIndex}`} style={[styles.manageTeamScore, { color: colors.text }]}>{game[index]}</Text>
+              )) : <Text style={[styles.manageTeamScore, { color: t.muted }]}>—</Text>}
+            </View>
+          </View>
+        ))}
+      </View>
+      <View style={[styles.metaRow, { marginVertical: 8 }]}>
+        <CourtPill name={courtLabel} />
+        <StagePill label={roundLabel} />
+        {score && !inlineScores ? <ScorePill textVal={score} /> : null}
+        <Text style={{ color: t.muted, fontSize: 12 }}>Thứ tự {ordNum != null && !Number.isNaN(ordNum) ? ordNum + 1 : "—"}</Text>
+        <VideoPill has={hasVideo} />
+      </View>
+      <ActionButtons m={match} tour={tour} me={me} canManage={canManage}
+        onOpenVideoDlg={onOpenVideoDlg} onOpenSheet={onOpenSheet} onOpenRefReport={onOpenRefReport} />
     </Pressable>
   );
 }, isMatchRowCardEqual);
 
 /* ---------------- SKELETON COMPONENTS ---------------- */
 const SkeletonItem = memo(({ width, height, borderRadius = 4, style }) => {
-  const { dark } = useTheme();
+  const { dark } = useManageTheme();
   const opacity = useRef(new Animated.Value(0.3)).current;
   useEffect(() => {
     const anim = Animated.loop(
@@ -1607,7 +1592,7 @@ ActionButtons.displayName = "ActionButtons";
 SkeletonItem.displayName = "SkeletonItem";
 
 const ManageSkeleton = () => {
-  const { colors, dark } = useTheme();
+  const { colors, dark } = useManageTheme();
   const RenderMatchSkeleton = () => (
     <View
       style={{
@@ -1731,7 +1716,7 @@ export default function ManageScreen() {
   const { id } = useLocalSearchParams();
   const tid = Array.isArray(id) ? id[0] : id;
 
-  const { colors, dark } = useTheme();
+  const { colors, dark } = useManageTheme();
   const t = useMemo(() => getThemeTokens(colors, dark), [colors, dark]);
 
   const insets = useSafeAreaInsets();
@@ -3535,9 +3520,12 @@ ${html.replace(/<html>|<\/html>|<head>.*?<\/head>|<!doctype[^>]*>/gis, "")}
               onPress={() => setHdrMenuOpen(true)}
               style={({ pressed }) => [
                 {
-                  paddingHorizontal: 8,
-                  paddingVertical: 4,
+                  paddingHorizontal: 10,
+                  paddingVertical: 8,
                   borderRadius: 999,
+                  minHeight: 36,
+                  borderWidth: 1,
+                  borderColor: colors.border,
                   overflow: "hidden",
                   position: "relative",
                 },
@@ -3659,6 +3647,8 @@ ${html.replace(/<html>|<\/html>|<head>.*?<\/head>|<!doctype[^>]*>/gis, "")}
                   icon="stadium"
                   colorsTheme={{ bg: t.courtBg, fg: t.courtFg }}
                 />
+              </View>
+              <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
                 <CheckChip
                   checked={showBye}
                   label="Hiện BYE"
@@ -3669,6 +3659,8 @@ ${html.replace(/<html>|<\/html>|<head>.*?<\/head>|<!doctype[^>]*>/gis, "")}
                   label="Hiện KO chờ bảng"
                   onPress={() => setShowPendingKO((v) => !v)}
                 />
+              </View>
+              <View style={{ alignItems: "flex-start" }}>
                 <Pill
                   label={`${
                     typesAvailable.length ? bracketsOfTab.length : 0
@@ -3694,9 +3686,7 @@ ${html.replace(/<html>|<\/html>|<head>.*?<\/head>|<!doctype[^>]*>/gis, "")}
                       styles.tabItem,
                       {
                         backgroundColor: active
-                          ? IOS_26_LIQUID_GLASS_ENABLED
-                            ? "transparent"
-                            : colors.primary
+                          ? manageAccentTint(colors.primary, dark, 0.12)
                           : "transparent",
                         borderColor: active ? colors.primary : colors.border,
                       },
@@ -3715,11 +3705,7 @@ ${html.replace(/<html>|<\/html>|<head>.*?<\/head>|<!doctype[^>]*>/gis, "")}
                     />
                     <Text
                       style={{
-                        color: active
-                          ? IOS_26_LIQUID_GLASS_ENABLED
-                            ? colors.primary
-                            : "#fff"
-                          : colors.text,
+                        color: active ? colors.primary : colors.text,
                         fontWeight: "700",
                       }}
                     >
@@ -5061,6 +5047,16 @@ ${html.replace(/<html>|<\/html>|<head>.*?<\/head>|<!doctype[^>]*>/gis, "")}
 const styles = StyleSheet.create({
   screen: { flex: 1, padding: 12 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  manageStatus: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1, paddingHorizontal: 8, paddingVertical: 6, borderWidth: 1, borderRadius: 999 },
+  manageMatchHeader: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 40, marginBottom: 4 },
+  manageSelectBox: { width: 36, minHeight: 44, justifyContent: "center", alignItems: "flex-start" },
+  manageTeam: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 9, borderBottomWidth: 1 },
+  manageTeamMarker: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  manageScoreColumns: { flexDirection: "row", gap: 4 },
+  manageTeamScore: { minWidth: 22, textAlign: "center", fontSize: 22, lineHeight: 28, fontWeight: "700" },
+  manageActions: { gap: 6 },
+  manageActionRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
+  manageAction: { minHeight: 40, minWidth: 0, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingHorizontal: 6, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
   alert: { borderWidth: 1, borderRadius: 12, padding: 12 },
   manageWhiteBackdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -5070,17 +5066,17 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     shadowColor: "#0f172a",
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.16,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   glassCardSurface: {
     overflow: "hidden",
     shadowColor: "#0f172a",
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.13,
-    shadowRadius: 18,
-    elevation: 5,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   glassAlert: {
     overflow: "hidden",
@@ -5178,7 +5174,7 @@ const styles = StyleSheet.create({
   },
   toolbar: {
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 10,
     marginBottom: 12,
     gap: 10,
@@ -5192,13 +5188,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  input: { flex: 1, fontSize: 14, paddingVertical: 4 },
+  input: { flex: 1, minWidth: 0, fontSize: 14, paddingVertical: 7 },
   tabs: {
     flexDirection: "row",
     gap: 8,
     flexWrap: "wrap",
     paddingVertical: 6,
-    borderBottomWidth: 1,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 0,
     marginBottom: 12,
   },
   tabItem: {
@@ -5207,7 +5205,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
   },
-  card: { borderWidth: 1, borderRadius: 12, padding: 12 },
+  card: { borderWidth: 1, borderRadius: 16, padding: 10 },
   bracketTitle: { fontSize: 16, fontWeight: "800" },
   emptyBox: {
     borderWidth: 1,
@@ -5217,7 +5215,8 @@ const styles = StyleSheet.create({
   },
   matchRow: {
     borderWidth: 1,
-    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderRadius: 14,
     padding: 10,
     position: "relative",
     overflow: "hidden",
