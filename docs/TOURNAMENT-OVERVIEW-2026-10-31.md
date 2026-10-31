@@ -2,6 +2,8 @@
 
 ## Trạng thái
 
+**Cập nhật sau yêu cầu mới “Ok làm và ota đi”: Tổng quan đã được phát kèm Lịch thi đấu/Đăng ký trong OTA source `4f5ae6c`. Xem TOURNAMENT-SCHEDULE-REGISTRATION-2026-10-31.md để lấy ID và trạng thái hiện hành. Các ghi chú “chưa OTA” dưới đây là lịch sử lượt trước.**
+
 - User duyệt thiết kế và chốt: **“Ok làm đi nhưng chưa ota luôn”**.
 - Đã triển khai source `28c1129a15f8e603e99b5e0f147eaf10c044213e` trên `feat/ui-v2-modern`. **CHƯA OTA**: không build/upload/kích hoạt bundle trong lượt này. Chỉ phát khi user yêu cầu tiếp.
 - OTA gần nhất đã xác minh ở lượt trước vẫn là modal trọng tài `0640080846408bbb1983497a4987fb0d573a569a`: iOS `01a190e3-c379-7032-8b7a-e38b400d42c7`, Android `01a190e5-2b4a-7f59-9b87-bac053757282`. Không đọc lại server trong lượt này.
