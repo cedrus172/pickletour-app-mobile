@@ -3,7 +3,7 @@ export function cameraFrameTime(mode: "live" | "playback", originMs: number, sec
   const expected = originMs + Math.max(0, Number.isFinite(seconds) ? seconds : 0) * 1000;
   // Một số đầu ghi gắn giờ encode hiện tại vào playback, không phải giờ khung hình cũ.
   if (Number.isFinite(liveTimestamp) && (liveTimestamp || 0) > 0 && (mode === "live" || Math.abs(liveTimestamp! - expected) <= 60_000)) return Math.min(liveTimestamp!, now);
-  if (mode === "live") return now - Math.max(0, Number.isFinite(liveOffset) ? liveOffset! : 0) * 1000;
+  if (mode === "live" && Number.isFinite(liveOffset) && liveOffset !== null) return now - Math.max(0, liveOffset) * 1000;
   return Math.min(now, expected);
 }
 

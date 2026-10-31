@@ -30,6 +30,12 @@ test('live timestamp or live latency is used for live rewind',()=>{
  assert.equal(cameraFrameTime('live',origin,0,now-8000,30,now),now-8000);
  assert.equal(cameraFrameTime('live',origin,0,null,8,now),now-8000);
 });
+test('live without server timestamps stays on the frame clock even while paused',()=>{
+ const frame=origin+12500;
+ assert.equal(cameraFrameTime('live',origin,12.5,null,null,now),frame);
+ assert.equal(cameraFrameTime('live',origin,12.5,null,null,now+30000),frame);
+ assert.equal(cameraSeekTarget(frame,-30,now+30000),origin-17500);
+});
 test('playback ignores encode wall-clock metadata that describes today instead of the recording',()=>{
  assert.equal(cameraFrameTime('playback',origin,45,now,null,now),origin+45000);
  assert.equal(cameraFrameTime('playback',origin,45,origin+44000,null,now),origin+44000);
