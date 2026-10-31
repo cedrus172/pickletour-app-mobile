@@ -1,5 +1,7 @@
 # Chuông Thông báo ở góc trang — 31/10/2026
 
+> Phạm vi hiện tại đã đổi theo yêu cầu user ở `b10b061`: chuông chỉ có trên 5 màn chính và hai alias danh sách, không còn ở màn sâu/admin/trọng tài. Xem [MAIN-SCREEN-NOTIFICATIONS-2026-10-31.md](MAIN-SCREEN-NOTIFICATIONS-2026-10-31.md). Các ID và phạm vi mô tả bên dưới là lịch sử phát hành của tài liệu này.
+
 > Bản kế tiếp `7bfb47c` giữ cách bố trí này và gắn chuông trực tiếp vào HomePage để sửa lỗi mất nút trang chủ; đồng thời hoàn thiện các nút Giải đấu. Xem [TOURNAMENT-ACTIONS-HOME-BELL-2026-10-31.md](TOURNAMENT-ACTIONS-HOME-BELL-2026-10-31.md). Hướng dẫn revert `65ba11a` bên dưới áp dụng cho thời điểm bản này; từ `7bfb47c` phải đảo `7bfb47c` trước vì HomeDesign đã import helper trong shell.
 
 ## Trạng thái

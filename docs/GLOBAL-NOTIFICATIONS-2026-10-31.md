@@ -1,5 +1,7 @@
 # Chuông Thông báo toàn app — 31/10/2026
 
+> Phạm vi hiện tại đã đổi theo yêu cầu user ở `b10b061`: chuông chỉ có trên 5 màn chính và hai alias danh sách, không còn ở màn sâu/admin/trọng tài. Xem [MAIN-SCREEN-NOTIFICATIONS-2026-10-31.md](MAIN-SCREEN-NOTIFICATIONS-2026-10-31.md). Các ID và phạm vi mô tả bên dưới là lịch sử phát hành của tài liệu này.
+
 > Ghi chép phát hành lịch sử `9817013`/`7aa07d0`. User đã yêu cầu bỏ hàng riêng; bố trí hiện tại là góc trang/header ở `65ba11a`, xem [NOTIFICATION-CORNER-2026-10-31.md](NOTIFICATION-CORNER-2026-10-31.md). Khi revert bản này từ trạng thái mới nhất cần đảo `7bfb47c` rồi `65ba11a` trước để gỡ import helper trong các page header.
 
 ## Trạng thái

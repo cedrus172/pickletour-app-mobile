@@ -1,5 +1,7 @@
 # Nút Giải đấu và chuông trang chủ — 31/10/2026
 
+> Phạm vi hiện tại đã đổi theo yêu cầu user ở `b10b061`: chuông chỉ có trên 5 màn chính và hai alias danh sách, không còn ở màn sâu/admin/trọng tài. Xem [MAIN-SCREEN-NOTIFICATIONS-2026-10-31.md](MAIN-SCREEN-NOTIFICATIONS-2026-10-31.md). Các ID và phạm vi mô tả bên dưới là lịch sử phát hành của tài liệu này.
+
 ## Trạng thái phát hành
 
 - Commit mã: `7bfb47cbf71f8f8b9668381a956b4a3e556e2a39`, đã push nhánh `feat/ui-v2-modern`.
