@@ -19,7 +19,6 @@ import {
   useColorScheme,
   View,
   Modal,
-  SafeAreaView as RNSafeAreaView,
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { SafeAreaView as EdgeSafeAreaView } from "react-native-safe-area-context";
@@ -39,6 +38,7 @@ import {
   TournamentCard as PremiumTournamentCard,
   TournamentCover,
   TournamentFilters,
+  TournamentEventRow,
   TournamentHeader,
   TournamentInfo,
   TournamentList,
@@ -73,6 +73,7 @@ function formatDate(d) {
   if (!d) return "--/--";
   try {
     const dt = new Date(d);
+    if (!Number.isFinite(dt.getTime())) return "--/--";
     const y = dt.getFullYear();
     const m = String(dt.getMonth() + 1).padStart(2, "0");
     const day = String(dt.getDate()).padStart(2, "0");
@@ -244,6 +245,7 @@ function TournamentListHeader({
         value={keyword}
         onChangeText={setKeyword}
         onClear={() => setKeyword("")}
+        onFilter={openDateModal}
       />
       <TournamentFilters
         active={tab as TournamentFilterKey}
@@ -284,11 +286,11 @@ function TournamentListHeader({
 
 /* ---------- Card GOM NHÓM: nhiều nội dung cùng 1 sự kiện ---------- */
 function GroupCard({ group, canManage, formatDate, onPreview }: any) {
-  const [open, setOpen] = React.useState(true); // mặc định hiện đủ nội dung
+  const [open, setOpen] = React.useState(true);
   const items: any[] = group?.items || [];
   const cover = items.find((x) => normalizeUrl(x?.image)) || items[0];
   const gstatus = groupStatus(items);
-  const totalReg = items.reduce((s, x) => s + (Number(x?.registered) || 0), 0);
+  const totalReg = items.reduce((sum, item) => sum + (Number(item?.registered) || 0), 0);
   const zalo = items.find((x) => x?.zaloGroupUrl)?.zaloGroupUrl || DEFAULT_ZALO_GROUP;
   const visible = open ? items : items.slice(0, 3);
 
@@ -298,132 +300,50 @@ function GroupCard({ group, canManage, formatDate, onPreview }: any) {
         image={cover?.image}
         title={group?.title || "Giải đấu Pickletour"}
         status={gstatus}
-        onPress={() => setOpen((v) => !v)}
+        startDate={cover?.startDate}
+        onPress={() => setOpen((value) => !value)}
         onPressImage={() => {
-          // Bấm vào ẢNH banner → mở xem ảnh TOÀN MÀN (giống card giải đơn lẻ).
           const uri = normalizeUrl(cover?.image);
           if (uri) onPreview?.(uri);
-          else setOpen((v) => !v);
+          else setOpen((value) => !value);
         }}
       />
-      <View style={{ paddingHorizontal: 14, paddingTop: 6 }}>
-        <Text style={{ fontSize: 12.5, color: "#8A94A6", fontWeight: "600" }}>
-          {items[0]?.location || "Chưa cập nhật"} · {items.length} nội dung
-          {totalReg > 0 ? ` · ${totalReg} đội` : ""}
-        </Text>
-      </View>
-
-      <View style={{ paddingHorizontal: 12, paddingTop: 8, gap: 8 }}>
-        {visible.map((it) => {
-          const sub =
-            subLabelOf(it?.name, group?.title) ||
-            (String(it?.eventType || "").toLowerCase() === "single" ? "Đấu đơn" : "Đấu đôi");
-          const cap = Number(it?.maxPairs) || 0;
-          const reg = Number(it?.registered) || 0;
-          const manage = canManage?.(it);
-          const canReg = manage || it?.status === "upcoming";
-          const isDouble = String(it?.eventType || "").toLowerCase() !== "single";
-          const full = cap > 0 && reg >= cap;
-          const pct = cap > 0 ? Math.min(100, Math.round((reg / cap) * 100)) : 0;
-          const accent = full ? "#F2555A" : "#2E7DF6";
-          return (
-            <TouchableOpacity
-              key={String(it?._id)}
-              activeOpacity={0.85}
-              onPress={() => router.push(`/tournament/${it?._id}`)}
-              style={{
-                flexDirection: "row",
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.09)",
-                backgroundColor: "rgba(255,255,255,0.04)",
-                overflow: "hidden",
-              }}
-            >
-              <View style={{ width: 4, backgroundColor: accent }} />
-              <View style={{ flex: 1, padding: 12, gap: 8 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ fontSize: 14, fontWeight: "800", color: "#EEF2F8" }} numberOfLines={1}>
-                      {sub}
-                    </Text>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 }}>
-                      <View style={{ backgroundColor: "rgba(46,125,246,0.16)", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
-                        <Text style={{ fontSize: 10.5, fontWeight: "700", color: "#7FB0FF" }}>
-                          {isDouble ? "Đấu đôi" : "Đấu đơn"}
-                        </Text>
-                      </View>
-                      {full && (
-                        <View style={{ backgroundColor: "rgba(242,85,90,0.16)", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
-                          <Text style={{ fontSize: 10.5, fontWeight: "700", color: "#FF8A8E" }}>Đã đầy</Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                  <Text style={{ fontSize: 13, fontWeight: "800", color: full ? "#FF8A8E" : "#DCE3EC" }}>
-                    {cap > 0 ? `${reg}/${cap}` : `${reg}`}
-                  </Text>
-                  <Ionicons name="chevron-forward" size={16} color="#5B6472" />
-                </View>
-
-                {cap > 0 && (
-                  <View style={{ height: 5, borderRadius: 99, backgroundColor: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-                    <View style={{ width: `${pct}%`, height: "100%", borderRadius: 99, backgroundColor: accent }} />
-                  </View>
-                )}
-
-                <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  {canReg && (
-                    <TouchableOpacity
-                      onPress={() => router.push(`/tournament/${it?._id}/register`)}
-                      style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#2E7DF6", paddingHorizontal: 14, paddingVertical: 7, borderRadius: 9 }}
-                    >
-                      <Ionicons name="person-add-outline" size={13} color="#fff" />
-                      <Text style={{ color: "#fff", fontSize: 12.5, fontWeight: "800" }}>Đăng ký</Text>
-                    </TouchableOpacity>
-                  )}
-                  {Number((it as any)?.matchesTotal) > 0 && (
-                    <TouchableOpacity
-                      onPress={() => router.push(`/tournament/${it?._id}/schedule`)}
-                      style={{ flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderColor: "rgba(255,255,255,0.14)", paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9 }}
-                    >
-                      <Ionicons name="calendar-outline" size={13} color="#B9C2D0" />
-                      <Text style={{ color: "#B9C2D0", fontSize: 12.5, fontWeight: "700" }}>Lịch đấu</Text>
-                    </TouchableOpacity>
-                  )}
-                  {Number((it as any)?.bracketsTotal) > 0 && (
-                    <TouchableOpacity
-                      onPress={() => router.push({ pathname: "/tournament/[id]/bracket", params: { id: it?._id } })}
-                      style={{ flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderColor: "rgba(255,255,255,0.14)", paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9 }}
-                    >
-                      <Ionicons name="git-network-outline" size={13} color="#B9C2D0" />
-                      <Text style={{ color: "#B9C2D0", fontSize: 12.5, fontWeight: "700" }}>Sơ đồ</Text>
-                    </TouchableOpacity>
-                  )}
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 3, marginLeft: "auto" }}>
-                    <Text style={{ color: "#7FB0FF", fontSize: 12.5, fontWeight: "700" }}>Chi tiết</Text>
-                    <Ionicons name="arrow-forward" size={13} color="#7FB0FF" />
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingTop: 10 }}>
-        {items.length > 3 && (
-          <TouchableOpacity
-            onPress={() => setOpen((v) => !v)}
-            style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 4 }}
-          >
-            <Text style={{ color: "#2E7DF6", fontSize: 12.5, fontWeight: "700" }}>
-              {open ? "Thu gọn" : `Xem tất cả ${items.length} nội dung`}
-            </Text>
-            <Ionicons name={open ? "chevron-up" : "chevron-down"} size={14} color="#2E7DF6" />
-          </TouchableOpacity>
-        )}
-      </View>
+      <TournamentInfo
+        date={formatDate(cover?.startDate)}
+        startDate={cover?.startDate}
+        endDate={cover?.endDate}
+        location={items[0]?.location || "Chưa cập nhật"}
+        contentCount={items.length}
+        registration={`${totalReg} đội`}
+      />
+      {visible.map((item) => {
+        const id = String(item?._id);
+        const sub = subLabelOf(item?.name, group?.title) ||
+          (String(item?.eventType || "").toLowerCase() === "single" ? "Đấu đơn" : "Đấu đôi");
+        const canReg = canManage?.(item) || item?.status === "upcoming";
+        const actions: TournamentAction[] = [];
+        if (canReg) actions.push({ key: "register", label: "Đăng ký", icon: "person-add-outline", primary: true, onPress: () => router.push(`/tournament/${id}/register`) });
+        if (Number(item?.matchesTotal) > 0) actions.push({ key: "schedule", label: "Lịch đấu", icon: "calendar-outline", onPress: () => router.push(`/tournament/${id}/schedule`) });
+        if (Number(item?.bracketsTotal) > 0) actions.push({ key: "bracket", label: "Sơ đồ", icon: "git-network-outline", onPress: () => router.push({ pathname: "/tournament/[id]/bracket", params: { id: item?._id } }) });
+        return (
+          <TournamentEventRow
+            key={id}
+            id={id}
+            title={sub}
+            kind={String(item?.eventType || "").toLowerCase() === "single" ? "Đấu đơn" : "Đấu đôi"}
+            registered={Number(item?.registered) || 0}
+            capacity={Number(item?.maxPairs) || 0}
+            actions={actions}
+            onDetails={() => router.push(`/tournament/${id}`)}
+          />
+        );
+      })}
+      {items.length > 3 ? (
+        <TouchableOpacity onPress={() => setOpen((value) => !value)} style={{ flexDirection: "row", alignItems: "center", gap: 5, marginHorizontal: 14, minHeight: 44 }}>
+          <Text style={{ color: TOURNAMENT_COLORS.primary, fontSize: 12.5, fontWeight: "700" }}>{open ? "Thu gọn" : `Xem tất cả ${items.length} nội dung`}</Text>
+          <Ionicons name={open ? "chevron-up" : "chevron-down"} size={14} color={TOURNAMENT_COLORS.primary} />
+        </TouchableOpacity>
+      ) : null}
       <ZaloButton onPress={() => Linking.openURL(zalo)} />
     </PremiumTournamentCard>
   );
@@ -662,6 +582,7 @@ export default function TournamentDashboardScreen({ isBack = false }) {
           title={tt.name || "Giải đấu Pickletour"}
           status={tt.status}
           mode={(tt as any)?.tournamentMode}
+          startDate={tt.startDate}
           onPress={() => onPressCard(tt)}
           onPressImage={() => {
             const uri = normalizeUrl(tt.image);
@@ -671,6 +592,8 @@ export default function TournamentDashboardScreen({ isBack = false }) {
         />
         <TournamentInfo
           date={`${formatDate(tt.startDate)}\n– ${formatDate(tt.endDate)}`}
+          startDate={tt.startDate}
+          endDate={tt.endDate}
           location={tt.location || "Chưa cập nhật"}
           registration={
             Number(tt.maxPairs) > 0
@@ -962,21 +885,10 @@ export default function TournamentDashboardScreen({ isBack = false }) {
     </TournamentPage>
   );
 
-  if (IOS_26_LIQUID_GLASS_ENABLED) {
-    return (
-      <EdgeSafeAreaView
-        edges={["top"]}
-        style={{ flex: 1, backgroundColor: TOURNAMENT_COLORS.background }}
-      >
-        {screenContent}
-      </EdgeSafeAreaView>
-    );
-  }
-
   return (
-    <RNSafeAreaView style={{ flex: 1, backgroundColor: theme.colors.bg }}>
+    <EdgeSafeAreaView edges={["top", "left", "right"]} style={{ flex: 1, backgroundColor: theme.colors.bg }}>
       {screenContent}
-    </RNSafeAreaView>
+    </EdgeSafeAreaView>
   );
 }
 
