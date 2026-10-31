@@ -54,6 +54,7 @@ import MatchSettingsModal from "./MatchSettingsModal";
 import { useVoiceCommands } from "@/hooks/useVoiceCommands";
 import * as Speech from "expo-speech";
 import { useLiveMatch } from "@/hooks/useLiveMatch";
+import { useServeDrawSounds } from "@/hooks/useServeDrawSounds";
 import { useMatchLiveActivity } from "@/hooks/useMatchLiveActivity";
 import { BASE_URL } from "@/slices/apiSlice";
 import { mergeRefereeMatchSnapshot } from "@/utils/refereeMatchRoute";
@@ -1467,14 +1468,16 @@ const ColorCoinToss = memo(function ColorCoinToss({ disabled, onClose }) {
   );
 });
 
-const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightName, leftCode = "A", rightCode = "B", onApply }: {
+const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightName, leftCode = "A", rightCode = "B", soundEnabled = false, onApply }: {
   visible: boolean;
   leftName: string;
   rightName: string;
   leftCode?: string;
   rightCode?: string;
+  soundEnabled?: boolean;
   onApply: (side: "left" | "right") => void;
 }) {
+  const drawSounds = useServeDrawSounds(visible, soundEnabled);
   const { width, height } = useWindowDimensions();
   const small = width < 760 || height < 380;
   const tiny = width < 650;
@@ -1492,6 +1495,7 @@ const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightNa
   const drawGenerationRef = useRef(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const clearDraw = useCallback(() => {
+    drawSounds.stop();
     drawGenerationRef.current += 1;
     if (tickRef.current) clearInterval(tickRef.current);
     drawAnimationRef.current?.stop();
@@ -1500,7 +1504,7 @@ const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightNa
     resultAnimationRef.current = null;
     drawingRef.current = false;
     tickRef.current = null;
-  }, []);
+  }, [drawSounds]);
   useEffect(() => () => clearDraw(), [clearDraw]);
   useEffect(() => {
     if (!visible) {
@@ -1536,6 +1540,7 @@ const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightNa
     setResult(null);
     setPreviewSide("left");
     setPhase("running");
+    drawSounds.start(mode);
     const finishAngle = mode === "coin"
       ? 1800 + (winner === "right" ? 180 : 0)
       : 2160 + (winner === "right" ? 270 : 90);
@@ -1558,6 +1563,7 @@ const ServeDrawPanel = memo(function ServeDrawPanel({ visible, leftName, rightNa
       setPreviewSide(winner);
       setResult(winner);
       setPhase("done");
+      drawSounds.finish();
       resultReveal.setValue(0);
       const reveal = Animated.timing(resultReveal, { toValue: 1, duration: 320, easing: Easing.out(Easing.quad), useNativeDriver: true });
       resultAnimationRef.current = reveal;
@@ -5457,6 +5463,9 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
               <Text numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.3} style={[s.serveDrawHeaderText, { flexShrink: 1 }, isTightLandscape && { fontSize: 17 }]}>Bốc thăm giao trước</Text>
               <View style={[s.serveDrawMatchCode, { flexShrink: 1, minWidth: 0 }, isTightLandscape && { paddingHorizontal: 7 }]}><Text numberOfLines={1} maxFontSizeMultiplier={1.3} style={{ color: "#eaf3ff", fontWeight: "800", fontSize: isTightLandscape ? 11 : 14 }}>{baseCode}</Text></View>
             </View>
+            <Ripple onPress={() => setVoiceEnabled((current) => !current)} testID="serve-draw-sound-toggle" accessibilityRole="button" accessibilityLabel={voiceEnabled ? "Tắt âm thanh bốc thăm" : "Bật âm thanh bốc thăm"} style={[s.serveDrawClose, { marginRight: 8, borderColor: voiceEnabled ? "#0dc5f4" : "#31455f" }]} rippleContainerBorderRadius={100}>
+              <MaterialIcons name={voiceEnabled ? "volume-up" : "volume-off"} size={23} color={voiceEnabled ? "#12c8f8" : "#eaf3ff"} />
+            </Ripple>
             <Ripple
               onPress={() => setMenuOpen(false)}
               style={s.serveDrawClose}
@@ -5471,6 +5480,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
               leftCode={leftSide}
               rightCode={rightSide}
               visible={menuOpen}
+              soundEnabled={voiceEnabled}
               leftName={leftSide === "A" ? teamNameA : teamNameB}
               rightName={rightSide === "A" ? teamNameA : teamNameB}
               onApply={(side) => {
