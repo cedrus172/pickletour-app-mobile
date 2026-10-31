@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { NotificationHeaderActions } from "@/components/GlobalNotificationShell";
 
 import { Text } from "@/components/ui/i18nText";
 
@@ -22,6 +24,7 @@ export const HOME_COLORS = {
 } as const;
 
 export const HomePage = memo(function HomePage({ children }: { children: ReactNode }) {
+  const insets = useSafeAreaInsets();
   return (
     <LinearGradient
       colors={[HOME_COLORS.background, HOME_COLORS.backgroundAlt]}
@@ -32,6 +35,9 @@ export const HomePage = memo(function HomePage({ children }: { children: ReactNo
       <View pointerEvents="none" style={styles.ambientTop} />
       <View pointerEvents="none" style={styles.ambientMid} />
       {children}
+      <View pointerEvents="box-none" testID="home-notification-corner" style={[styles.notificationCorner, { right: Math.max(insets.right, 16) }]}>
+        <NotificationHeaderActions />
+      </View>
     </LinearGradient>
   );
 });
@@ -149,6 +155,7 @@ export const HomeSectionHeader = memo(function HomeSectionHeader({
 });
 
 const styles = StyleSheet.create({
+  notificationCorner: { position: "absolute", top: 8, zIndex: 10 },
   page: { flex: 1, overflow: "hidden" },
   ambientTop: {
     position: "absolute",

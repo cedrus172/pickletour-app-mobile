@@ -1,4 +1,4 @@
-import React, { memo, type ReactNode } from "react";
+import React, { memo, useState, type ReactNode } from "react";
 import {
   FlatList,
   Pressable,
@@ -216,23 +216,43 @@ export const TournamentInfo = memo(function TournamentInfo({ date, location, reg
   );
 });
 
-function TournamentActionButton({ action }: { action: TournamentAction }) {
+type DisplayAction = TournamentAction & { accessibilityLabel?: string };
+
+function TournamentActionButton({ action, columns }: { action: DisplayAction; columns: number }) {
+  const isDetails = action.key === "details";
+  const isBracket = action.key === "bracket";
+  const iconColor = isDetails ? "#9EBAD5" : isBracket ? "#A6CDFF" : "#38D4F3";
   return (
-    <Pressable accessibilityRole="button" testID={`tournament-action-${action.key}`} onPress={action.onPress} style={({ pressed }) => [styles.actionPressable, pressed && styles.pressed]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={action.accessibilityLabel || action.label} testID={`tournament-action-${action.key}`} onPress={action.onPress} style={({ pressed }) => [styles.actionPressable, columns === 3 ? styles.actionThird : columns === 1 ? styles.actionFull : styles.actionHalf, pressed && styles.pressed]}>
       {action.primary ? (
-        <LinearGradient colors={action.warning ? ["#FFB547", "#F59E0B"] : ["#11D3F3", "#00C3E8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionPrimary}>
-          <Ionicons name={action.icon} size={18} color="#031526" /><Text style={styles.actionTextPrimary}>{action.label}</Text>
+        <LinearGradient colors={action.warning ? ["#FFB547", "#F59E0B"] : ["#11D3F3", "#00C3E8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.actionPrimary, { borderColor: action.warning ? "#FFD17C" : "#54E0F5" }]}>
+          <Ionicons name={action.icon} size={18} color="#031526" /><Text numberOfLines={2} style={styles.actionTextPrimary}>{action.label}</Text>
         </LinearGradient>
       ) : (
-        <View style={styles.actionSecondary}><Ionicons name={action.icon} size={16} color={TOURNAMENT_COLORS.textMuted} /><Text style={styles.actionText}>{action.label}</Text></View>
+        <View style={[styles.actionSecondary, isBracket && styles.actionBracket, isDetails && styles.actionDetails]}>
+          {!isDetails ? <Ionicons name={action.icon} size={18} color={iconColor} /> : null}
+          <Text numberOfLines={2} style={[styles.actionText, isDetails && styles.actionDetailsText]}>{action.label}</Text>
+          {isDetails ? <Ionicons name={action.icon} size={18} color={iconColor} /> : null}
+        </View>
       )}
     </Pressable>
   );
 }
 
+function TournamentActionGrid({ actions }: { actions: DisplayAction[] }) {
+  const [wide, setWide] = useState(false);
+  if (!actions.length) return null;
+  const columns = actions.length === 3 && wide ? 3 : Math.min(2, actions.length);
+  return (
+    <View testID="tournament-action-grid" onLayout={({ nativeEvent }) => setWide(nativeEvent.layout.width >= 360)} style={styles.actionGrid}>
+      {actions.map((action) => <TournamentActionButton key={action.key} action={action} columns={columns} />)}
+    </View>
+  );
+}
+
 export const TournamentActions = memo(function TournamentActions({ actions }: { actions: TournamentAction[] }) {
   if (!actions.length) return null;
-  return <View style={styles.actions}>{actions.map((action) => <TournamentActionButton key={action.key} action={action} />)}</View>;
+  return <View style={styles.actions}><TournamentActionGrid actions={actions} /></View>;
 });
 
 export const TournamentEventRow = memo(function TournamentEventRow({ id, title, kind, registered, capacity, actions, onDetails }: {
@@ -256,10 +276,7 @@ export const TournamentEventRow = memo(function TournamentEventRow({ id, title, 
         <Text style={styles.capacity}><Text style={full ? styles.capacityFull : styles.capacityCurrent}>{registered}</Text>{capacity > 0 ? `/${capacity}` : ""}<Text style={styles.capacityUnit}> {kind === "Đấu đơn" ? "VĐV" : "đội"}</Text></Text>
       </View>
       {capacity > 0 ? <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: capacity, now: Math.min(registered, capacity) }} aria-valuemin={0} aria-valuemax={capacity} aria-valuenow={Math.min(registered, capacity)} style={styles.track}><View style={[styles.fill, { width: `${pct}%`, backgroundColor: full ? "#FF7781" : TOURNAMENT_COLORS.primary }]} /></View> : null}
-      <View style={styles.eventActions}>
-        {actions.map((action) => <TournamentActionButton key={action.key} action={action} />)}
-        <Pressable accessibilityRole="button" accessibilityLabel={`Chi tiết ${title}`} onPress={onDetails} style={({ pressed }) => [styles.details, pressed && styles.pressed]}><Text style={styles.detailsText}>Chi tiết</Text><Ionicons name="chevron-forward" size={18} color={TOURNAMENT_COLORS.textMuted} /></Pressable>
-      </View>
+      <TournamentActionGrid actions={[...actions, { key: "details", label: "Chi tiết", accessibilityLabel: `Chi tiết ${title}`, icon: "chevron-forward", onPress: onDetails }]} />
     </View>
   );
 });
@@ -322,12 +339,19 @@ const styles = StyleSheet.create({
   summaryItem: { flexDirection: "row", alignItems: "center", gap: 7 },
   summaryText: { color: TOURNAMENT_COLORS.textMuted, fontSize: 12, lineHeight: 17 },
   summaryDivider: { width: 1, height: 15, backgroundColor: "#25465D" },
-  actions: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 14, paddingBottom: 8 },
-  actionPressable: { minHeight: 44 },
-  actionPrimary: { minHeight: 44, paddingHorizontal: 15, paddingVertical: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 10 },
-  actionSecondary: { minHeight: 44, paddingHorizontal: 6, paddingVertical: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5 },
-  actionTextPrimary: { color: "#031526", fontSize: 13.5, lineHeight: 18, fontWeight: "800" },
-  actionText: { color: TOURNAMENT_COLORS.textMuted, fontSize: 12.5, lineHeight: 18, fontWeight: "600" },
+  actions: { paddingHorizontal: 14, paddingBottom: 8 },
+  actionGrid: { width: "100%", flexDirection: "row", flexWrap: "wrap", alignItems: "stretch", gap: 8 },
+  actionPressable: { minHeight: 48, minWidth: 0, flexGrow: 1, flexShrink: 1 },
+  actionHalf: { flexBasis: "46%" },
+  actionThird: { flexBasis: "30%" },
+  actionFull: { flexBasis: "100%" },
+  actionPrimary: { flex: 1, minHeight: 48, paddingHorizontal: 10, paddingVertical: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 10, borderWidth: 1 },
+  actionSecondary: { flex: 1, minHeight: 48, paddingHorizontal: 10, paddingVertical: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 10, borderWidth: 1, borderColor: "#23667F", backgroundColor: "#0A2B43" },
+  actionBracket: { borderColor: "#365F89", backgroundColor: "#122D49" },
+  actionDetails: { borderColor: "#2A4C68", backgroundColor: "#0A2136" },
+  actionTextPrimary: { flexShrink: 1, textAlign: "center", color: "#031526", fontSize: 13.5, lineHeight: 18, fontWeight: "800" },
+  actionText: { flexShrink: 1, textAlign: "center", color: "#D8ECFC", fontSize: 13, lineHeight: 18, fontWeight: "700" },
+  actionDetailsText: { color: "#AEC8E0" },
   eventRow: { marginHorizontal: 14, paddingHorizontal: 6, paddingTop: 12, paddingBottom: 11, borderTopWidth: 1, borderTopColor: "#21475F" },
   eventHeading: { flexDirection: "row", alignItems: "center", gap: 8 },
   eventTitleTouch: { flex: 1, minHeight: 44, minWidth: 0, justifyContent: "center" },
@@ -341,9 +365,6 @@ const styles = StyleSheet.create({
   capacityUnit: { color: TOURNAMENT_COLORS.textMuted, fontSize: 11, fontWeight: "500" },
   track: { height: 5, borderRadius: 3, backgroundColor: "#203C52", overflow: "hidden", marginTop: 8, marginBottom: 8 },
   fill: { height: "100%", borderRadius: 3 },
-  eventActions: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 },
-  details: { marginLeft: "auto", minHeight: 44, paddingLeft: 6, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 4 },
-  detailsText: { color: "#A3BFE0", fontSize: 13, lineHeight: 18, fontWeight: "600" },
   zaloButton: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 14, paddingVertical: 10, borderTopWidth: 1, borderTopColor: "#21475F" },
   zaloMark: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "#168AFF" },
   zaloMarkText: { color: "#FFFFFF", fontSize: 9, fontWeight: "900", letterSpacing: -0.4 },

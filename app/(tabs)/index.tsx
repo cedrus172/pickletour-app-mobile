@@ -1,4 +1,3 @@
-import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 import { t } from "@/utils/i18n";
 // app/index.jsx  (Home)
 import React, { useCallback, useMemo, useEffect, useRef, useState } from "react";
@@ -1886,7 +1885,6 @@ export default function HomeScreen() {
               )}
             </View>
           ),
-          headerRight: withNotificationHeader(),
         }}
       />
       <HomePage>
