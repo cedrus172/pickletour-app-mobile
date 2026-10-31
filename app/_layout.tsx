@@ -4,6 +4,7 @@ import {
   ThemeProvider,
   } from "@react-navigation/native";
 import { useFonts } from "expo-font";
+import { useIconFontsReady } from "@/hooks/useIconFontsReady";
 import { router,
   Stack,
   useSegments } from "expo-router";
@@ -125,7 +126,6 @@ TextInput.defaultProps.maxFontSizeMultiplier = 1;
 
 console.log("Is Fabric Enabled:", global.nativeFabricUIManager ? "YES" : "NO");
 
-const SPLASH_FONT_FAILSAFE_MS = 1500;
 const SPLASH_GLOBAL_FAILSAFE_MS = 5000;
 const PREF_THEME_KEY = "PREF_THEME"; // "system" | "light" | "dark"
 const HOT_UPDATE_NOTIFY_EVENT = "hotupdater:notify";
@@ -1381,24 +1381,10 @@ function RootLayout() {
     };
   }, [navTheme, themeApplying]);
 
-  // Fonts + failsafe. Icon fonts được ép include vào OTA bundle qua require()
-  // — tránh bug "toàn dấu ?" khi native binary có asset registry hash khác
-  // với JS bundle mới push OTA. expo-font sẽ load từ bundle nếu native binary
-  // không cấp phát được font tương ứng.
-  const [fontsLoaded] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
-    Ionicons: require("@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf"),
-    Feather: require("@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf"),
-    MaterialIcons: require("@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialIcons.ttf"),
-    MaterialCommunityIcons: require("@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf"),
-    AntDesign: require("@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/AntDesign.ttf"),
-  });
-  const [fontTimeout, setFontTimeout] = React.useState(false);
-  React.useEffect(() => {
-    const t = setTimeout(() => setFontTimeout(true), SPLASH_FONT_FAILSAFE_MS);
-    return () => clearTimeout(t);
-  }, []);
-  const fontsReady = fontsLoaded || fontTimeout;
+  // Icon screens must not mount before the real icon families are ready.
+  // SpaceMono is optional and must not unlock (or block) the icon bootstrap.
+  useFonts({ SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf") });
+  const { fontsReady, fontError, retryFonts } = useIconFontsReady();
 
   /* ==================== STATE MACHINE NAVIGATION ==================== */
   const [lifecycle, setLifecycle] = React.useState<AppLifecycle>({
@@ -1409,6 +1395,7 @@ function RootLayout() {
   const hiddenRef = React.useRef(false);
   const [firstFrameDone, setFirstFrameDone] = React.useState(false);
   const isBootSplashReady =
+    Boolean(fontError) ||
     lifecycle.phase === "splash-hiding" ||
     lifecycle.phase === "ready" ||
     lifecycle.phase === "navigating" ||
@@ -1842,7 +1829,7 @@ function RootLayout() {
                       collapsable={false}
                     >
                       <ThemeProvider value={navTheme}>
-                      {!mobileAppShellReady ? (
+                      {!fontsReady || !mobileAppShellReady ? (
                         <View
                           style={{
                             flex: 1,
@@ -1851,10 +1838,16 @@ function RootLayout() {
                             backgroundColor: bg,
                           }}
                         >
-                          <ActivityIndicator
-                            size="large"
-                            color={navTheme.colors.primary}
-                          />
+                          {fontError ? (
+                            <View style={{ padding: 24, alignItems: "center", gap: 16 }}>
+                              <Text style={{ color: navTheme.colors.text, textAlign: "center" }}>{fontError}</Text>
+                              <TouchableOpacity accessibilityRole="button" onPress={retryFonts} style={{ paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10, backgroundColor: navTheme.colors.primary }}>
+                                <Text style={{ color: "#fff", fontWeight: "700" }}>Thử lại</Text>
+                              </TouchableOpacity>
+                            </View>
+                          ) : (
+                            <ActivityIndicator size="large" color={navTheme.colors.primary} />
+                          )}
                         </View>
                       ) : isWebViewShellActive ? (
                         <SafeAreaView
