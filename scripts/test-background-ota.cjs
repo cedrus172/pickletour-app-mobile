@@ -73,6 +73,17 @@ test('remote kill switch still prevents updates', async () => {
 test('crashed bundles remain blocked', async () => {
   const f = fixture({ crashed: ['0003'] }); await f.checkForHotUpdate(); assert.equal(f.state.downloads, 0); assert.equal(f.state.alerts.length, 0);
 });
+test('a queued bundle already rolled back cannot schedule another reload', async () => {
+  const f = fixture({ pending: { bundleId: '0003' }, crashed: ['0003'] });
+  await f.checkForHotUpdate();
+  assert.equal(f.state.timers.length, 0); assert.equal(f.state.downloads, 0); assert.equal(f.state.pending, null);
+});
+test('a stale crashed pending bundle does not prevent downloading a healthy newer bundle', async () => {
+  const f = fixture({ pending: { bundleId: '0002' }, crashed: ['0002'] });
+  await f.checkForHotUpdate();
+  assert.equal(f.state.pending.bundleId, '0003'); assert.equal(f.state.downloads, 1);
+  f.state.timers[0].f(); assert.equal(f.state.reloads, 1);
+});
 test('a staged bundle is not reported as applied by the previous runtime', async () => {
   const f = fixture({ pending: { bundleId: '0003' } }); await f.handleHotUpdateNotifyTelemetry({ status: 'STABLE' });
   assert.equal(f.state.applied, ''); assert.equal(f.state.pending.bundleId, '0003'); assert.equal(f.state.reports.length, 0);

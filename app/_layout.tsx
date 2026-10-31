@@ -1114,6 +1114,20 @@ function RootLayout() {
         }
       })();
       const appliedBundleId = await getAppliedHotUpdateBundle();
+      const recoveredBundleId = await getRecoveredHotUpdateBundle();
+      const crashedBundleIds = (() => {
+        try {
+          return Array.isArray(HotUpdater.getCrashHistory?.())
+            ? HotUpdater.getCrashHistory()
+            : [];
+        } catch {
+          return [];
+        }
+      })();
+      const pendingWasRecovered = Boolean(pendingBundleId) && (
+        pendingBundleId === recoveredBundleId || crashedBundleIds.includes(pendingBundleId)
+      );
+      if (pendingWasRecovered) await clearPendingHotUpdate();
 
       if (!isRollbackUpdate && updateId && appliedBundleId === updateId) {
         otaIgnoredUpdateIdRef.current = updateId;
@@ -1126,7 +1140,7 @@ function RootLayout() {
 
       const isForceUpdate =
         updateInfo.shouldForceUpdate === true || remoteForceUpdate;
-      if (!isRollbackUpdate && pendingBundleId && pendingBundleId !== currentBundleId && !isForceUpdate) {
+      if (!isRollbackUpdate && pendingBundleId && pendingBundleId !== currentBundleId && !isForceUpdate && !pendingWasRecovered) {
         otaIgnoredUpdateIdRef.current = updateId;
         otaReadyPayloadRef.current = pendingUpdate;
         scheduleHotUpdateReload();
@@ -1147,16 +1161,6 @@ function RootLayout() {
         otaCheckInFlightRef.current = false;
         return;
       }
-      const recoveredBundleId = await getRecoveredHotUpdateBundle();
-      const crashedBundleIds = (() => {
-        try {
-          return Array.isArray(HotUpdater.getCrashHistory?.())
-            ? HotUpdater.getCrashHistory()
-            : [];
-        } catch {
-          return [];
-        }
-      })();
       if (
         updateInfo.id &&
         (updateInfo.id === recoveredBundleId ||
