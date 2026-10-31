@@ -61,6 +61,7 @@ import { BASE_URL } from "@/slices/apiSlice";
 import { mergeRefereeMatchSnapshot } from "@/utils/refereeMatchRoute";
 import { getRefereeBoardLayout, type RefereeBoardLayout } from "@/utils/refereeLayout";
 import RefereePortraitHeader from "./RefereePortraitHeader.native";
+import RefereeModalSurface, { RefereeCourtIcon, RefereeSideSwitchPrompt, modalStyles, refereeModalColors as M } from "./RefereeModalSurface";
 import RefereePortraitScore from "./RefereePortraitScore.native";
 import { formatMatchElapsed, matchTimestamp } from "@/utils/refereeElapsedTime";
 import { CoinFace, DrawCard, DrawColorPair, TwoTeamWheel, DRAW_BLUE, DRAW_RED, DRAW_GOLD } from "./ServeDrawVisuals.native";
@@ -1709,6 +1710,8 @@ function CourtAssignModalFull({
   onUnassignCourt,
 }) {
   const t = useTokens();
+  const sport = (useTheme() as any).version === "v2";
+  const ModalRoot = sport ? View : SafeAreaView;
   const [courts, setCourts] = useState([]);
   const [courtsLoaded, setCourtsLoaded] = useState(false);
   const [courtsLoading, setCourtsLoading] = useState(false);
@@ -1815,35 +1818,39 @@ function CourtAssignModalFull({
         "landscape",
       ]}
     >
-      <SafeAreaView
-        style={[s.fullModalWrap, { backgroundColor: t.colors.background }]}
+      <RefereeModalSurface enabled={sport}>
+      <ModalRoot
+        testID="referee-court-modal"
+        style={[s.fullModalWrap, { backgroundColor: sport ? M.surface : t.colors.background }]}
       >
-        <View style={[s.rowBetween, { padding: 12 }]}>
-          <Text style={[s.h6, { color: t.colors.text }]}>Gán sân</Text>
-          <View style={[s.row, { gap: 6 }]}>
+        <View style={[s.rowBetween, { padding: 12 }, sport && modalStyles.header]}>
+          <Text style={[s.h6, { color: t.colors.text }, sport && modalStyles.title]}>Gán sân</Text>
+          <View style={[s.row, { gap: sport ? 8 : 6 }]}>
             <Ripple
+              accessibilityRole="button" accessibilityLabel="Tải lại danh sách sân"
               onPress={() => loadCourts({ refresh: true })}
               disabled={courtsLoading || courtsRefreshing}
-              style={[s.iconBtn, { backgroundColor: t.colors.card }]}
+              style={[s.iconBtn, { backgroundColor: t.colors.card }, sport && modalStyles.headerIcon]}
               rippleContainerBorderRadius={8}
             >
               {courtsRefreshing ? (
-                <ActivityIndicator size="small" />
+                <ActivityIndicator size="small" color={sport ? M.primary : t.colors.primary} />
               ) : (
-                <MaterialIcons name="refresh" size={18} color={t.colors.text} />
+                <MaterialIcons name="refresh" size={18} color={sport ? M.text : t.colors.text} />
               )}
             </Ripple>
             <Ripple
+              accessibilityRole="button" accessibilityLabel="Đóng gán sân"
               onPress={onClose}
-              style={[s.iconBtn, { backgroundColor: t.colors.card }]}
+              style={[s.iconBtn, { backgroundColor: t.colors.card }, sport && modalStyles.headerIcon]}
               rippleContainerBorderRadius={8}
             >
-              <MaterialIcons name="close" size={18} color={t.colors.text} />
+              <MaterialIcons name="close" size={18} color={sport ? M.text : t.colors.text} />
             </Ripple>
           </View>
         </View>
 
-        <View style={{ flex: 1, paddingHorizontal: 12 }}>
+        <View style={{ flex: 1, paddingHorizontal: sport ? 16 : 12 }}>
           {courtsLoading ? (
             <View style={[s.center, { flex: 1 }]}>
               <ActivityIndicator />
@@ -1868,34 +1875,32 @@ function CourtAssignModalFull({
               </Text>
             </View>
           ) : (
-            <View style={{ width: "100%" }}>
+            <ScrollView testID="referee-courts-scroll" style={{ flex: 1 }} contentContainerStyle={sport ? { gap: 12, paddingTop: 8, paddingBottom: 12 } : undefined}>
               {courts.map((c, idx) => {
                 const id = c?._id || c?.id;
                 const selected = String(currentCourtId || "") === String(id);
                 return (
                   <Ripple
                     key={id || idx}
+                    accessibilityRole="button" accessibilityLabel={textOf(c?.name)} accessibilityState={{ selected, disabled: assigning || unassigning }}
                     onPress={() => !(assigning || unassigning) && doAssign(id)}
-                    style={{
+                    style={[{
                       paddingVertical: 12,
                       borderBottomWidth: 1,
                       borderBottomColor: t.colors.border,
                       flexDirection: "row",
                       alignItems: "center",
                       justifyContent: "space-between",
-                    }}
+                    }, sport && { minHeight: 84, padding: 16, gap: 12, borderWidth: selected ? 2 : 1, borderBottomWidth: selected ? 2 : 1, borderColor: selected ? M.primary : M.border, backgroundColor: M.card, borderRadius: 16 }]}
                     rippleContainerBorderRadius={8}
                   >
-                    <View style={[s.row, { gap: 8 }]}>
-                      <MaterialIcons
-                        name="stadium"
-                        size={18}
-                        color={t.colors.text}
-                      />
+                    <View style={[s.row, { gap: sport ? 18 : 8, flex: 1, minWidth: 0 }]}>
+                      {sport ? <RefereeCourtIcon /> : <MaterialIcons name="stadium" size={18} color={t.colors.text} />}
                       <Text
                         style={{
                           fontWeight: "700",
-                          color: t.colors.text,
+                          color: sport ? M.text : t.colors.text,
+                          flexShrink: 1, fontSize: sport ? 19 : undefined,
                         }}
                       >
                         {textOf(c?.name)}
@@ -1904,32 +1909,27 @@ function CourtAssignModalFull({
                     {selected ? (
                       <MaterialIcons
                         name="check-circle"
-                        size={18}
-                        color="#10b981"
+                        size={sport ? 30 : 18}
+                        color={sport ? M.primary : "#10b981"}
                       />
                     ) : (
                       <MaterialIcons
                         name="chevron-right"
                         size={20}
-                        color={t.muted}
+                        color={sport ? M.muted : t.muted}
                       />
                     )}
                   </Ripple>
                 );
               })}
-            </View>
+            </ScrollView>
           )}
         </View>
 
-        <View
-          style={{
-            padding: 12,
-            borderTopWidth: 1,
-            borderTopColor: t.colors.border,
-          }}
-        >
-          <View style={[s.rowBetween]}>
+        <View style={[{ padding: 12, borderTopWidth: 1, borderTopColor: t.colors.border }, sport && { padding: 16, borderTopWidth: 0 }]}>
+          <View style={[s.rowBetween, sport && { gap: 10 }]}>
             <Ripple
+              accessibilityRole="button" accessibilityLabel="Bỏ gán sân"
               onPress={clearAssign}
               style={[
                 s.btnOutline,
@@ -1937,24 +1937,26 @@ function CourtAssignModalFull({
                   backgroundColor: t.colors.card,
                   borderColor: t.colors.border,
                 },
+                sport && modalStyles.button, sport && modalStyles.outlineButton,
               ]}
               rippleContainerBorderRadius={10}
             >
-              <MaterialIcons name="block" size={16} color={t.colors.text} />
-              <Text style={[s.btnOutlineText, { color: t.colors.text }]}>
+              {!sport ? <MaterialIcons name="block" size={16} color={t.colors.text} /> : null}
+              <Text style={[s.btnOutlineText, { color: t.colors.text }, sport && modalStyles.buttonText]}>
                 Bỏ gán sân
               </Text>
             </Ripple>
             <Ripple
               onPress={onClose}
-              style={[s.btnPrimary, { backgroundColor: t.colors.primary }]}
+              style={[s.btnPrimary, { backgroundColor: t.colors.primary }, sport && modalStyles.button, sport && modalStyles.primaryButton]}
               rippleContainerBorderRadius={10}
             >
-              <Text style={s.btnPrimaryText}>Đóng</Text>
+              <Text style={[s.btnPrimaryText, sport && modalStyles.buttonText, sport && { color: M.primaryText }]}>Đóng</Text>
             </Ripple>
           </View>
         </View>
-      </SafeAreaView>
+      </ModalRoot>
+      </RefereeModalSurface>
     </Modal>
   );
 }
@@ -2293,6 +2295,7 @@ const normalizeRefereeLayout = (layout) =>
 
 export default function RefereeJudgePanel({ matchId, initialMatch = null, onToggleOrientation = null }) {
   const params = useLocalSearchParams();
+  const modalSport = (useTheme() as any).version === "v2";
   const { userMatch } = params;
   useUserMatchHeader(userMatch && "user");
   const isUserMatch = String(userMatch) === "true";
@@ -5381,11 +5384,13 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
       {/* ===== Modal CCCD ===== */}
       <CCCDModal
         visible={cccdOpen}
+        refereeDesign={modalSport}
         onClose={() => setCccdOpen(false)}
         user={cccdUser}
       />
 
       {/* ===== Prompt đổi bên giữa game ===== */}
+      {modalSport ? <RefereeSideSwitchPrompt visible={midPromptOpen} midPoint={midPoint} onLater={() => setMidPromptOpen(false)} onConfirm={() => { setMidPromptOpen(false); swapSides(); }} /> : (
       <Modal
         visible={midPromptOpen}
         transparent
@@ -5442,6 +5447,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
           </View>
         </View>
       </Modal>
+      )}
 
       {/* ===== Menu modal ===== */}
       <Modal

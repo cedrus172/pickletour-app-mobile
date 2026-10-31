@@ -6,6 +6,7 @@ import {
   StyleSheet,
   View,
   ScrollView,
+  useWindowDimensions,
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import Ripple from "react-native-material-ripple";
@@ -13,6 +14,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useTheme } from "@react-navigation/native";
 import { normalizeUrl } from "@/utils/normalizeUri";
+import RefereeModalSurface, { modalStyles, refereeModalColors as M } from "./match/RefereeModalSurface";
 // import { normalizeUrl } from "@/utils/normalizeUrl";
 
 const textOf = (v) => {
@@ -33,8 +35,13 @@ const getCccdImages = (u) => {
   };
 };
 
-export default function CCCDModal({ visible, onClose, user }) {
-  const { colors, dark } = useTheme();
+export default function CCCDModal({ visible, onClose, user, refereeDesign = false }) {
+  const navTheme = useTheme();
+  const { colors, dark } = navTheme;
+  const sport = refereeDesign && (navTheme as any).version === "v2";
+  const { width, height } = useWindowDimensions();
+  const landscape = width > height;
+  const ModalRoot = sport ? View : SafeAreaView;
 
   // ===== Tokens đơn giản theo theme (fallback an toàn) =====
   const T = useMemo(
@@ -53,7 +60,8 @@ export default function CCCDModal({ visible, onClose, user }) {
     [colors, dark]
   );
 
-  const s = useMemo(() => makeStyles(T), [T]);
+  const tokens = useMemo(() => sport ? { ...T, bg: M.surface, text: M.text, border: M.border, surface: M.control, card: M.card, muted: M.muted } : T, [sport, T]);
+  const s = useMemo(() => makeStyles(tokens), [tokens]);
 
   const name = textOf(user) || "Vận động viên";
   const cccd = getCccd(user);
@@ -74,37 +82,41 @@ export default function CCCDModal({ visible, onClose, user }) {
         "landscape",
       ]}
     >
-      <SafeAreaView style={s.wrap}>
+      <RefereeModalSurface enabled={sport}>
+      <ModalRoot testID="referee-cccd-modal" style={s.wrap}>
         {/* Header */}
-        <View style={s.header}>
-          <Text style={s.title}>CCCD</Text>
+        <View style={[s.header, sport && modalStyles.header]}>
+          <Text style={[s.title, sport && modalStyles.title]}>CCCD</Text>
           <Ripple
+            accessibilityRole="button" accessibilityLabel="Đóng CCCD"
             onPress={onClose}
-            style={s.iconBtn}
+            style={[s.iconBtn, sport && modalStyles.headerIcon]}
             rippleContainerBorderRadius={8}
           >
-            <MaterialIcons name="close" size={22} color={T.text} />
+            <MaterialIcons name="close" size={22} color={tokens.text} />
           </Ripple>
         </View>
 
-        <ScrollView contentContainerStyle={s.body}>
-          <Text style={s.name}>{name}</Text>
-
-          <View style={[s.row, { marginTop: 8 }]}>
-            <MaterialIcons name="badge" size={18} color={T.text} />
-            <Text style={s.cccdText}>
-              {cccd ? `Số CCCD: ${cccd}` : "Không có số CCCD"}
-            </Text>
+        <ScrollView testID="referee-cccd-scroll" contentContainerStyle={[s.body, sport && { padding: 16 }]}>
+          <View style={sport ? { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderWidth: 1, borderColor: M.border, borderRadius: 16, backgroundColor: M.card } : undefined}>
+            {sport ? <View style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 1, borderColor: M.outline, backgroundColor: M.control, alignItems: "center", justifyContent: "center" }}><MaterialIcons name="person" size={32} color={M.text} /></View> : null}
+            <View style={sport ? { flex: 1, minWidth: 0 } : undefined}>
+              <Text style={[s.name, sport && { fontSize: 18, lineHeight: 25 }]}>{name}</Text>
+              <View style={[s.row, { marginTop: 8 }]}>
+                {!sport ? <MaterialIcons name="badge" size={18} color={tokens.text} /> : null}
+                <Text selectable={sport} style={[s.cccdText, sport && { marginLeft: 0, color: M.muted, fontWeight: "400", flexShrink: 1, lineHeight: 21 }]}>{cccd ? `Số CCCD: ${cccd}` : "Không có số CCCD"}</Text>
+              </View>
+            </View>
           </View>
 
           {hasFront || hasBack ? (
-            <View style={s.imgGrid}>
+            <View style={[s.imgGrid, sport && { marginTop: 20, gap: 18, flexDirection: landscape ? "row" : "column" }]}>
               {hasFront ? (
-                <View style={s.imgCard}>
-                  <Text style={s.label}>Mặt trước</Text>
+                <View style={[s.imgCard, sport && { flex: landscape ? 1 : undefined, minWidth: 0, padding: 12, borderRadius: 16 }]}>
+                  <Text style={[s.label, sport && { fontSize: 16, lineHeight: 22, marginBottom: 10 }]}>Mặt trước</Text>
                   <Image
                     source={{ uri: normalizeUrl(imgs.front) }}
-                    style={s.img}
+                    style={[s.img, sport && { height: undefined, aspectRatio: 1.586 }]}
                     contentFit="contain"
                     cachePolicy="memory-disk"
                     transition={0}
@@ -113,11 +125,11 @@ export default function CCCDModal({ visible, onClose, user }) {
               ) : null}
 
               {hasBack ? (
-                <View style={s.imgCard}>
-                  <Text style={s.label}>Mặt sau</Text>
+                <View style={[s.imgCard, sport && { flex: landscape ? 1 : undefined, minWidth: 0, padding: 12, borderRadius: 16 }]}>
+                  <Text style={[s.label, sport && { fontSize: 16, lineHeight: 22, marginBottom: 10 }]}>Mặt sau</Text>
                   <Image
                     source={{ uri: normalizeUrl(imgs.back) }}
-                    style={s.img}
+                    style={[s.img, sport && { height: undefined, aspectRatio: 1.586 }]}
                     contentFit="contain"
                     cachePolicy="memory-disk"
                     transition={0}
@@ -130,13 +142,14 @@ export default function CCCDModal({ visible, onClose, user }) {
               <MaterialIcons
                 name="image-not-supported"
                 size={22}
-                color={T.muted}
+                color={tokens.muted}
               />
               <Text style={s.emptyText}>Không có ảnh CCCD</Text>
             </View>
           )}
         </ScrollView>
-      </SafeAreaView>
+      </ModalRoot>
+      </RefereeModalSurface>
     </Modal>
   );
 }

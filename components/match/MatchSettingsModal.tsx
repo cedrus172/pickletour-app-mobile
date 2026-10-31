@@ -17,6 +17,7 @@ import { Text } from "@/components/ui/i18nText";
 import Ripple from "react-native-material-ripple";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
+import RefereeModalSurface, { modalStyles, refereeModalColors as M } from "./RefereeModalSurface";
 
 /* ---------- Theme tokens (nhẹ hơn bản full) ---------- */
 function useTokens() {
@@ -32,10 +33,11 @@ function useTokens() {
   const background =
     navTheme?.colors?.background ?? (dark ? "#0b0d10" : "#f5f7fb");
 
+  const sport = (navTheme as any).version === "v2";
   return {
-    dark,
-    colors: { primary, text, card, border, background },
-    subtext: dark ? "#9ca3af" : "#6b7280",
+    dark, sport,
+    colors: sport ? { primary: M.primary, text: M.text, card: M.card, border: M.border, background: M.surface } : { primary, text, card, border, background },
+    subtext: sport ? M.muted : dark ? "#9ca3af" : "#6b7280",
   };
 }
 
@@ -73,20 +75,22 @@ function NumberField({
   };
 
   return (
-    <View style={styles.fieldRow}>
-      <View style={{ flex: 1, paddingRight: 12 }}>
+    <View testID={`referee-setting-${label}`} style={[styles.fieldRow, t.sport && styles.sportField]}>
+      <View style={[{ flex: 1, paddingRight: 12 }, t.sport && { minWidth: 124, paddingRight: 0 }]}>
         <Text style={[styles.label, { color: t.colors.text }]}>{label}</Text>
         {helper ? (
           <Text style={[styles.helper, { color: t.subtext }]}>{helper}</Text>
         ) : null}
       </View>
 
-      <View style={styles.numberControl}>
+      <View style={[styles.numberControl, t.sport && { gap: 0 }]}>
         <Ripple
+          accessibilityRole="button" accessibilityLabel={`Giảm ${label}`}
           onPress={dec}
-          rippleContainerBorderRadius={999}
+          rippleContainerBorderRadius={t.sport ? 10 : 999}
           style={[
             styles.iconCircle,
+            t.sport && styles.sportStepButton,
             { borderColor: t.colors.border, backgroundColor: t.colors.card },
           ]}
         >
@@ -96,22 +100,26 @@ function NumberField({
         <TextInput
           style={[
             styles.input,
+            t.sport && styles.sportInput,
             {
               borderColor: t.colors.border,
               color: t.colors.text,
               backgroundColor: t.colors.card,
             },
           ]}
+          accessibilityLabel={label}
           keyboardType="number-pad"
           value={String(value ?? "")}
           onChangeText={handleChangeText}
         />
 
         <Ripple
+          accessibilityRole="button" accessibilityLabel={`Tăng ${label}`}
           onPress={inc}
-          rippleContainerBorderRadius={999}
+          rippleContainerBorderRadius={t.sport ? 10 : 999}
           style={[
             styles.iconCircle,
+            t.sport && styles.sportStepButton,
             { borderColor: t.colors.border, backgroundColor: t.colors.card },
           ]}
         >
@@ -131,6 +139,7 @@ export default function MatchSettingsModal({
   onSave,
 }) {
   const t = useTokens();
+  const ModalRoot = t.sport ? View : SafeAreaView;
   const match = matchSnapshot || null;
   const [isFetching, setIsFetching] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -247,54 +256,61 @@ export default function MatchSettingsModal({
         "landscape",
       ]}
     >
-      <SafeAreaView
+      <RefereeModalSurface enabled={t.sport}>
+      <ModalRoot
+        testID="referee-settings-modal"
         style={[styles.wrap, { backgroundColor: t.colors.background }]}
       >
         {/* HEADER */}
         <View
           style={[
             styles.header,
+            t.sport && modalStyles.header,
             {
               borderBottomColor: t.colors.border,
               backgroundColor: t.colors.card,
             },
           ]}
         >
-          <View style={styles.headerLeft}>
+          <View style={[styles.headerLeft, t.sport && { flex: 1, minWidth: 0, gap: 12 }]}>
             <Ripple
+              accessibilityRole="button" accessibilityLabel="Đóng cấu hình trận"
               onPress={handleClose}
-              rippleContainerBorderRadius={999}
+              rippleContainerBorderRadius={t.sport ? 10 : 999}
               disabled={isUpdating}
               style={[
                 styles.headerIconBtn,
                 { backgroundColor: t.colors.background },
+                t.sport && modalStyles.headerIcon,
                 { opacity: isUpdating ? 0.5 : 1 },
               ]}
             >
               <MaterialIcons name="close" size={20} color={t.colors.text} />
             </Ripple>
-            <Text style={[styles.title, { color: t.colors.text }]}>
+            <Text style={[styles.title, { color: t.colors.text }, t.sport && { flexShrink: 1, fontSize: 20, lineHeight: 26 }]}>
               Cấu hình trận
             </Text>
           </View>
 
           <Ripple
+            accessibilityRole="button" accessibilityLabel="Lưu cấu hình trận"
             onPress={handleSave}
             disabled={isUpdating}
-            rippleContainerBorderRadius={999}
+            rippleContainerBorderRadius={t.sport ? 10 : 999}
             style={[
               styles.saveBtn,
               { backgroundColor: t.colors.primary },
+              t.sport && styles.sportSave,
               { opacity: isUpdating ? 0.7 : 1 },
             ]}
           >
             {isUpdating ? (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                <ActivityIndicator size="small" color="#fff" />
-                <Text style={styles.saveBtnText}>Đang lưu...</Text>
+                <ActivityIndicator size="small" color={t.sport ? M.primaryText : "#fff"} />
+                <Text style={[styles.saveBtnText, t.sport && { color: M.primaryText }]}>Đang lưu...</Text>
               </View>
             ) : (
-              <Text style={styles.saveBtnText}>Lưu</Text>
+              <Text style={[styles.saveBtnText, t.sport && { color: M.primaryText }]}>Lưu</Text>
             )}
           </Ripple>
         </View>
@@ -302,7 +318,9 @@ export default function MatchSettingsModal({
         {/* BODY */}
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={styles.bodyContent}
+          testID="referee-settings-scroll"
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[styles.bodyContent, t.sport && { paddingHorizontal: 16, paddingTop: 10, gap: 12, paddingBottom: 24 }]}
           refreshControl={
             <RefreshControl
               refreshing={!!isFetching}
@@ -311,7 +329,7 @@ export default function MatchSettingsModal({
             />
           }
         >
-          <Text style={[styles.sectionTitle, { color: t.subtext }]}>
+          <Text style={[styles.sectionTitle, { color: t.subtext }, t.sport && styles.sportSection]}>
             Luật trận đấu
           </Text>
 
@@ -340,7 +358,7 @@ export default function MatchSettingsModal({
             }}
           />
 
-          <View style={styles.fieldRow}>
+          <View style={[styles.fieldRow, t.sport && styles.sportField]}>
             <View style={{ flex: 1, paddingRight: 12 }}>
               <Text style={[styles.label, { color: t.colors.text }]}>
                 Cách 2
@@ -370,7 +388,7 @@ export default function MatchSettingsModal({
           />
 
           <Text
-            style={[styles.sectionTitle, { color: t.subtext, marginTop: 16 }]}
+            style={[styles.sectionTitle, { color: t.subtext, marginTop: 16 }, t.sport && styles.sportSection]}
           >
             Timeout & nghỉ y tế
           </Text>
@@ -404,12 +422,18 @@ export default function MatchSettingsModal({
 
           <View style={{ height: 24 }} />
         </ScrollView>
-      </SafeAreaView>
+      </ModalRoot>
+      </RefereeModalSurface>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  sportField: { padding: 12, minHeight: 76, borderWidth: 1, borderColor: M.border, borderRadius: 16, backgroundColor: M.card, flexWrap: "wrap", gap: 10 },
+  sportStepButton: { width: 44, height: 44, borderRadius: 10 },
+  sportInput: { width: 40, minWidth: 40, minHeight: 44, borderWidth: 0, borderRadius: 0, paddingHorizontal: 2, paddingVertical: 0, fontSize: 17 },
+  sportSave: { minHeight: 44, minWidth: 54, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 12 },
+  sportSection: { fontSize: 18, lineHeight: 24, color: M.text, textTransform: "none", letterSpacing: 0, marginTop: 8, marginBottom: 0 },
   wrap: {
     flex: 1,
   },
