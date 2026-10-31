@@ -1,5 +1,7 @@
 # Trang Giải đấu theo ảnh duyệt — 31/10/2026
 
+> Bản phát hành sau `65ba11a` giữ giao diện này và chuyển chuông vào header/góc trang, bỏ hàng chuông riêng; xem [NOTIFICATION-CORNER-2026-10-31.md](NOTIFICATION-CORNER-2026-10-31.md). Các ID bên dưới là đợt phát `d75b0ca`.
+
 ## Trạng thái phát hành
 
 - Commit giao diện: `d75b0ca0bb158ff06ef03b78a47f85722e93315b`, đã push nhánh `feat/ui-v2-modern`.

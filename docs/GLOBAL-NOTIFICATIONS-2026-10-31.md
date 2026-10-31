@@ -1,5 +1,7 @@
 # Chuông Thông báo toàn app — 31/10/2026
 
+> Ghi chép phát hành lịch sử `9817013`/`7aa07d0`. User đã yêu cầu bỏ hàng riêng; bố trí hiện tại là góc trang/header ở `65ba11a`, xem [NOTIFICATION-CORNER-2026-10-31.md](NOTIFICATION-CORNER-2026-10-31.md). Khi revert bản này cần đảo `65ba11a` trước để gỡ import helper trong các page header.
+
 ## Trạng thái
 
 - Code: `9817013` (bao gồm `7aa07d0`), nhánh `feat/ui-v2-modern`, đã push.
