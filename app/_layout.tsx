@@ -50,6 +50,7 @@ import { loadExpoNotifications } from "@/lib/expoNotifications";
 import ForceUpdateModal from "@/components/ForceUpdateModal";
 import HotUpdateModal from "@/components/HotUpdateModal";
 import HotUpdateIndicator from "@/components/HotUpdateIndicator";
+import GlobalNotificationShell from "@/components/GlobalNotificationShell";
 import { isRefereeScoringRoute } from "@/utils/hotUpdateReloadPolicy";
 import CrashFeedbackModal from "@/components/CrashFeedbackModal";
 import MatchLiveActivityBootstrap from "@/components/match/MatchLiveActivityBootstrap";
@@ -1834,6 +1835,10 @@ function RootLayout() {
               ) : null}
               <GlassAppearanceProvider>
                 <SafeAreaProvider>
+                  <GlobalNotificationShell
+                    visible={fontsReady && mobileAppShellReady}
+                    backgroundColor={bg}
+                  >
                   <SafeAreaView
                     style={{ flex: 1, backgroundColor: bg }}
                     edges={rootSafeAreaEdges}
@@ -2425,12 +2430,14 @@ function RootLayout() {
                       </ThemeProvider>
                     </View>
                   </SafeAreaView>
+                  </GlobalNotificationShell>
                   <HotUpdateIndicator
                     visible={hotUpdateVisible && !hotUpdateBlocking}
                     progress={hotUpdateProgress}
                     status={hotUpdateStatus}
                     isDark={isDark}
                     accentColor={navTheme.colors.primary}
+                    rightOffset={fontsReady && mobileAppShellReady ? 56 : 0}
                   />
                 </SafeAreaProvider>
               </GlassAppearanceProvider>

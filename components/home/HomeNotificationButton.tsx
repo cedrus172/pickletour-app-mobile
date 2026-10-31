@@ -10,7 +10,7 @@ export default function HomeNotificationButton({ unreadCount }: { unreadCount: n
       accessibilityRole="button"
       accessibilityLabel={`${t("Thông báo")}${unreadCount > 0 ? ` (${unreadCount})` : ""}`}
       testID="home-notifications"
-      onPress={() => router.push("/notifications")}
+      onPress={() => router.navigate("/notifications")}
       style={({ pressed }) => [styles.button, pressed && styles.pressed]}
     >
       <HomeFeatureIcon id={16} size={30} />

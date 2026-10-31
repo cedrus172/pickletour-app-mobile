@@ -8,10 +8,11 @@ type Props = {
   status: "downloading" | "done" | "error";
   isDark: boolean;
   accentColor: string;
+  rightOffset?: number;
 };
 
 /** Background download status only. Never captures touches or opens a native modal. */
-export default function HotUpdateIndicator({ visible, progress, status, isDark, accentColor }: Props) {
+export default function HotUpdateIndicator({ visible, progress, status, isDark, accentColor, rightOffset = 0 }: Props) {
   const insets = useSafeAreaInsets();
   if (!visible || status === "error") return null;
   const percentage = Math.round(Math.max(0, Math.min(1, Number.isFinite(progress) ? progress : 0)) * 100);
@@ -26,7 +27,7 @@ export default function HotUpdateIndicator({ visible, progress, status, isDark, 
       aria-valuenow={status === "done" ? 100 : percentage}
       style={[styles.container, {
         top: insets.top + 8,
-        right: insets.right + 12,
+        right: insets.right + 12 + rightOffset,
         backgroundColor: isDark ? "#071b2d" : "#ffffff",
         borderColor: isDark ? "#214563" : "#dbe5ed",
       }]}
