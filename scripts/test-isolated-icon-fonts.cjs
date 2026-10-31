@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { test } = require('node:test');
 const root = path.resolve(__dirname, '..');
-const sets = ['AntDesign', 'Feather', 'Ionicons', 'MaterialCommunityIcons', 'Octicons'];
+const sets = ['AntDesign', 'Feather', 'Ionicons', 'MaterialCommunityIcons', 'MaterialIcons', 'Octicons'];
 function tables(font) {
   const result = {};
   for (let i = 0; i < font.readUInt16BE(4); i++) {

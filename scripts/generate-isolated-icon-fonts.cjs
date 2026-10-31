@@ -6,7 +6,7 @@ const { createHash } = require('node:crypto');
 const root = path.resolve(__dirname, '..');
 const vendor = path.join(root, 'node_modules/@expo/vector-icons/build');
 const output = path.join(root, 'assets/fonts/icons');
-const sets = ['AntDesign', 'Feather', 'Ionicons', 'MaterialCommunityIcons', 'Octicons'];
+const sets = ['AntDesign', 'Feather', 'Ionicons', 'MaterialCommunityIcons', 'MaterialIcons', 'Octicons'];
 
 function checksum(data) {
   let sum = 0;

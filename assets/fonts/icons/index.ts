@@ -4,5 +4,6 @@ export const ISOLATED_ICON_ASSETS = {
   "feather": { postScriptName: "PTourFeather-02b88ead91ad", source: require('./Feather.ttf') },
   "ionicons": { postScriptName: "PTourIonicons-fa2ab7d25578", source: require('./Ionicons.ttf') },
   "material-community": { postScriptName: "PTourMaterialCommunityIcons-61e8aba5a4e9", source: require('./MaterialCommunityIcons.ttf') },
+  "material": { postScriptName: "PTourMaterialIcons-ef149f08bdd2", source: require('./MaterialIcons.ttf') },
   "octicons": { postScriptName: "PTourOcticons-9bc4d9f5e994", source: require('./Octicons.ttf') },
 } as const;
