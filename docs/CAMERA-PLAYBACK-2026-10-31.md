@@ -28,14 +28,22 @@ Không thêm dependency hoặc sửa native binary. Giữ `ios/Pickletourvn.xcod
 - 72/72 test gồm 10 test mới và 62 test cache/font/OTA/thông báo/ngày giờ trước đó.
 - ESLint source thay đổi: 0 lỗi; 3 warning có trước ở cut.tsx (require MediaLibrary fallback, directive cũ, saveToAlbum đang ẩn). Không bỏ fallback native để dọn lint.
 - TSC toàn repo còn lỗi cũ ngoài phạm vi; không có diagnostic ở cut.tsx/CameraPlayback.tsx/clipPlayback.ts trong lần kiểm tra.
-- Harness React Native Web dùng screen/player/helper source thật, mock expo-video native và API. Luồng đầy đủ trên 320/375 px: tua từ currentTime, pause và fallback NVR, fullscreen, range preview/cut, custom 10 phút → 2 file 5 phút, ghi hình và tải/chia sẻ. 375 px kiểm tra request về sai thứ tự và response sau unmount đều stop phiên cũ, không dựng player lại.
+- Harness React Native Web dùng screen/player/helper source thật, mock expo-video native và API. Luồng đầy đủ trên 320/375 px: tua từ currentTime, pause và fallback NVR, fullscreen, range preview/cut, custom 10 phút → 2 file 5 phút, ghi hình và tải/chia sẻ. 375 px có thêm kiểm tra live không metadata: tạm dừng 30 giây không làm trôi mốc khung hình, jump vẫn lấy từ frame đang dừng; kiểm tra request về sai thứ tự và response sau unmount đều stop phiên cũ, không dựng player lại.
 - Bố cục kiểm tra 6 viewport 320×568, 375×812, 440×956, 844×390, 768×1024, 1366×1024, xoay và tăng chữ bằng CSS 130%; đây là harness layout, không thay thế native accessibility font scaling hoặc kiểm tra trên iPhone/Android thật.
 - Kiểm tra độc lập API thật Lã Vọng camera 5: mở 1 phút playback của khoảng đã ghi, nhận HLS sau 3,637 giây. Playlist TYPE EVENT, không ENDLIST tại lúc đọc, không PROGRAM-DATE-TIME; xác nhận cần fallback origin và hỗ trợ session mới khi tua. Đã gửi stop và nhận `{ok:true}`. Không chỉnh service Pi, không tạo bản ghi/cắt file thật trong kiểm tra này. Quang Trung chưa xác minh do user báo offline.
 
 ## Backup / rollback
 
-Nhánh `codex/backup-before-camera-playback-20261031` tại 0e07393. Backup `/Users/admin/Projects/Pickletour/backups/2026-10-31-camera-playback/` chứa cut.tsx trước sửa, ảnh duyệt, baseline, native diff có trước, QA/API proof và các gói phát hành. Revert riêng commit source của đợt này rồi build OTA mới để quay lại; không reset working tree hoặc làm mất cache/icon/những giao diện trước.
+Nhánh `codex/backup-before-camera-playback-20261031` tại 0e07393. Backup `/Users/admin/Projects/Pickletour/backups/2026-10-31-camera-playback/` chứa cut.tsx trước sửa, ảnh duyệt, baseline, native diff có trước, QA/API proof và các gói phát hành. Revert lần lượt `12f7ba9` rồi `80b5492` và build OTA mới để quay lại; không reset working tree hoặc làm mất cache/icon/những giao diện trước.
 
 ## Phát hành
 
-Thông tin source/OTA được bổ sung sau khi kiểm tra gói phát hành.
+Source UI `80b5492` + sửa mốc live `12f7ba9` (hash bundle `12f7ba9624589af3afd3c3257899f09b7301747f`). Đã push trước build. iOS/Android lần lượt build disabled, kiểm hash local/server/metadata, đủ 20 PNG/10 TTF và marker mới/cũ rồi mới bật. Public check từ bản camera a5a31ef trả UPDATE đúng ID; global allowed=true/forceUpdate=false. Giữ reload ngoài bắt trận, chờ rời màn nếu đang làm trọng tài.
+
+| Nền tảng | Bundle ID | Kênh | Target | Bật | Bắt buộc |
+|---|---|---|---|---|---|
+| ios | `01a192cf-eebe-77f8-9950-784d1714862a` | `production` | `1.1.x` | `true` | `false` |
+| android | `01a192d0-c081-7c6f-8ba0-0cbf38eec4f3` | `production` | `1.1.x` | `true` | `false` |
+
+Xác minh UTC `2026-10-31T16:37:12.903Z`. Gói iOS preflight `80b5492` chỉ upload disabled, không kích hoạt; bản phát hành cuối là source `12f7ba9` cho cả hai nền tảng. Chưa kiểm tra app native sau OTA trên điện thoại thật; user cần kiểm tra thao tác video trên iPhone/Android đã nhận đúng bundle.
+
