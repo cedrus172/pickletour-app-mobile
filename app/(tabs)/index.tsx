@@ -1,3 +1,4 @@
+import { useFloatingTabBarPadding } from "@/hooks/useFloatingTabBarPadding";
 import { t } from "@/utils/i18n";
 // app/index.jsx  (Home)
 import React, { useCallback, useMemo, useEffect, useRef, useState } from "react";
@@ -1803,6 +1804,7 @@ function HomeLiquidGlassBackdrop({
 }
 
 export default function HomeScreen() {
+  const bottomPadding = useFloatingTabBarPadding(100);
   const scrollViewRef = React.useRef(null);
   const heroLottieRef = React.useRef<any>(null);
   const isFocused = useIsFocused();
@@ -1894,7 +1896,7 @@ export default function HomeScreen() {
           ref={scrollViewRef}
           style={styles.homeScroll}
           contentInsetAdjustmentBehavior="never"
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: bottomPadding }}
         >
           <View
             style={[

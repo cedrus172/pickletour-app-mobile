@@ -1,3 +1,4 @@
+import { FLOATING_TAB_BAR_HEIGHT } from "@/hooks/useFloatingTabBarPadding";
 import React, { useId, useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from "react-native-svg";
@@ -21,12 +22,12 @@ export default function SportBottomBar({ state, descriptors, navigation, visible
     : "";
   const dockPath = `M23 1 ${notch} H${dockWidth - 23} Q${dockWidth - 1} 1 ${dockWidth - 1} 23 V41 Q${dockWidth - 1} 63 ${dockWidth - 23} 63 H23 Q1 63 1 41 V23 Q1 1 23 1 Z`;
   return (
-    <View testID="raised-sport-navigation" style={[styles.bar, {
+    <View pointerEvents="box-none" testID="raised-sport-navigation" style={[styles.bar, {
       paddingBottom: Math.max(insets.bottom, 8),
       paddingLeft: insets.left + 12,
       paddingRight: insets.right + 12,
     }]}>
-      <View style={styles.items} onLayout={({ nativeEvent: { layout } }) => setDockWidth(layout.width)}>
+      <View pointerEvents="box-none" style={styles.items} onLayout={({ nativeEvent: { layout } }) => setDockWidth(layout.width)}>
         {dockWidth > 0 ? (
           <Svg pointerEvents="none" width={dockWidth} height={64} viewBox={`0 0 ${dockWidth} 64`} style={styles.dock} accessible={false}>
             <Defs>
@@ -58,7 +59,7 @@ export default function SportBottomBar({ state, descriptors, navigation, visible
                 if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
               }}
               onLongPress={() => navigation.emit({ type: "tabLongPress", target: route.key })}
-              style={({ pressed }) => [styles.tab, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.tab, tournament && styles.tournamentTab, pressed && styles.pressed]}
             >
               {tournament ? (
                 <View testID="raised-tournament-button" style={styles.tournamentButton}>
@@ -82,7 +83,7 @@ export default function SportBottomBar({ state, descriptors, navigation, visible
                     <SportTabIcon name={route.name} color={color} size={22} />
                   </View>
                 ) : null}
-                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} maxFontSizeMultiplier={1.2} style={[styles.label, { color, fontWeight: tournament || focused ? "700" : "500" }]}>{label}</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} maxFontSizeMultiplier={1.2} style={[styles.label, tournament && styles.tournamentLabel, { color, fontWeight: tournament || focused ? "700" : "500" }]}>{label}</Text>
                 {focused ? <View testID={`sport-tab-active-${route.name}`} style={styles.activeDot} /> : null}
               </View>
             </Pressable>
@@ -94,13 +95,14 @@ export default function SportBottomBar({ state, descriptors, navigation, visible
 }
 
 const styles = StyleSheet.create({
-  bar: { backgroundColor: "transparent" },
+  bar: { position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 1, backgroundColor: "transparent" },
   dock: { position: "absolute", top: 24, left: 0 },
-  items: { flexDirection: "row", height: 88 },
-  tab: { flex: 1, minWidth: 0, height: 88, alignItems: "center" },
+  items: { flexDirection: "row", height: FLOATING_TAB_BAR_HEIGHT },
+  tab: { flex: 1, minWidth: 0, height: 64, marginTop: 24, alignItems: "center" },
+  tournamentTab: { height: FLOATING_TAB_BAR_HEIGHT, marginTop: 0 },
   pressed: { opacity: 0.85 },
   tabContent: { ...StyleSheet.absoluteFillObject, alignItems: "center" },
-  iconWrap: { position: "absolute", top: 36, height: 24, alignItems: "center", justifyContent: "center" },
+  iconWrap: { position: "absolute", top: 12, height: 24, alignItems: "center", justifyContent: "center" },
   tournamentButton: {
     position: "absolute", top: 4, width: 58, height: 58, borderRadius: 29,
     alignItems: "center", justifyContent: "center", backgroundColor: "#00C8EB",
@@ -109,5 +111,6 @@ const styles = StyleSheet.create({
   },
   tournamentGlyph: { zIndex: 1 },
   activeDot: { position: "absolute", bottom: 2, width: 3, height: 3, borderRadius: 2, backgroundColor: "#13D5EE" },
-  label: { position: "absolute", top: 68, width: "100%", paddingHorizontal: 1, textAlign: "center", fontSize: 10.5, lineHeight: 15 },
+  tournamentLabel: { top: 68 },
+  label: { position: "absolute", top: 44, width: "100%", paddingHorizontal: 1, textAlign: "center", fontSize: 10.5, lineHeight: 15 },
 });

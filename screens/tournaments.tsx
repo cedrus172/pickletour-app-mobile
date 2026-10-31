@@ -1,3 +1,4 @@
+import { useFloatingTabBarPadding } from "@/hooks/useFloatingTabBarPadding";
 // app/(app)/tournaments/DashboardScreen.jsx
 import {
   useGetTournamentsQuery } from "@/slices/tournamentsApiSlice";
@@ -351,6 +352,7 @@ function GroupCard({ group, canManage, formatDate, onPreview }: any) {
 
 /* ---------- Main Screen ---------- */
 export default function TournamentDashboardScreen({ isBack = false }) {
+  const bottomPadding = useFloatingTabBarPadding(112);
   const theme = useModernTheme();
   const rsp = useResponsive();
   // iPhone Duo mở (~669pt) / iPad: lưới nhiều cột để hiện nhiều giải cùng lúc thay vì 1
@@ -640,7 +642,7 @@ export default function TournamentDashboardScreen({ isBack = false }) {
             keyExtractor={(_, i) => `sk-${i}`}
             renderItem={() => (cols > 1 ? <View style={{ flex: 1 }}><SkeletonCard /></View> : <SkeletonCard />)}
             ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
-            contentContainerStyle={[styles.listContent, wideList]}
+            contentContainerStyle={[styles.listContent, wideList, { paddingBottom: bottomPadding }]}
             showsVerticalScrollIndicator={false}
             keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"
@@ -669,7 +671,7 @@ export default function TournamentDashboardScreen({ isBack = false }) {
             columnWrapperStyle={colWrap}
             keyExtractor={(item) => String(item.key || item._id)}
             renderItem={renderItem}
-            contentContainerStyle={[styles.listContent, wideList]}
+            contentContainerStyle={[styles.listContent, wideList, { paddingBottom: bottomPadding }]}
             ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
             refreshing={refreshing}
             onRefresh={onRefresh}

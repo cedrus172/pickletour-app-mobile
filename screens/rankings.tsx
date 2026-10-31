@@ -1,3 +1,4 @@
+import { useFloatingTabBarPadding } from "@/hooks/useFloatingTabBarPadding";
 // app/screens/RankingListScreen.jsx
 import {
   router,
@@ -1587,6 +1588,7 @@ const MemoizedListView = memo(
     numColumns,
     colWrap,
   }) => {
+    const bottomPadding = useFloatingTabBarPadding(80);
     return (
       <RankingList
         ref={scrollRef}
@@ -1596,7 +1598,7 @@ const MemoizedListView = memo(
         keyExtractor={(item) => String(item._id)}
         renderItem={renderItem}
         ListHeaderComponent={header}
-        contentContainerStyle={[{ paddingBottom: 80 }, wideStyle]}
+        contentContainerStyle={[{ paddingBottom: bottomPadding }, wideStyle]}
         onEndReached={onLoadMore}
         onEndReachedThreshold={0.5}
         removeClippedSubviews={Platform.OS === "android"}
@@ -1661,6 +1663,7 @@ const SCORE_TYPES: { value: "single" | "double" | "mix"; label: string }[] = [
 ];
 
 export default function RankingListScreen({ isBack = false }) {
+  const bottomPadding = useFloatingTabBarPadding(40);
   const theme = useThemeColors();
   const rsp = useResponsive();
   // iPhone Duo mở (~669pt) / iPad: lưới nhiều cột để hiện nhiều VĐV cùng lúc thay vì 1
@@ -2374,7 +2377,7 @@ export default function RankingListScreen({ isBack = false }) {
             data={Array.from({ length: 6 })}
             keyExtractor={(_, i) => `sk-${i}`}
             renderItem={() => <SkeletonCard />}
-            contentContainerStyle={{ paddingBottom: 40 }}
+            contentContainerStyle={{ paddingBottom: bottomPadding }}
             ListHeaderComponent={HeaderComponent}
           />
         ) : (

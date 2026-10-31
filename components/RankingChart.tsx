@@ -1,3 +1,4 @@
+import { useFloatingTabBarPadding } from "@/hooks/useFloatingTabBarPadding";
 // app/components/RankingChart.jsx
 import React, {
   memo,
@@ -493,6 +494,7 @@ const RankingChart = memo(
     hasMore = true,
     isLoadingMore = false,
   }) => {
+    const bottomPadding = useFloatingTabBarPadding(60);
     const scrollRef = useRef(null);
     const [selectedUser, setSelectedUser] = useState(null);
     const [pointWidth, setPointWidth] = useState(DEFAULT_POINT_WIDTH);
@@ -876,7 +878,7 @@ const RankingChart = memo(
           glassTintColor={glassSurfaceTint(colors, 0.44, 0.42)}
           style={[
             styles.container,
-            { backgroundColor: colors.bg, borderColor: colors.border },
+            { backgroundColor: colors.bg, borderColor: colors.border, paddingBottom: bottomPadding },
             IOS_26_LIQUID_GLASS_ENABLED && styles.glassChartShell,
           ]}
         >

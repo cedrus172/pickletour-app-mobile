@@ -1,3 +1,4 @@
+import { useFloatingTabBarPadding } from "@/hooks/useFloatingTabBarPadding";
 import { NotificationHeaderActions } from "@/components/GlobalNotificationShell";
 import {
   Ionicons } from "@expo/vector-icons";
@@ -247,6 +248,7 @@ function MoreGlassSurface({
 export default function MoreIndexScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const bottomPadding = useFloatingTabBarPadding(insets.bottom + 28);
   const r = useResponsive();
   const userInfo = useSelector((state: any) => state.auth?.userInfo || null);
   const isAdmin = !!(userInfo?.isAdmin || userInfo?.role === "admin" || userInfo?.isSuperAdmin);
@@ -432,7 +434,7 @@ export default function MoreIndexScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingTop: 14, paddingBottom: insets.bottom + 28 },
+          { paddingTop: 14, paddingBottom: bottomPadding },
           r.isWide && { maxWidth: r.contentMaxWidth, alignSelf: "center", width: "100%" },
         ]}
       >

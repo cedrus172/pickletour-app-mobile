@@ -1,3 +1,4 @@
+import { useFloatingTabBarPadding } from "@/hooks/useFloatingTabBarPadding";
 import { t } from "@/utils/i18n";
 // app/feed/index.tsx — Bảng tin (list + composer + reactions + link chi tiết)
 import {
@@ -1810,6 +1811,7 @@ function PostCard({ post, me }: { post: any; me: any }) {
 }
 
 export default function FeedScreen() {
+  const bottomPadding = useFloatingTabBarPadding(116);
   const C = useThemeTokens();
   const styles = useMemo(() => mk_styles(C), [C]);
   const r = useResponsive();
@@ -2022,7 +2024,7 @@ export default function FeedScreen() {
               </View>
             )
           }
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: bottomPadding }]}
         />
       </SafeAreaView>
     </FeedPage>
