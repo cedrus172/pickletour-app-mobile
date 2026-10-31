@@ -1,3 +1,5 @@
+> Cập nhật tiếp: chuông đã chuyển lên toàn bộ app ở `9817013`/`7aa07d0`. Xem [GLOBAL-NOTIFICATIONS-2026-10-31.md](GLOBAL-NOTIFICATIONS-2026-10-31.md). Nội dung dưới mô tả bản icon/navigation đầu tiên.
+
 # Icon trang chủ và navigation thể thao — 31/10/2026
 
 ## Phiên bản
@@ -42,7 +44,7 @@ Không reset cứng cả repo. Tạo commit đảo riêng thay đổi giao diệ
 
 ```sh
 git status --short
-git revert --no-edit 116fe35
+git revert --no-edit 9817013 7aa07d0 116fe35
 npx hot-updater deploy -p ios -t '1.1.x' -c production -m 'Khôi phục icon và navigation trước bản thử thể thao'
 npx hot-updater deploy -p android -t '1.1.x' -c production -m 'Khôi phục icon và navigation trước bản thử thể thao'
 ```
