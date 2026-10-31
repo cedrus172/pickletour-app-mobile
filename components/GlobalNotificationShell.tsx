@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
-import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaInsetsContext, SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 import { useNotifUnreadCountQuery } from "@/slices/notificationCenterApiSlice";
 import HomeNotificationButton from "@/components/home/HomeNotificationButton";
@@ -46,11 +46,15 @@ export default function GlobalNotificationShell({
           <HomeNotificationButton unreadCount={isAuthed ? Number(data?.count || 0) : 0} />
         </View>
       ) : null}
-      <SafeAreaInsetsContext.Provider value={contentInsets}>
-        <View style={styles.content} testID="global-notification-content">
-          {children}
-        </View>
-      </SafeAreaInsetsContext.Provider>
+      {/* Native SafeAreaView also needs a provider measured below the shared row;
+          changing only the JS context would leave its native top padding intact. */}
+      <SafeAreaProvider style={styles.content}>
+        <SafeAreaInsetsContext.Provider value={contentInsets}>
+          <View style={styles.content} testID="global-notification-content">
+            {children}
+          </View>
+        </SafeAreaInsetsContext.Provider>
+      </SafeAreaProvider>
     </View>
   );
 }
