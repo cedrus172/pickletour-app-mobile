@@ -43,4 +43,24 @@ config.resolver.blockList = [
   ...generatedAndCacheDirs.map(blockDir),
 ];
 
+// Both installed icon libraries include different fonts with identical native
+// PostScript names. Isolate the Expo copies without changing screen imports.
+const expoIconFactory = require.resolve('@expo/vector-icons/build/createIconSet');
+const isolatedIconFactory = path.join(projectRoot, 'utils/createIsolatedIconSet.ts');
+const resolveRequest = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  const resolved = resolveRequest
+    ? resolveRequest(context, moduleName, platform)
+    : context.resolveRequest(context, moduleName, platform);
+  if (
+    platform !== 'web' &&
+    resolved.type === 'sourceFile' &&
+    resolved.filePath === expoIconFactory &&
+    context.originModulePath !== isolatedIconFactory
+  ) {
+    return { type: 'sourceFile', filePath: isolatedIconFactory };
+  }
+  return resolved;
+};
+
 module.exports = config;
