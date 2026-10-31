@@ -19,7 +19,7 @@ import {
 import { Text } from "@/components/ui/i18nText";
 import { Calendar, LocaleConfig } from "react-native-calendars";
 import { DateTime } from "luxon";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { router, Stack } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";

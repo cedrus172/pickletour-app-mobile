@@ -2,7 +2,7 @@ import * as Font from "expo-font";
 import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
 import { Platform } from "react-native";
-import { AntDesign, Feather, FontAwesome, Ionicons, MaterialCommunityIcons, MaterialIcons, Octicons } from "@expo/vector-icons";
+import { AntDesign, Feather, FontAwesome, FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons, Octicons } from "@expo/vector-icons";
 
 // Use the families owned by the icon classes, not aliases derived from their filenames.
 // Loading the same native font under extra aliases can race across an OTA bridge reload.
@@ -13,6 +13,11 @@ export const APP_ICON_FONTS = {
   ...MaterialCommunityIcons.font,
   ...AntDesign.font,
   ...FontAwesome.font,
+  // Multi-style .font still describes the original families. Load the actual
+  // child factories so solid-only icons and brands use isolated boot aliases.
+  ...Object.assign({}, ...["regular", "light", "solid", "brand"].map(
+    (style) => FontAwesome5.StyledIconSet(style).font
+  )),
   ...Octicons.font,
 };
 

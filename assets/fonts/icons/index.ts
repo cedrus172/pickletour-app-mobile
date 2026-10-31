@@ -6,4 +6,9 @@ export const ISOLATED_ICON_ASSETS = {
   "material-community": { postScriptName: "PTourMaterialCommunityIcons-61e8aba5a4e9", source: require('./MaterialCommunityIcons.ttf') },
   "material": { postScriptName: "PTourMaterialIcons-ef149f08bdd2", source: require('./MaterialIcons.ttf') },
   "octicons": { postScriptName: "PTourOcticons-9bc4d9f5e994", source: require('./Octicons.ttf') },
+  "FontAwesome": { postScriptName: "PTourFontAwesome-aa58f33f239a", source: require('./FontAwesome.ttf') },
+  "FontAwesome5Free-Regular": { postScriptName: "PTourFontAwesome5_Regular-c651b8a67d31", source: require('./FontAwesome5_Regular.ttf') },
+  "FontAwesome5Free-Light": { postScriptName: "PTourFontAwesome5_Regular-c651b8a67d31", source: require('./FontAwesome5_Regular.ttf') },
+  "FontAwesome5Free-Solid": { postScriptName: "PTourFontAwesome5_Solid-3d06af1f31cd", source: require('./FontAwesome5_Solid.ttf') },
+  "FontAwesome5Free-Brand": { postScriptName: "PTourFontAwesome5_Brands-06f4d00923ea", source: require('./FontAwesome5_Brands.ttf') },
 } as const;

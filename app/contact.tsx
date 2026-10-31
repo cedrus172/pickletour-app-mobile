@@ -200,7 +200,7 @@ export default function ContactScreen() {
                     })}
                     onPress={() => openURL(info.socials.facebook)}
                   >
-                    <AntDesign name="facebook-square" size={22} color="#fff" />
+                    <AntDesign name="facebook" size={22} color="#fff" />
                   </SocialButton>
                 ) : null}
                 {info?.socials?.youtube ? (
