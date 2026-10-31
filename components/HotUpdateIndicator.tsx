@@ -10,10 +10,11 @@ type Props = {
   accentColor: string;
   rightOffset?: number;
   inline?: boolean;
+  compact?: boolean;
 };
 
 /** Background download status only. Never captures touches or opens a native modal. */
-export default function HotUpdateIndicator({ visible, progress, status, isDark, accentColor, rightOffset = 0, inline = false }: Props) {
+export default function HotUpdateIndicator({ visible, progress, status, isDark, accentColor, rightOffset = 0, inline = false, compact = false }: Props) {
   const insets = useSafeAreaInsets();
   if (!visible || status === "error") return null;
   const percentage = Math.round(Math.max(0, Math.min(1, Number.isFinite(progress) ? progress : 0)) * 100);
@@ -26,14 +27,14 @@ export default function HotUpdateIndicator({ visible, progress, status, isDark, 
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={status === "done" ? 100 : percentage}
-      style={inline ? styles.inline : [styles.container, {
+      style={inline ? styles.inline : compact ? [styles.compact, { bottom: insets.bottom + 8, right: Math.max(insets.right, 16) }] : [styles.container, {
         top: insets.top + 8,
         right: insets.right + 12 + rightOffset,
         backgroundColor: isDark ? "#071b2d" : "#ffffff",
         borderColor: isDark ? "#214563" : "#dbe5ed",
       }]}
     >
-      {!inline ? <Text numberOfLines={1} style={[styles.label, { color: isDark ? "#bed0e0" : "#486176" }]}>
+      {!inline && !compact ? <Text numberOfLines={1} style={[styles.label, { color: isDark ? "#bed0e0" : "#486176" }]}>
         {status === "done" ? "Đã tải cập nhật" : `Tải cập nhật · ${percentage}%`}
       </Text> : null}
       <View style={[styles.track, { backgroundColor: isDark ? "#19364d" : "#e6eef4" }]}>
@@ -45,6 +46,7 @@ export default function HotUpdateIndicator({ visible, progress, status, isDark, 
 
 const styles = StyleSheet.create({
   inline: { position: "absolute", left: 0, right: 0, bottom: -6 },
+  compact: { position: "absolute", zIndex: 1000, width: 72 },
   container: { position: "absolute", zIndex: 1000, width: 144, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
   label: { fontSize: 10, lineHeight: 13, marginBottom: 4 },
   track: { height: 3, borderRadius: 2, overflow: "hidden" },

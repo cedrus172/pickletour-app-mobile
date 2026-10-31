@@ -51,6 +51,7 @@ import ForceUpdateModal from "@/components/ForceUpdateModal";
 import HotUpdateModal from "@/components/HotUpdateModal";
 import HotUpdateIndicator from "@/components/HotUpdateIndicator";
 import GlobalNotificationShell, { withNotificationHeader } from "@/components/GlobalNotificationShell";
+import { isMainNotificationRoute } from "@/utils/notificationVisibility";
 import { isRefereeScoringRoute } from "@/utils/hotUpdateReloadPolicy";
 import CrashFeedbackModal from "@/components/CrashFeedbackModal";
 import MatchLiveActivityBootstrap from "@/components/match/MatchLiveActivityBootstrap";
@@ -680,6 +681,7 @@ function RootLayout() {
   }, []);
 
   const segments = useSegments();
+  const isMainNotificationScreen = isMainNotificationRoute(segments);
   const isRefereeScoringScreen = isRefereeScoringRoute(segments);
   const isTabsRoute = segments[0] === "(tabs)";
   const isLiveHomeRoute = segments[0] === "live" && segments[1] === "home";
@@ -1837,6 +1839,7 @@ function RootLayout() {
                 <SafeAreaProvider>
                   <GlobalNotificationShell
                     visible={fontsReady && mobileAppShellReady}
+                    showButton={isMainNotificationScreen}
                     backgroundColor={bg}
                     update={{ visible: hotUpdateVisible && !hotUpdateBlocking, progress: hotUpdateProgress, status: hotUpdateStatus }}
                   >
@@ -2434,12 +2437,12 @@ function RootLayout() {
                   </SafeAreaView>
                   </GlobalNotificationShell>
                   <HotUpdateIndicator
-                    visible={hotUpdateVisible && !hotUpdateBlocking && !(fontsReady && mobileAppShellReady)}
+                    visible={hotUpdateVisible && !hotUpdateBlocking && !(fontsReady && mobileAppShellReady && isMainNotificationScreen)}
                     progress={hotUpdateProgress}
                     status={hotUpdateStatus}
                     isDark={isDark}
                     accentColor={navTheme.colors.primary}
-                    rightOffset={fontsReady && mobileAppShellReady ? 56 : 0}
+                    compact={fontsReady && mobileAppShellReady}
                   />
                 </SafeAreaProvider>
               </GlassAppearanceProvider>

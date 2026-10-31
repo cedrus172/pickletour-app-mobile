@@ -29,6 +29,7 @@ export function NotificationHeaderActions({ children }: { children?: React.React
     register(id, visible);
     return () => register(id, false);
   }, [id, register, visible]));
+  if ((!visible || !focused) && !children) return null;
   return (
     <View style={styles.headerActions} testID="notification-header-actions">
       {children}
@@ -50,13 +51,16 @@ export default function GlobalNotificationShell({
   visible,
   backgroundColor,
   update,
+  showButton = true,
 }: {
   children: React.ReactNode;
   visible: boolean;
   backgroundColor: string;
   update?: NotificationUpdate;
+  showButton?: boolean;
 }) {
   const insets = useSafeAreaInsets();
+  const buttonVisible = visible && showButton;
   const [anchors, setAnchors] = useState<Set<string>>(() => new Set());
   const register = useCallback((id: string, active: boolean) => {
     setAnchors((current) => {
@@ -69,7 +73,7 @@ export default function GlobalNotificationShell({
   const userInfo = useSelector((state: any) => state.auth?.userInfo);
   const isAuthed = Boolean(userInfo?.token || userInfo?._id || userInfo?.email);
   const { data } = useNotifUnreadCountQuery(undefined, {
-    skip: !visible || !isAuthed,
+    skip: !buttonVisible || !isAuthed,
     pollingInterval: 30000,
   });
   // Consume only the system status area, never a separate notification row.
@@ -79,7 +83,7 @@ export default function GlobalNotificationShell({
     [insets, visible],
   );
 
-  const context = useMemo(() => ({ visible, unreadCount: isAuthed ? Number(data?.count || 0) : 0, register, update }), [data?.count, isAuthed, register, update, visible]);
+  const context = useMemo(() => ({ visible: buttonVisible, unreadCount: isAuthed ? Number(data?.count || 0) : 0, register, update }), [buttonVisible, data?.count, isAuthed, register, update]);
 
   return (
     <NotificationContext.Provider value={context}>
@@ -91,7 +95,7 @@ export default function GlobalNotificationShell({
             </View>
           </SafeAreaInsetsContext.Provider>
         </SafeAreaProvider>
-        {visible && anchors.size === 0 ? (
+        {buttonVisible && anchors.size === 0 ? (
           <View
             pointerEvents="box-none"
             testID="global-notification-corner"
