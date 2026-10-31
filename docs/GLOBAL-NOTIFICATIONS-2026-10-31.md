@@ -15,7 +15,7 @@
 - `HomeNotificationButton` giữ style/icon cũ nhưng dùng router.navigate('/notifications') để bấm khi đã ở trung tâm thông báo không push thêm cùng route.
 - Query chưa đọc chuyển khỏi HomeScreen sang shell dùng chung, polling 30 giây; bỏ qua khi khách/chưa sẵn sàng, khách không hiện chấm số của tài khoản trước. Gỡ nút/query riêng ở trang chủ.
 - `HotUpdateIndicator` thêm rightOffset mặc định 0; root dùng 56 khi có chuông để thanh tiến trình nằm bên trái, không chồng lên nút.
-- Giữ bộ 20 icon PNG và navigation 5 tab ở `116fe35`. Phác thảo Giải đấu mới vẫn chỉ là ảnh chờ duyệt, không nằm trong OTA này. Không sửa logic chấm điểm hay cơ chế reload bảo vệ màn bắt trận.
+- Giữ bộ 20 icon PNG và navigation 5 tab ở `116fe35`. Bản chuông `9817013` chưa bao gồm trang Giải đấu mới; sau khi user duyệt, giao diện đó đã được triển khai ở `d75b0ca` và phát OTA riêng, xem [TOURNAMENTS-2026-10-31.md](TOURNAMENTS-2026-10-31.md). Không sửa logic chấm điểm hay cơ chế reload bảo vệ màn bắt trận.
 - Đây là nút trong shell điều hướng của app. Native modal/permission/splash/force-update là các lớp cửa sổ riêng cao hơn shell, không chèn chuông lên các lớp đó.
 
 ## Kiểm tra
