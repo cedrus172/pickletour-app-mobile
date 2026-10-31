@@ -50,6 +50,7 @@ import { loadExpoNotifications } from "@/lib/expoNotifications";
 import ForceUpdateModal from "@/components/ForceUpdateModal";
 import HotUpdateModal from "@/components/HotUpdateModal";
 import HotUpdateIndicator from "@/components/HotUpdateIndicator";
+import { isRefereeScoringRoute } from "@/utils/hotUpdateReloadPolicy";
 import CrashFeedbackModal from "@/components/CrashFeedbackModal";
 import MatchLiveActivityBootstrap from "@/components/match/MatchLiveActivityBootstrap";
 import CheckpointRealtimeGate from "@/components/auth/CheckpointRealtimeGate";
@@ -678,6 +679,7 @@ function RootLayout() {
   }, []);
 
   const segments = useSegments();
+  const isRefereeScoringScreen = isRefereeScoringRoute(segments);
   const isTabsRoute = segments[0] === "(tabs)";
   const isLiveHomeRoute = segments[0] === "live" && segments[1] === "home";
 
@@ -688,6 +690,10 @@ function RootLayout() {
   const otaIgnoredUpdateIdRef = React.useRef<string | null>(null);
   const otaInitialCheckDoneRef = React.useRef(false);
   const otaCompletionTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const otaReloadProtectedRef = React.useRef(isRefereeScoringScreen);
+  otaReloadProtectedRef.current = isRefereeScoringScreen;
+  const otaReadyPayloadRef = React.useRef<PendingHotUpdatePayload | null>(null);
+  const otaReloadInProgressRef = React.useRef(false);
   const mobileAppShellWebViewRef = React.useRef<WebView>(null);
   const mobileAppShellCanGoBackRef = React.useRef(false);
   const mobileAppShellActiveRef = React.useRef(false);
@@ -897,8 +903,59 @@ function RootLayout() {
     if (otaCompletionTimerRef.current) clearTimeout(otaCompletionTimerRef.current);
   }, []);
 
+  const scheduleHotUpdateReload = React.useCallback(() => {
+    if (otaCompletionTimerRef.current) clearTimeout(otaCompletionTimerRef.current);
+    otaCompletionTimerRef.current = null;
+    if (!HotUpdater || !otaReadyPayloadRef.current || otaReloadInProgressRef.current) return;
+    if (otaReloadProtectedRef.current || AppState.currentState !== "active") {
+      otaDiag("đã tải; chờ rời màn hình trọng tài và app đang mở");
+      return;
+    }
+
+    otaCompletionTimerRef.current = setTimeout(() => {
+      otaCompletionTimerRef.current = null;
+      const pendingPayload = otaReadyPayloadRef.current;
+      // Recheck immediately before reload: route/app state may change during the delay.
+      if (!pendingPayload || otaReloadInProgressRef.current || otaReloadProtectedRef.current || AppState.currentState !== "active") return;
+      otaReloadInProgressRef.current = true;
+      otaDiag("đã tải; tự reload ngoài màn hình trọng tài");
+      (globalThis as any)[HOT_UPDATE_RELOAD_KEY] = true;
+      DeviceEventEmitter.emit(HOT_UPDATE_RELOAD_EVENT);
+      (async () => { await HotUpdater.reload(); })().catch((error: unknown) => {
+        (globalThis as any)[HOT_UPDATE_RELOAD_KEY] = false;
+        otaReloadInProgressRef.current = false;
+        otaReadyPayloadRef.current = null;
+        otaCheckInFlightRef.current = false;
+        console.error("[HotUpdater] Reload error:", error);
+        // Keep the downloaded/persisted bundle for the next cold start.
+        void reportHotUpdateTelemetry({
+          status: "failed",
+          bundleId: pendingPayload.bundleId,
+          currentBundleId: pendingPayload.currentBundleId,
+          channel: pendingPayload.channel,
+          appVersion: pendingPayload.appVersion,
+          message: pendingPayload.message,
+          errorMessage: error instanceof Error ? error.message : "Không thể reload ứng dụng sau OTA.",
+        });
+        setHotUpdateVisible(false);
+        setHotUpdateBlocking(false);
+        setHotUpdateStatus("error");
+      });
+    }, 700);
+  }, []);
+
+  React.useEffect(() => {
+    if (isRefereeScoringScreen) setHotUpdateBlocking(false);
+    scheduleHotUpdateReload();
+    const subscription = AppState.addEventListener("change", scheduleHotUpdateReload);
+    return () => {
+      subscription.remove();
+      if (otaCompletionTimerRef.current) clearTimeout(otaCompletionTimerRef.current);
+    };
+  }, [isRefereeScoringScreen, scheduleHotUpdateReload]);
+
   const startHotUpdate = React.useCallback(async (updateInfo: any, applyImmediately = false) => {
-    if (!HotUpdater || !updateInfo?.updateBundle) return;
+    if (!HotUpdater || !updateInfo?.updateBundle || otaReloadInProgressRef.current) return;
 
     const startedAt = Date.now();
     const pendingPayload: PendingHotUpdatePayload = {
@@ -914,9 +971,10 @@ function RootLayout() {
     };
 
     otaCheckInFlightRef.current = true;
+    otaReadyPayloadRef.current = null;
     otaIgnoredUpdateIdRef.current = null;
     if (otaCompletionTimerRef.current) clearTimeout(otaCompletionTimerRef.current);
-    setHotUpdateBlocking(applyImmediately);
+    setHotUpdateBlocking(applyImmediately && !otaReloadProtectedRef.current);
     setHotUpdateVisible(true);
     setHotUpdateStatus("downloading");
     setHotUpdateProgress(0);
@@ -953,41 +1011,14 @@ function RootLayout() {
       setHotUpdateProgress(1);
       setHotUpdateStatus("done");
       otaIgnoredUpdateIdRef.current = pendingPayload.bundleId;
-      if (!applyImmediately) {
-        otaDiag("đã tải ngầm; chờ lần khởi động app kế tiếp");
-        setHotUpdateMessage(null);
+      otaReadyPayloadRef.current = pendingPayload;
+      otaCheckInFlightRef.current = false;
+      setHotUpdateMessage("Bản cập nhật đã tải xong.");
+      scheduleHotUpdateReload();
+      if (otaReloadProtectedRef.current) {
+        setHotUpdateBlocking(false);
         otaCompletionTimerRef.current = setTimeout(() => setHotUpdateVisible(false), 2000);
-        otaCheckInFlightRef.current = false;
-        return;
       }
-      setHotUpdateMessage("Bản cập nhật đã tải xong. Đang mở lại ứng dụng...");
-
-      otaCompletionTimerRef.current = setTimeout(() => {
-        (globalThis as any)[HOT_UPDATE_RELOAD_KEY] = true;
-        DeviceEventEmitter.emit(HOT_UPDATE_RELOAD_EVENT);
-        HotUpdater.reload().catch((error: unknown) => {
-          (globalThis as any)[HOT_UPDATE_RELOAD_KEY] = false;
-          console.error("[HotUpdater] Reload error:", error);
-          void clearPendingHotUpdate();
-          void reportHotUpdateTelemetry({
-            status: "failed",
-            bundleId: pendingPayload.bundleId,
-            currentBundleId: pendingPayload.currentBundleId,
-            channel: pendingPayload.channel,
-            appVersion: pendingPayload.appVersion,
-            message: pendingPayload.message,
-            errorMessage:
-              error instanceof Error
-                ? error.message
-                : "Không thể reload ứng dụng sau OTA.",
-            duration: Date.now() - startedAt,
-          });
-          setHotUpdateStatus("error");
-          setHotUpdateMessage(
-            "Tải xong bản cập nhật nhưng không thể mở lại ứng dụng.",
-          );
-        });
-      }, 700);
     } catch (error) {
       console.error("[HotUpdater] Download error:", error);
       const errorCode =
@@ -1020,7 +1051,7 @@ function RootLayout() {
       if (!applyImmediately) setHotUpdateVisible(false);
       otaCheckInFlightRef.current = false;
     }
-  }, []);
+  }, [scheduleHotUpdateReload]);
 
   const checkForHotUpdate = React.useCallback(async () => {
     if (isExpoGo || !HotUpdater || otaCheckInFlightRef.current) return;
@@ -1097,6 +1128,8 @@ function RootLayout() {
         updateInfo.shouldForceUpdate === true || remoteForceUpdate;
       if (!isRollbackUpdate && pendingBundleId && pendingBundleId !== currentBundleId && !isForceUpdate) {
         otaIgnoredUpdateIdRef.current = updateId;
+        otaReadyPayloadRef.current = pendingUpdate;
+        scheduleHotUpdateReload();
         otaCheckInFlightRef.current = false;
         return;
       }
@@ -1168,7 +1201,7 @@ function RootLayout() {
       otaDiag(`lỗi: ${String((error as any)?.message || error).slice(0, 80)}`);
       otaCheckInFlightRef.current = false;
     }
-  }, [startHotUpdate]);
+  }, [startHotUpdate, scheduleHotUpdateReload]);
 
   React.useEffect(() => {
     if (isExpoGo || !HotUpdater) return;
