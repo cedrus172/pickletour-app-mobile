@@ -10,6 +10,7 @@ import {
   useColorScheme,
   ScrollView,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { TextInput } from "@/components/ui/i18nTextInput";
 import { Text } from "@/components/ui/i18nText";
 import { Image as ExpoImage } from "expo-image";
@@ -20,6 +21,7 @@ import { IOS_26_LIQUID_GLASS_ENABLED } from "@/utils/nativeTabs";
 
 type Props = {
   label: string;
+  appearance?: "default" | "tournament";
   eventType?: "single" | "double";
   onChange?: (user: any | null) => void;
   style?: ViewStyle;
@@ -28,7 +30,7 @@ type Props = {
   queryAsObject?: boolean;
 };
 
-function useThemeColors() {
+function useThemeColors(tournament = false) {
   const scheme = useColorScheme() ?? "light";
   const tint = scheme === "dark" ? "#7cc0ff" : "#0a84ff";
   const cardBg = scheme === "dark" ? "#111214" : "#fff";
@@ -45,7 +47,7 @@ function useThemeColors() {
   const scoreChipFg = scheme === "dark" ? "#93c5fd" : "#3730a3";
 
   return {
-    scheme,
+    scheme, tournament,
     tint,
     cardBg,
     inputBg,
@@ -59,6 +61,7 @@ function useThemeColors() {
     dropBg,
     scoreChipBg,
     scoreChipFg,
+    ...(tournament ? { tint: "#12C8EC", cardBg: "#082138", inputBg: "#061D33", border: "#23789D", hairline: "#174A6C", textPrimary: "#F0F6FF", muted: "#94B3D0", clearBg: "#0C2945", clearText: "#F0F6FF", rowPressed: "#0C2945", dropBg: "#082138", scoreChipBg: "#0C2945", scoreChipFg: "#12C8EC" } : {}),
   };
 }
 
@@ -85,6 +88,7 @@ function PlayerSelectorGlassSurface({
   style?: any;
   interactive?: boolean;
 }) {
+  if (C.tournament) return <View style={style}>{children}</View>;
   return (
     <AppleLiquidGlassView
       fallback="view"
@@ -110,13 +114,14 @@ const AVA_PLACE = "https://dummyimage.com/100x100/cccccc/ffffff&text=?";
 
 export default function PlayerSelector({
   label,
+  appearance = "default",
   eventType = "double",
   onChange,
   style,
   placeholder,
   queryAsObject = false,
 }: Props) {
-  const C = useThemeColors();
+  const C = useThemeColors(appearance === "tournament");
   const [input, setInput] = useState("");
   const [value, setValue] = useState<any | null>(null);
   const [open, setOpen] = useState(false);
@@ -185,7 +190,7 @@ export default function PlayerSelector({
   };
 
   return (
-    <View style={[styles.wrap, style]}>
+    <View testID={C.tournament ? `registration-selector-${label}` : undefined} style={[styles.wrap, style]}>
       <Text style={[styles.label, { color: C.textPrimary }]}>
         {label} <Text style={{ color: C.muted }}>(Tên / Nick / SĐT)</Text>
       </Text>
@@ -196,16 +201,19 @@ export default function PlayerSelector({
         style={[
           styles.inputRow,
           { backgroundColor: C.inputBg, borderColor: C.border },
-          IOS_26_LIQUID_GLASS_ENABLED && styles.glassInputRow,
+          C.tournament && { minHeight: 48, paddingHorizontal: 12, gap: 10 },
+          !C.tournament && IOS_26_LIQUID_GLASS_ENABLED && styles.glassInputRow,
         ]}
       >
+        {C.tournament && <Ionicons name="search-outline" size={21} color={C.muted} />}
         <TextInput
+          accessibilityLabel={label}
           value={input}
           onChangeText={(t) => {
             setInput(t);
             setOpen(!!t.trim());
           }}
-          placeholder={placeholder || "gõ để tìm…"}
+          placeholder={placeholder || (C.tournament ? "Tìm vận động viên…" : "gõ để tìm…")}
           placeholderTextColor={C.muted}
           style={[styles.input, { color: C.textPrimary }]}
           selectionColor={C.tint}
@@ -232,7 +240,7 @@ export default function PlayerSelector({
           style={[
             styles.dropdown,
             { backgroundColor: C.dropBg, borderColor: C.border },
-            IOS_26_LIQUID_GLASS_ENABLED && styles.glassDropdown,
+            !C.tournament && IOS_26_LIQUID_GLASS_ENABLED && styles.glassDropdown,
           ]}
         >
           {isFetching && options.length === 0 ? (
@@ -302,7 +310,7 @@ export default function PlayerSelector({
           style={[
             styles.selectedRow,
             { backgroundColor: C.inputBg, borderColor: C.border },
-            IOS_26_LIQUID_GLASS_ENABLED && styles.glassSelectedRow,
+            !C.tournament && IOS_26_LIQUID_GLASS_ENABLED && styles.glassSelectedRow,
           ]}
         >
           <ExpoImage

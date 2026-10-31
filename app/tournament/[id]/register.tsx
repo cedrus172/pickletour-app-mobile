@@ -1,3 +1,4 @@
+import OverviewHeroArt from "@/components/tournament/OverviewHeroArt";
 import { t } from "@/utils/i18n";
 import { useUiVersion } from "@/hooks/uiVersion";
 // app/screens/TournamentRegistrationScreen.tsx
@@ -95,15 +96,15 @@ function useThemeColors() {
       // kính Apple Liquid Glass + backdrop render SÁNG còn chữ SÁNG → chữ sáng trên
       // nền sáng, không đọc được (bug light mode khi bật V2).
       scheme: isDark ? "dark" : "light",
-      isDark,
-      tint: v2 ? "#12B6F3" : isDark ? "#60a5fa" : "#2563eb",
-      pageBg: v2 ? "#040E20" : isDark ? "#0f1115" : "#F5F7FA",
-      cardBg: v2 ? "#0A1B34" : isDark ? "#181a20" : "#FFFFFF",
-      border: v2 ? "rgba(92,180,255,0.16)" : isDark ? "#262932" : "#E5E7EB",
-      textPrimary: v2 ? "#EAF3FF" : isDark ? "#f8fafc" : "#0f172a",
-      textSecondary: v2 ? "#8CA6C8" : isDark ? "#848E9C" : "#6B7280",
-      chipBg: isDark ? "#20232b" : "#F3F4F6",
-      inputBg: isDark ? "#20232b" : "#F3F4F6",
+      isDark, v2,
+      tint: v2 ? "#12C8EC" : isDark ? "#60a5fa" : "#2563eb",
+      pageBg: v2 ? "#041329" : isDark ? "#0f1115" : "#F5F7FA",
+      cardBg: v2 ? "#082138" : isDark ? "#181a20" : "#FFFFFF",
+      border: v2 ? "#174A6C" : isDark ? "#262932" : "#E5E7EB",
+      textPrimary: v2 ? "#F0F6FF" : isDark ? "#f8fafc" : "#0f172a",
+      textSecondary: v2 ? "#94B3D0" : isDark ? "#848E9C" : "#6B7280",
+      chipBg: v2 ? "#0C2945" : isDark ? "#20232b" : "#F3F4F6",
+      inputBg: v2 ? "#061D33" : isDark ? "#20232b" : "#F3F4F6",
       ghostBg: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
       successBg: isDark ? "rgba(34,197,94,0.15)" : "#dcfce7",
       successText: isDark ? "#4ade80" : "#166534",
@@ -113,9 +114,9 @@ function useThemeColors() {
       errorText: isDark ? "#f87171" : "#991b1b",
       infoBg: isDark ? "rgba(59,130,246,0.2)" : "#eff6ff",
       infoText: isDark ? "#93c5fd" : "#1e3a8a",
-      softBtn: isDark ? "#20232b" : "#E5E7EB",
-      gradStart: isDark ? "#181a20" : "#1A1D1E",
-      gradEnd: isDark ? "#0f1115" : "#111827",
+      softBtn: v2 ? "#082138" : isDark ? "#20232b" : "#E5E7EB",
+      gradStart: v2 ? "#093453" : isDark ? "#181a20" : "#1A1D1E",
+      gradEnd: v2 ? "#041329" : isDark ? "#0f1115" : "#111827",
       skeleton: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
       // Theme cho Image Viewer
       imageViewBg: isDark ? "#000000" : "#ffffff",
@@ -124,9 +125,9 @@ function useThemeColors() {
       shadow: {
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: isDark ? 0.3 : 0.06,
+        shadowOpacity: v2 ? 0 : isDark ? 0.3 : 0.06,
         shadowRadius: 8,
-        elevation: 3,
+        elevation: v2 ? 0 : 3,
       },
     };
   }, [scheme, v2]);
@@ -176,16 +177,20 @@ function RegisterGlassSurface({
   effect = "regular",
   interactive = false,
   tintColor,
+  testID,
 }: {
   children?: React.ReactNode;
+  testID?: string;
   C: ReturnType<typeof useThemeColors>;
   style?: any;
   effect?: "regular" | "clear";
   interactive?: boolean;
   tintColor?: string;
 }) {
+  if (C.v2) return <View testID={testID} style={[style, registrationSurfaceStyle(style)]}>{children}</View>;
   return (
     <AppleLiquidGlassView
+      testID={testID}
       fallback="view"
       glassColorScheme={glassScheme(C)}
       glassEffectStyle={effect}
@@ -910,7 +915,7 @@ const StatCard = memo(({ icon, label, value, hint, color = "blue" }: any) => {
       <View style={[styles.statIconBox, { backgroundColor: bgIcon }]}>
         {React.cloneElement(icon, { size: 18, color: iconColor })}
       </View>
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={{
             color: C.textSecondary,
@@ -922,7 +927,7 @@ const StatCard = memo(({ icon, label, value, hint, color = "blue" }: any) => {
         >
           {label}
         </Text>
-        <Text style={{ color: C.textPrimary, fontWeight: "800", fontSize: 15 }}>
+        <Text style={{ color: C.textPrimary, fontWeight: "800", fontSize: C.v2 ? 18 : 15 }}>
           {String(value)}
         </Text>
         {hint ? (
@@ -982,6 +987,7 @@ const RegItem = memo(function RegItem({
 
   return (
     <RegisterGlassSurface
+      testID={`registration-team-${r._id}`}
       C={C}
       effect="regular"
       interactive
@@ -996,10 +1002,11 @@ const RegItem = memo(function RegItem({
       <View
         style={[
           styles.regHeader,
+          C.v2 && R.regHeader,
           { borderBottomColor: C.border, backgroundColor: C.pageBg },
         ]}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1, flexWrap: "wrap" }}>
           <View style={[styles.rankBadge, { backgroundColor: C.tint }]}>
             <Text style={{ color: "#fff", fontWeight: "800", fontSize: 11 }}>
               {index + 1}
@@ -1009,7 +1016,7 @@ const RegItem = memo(function RegItem({
             style={{
               fontWeight: "700",
               color: C.textPrimary,
-              fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+              fontFamily: C.v2 ? undefined : Platform.OS === "ios" ? "Courier" : "monospace",
             }}
           >
             #{code}
@@ -1103,7 +1110,7 @@ const RegItem = memo(function RegItem({
 
             <TouchableOpacity
               onPress={() => onOpenProfile(pl)}
-              style={{ flex: 1 }}
+              style={{ flex: 1, minWidth: 0 }}
             >
               <View
                 style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
@@ -1111,11 +1118,12 @@ const RegItem = memo(function RegItem({
                 <PlayerNameText
                   player={pl}
                   name={displayName(pl, displaySource)}
-                  numberOfLines={1}
+                  numberOfLines={C.v2 ? 2 : 1}
                   style={{
                     fontWeight: "700",
                     color: C.textPrimary,
-                    fontSize: 14,
+                    fontSize: C.v2 ? 15 : 14,
+                    flexShrink: 1,
                   }}
                 />
                 {pl?.cccdStatus === "verified" && (
@@ -1128,6 +1136,7 @@ const RegItem = memo(function RegItem({
                   alignItems: "center",
                   gap: 8,
                   marginTop: 2,
+                  flexWrap: "wrap",
                 }}
               >
                 <Text style={{ color: C.textSecondary, fontSize: 11 }}>
@@ -1304,7 +1313,7 @@ const RegItem = memo(function RegItem({
             <TouchableOpacity
               disabled={posterBusy}
               onPress={() => onOpenPoster(r)}
-              style={styles.actionTileTouch}
+              style={[styles.actionTileTouch, C.v2 && R.actionTouch]}
             >
               <RegisterGlassSurface
                 C={C}
@@ -1331,7 +1340,7 @@ const RegItem = memo(function RegItem({
             </TouchableOpacity>
           ) : null}
 
-          <TouchableOpacity onPress={() => onOpenPayment(r)} style={styles.actionTileTouch}>
+          <TouchableOpacity onPress={() => onOpenPayment(r)} style={[styles.actionTileTouch, C.v2 && R.actionTouch]}>
             <RegisterGlassSurface
               C={C}
               interactive
@@ -1349,7 +1358,7 @@ const RegItem = memo(function RegItem({
             </RegisterGlassSurface>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => onOpenComplaint(r)} style={styles.actionTileTouch}>
+          <TouchableOpacity onPress={() => onOpenComplaint(r)} style={[styles.actionTileTouch, C.v2 && R.actionTouch]}>
             <RegisterGlassSurface
               C={C}
               interactive
@@ -1375,7 +1384,7 @@ const RegItem = memo(function RegItem({
             <TouchableOpacity
               onPress={() => onTogglePayment(r)}
               disabled={busy?.settingPayment}
-              style={styles.iconActionTouch}
+              style={[styles.iconActionTouch, C.v2 && R.actionTouch]}
             >
               <RegisterGlassSurface
                 C={C}
@@ -1396,6 +1405,7 @@ const RegItem = memo(function RegItem({
                   size={14}
                   color={isPaid ? C.textSecondary : C.successText}
                 />
+                {C.v2 && <Text style={[R.actionLabel, { color: isPaid ? C.textSecondary : C.successText }]}>{isPaid ? "Hủy thu" : "Thu phí"}</Text>}
               </RegisterGlassSurface>
             </TouchableOpacity>
           )}
@@ -1404,7 +1414,7 @@ const RegItem = memo(function RegItem({
             <TouchableOpacity
               onPress={() => onDemoteToWaitlist(r)}
               disabled={busy?.demotingId === r._id}
-              style={styles.iconActionTouch}
+              style={[styles.iconActionTouch, C.v2 && R.actionTouch]}
             >
               <RegisterGlassSurface
                 C={C}
@@ -1432,6 +1442,7 @@ const RegItem = memo(function RegItem({
                     color={C.warningText || "#b45309"}
                   />
                 )}
+                {C.v2 && <Text style={[R.actionLabel, { color: C.warningText }]}>Chờ</Text>}
               </RegisterGlassSurface>
             </TouchableOpacity>
           )}
@@ -1440,7 +1451,7 @@ const RegItem = memo(function RegItem({
             <TouchableOpacity
               onPress={() => onCancel(r)}
               disabled={busy?.deletingId === r._id}
-              style={styles.iconActionTouch}
+              style={[styles.iconActionTouch, C.v2 && R.actionTouch]}
             >
               <RegisterGlassSurface
                 C={C}
@@ -1461,6 +1472,7 @@ const RegItem = memo(function RegItem({
                 ) : (
                   <Ionicons name="trash-outline" size={16} color={C.errorText} />
                 )}
+                {C.v2 && <Text style={[R.actionLabel, { color: C.errorText }]}>{canManage ? "Xóa" : "Hủy"}</Text>}
               </RegisterGlassSurface>
             </TouchableOpacity>
           )}
@@ -2381,20 +2393,21 @@ export default function TournamentRegistrationScreen() {
   const HeaderComponent = useMemo(
     () => {
       const heroImageUri = getTournamentHeroImage(tour);
-      const heroTopPadding = 32;
+      const heroTopPadding = C.v2 ? 18 : 32;
 
       return (
         <View>
           <View
             style={[
               styles.headerHero,
+              C.v2 && R.hero,
               {
                 paddingTop: heroTopPadding,
                 backgroundColor: C.gradEnd,
               },
             ]}
           >
-            {heroImageUri ? (
+            {!C.v2 && heroImageUri ? (
               <ExpoImage
                 source={{ uri: heroImageUri }}
                 style={styles.headerHeroImage}
@@ -2410,8 +2423,9 @@ export default function TournamentRegistrationScreen() {
                 style={StyleSheet.absoluteFill}
               />
             )}
-            <View style={styles.headerHeroDim} />
-            <LinearGradient
+            {C.v2 && <OverviewHeroArt />}
+            {!C.v2 && <View style={styles.headerHeroDim} />}
+            {!C.v2 && <LinearGradient
               pointerEvents="none"
               colors={[
                 "rgba(0,0,0,0.56)",
@@ -2419,7 +2433,7 @@ export default function TournamentRegistrationScreen() {
                 "rgba(0,0,0,0.58)",
               ]}
               style={StyleSheet.absoluteFill}
-            />
+            />}
             {/* Header Top: Badge & Countdown */}
             <View style={styles.headerTopRow}>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -2435,7 +2449,7 @@ export default function TournamentRegistrationScreen() {
             </View>
 
             {/* Tournament Name */}
-            <Text style={styles.tourNameHero}>{tour?.name}</Text>
+            <Text testID="registration-tournament-title" style={[styles.tourNameHero, C.v2 && R.heroTitle]}>{tour?.name}</Text>
 
             {/* Location & Date Row */}
             <View
@@ -2445,6 +2459,7 @@ export default function TournamentRegistrationScreen() {
                 marginTop: 8,
                 opacity: 0.9,
                 gap: 12,
+                ...(C.v2 ? { flexWrap: "wrap" as const } : {}),
               }}
             >
               {tour?.location && (
@@ -2454,6 +2469,7 @@ export default function TournamentRegistrationScreen() {
                     alignItems: "flex-start",
                     gap: 4,
                     flex: 1,
+                    minWidth: C.v2 ? "100%" : undefined,
                   }}
                 >
                   <Ionicons
@@ -2468,6 +2484,7 @@ export default function TournamentRegistrationScreen() {
                       fontSize: 12,
                       fontWeight: "600",
                       lineHeight: 18,
+                      flexShrink: 1,
                     }}
                   >
                     {tour.location}
@@ -2489,7 +2506,7 @@ export default function TournamentRegistrationScreen() {
           </View>
 
           {/* Stats Overlap */}
-          <View style={styles.statsContainer}>
+          <View testID="registration-stats" style={[styles.statsContainer, C.v2 && R.stats]}>
             <View style={{ flexDirection: "row", gap: 10 }}>
               <View style={{ flex: 1 }}>
                 <StatCard
@@ -2836,6 +2853,7 @@ export default function TournamentRegistrationScreen() {
                   >
                     <PlayerSelector
                       label="VĐV 1"
+                      appearance={C.v2 ? "tournament" : "default"}
                       eventType={tour?.eventType}
                       onChange={setP1Admin}
                       value={p1Admin}
@@ -2873,12 +2891,14 @@ export default function TournamentRegistrationScreen() {
                   <TouchableOpacity
                     activeOpacity={0.7}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityRole="checkbox" accessibilityState={{ checked: lookingForPartner }}
                     onPress={() => setLookingForPartner((v) => !v)}
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
                       marginTop: 12,
                       paddingVertical: 6,
+                      minHeight: C.v2 ? 44 : undefined,
                     }}
                   >
                     <Ionicons
@@ -2920,6 +2940,7 @@ export default function TournamentRegistrationScreen() {
                     >
                       <PlayerSelector
                         label="VĐV 2 (Partner)"
+                        appearance={C.v2 ? "tournament" : "default"}
                         eventType={tour?.eventType}
                         onChange={setP2}
                         value={p2}
@@ -2949,7 +2970,7 @@ export default function TournamentRegistrationScreen() {
                     onChangeText={setMsg}
                   />
                 </RegisterGlassSurface>
-                <TouchableOpacity onPress={handleSubmit} disabled={saving}>
+                <TouchableOpacity testID="registration-submit" accessibilityRole="button" onPress={handleSubmit} disabled={saving}>
                   <RegisterGlassSurface
                     C={C}
                     interactive={!saving}
@@ -2973,8 +2994,8 @@ export default function TournamentRegistrationScreen() {
                         gap: 6,
                       }}
                     >
-                      <Ionicons name="paper-plane" size={16} color="#fff" />
-                      <Text style={{ color: "#fff", fontWeight: "700" }}>
+                      <Ionicons name="paper-plane" size={18} color={C.v2 ? "#032139" : "#fff"} />
+                      <Text style={{ color: C.v2 ? "#032139" : "#fff", fontWeight: "800" }}>
                         Gửi đăng ký
                       </Text>
                     </View>
@@ -3160,7 +3181,8 @@ export default function TournamentRegistrationScreen() {
               gap: 8,
               paddingVertical: 12,
               borderRadius: 12,
-              backgroundColor: "#2563EB",
+              backgroundColor: C.v2 ? "#082F50" : "#2563EB",
+              ...(C.v2 ? { borderWidth: 1, borderColor: C.tint, minHeight: 48 } : {}),
             }}
           >
             <Ionicons name="podium-outline" size={18} color="#fff" />
@@ -3199,8 +3221,10 @@ export default function TournamentRegistrationScreen() {
                       paddingVertical: 7,
                       borderRadius: 999,
                       borderWidth: 1,
-                      borderColor: active ? "#2563EB" : C.border,
-                      backgroundColor: active ? "#2563EB" : "transparent",
+                      borderColor: active ? C.tint : C.border,
+                      backgroundColor: active ? (C.v2 ? "#0C3854" : "#2563EB") : "transparent",
+                      minHeight: C.v2 ? 40 : undefined,
+                      justifyContent: "center",
                     }}
                   >
                     <Text
@@ -3263,7 +3287,7 @@ export default function TournamentRegistrationScreen() {
         { backgroundColor: C.pageBg, zIndex: 10 },
       ]}
     >
-      <RegisterLiquidBackdrop C={C} />
+      {!C.v2 && <RegisterLiquidBackdrop C={C} />}
       <SafeAreaView style={{ flex: 1 }}>
         <RegisterGlassSurface
           C={C}
@@ -3386,6 +3410,11 @@ export default function TournamentRegistrationScreen() {
         options={{
           headerShown: searchOpen ? false : true,
           title: t("Đăng ký giải đấu"),
+          ...(C.v2 ? {
+            headerStyle: { backgroundColor: "#061D33" }, headerTitleStyle: { color: C.textPrimary, fontSize: 18, fontWeight: "800" }, headerTitleAlign: "center", headerShadowVisible: false,
+            headerRight: () => null,
+            headerLeft: () => <Pressable accessibilityRole="button" accessibilityLabel="Quay lại" hitSlop={8} onPress={() => router.back()} style={R.headerBack}><Ionicons name="chevron-back" size={24} color={C.textPrimary} /></Pressable>,
+          } : {}),
           // headerLeft: () => (
           //   <TouchableOpacity
           //     onPress={() => router.back()}
@@ -3400,9 +3429,11 @@ export default function TournamentRegistrationScreen() {
         }}
       />
       <View style={{ flex: 1, backgroundColor: C.pageBg }}>
-        <RegisterLiquidBackdrop C={C} />
+        {!C.v2 && <RegisterLiquidBackdrop C={C} />}
         {/* Main List */}
         <FlashList
+          testID="registration-main-list"
+          automaticallyAdjustKeyboardInsets
           ref={listRef}
           data={displayRegs}
           estimatedItemSize={180}
@@ -3710,7 +3741,7 @@ export default function TournamentRegistrationScreen() {
               </View>
             ) : null
           }
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: C.v2 ? Math.max(insets.bottom, 12) + 24 : 100 }}
           refreshing={regsLoading}
           onRefresh={handleRefresh}
         />
@@ -5059,4 +5090,35 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   searchWrap: { marginTop: 10, position: "relative" },
+});
+
+/** Chỉ dùng trên màn đăng ký V2; style Liquid Glass/V1 không thay đổi. */
+function registrationSurfaceStyle(style: any) {
+  const parts = (Array.isArray(style) ? style.flat(Infinity) : [style]);
+  const mappings = [
+    [styles.statCard, R.statCard], [styles.regCard, R.regCard], [styles.formCard, R.formCard],
+    [styles.playerSelectorGlassWrap, R.selectorWrap], [styles.inputGlassWrap, R.inputWrap],
+    [styles.actionTile, R.actionTile], [styles.iconActionTile, R.iconAction],
+    [styles.btnPrimary, R.primary], [styles.btnSoft, R.softButton], [styles.searchGlassButton, R.searchButton],
+  ];
+  return mappings.filter(([key]) => parts.includes(key)).map(([, value]) => value);
+}
+const R = StyleSheet.create({
+  headerBack: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: "#174A6C", backgroundColor: "#061D33", alignItems: "center", justifyContent: "center" },
+  hero: { paddingBottom: 18, minHeight: 0 },
+  heroTitle: { fontSize: 24, lineHeight: 32, fontWeight: "900", textTransform: "uppercase", textShadowRadius: 0 },
+  stats: { marginTop: 0, paddingTop: 0 },
+  statCard: { minHeight: 82, padding: 12, gap: 9, borderRadius: 16, borderColor: "#174A6C", shadowOpacity: 0, elevation: 0 },
+  regCard: { borderColor: "#174A6C", borderRadius: 16, shadowOpacity: 0, elevation: 0 },
+  regHeader: { flexWrap: "wrap", gap: 8 },
+  formCard: { borderColor: "#174A6C", borderRadius: 18, shadowOpacity: 0, elevation: 0 },
+  selectorWrap: { backgroundColor: "transparent", padding: 0, borderWidth: 0, shadowOpacity: 0, elevation: 0 },
+  inputWrap: { minHeight: 48, backgroundColor: "#061D33", borderColor: "#23789D", shadowOpacity: 0, elevation: 0 },
+  actionTouch: { flexBasis: "30%", minWidth: 0, flexGrow: 1, minHeight: 48 },
+  actionTile: { flexBasis: "auto", minWidth: 0, width: "100%", minHeight: 58, borderWidth: 1, borderColor: "#23789D", shadowOpacity: 0, elevation: 0 },
+  iconAction: { width: "100%", minHeight: 46, borderWidth: 1, borderColor: "#174A6C", flexDirection: "row", gap: 6, paddingHorizontal: 5, flexWrap: "wrap", paddingVertical: 8 },
+  actionLabel: { fontSize: 12, fontWeight: "700", textAlign: "center" },
+  primary: { minHeight: 48, borderColor: "#12C8EC", shadowOpacity: 0, elevation: 0 },
+  softButton: { minHeight: 46, borderWidth: 1, borderColor: "#23789D", backgroundColor: "#082138" },
+  searchButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: "#23789D", backgroundColor: "#082138" },
 });

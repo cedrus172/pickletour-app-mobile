@@ -1,3 +1,4 @@
+import { ScheduleHero, ScheduleMatchTeams } from "@/components/tournament/ScheduleDesign";
 import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // app/tournament/[id]/EnhancedSchedule.jsx
 import { useUiVersion } from "@/hooks/uiVersion";
@@ -517,18 +518,18 @@ function useThemeTokens() {
   return useMemo(
     () => ({
       scheme,
-      isDark,
+      isDark, v2,
       // Base (Tối giản hơn)
-      bg: v2 ? "#040E20" : isDark ? "#080a0e" : "#f5f8fa", // Nền tổng thể rất nhạt
-      cardBg: v2 ? "#0A1B34" : isDark ? "#101317" : "#ffffff", // Thẻ nền sạch
-      softBg: v2 ? "#0E2244" : isDark ? "#1b1e22" : "#f0f4f7",
-      border: v2 ? "rgba(92,180,255,0.16)" : isDark ? "#2a2f36" : "#e2e8ec", // Viền mỏng
-      text: v2 ? "#EAF3FF" : isDark ? "#eef1f5" : "#1e293b",
-      textSecondary: v2 ? "#C4D6EC" : isDark ? "#cbd5e1" : "#475569",
-      muted: v2 ? "#8CA6C8" : isDark ? "#94a3b8" : "#64748b",
-      icon: v2 ? "#C4D6EC" : isDark ? "#d1d5db" : "#334155",
+      bg: v2 ? "#041329" : isDark ? "#080a0e" : "#f5f8fa", // Nền tổng thể rất nhạt
+      cardBg: v2 ? "#082138" : isDark ? "#101317" : "#ffffff", // Thẻ nền sạch
+      softBg: v2 ? "#0C2945" : isDark ? "#1b1e22" : "#f0f4f7",
+      border: v2 ? "#174A6C" : isDark ? "#2a2f36" : "#e2e8ec", // Viền mỏng
+      text: v2 ? "#F0F6FF" : isDark ? "#eef1f5" : "#1e293b",
+      textSecondary: v2 ? "#A9C2D9" : isDark ? "#cbd5e1" : "#475569",
+      muted: v2 ? "#94B3D0" : isDark ? "#94a3b8" : "#64748b",
+      icon: v2 ? "#A9C2D9" : isDark ? "#d1d5db" : "#334155",
       // Primary/Accent
-      tint: v2 ? "#12B6F3" : isDark ? "#63b3ed" : "#1a73e8", // Xanh dương hiện đại
+      tint: v2 ? "#12C8EC" : isDark ? "#63b3ed" : "#1a73e8", // Xanh dương hiện đại
       accentBg: v2 ? "rgba(18,182,243,0.16)" : isDark ? "rgba(99, 179, 237, 0.15)" : "#e6f0ff",
       // Status Colors
       live: "#e65100", // Cam cháy (Live) - Mạnh mẽ hơn
@@ -547,8 +548,8 @@ function useThemeTokens() {
       tabBg: isDark ? "#1c1e22" : "#f8fafc",
       tabBd: isDark ? "#2a2f36" : "#e2e8f0",
       tabActiveBg: v2 ? "rgba(18,182,243,0.18)" : isDark ? "rgba(99, 179, 237, 0.15)" : "#e6f0ff",
-      tabActiveBd: v2 ? "#12B6F3" : isDark ? "#63b3ed" : "#90caf9",
-      tabText: v2 ? "#8CA6C8" : isDark ? "#d1d5db" : "#334155",
+      tabActiveBd: v2 ? "#12C8EC" : isDark ? "#63b3ed" : "#90caf9",
+      tabText: v2 ? "#94B3D0" : isDark ? "#d1d5db" : "#334155",
       tabTextActive: v2 ? "#5CD6FF" : isDark ? "#cde9ff" : "#1a73e8",
       // Skeleton
       skeleton: v2 ? "rgba(92,180,255,0.12)" : isDark ? "rgba(255,255,255,0.08)" : "#e5e7eb",
@@ -755,16 +756,18 @@ function MatchCard({
 
   return (
     <Pressable
+      testID={`schedule-match-${m._id}`} accessibilityRole="button"
       onPress={() => onOpenMatch?.(m._id)}
       onPressIn={() => setIsPressing(true)}
       onPressOut={() => setIsPressing(false)}
       style={[
         stylesNew.matchCard,
+        theme.v2 && D.matchCard,
         {
           backgroundColor: theme.cardBg,
           borderColor: theme.border,
           transform: [{ scale: isPressing ? 0.99 : 1 }],
-          ...Platform.select({
+          ...(!theme.v2 && Platform.select({
             ios: {
               shadowColor: statusColor,
               shadowOpacity: isLiveMatch ? 0.3 : 0.05,
@@ -774,7 +777,7 @@ function MatchCard({
             android: {
               elevation: isLiveMatch ? 6 : 1,
             },
-          }),
+          })),
         },
       ]}
     >
@@ -796,8 +799,8 @@ function MatchCard({
           <StatusChip m={m} theme={theme} />
         </View>
 
-        {/* Row 2: Teams & Score (Phần quan trọng nhất) */}
-        <View style={stylesNew.matchTeamsAndScore}>
+        {/* V2: mỗi đội một dòng, giữ tỉ số từng game và dữ liệu gốc. */}
+        {theme.v2 ? <ScheduleMatchTeams teamA={teamA} teamB={teamB} score={score} winnerSide={winnerSide} /> : <View style={stylesNew.matchTeamsAndScore}>
           {/* Team A */}
           <View style={{ flex: 1, alignItems: "flex-start" }}>
             <Text
@@ -848,11 +851,11 @@ function MatchCard({
               {teamB}
             </Text>
           </View>
-        </View>
+        </View>}
 
         {/* Row 3: Metadata (Court, Bracket) */}
         <View style={stylesNew.matchMeta}>
-          <ChipRow style={{ justifyContent: "center", marginTop: 4 }}>
+          <ChipRow style={{ justifyContent: theme.v2 ? "flex-start" : "center", marginTop: 4 }}>
             <Chip
               theme={theme}
               type="default"
@@ -990,6 +993,8 @@ function CourtStatusCard({
     <View
       style={[
         stylesNew.statusCard,
+        theme.v2 && D.courtCard,
+        theme.v2 && !hasLive && !hasQueue && D.idleCourt,
         { borderColor: theme.border, backgroundColor: theme.cardBg },
       ]}
     >
@@ -1011,7 +1016,7 @@ function CourtStatusCard({
         <Chip
           theme={theme}
           type="outlined"
-          text={`(${court.live.length} Live`}
+          text={`${court.live.length} Live`}
         />
       </View>
 
@@ -2374,10 +2379,11 @@ export default function TournamentScheduleNative() {
     <View
       style={[
         stylesNew.card,
-        { borderColor: T.border, backgroundColor: T.cardBg },
+        T.v2 && D.courtsPanel,
+        { borderColor: T.v2 ? "transparent" : T.border, backgroundColor: T.v2 ? "transparent" : T.cardBg },
       ]}
     >
-      <View style={stylesNew.cardHeader}>
+      {!T.v2 && <View style={stylesNew.cardHeader}>
         <MaterialCommunityIcons name="stadium" size={18} color={T.tint} />
         <View style={{ marginLeft: 8 }}>
           <Text style={[stylesNew.cardTitle, { color: T.text }]}>
@@ -2387,7 +2393,7 @@ export default function TournamentScheduleNative() {
             Đang diễn ra & Hàng chờ
           </Text>
         </View>
-      </View>
+      </View>}
       {courts.length === 0 ? (
         <View
           style={[
@@ -2400,7 +2406,7 @@ export default function TournamentScheduleNative() {
           </Text>
         </View>
       ) : (
-        <View style={{ gap: 12 }}>
+        <View testID="schedule-courts" style={T.v2 ? D.courtGrid : { gap: 12 }}>
           {courts.map((c) => (
             <CourtStatusCard
               key={c.name}
@@ -2428,7 +2434,7 @@ export default function TournamentScheduleNative() {
       <View style={stylesNew.cardHeader}>
         <View>
           <Text style={[stylesNew.cardTitle, { color: T.text }]}>
-            Danh sách tất cả các trận
+            {T.v2 ? "Danh sách trận đấu" : "Danh sách tất cả các trận"}
           </Text>
           <Text style={[stylesNew.cardSub, { color: T.textSecondary }]}>
             Sắp xếp theo thứ tự trận đấu ({filteredAll.length} trận)
@@ -2491,11 +2497,12 @@ export default function TournamentScheduleNative() {
       return (
         <View style={[stylesNew.container, { flexDirection: "row" }]}>
           {/* Cột Trạng thái trực tiếp (Status Panel) */}
-          <View style={{ flex: 1, minWidth: 300, maxWidth: 400, gap: 12 }}>
+          <ScrollView style={{ flex: 1, minWidth: 300, maxWidth: 400 }} contentContainerStyle={{ gap: 12, paddingBottom: Math.max(insets.bottom, 12) + 16 }}>
             {/* Bộ lọc cho cột List (All Matches) */}
+            {T.v2 && <ScheduleHero name={tournament?.name} matchCount={allSorted.length} courtCount={courts.filter((c) => !c.name.toLowerCase().includes("chưa phân sân")).length} liveCount={allSorted.filter(isLive).length} />}
             <View style={{ paddingBottom: 0 }}>{FilterAndTabs}</View>
             {CourtStatusContent}
-          </View>
+          </ScrollView>
           {/* Cột Danh sách đầy đủ (All Matches List) */}
           <ScrollView
             style={{ flex: 2, minWidth: 400, marginLeft: 12 }}
@@ -2509,7 +2516,8 @@ export default function TournamentScheduleNative() {
 
     // Layout 1 cột (Mobile/Tablet dọc)
     return (
-      <ScrollView contentContainerStyle={stylesNew.container}>
+      <ScrollView testID="tournament-schedule-scroll" contentContainerStyle={[stylesNew.container, { paddingBottom: Math.max(insets.bottom, 12) + 16 }]}>
+        {T.v2 && <ScheduleHero name={tournament?.name} matchCount={allSorted.length} courtCount={courts.filter((c) => !c.name.toLowerCase().includes("chưa phân sân")).length} liveCount={allSorted.filter(isLive).length} />}
         {FilterAndTabs}
         {CourtStatusContent}
         {AllMatchesContent}
@@ -2523,23 +2531,25 @@ export default function TournamentScheduleNative() {
     FilterAndTabs,
     CourtStatusContent,
     AllMatchesContent,
+    allSorted, courts, insets.bottom, tournament?.name,
   ]);
 
   return (
     <BottomSheetModalProvider>
       <Stack.Screen
         options={{
-          title: `Lịch thi đấu${
+          title: T.v2 ? "Lịch thi đấu" : `Lịch thi đấu${
             tournament?.name ? ` – ${tournament.name}` : ""
           }`,
-          headerStyle: { backgroundColor: T.cardBg },
-          headerTitleStyle: { color: T.text },
+          headerStyle: { backgroundColor: T.v2 ? "#061D33" : T.cardBg },
+          headerTitleStyle: { color: T.text, ...(T.v2 ? { fontSize: 18, fontWeight: "800" } : {}) },
+          ...(T.v2 ? { headerTitleAlign: "center" } : {}),
           headerShadowVisible: false,
           headerLeft: () => (
             <Pressable
               onPress={() => router.back()}
               hitSlop={12}
-              style={{ paddingHorizontal: 6, paddingVertical: 4 }}
+              style={T.v2 ? D.headerBack : { paddingHorizontal: 6, paddingVertical: 4 }}
             >
               {/* Đã đổi sang Ionicons chevron-back, mình tăng size lên 24 cho cân đối */}
               <Ionicons name="chevron-back" size={24} color={T.text} />
@@ -3043,4 +3053,13 @@ const stylesNew = StyleSheet.create({
     borderRadius: 10,
   },
   alertErrorText: { fontSize: 14 },
+});
+
+const D = StyleSheet.create({
+  headerBack: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: "#174A6C", backgroundColor: "#061D33", alignItems: "center", justifyContent: "center" },
+  matchCard: { padding: 12, paddingLeft: 14, borderRadius: 16 },
+  courtsPanel: { padding: 0, borderWidth: 0 },
+  courtGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  courtCard: { flexBasis: "100%", flexGrow: 1, maxWidth: "100%", minWidth: 0 },
+  idleCourt: { flexBasis: "45%", flexGrow: 1, minWidth: 120 },
 });
