@@ -57,6 +57,7 @@ export default function AdHocRefereeScreen() {
   const [urlText, setUrlText] = useState("");
   const [camIdx, setCamIdx] = useState<number | null>(null);
   const [dests, setDests] = useState<any[]>([]);
+  const [crosspost, setCrosspost] = useState<string[]>([]); // fanpage phát chéo (crosspost)
 
   const [createUserMatch, { isLoading: creating }] = useCreateUserMatchMutation();
   const [updateUserMatch] = useUpdateUserMatchMutation();
@@ -130,6 +131,28 @@ export default function AdHocRefereeScreen() {
     arr.some((d) => d.type === "youtube")
       ? arr.filter((d) => d.type !== "youtube")
       : [...arr, { type: "youtube", label: "YouTube (tự tạo)" }]);
+  const toggleCrosspost = (pageId: string) =>
+    setCrosspost((a) => (a.includes(pageId) ? a.filter((x) => x !== pageId) : [...a, pageId]));
+
+  // Gắn fanpage phát chéo (crosspost) vào đích FB đầu tiên: 1 luồng đẩy, hiện trên nhiều page.
+  const buildDestinations = () => {
+    const primaryFbIds = new Set(dests.filter((d) => d.type === "fb").map((d) => String(d.pageId)));
+    const cp = crosspost.filter((id) => !primaryFbIds.has(String(id)));
+    if (!cp.length) return dests;
+    let attached = false;
+    return dests.map((d) => {
+      if (d.type === "fb" && !attached) {
+        attached = true;
+        return {
+          ...d,
+          crosspostPageIds: cp,
+          crosspostNames: cp.map((id) => (opt.fbPages || []).find((x: any) => x.pageId === id)?.pageName || id),
+          label: `${d.pageName} +${cp.length} chéo`,
+        };
+      }
+      return d;
+    });
+  };
 
   const parts = () => {
     const p: any[] = [];
@@ -188,7 +211,7 @@ export default function AdHocRefereeScreen() {
     let source: any, destinations: any[];
     try {
       source = buildSource();
-      destinations = dests;
+      destinations = buildDestinations();
       if (!destinations.length) throw new Error("Thêm ít nhất 1 đích (Facebook / YouTube).");
     } catch (e: any) {
       return toast(e.message);
@@ -358,6 +381,26 @@ export default function AdHocRefereeScreen() {
                     })}
                     {!(opt.fbPages || []).length ? <Text style={{ color: colors.border }}>(không có fanpage)</Text> : null}
                   </View>
+
+                  {/* Live chéo fanpage (crosspost): 1 luồng đẩy, hiện trên nhiều page */}
+                  {(opt.fbPages || []).length > 1 && dests.some((d) => d.type === "fb") ? (
+                    <>
+                      <Text style={s.lbl}>Phát chéo fanpage (crosspost — chạm để chọn)</Text>
+                      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                        {(opt.fbPages || [])
+                          .filter((p: any) => !dests.some((d) => d.type === "fb" && d.pageId === p.pageId))
+                          .map((p: any) => {
+                            const on = crosspost.includes(p.pageId);
+                            return (
+                              <Pressable key={p.pageId} onPress={() => toggleCrosspost(p.pageId)}
+                                style={[s.seg, { backgroundColor: on ? colors.primary : colors.card, borderColor: colors.border }]}>
+                                <Text style={{ color: on ? "#fff" : colors.text }}>FB·{p.pageName || p.pageId}</Text>
+                              </Pressable>
+                            );
+                          })}
+                      </View>
+                    </>
+                  ) : null}
                 </View>
               ) : null}
 
