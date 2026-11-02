@@ -413,11 +413,15 @@ const getMaxDelta = (tour: any) =>
 const decideTotalState = (total: number, cap: number, delta?: number) => {
   const t = Number(total);
   const c = Number(cap);
+  const d = Number(delta);
   if (!Number.isFinite(t) || !(Number.isFinite(c) && c > 0))
     return { state: "default", note: "" };
-  // Vượt TRẦN điểm (nominal cap) => đỏ, giống bản V1 (delta chỉ là dung sai chặn
-  // đăng ký ở backend, không dùng để "xanh hoá" cặp đã quá trần).
-  if (t > c + 1e-6) return { state: "error", note: "" };
+  const tol = Number.isFinite(d) && d > 0 ? d : 0;
+  // Chỉ ĐỎ khi vượt QUÁ dung sai (trần + dung sai = c + tol). Ví dụ trần 4.4,
+  // dung sai 0.1 thì phải > 4.5 mới đỏ. Trong khoảng dung sai (đã quá trần
+  // nhưng còn trong mức cho phép) => cảnh báo vàng, không đỏ.
+  if (t > c + tol + 1e-6) return { state: "error", note: "" };
+  if (t > c + 1e-6) return { state: "warning", note: "" };
   if (Math.abs(t - c) <= 1e-6) return { state: "warning", note: "" };
   return { state: "success", note: "" };
 };
