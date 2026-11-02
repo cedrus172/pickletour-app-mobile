@@ -31,6 +31,7 @@ import {
 import { Image } from "expo-image";
 import { useGetContactContentQuery } from "@/slices/cmsApiSlice";
 import { useGetTournamentsQuery } from "@/slices/tournamentsApiSlice";
+import { groupTournaments, subLabelOf, groupStatus } from "@/utils/groupTournaments";
 import { useGetNewsQuery } from "@/slices/newsApiSlice";
 import { useGetMyRankQuery } from "@/slices/usersApiSlice";
 import LottieView from "lottie-react-native";
@@ -458,10 +459,11 @@ function ProButton({ onPress, children, colors, style, icon }) {
 }
 
 /* ---------- 🆕 Animated Status Chip ---------- */
-function AnimatedStatusChip() {
+function AnimatedStatusChip({ status = "upcoming" }: { status?: string }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const isFocused = useIsFocused();
   const v2 = useUiVersion() === "v2";
+  const statusText = status === "ongoing" ? "Đang diễn ra" : "Sắp diễn ra";
   useEffect(() => {
     if (!isFocused || v2) {
       scaleAnim.stopAnimation();
@@ -489,7 +491,7 @@ function AnimatedStatusChip() {
     return (
       <View style={[styles.statusBadgeOnImage, styles.v2TournamentStatus]}>
         <View style={styles.v2TournamentStatusDot} />
-        <Text style={styles.statusBadgeText}>Sắp diễn ra</Text>
+        <Text style={styles.statusBadgeText}>{statusText}</Text>
       </View>
     );
   }
@@ -514,7 +516,7 @@ function AnimatedStatusChip() {
             style={styles.glassGradientFill}
           />
           <Ionicons name="time-outline" size={14} color="#FFFFFF" />
-          <Text style={styles.statusBadgeText}>Sắp diễn ra</Text>
+          <Text style={styles.statusBadgeText}>{statusText}</Text>
         </AppleLiquidGlassView>
       ) : (
         <LinearGradient
@@ -524,7 +526,7 @@ function AnimatedStatusChip() {
           style={styles.statusBadgeGradient}
         >
           <Ionicons name="time-outline" size={14} color="#FFFFFF" />
-          <Text style={styles.statusBadgeText}>Sắp diễn ra</Text>
+          <Text style={styles.statusBadgeText}>{statusText}</Text>
         </LinearGradient>
       )}
     </Animated.View>
@@ -1127,7 +1129,7 @@ function FeaturesGrid() {
 
 /* ---------- Tournament Card ---------- */
 const TournamentCard = React.memo(function TournamentCard({
-  tournament,
+  group,
   theme,
 }) {
   const isDark = !!theme?.dark;
@@ -1136,9 +1138,15 @@ const TournamentCard = React.memo(function TournamentCard({
   const text = v2 ? HOME_COLORS.text : theme?.colors?.text ?? (isDark ? "#ffffff" : "#111111");
   const subtext = v2 ? HOME_COLORS.textMuted : isDark ? "#b0b0b0" : "#666666";
   const border = v2 ? HOME_COLORS.border : theme?.colors?.border ?? (isDark ? "#2a2e35" : "#e0e0e0");
+  // Gom nhóm cùng tên gốc / cùng cụm sân (như tab Giải đấu): hiển thị 1 thẻ, liệt kê nội dung con.
+  const items: any[] = group?.items || [];
+  const rep: any = items.find((x) => normalizeUrl(x?.image)) || items[0] || {};
+  const isGroup = !!group?.isGroup;
+  const gstatus = groupStatus(items);
+  const totalReg = items.reduce((sum, x) => sum + (Number(x?.registered) || 0), 0);
   const [imageVisible, setImageVisible] = useState(false);
   const imageUri =
-    normalizeUrl(tournament.image) ||
+    normalizeUrl(rep.image) ||
     "https://dummyimage.com/600x400/4ECDC4/ffffff&text=Tournament";
 
   return (
@@ -1170,16 +1178,16 @@ const TournamentCard = React.memo(function TournamentCard({
             colors={["transparent", "rgba(0,0,0,0.6)"]}
             style={styles.tournamentImageGradient}
           />
-          <AnimatedStatusChip />
+          <AnimatedStatusChip status={gstatus} />
           {/* Format badge: MLP / TEAM — góc trên trái */}
-          {String((tournament as any)?.tournamentMode || "")
+          {String((rep as any)?.tournamentMode || "")
             .toLowerCase() === "mlp" && (
             <View style={styles.homeTournamentModeBadge}>
               <Ionicons name="trophy-outline" size={12} color="#FFE071" />
               <Text style={styles.homeTournamentModeText}>MLP</Text>
             </View>
           )}
-          {String((tournament as any)?.tournamentMode || "")
+          {String((rep as any)?.tournamentMode || "")
             .toLowerCase() === "team" && (
             <View style={styles.homeTournamentModeBadge}>
               <Ionicons name="people-outline" size={12} color="#FFE071" />
@@ -1191,14 +1199,15 @@ const TournamentCard = React.memo(function TournamentCard({
 
       <TouchableOpacity
         activeOpacity={0.95}
-        onPress={() => router.push(`/tournament/${tournament._id}/register`)}
+        disabled={isGroup}
+        onPress={() => !isGroup && router.push(`/tournament/${rep._id}/register`)}
       >
         <View style={styles.tournamentInfo}>
           <Text
             style={[styles.tournamentName, { color: text }]}
             numberOfLines={2}
           >
-            {tournament.name}
+            {group?.title || rep.name}
           </Text>
           <View style={styles.separator} />
 
@@ -1206,7 +1215,7 @@ const TournamentCard = React.memo(function TournamentCard({
             <View style={styles.metaItem}>
               <Ionicons name="calendar" size={16} color="#4ECDC4" />
               <Text style={[styles.metaText, { color: subtext }]}>
-                {formatDate(tournament.startDate)}
+                {formatDate(rep.startDate)}
               </Text>
             </View>
             <View style={styles.metaItem}>
@@ -1215,7 +1224,7 @@ const TournamentCard = React.memo(function TournamentCard({
                 style={[styles.metaText, { color: subtext }]}
                 numberOfLines={1}
               >
-                {tournament.location || "Chưa có"}
+                {rep.location || "Chưa có"}
               </Text>
             </View>
           </View>
@@ -1233,26 +1242,54 @@ const TournamentCard = React.memo(function TournamentCard({
                 }}
               />
               <Text style={[styles.registrationText, { color: subtext }]}>
-                {tournament.registered ?? 0}
-                {Number(tournament.maxPairs) > 0
-                  ? `/${tournament.maxPairs}`
-                  : ""}{" "}
-                {tournament.tournamentMode === "mlp" ? "đội" : "vận động viên"}
+                {isGroup
+                  ? `${items.length} nội dung · ${totalReg} đăng ký`
+                  : `${rep.registered ?? 0}${
+                      Number(rep.maxPairs) > 0 ? `/${rep.maxPairs}` : ""
+                    } ${rep.tournamentMode === "mlp" ? "đội" : "vận động viên"}`}
               </Text>
             </View>
           </View>
         </View>
       </TouchableOpacity>
 
-      <View style={styles.tournamentActions}>
-        <ProButton
-          onPress={() => router.push(`/tournament/${tournament._id}/register`)}
-          colors={["#FF9F43", "#EE5A24"]}
-          icon={<Ionicons name="trophy-outline" size={20} color="#FFFFFF" />}
-        >
-          <Text style={styles.proButtonText}>ĐĂNG KÝ NGAY</Text>
-        </ProButton>
-      </View>
+      {isGroup ? (
+        <View style={styles.homeGroupSubs}>
+          {items.slice(0, 4).map((it: any) => {
+            const sub =
+              subLabelOf(it?.name, group?.title) ||
+              (String(it?.eventType || "").toLowerCase() === "single" ? "Đơn" : "Đôi");
+            return (
+              <TouchableOpacity
+                key={String(it?._id)}
+                activeOpacity={0.8}
+                style={[styles.homeGroupSubRow, { borderColor: border }]}
+                onPress={() => router.push(`/tournament/${it._id}/register`)}
+              >
+                <Text style={[styles.homeGroupSubText, { color: text }]} numberOfLines={1}>
+                  {sub}
+                </Text>
+                <Ionicons name="chevron-forward" size={15} color="#4ECDC4" />
+              </TouchableOpacity>
+            );
+          })}
+          {items.length > 4 ? (
+            <Text style={[styles.homeGroupSubMore, { color: subtext }]}>
+              +{items.length - 4} nội dung khác
+            </Text>
+          ) : null}
+        </View>
+      ) : (
+        <View style={styles.tournamentActions}>
+          <ProButton
+            onPress={() => router.push(`/tournament/${rep._id}/register`)}
+            colors={["#FF9F43", "#EE5A24"]}
+            icon={<Ionicons name="trophy-outline" size={20} color="#FFFFFF" />}
+          >
+            <Text style={styles.proButtonText}>ĐĂNG KÝ NGAY</Text>
+          </ProButton>
+        </View>
+      )}
 
       <ImageViewing
         images={[{ uri: imageUri }]}
@@ -1278,13 +1315,20 @@ function TournamentsSection() {
     { sportType: "2", groupId: "0" },
     { refetchOnFocus: false }
   );
-  const upcomingTournaments = useMemo(() => {
+  // Ưu tiên giải ĐANG + SẮP diễn ra (ongoing trước), không hiện đã kết thúc; rồi
+  // gom nhóm cùng tên gốc / cùng cụm sân như tab Giải đấu. Chỉ fallback giải đã
+  // kết thúc khi chưa có giải đang/sắp (để section không trống).
+  const tournamentGroups = useMemo(() => {
     if (!Array.isArray(tournaments)) return [];
-    return tournaments.filter((t) => t.status === "upcoming").slice(0, 5);
+    const ongoing = tournaments.filter((t) => t.status === "ongoing");
+    const upcoming = tournaments.filter((t) => t.status === "upcoming");
+    let pool = [...ongoing, ...upcoming];
+    if (!pool.length) pool = tournaments.filter((t) => t.status === "finished");
+    return groupTournaments(pool).slice(0, 5);
   }, [tournaments]);
 
   const renderTournamentItem = useCallback(
-    ({ item }) => <TournamentCard tournament={item} theme={theme} />,
+    ({ item }) => <TournamentCard group={item} theme={theme} />,
     [theme]
   );
 
@@ -1298,7 +1342,7 @@ function TournamentsSection() {
   );
 
   const scrollToIndex = (index) => {
-    if (flatListRef.current && upcomingTournaments.length > 0) {
+    if (flatListRef.current && tournamentGroups.length > 0) {
       flatListRef.current.scrollToIndex({ index, animated: true });
       setCurrentIndex(index);
     }
@@ -1306,23 +1350,23 @@ function TournamentsSection() {
 
   const handlePrev = () => {
     const newIndex =
-      currentIndex > 0 ? currentIndex - 1 : upcomingTournaments.length - 1;
+      currentIndex > 0 ? currentIndex - 1 : tournamentGroups.length - 1;
     scrollToIndex(newIndex);
   };
   const handleNext = () => {
     const newIndex =
-      currentIndex < upcomingTournaments.length - 1 ? currentIndex + 1 : 0;
+      currentIndex < tournamentGroups.length - 1 ? currentIndex + 1 : 0;
     scrollToIndex(newIndex);
   };
 
-  if (isLoading || upcomingTournaments.length === 0) return null;
+  if (isLoading || tournamentGroups.length === 0) return null;
 
   return (
     <View style={styles.tournamentsSection}>
       <View style={styles.homeSectionHeaderPad}>
         <HomeSectionHeader
-          title="Giải đấu sắp diễn ra"
-          subtitle="Sẵn sàng tranh tài cùng cộng đồng Pickletour"
+          title="Giải đấu nổi bật"
+          subtitle="Giải đang & sắp diễn ra trong cộng đồng Pickletour"
           icon="trophy-outline"
         />
       </View>
@@ -1394,10 +1438,10 @@ function TournamentsSection() {
 
       <FlatList
         ref={flatListRef}
-        data={upcomingTournaments}
+        data={tournamentGroups}
         horizontal
         showsHorizontalScrollIndicator={false}
-        keyExtractor={(item) => String(item._id)}
+        keyExtractor={(item) => String(item.key)}
         renderItem={renderTournamentItem}
         getItemLayout={getTournamentItemLayout}
         contentContainerStyle={styles.tournamentsList}
@@ -2633,6 +2677,19 @@ const styles = StyleSheet.create({
   },
   registrationText: { fontSize: 13, fontWeight: "600" },
   tournamentActions: { padding: 12, paddingTop: 0 },
+  homeGroupSubs: { paddingHorizontal: 12, paddingBottom: 12, paddingTop: 0, gap: 6 },
+  homeGroupSubRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  homeGroupSubText: { flex: 1, fontSize: 13, fontWeight: "700" },
+  homeGroupSubMore: { fontSize: 12, textAlign: "center", marginTop: 2 },
 
   /* 💎 PRO BUTTON STYLES */
   proButtonContainer: {
