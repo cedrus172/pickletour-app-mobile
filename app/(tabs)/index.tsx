@@ -1259,6 +1259,10 @@ const TournamentCard = React.memo(function TournamentCard({
             const sub =
               subLabelOf(it?.name, group?.title) ||
               (String(it?.eventType || "").toLowerCase() === "single" ? "Đơn" : "Đôi");
+            const reg = Number(it?.registered) || 0;
+            const cap = Number(it?.maxPairs) || 0;
+            const pct = cap > 0 ? Math.min(100, Math.round((reg / cap) * 100)) : 0;
+            const full = cap > 0 && reg >= cap;
             return (
               <TouchableOpacity
                 key={String(it?._id)}
@@ -1266,10 +1270,25 @@ const TournamentCard = React.memo(function TournamentCard({
                 style={[styles.homeGroupSubRow, { borderColor: border }]}
                 onPress={() => router.push(`/tournament/${it._id}/register`)}
               >
-                <Text style={[styles.homeGroupSubText, { color: text }]} numberOfLines={1}>
-                  {sub}
-                </Text>
-                <Ionicons name="chevron-forward" size={15} color="#4ECDC4" />
+                <View style={styles.homeGroupSubHead}>
+                  <Text style={[styles.homeGroupSubText, { color: text }]} numberOfLines={1}>
+                    {sub}
+                  </Text>
+                  <Text style={[styles.homeGroupSubCount, { color: full ? "#F2555A" : subtext }]}>
+                    {cap > 0 ? `${reg}/${cap}` : `${reg}`}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={15} color="#4ECDC4" />
+                </View>
+                {cap > 0 ? (
+                  <View style={styles.homeGroupSubTrack}>
+                    <View
+                      style={[
+                        styles.homeGroupSubFill,
+                        { width: `${pct}%`, backgroundColor: full ? "#F2555A" : "#3E9EFB" },
+                      ]}
+                    />
+                  </View>
+                ) : null}
               </TouchableOpacity>
             );
           })}
@@ -2679,16 +2698,19 @@ const styles = StyleSheet.create({
   tournamentActions: { padding: 12, paddingTop: 0 },
   homeGroupSubs: { paddingHorizontal: 12, paddingBottom: 12, paddingTop: 0, gap: 6 },
   homeGroupSubRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: 7,
     paddingVertical: 9,
     paddingHorizontal: 12,
     borderWidth: 1,
     borderRadius: 12,
   },
+  homeGroupSubHead: { flexDirection: "row", alignItems: "center", gap: 8 },
   homeGroupSubText: { flex: 1, fontSize: 13, fontWeight: "700" },
+  homeGroupSubCount: { fontSize: 12, fontWeight: "700" },
+  homeGroupSubTrack: { height: 4, borderRadius: 99, backgroundColor: "rgba(127,127,127,0.25)", overflow: "hidden" },
+  homeGroupSubFill: { height: "100%", borderRadius: 99 },
   homeGroupSubMore: { fontSize: 12, textAlign: "center", marginTop: 2 },
 
   /* 💎 PRO BUTTON STYLES */
