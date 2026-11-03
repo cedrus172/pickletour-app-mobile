@@ -24,12 +24,14 @@ import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
 export function FriendActions({
   userId,
   compact = false,
+  appearance = "default",
 }: {
   userId: string;
   compact?: boolean;
+  appearance?: "default" | "profile";
 }) {
   const C = useThemeTokens();
-  const styles = useMemo(() => mk_styles(C), [C]);
+  const styles = useMemo(() => mk_styles(C, appearance === "profile"), [C, appearance]);
   const me = useSelector((s: any) => s.auth?.userInfo);
   const { data, isFetching } = useFriendStatusQuery(userId, {
     skip: !me || !userId,
@@ -123,7 +125,7 @@ export function FriendActions({
   }
   if (status === "pending_incoming") {
     return (
-      <View style={{ flexDirection: "row", gap: 6 }}>
+      <View style={{ flexDirection: appearance === "profile" ? "column" : "row", gap: 6 }}>
         <Pressable
           onPress={doAccept}
           disabled={accepting}
@@ -182,7 +184,7 @@ export function FriendActions({
   return null;
 }
 
-const mk_styles = (C: ThemeTokens) => StyleSheet.create({
+const mk_styles = (C: ThemeTokens, profile = false) => StyleSheet.create({
   btn: {
     flexDirection: "row",
     alignItems: "center",
@@ -190,6 +192,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
+    ...(profile ? { minHeight: 44, justifyContent: "center", borderRadius: 12, minWidth: 0 } : {}),
   },
   btnCompact: {
     width: 34,
@@ -197,12 +200,12 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     padding: 0,
     justifyContent: "center",
   },
-  btnPrimary: { backgroundColor: "#0066FF" },
-  btnPrimaryText: { color: "#fff", fontWeight: "600", fontSize: 13 },
+  btnPrimary: { backgroundColor: profile ? "#0BBFE7" : "#0066FF" },
+  btnPrimaryText: { color: "#fff", fontWeight: "600", fontSize: 13, flexShrink: 1 },
   btnOutline: {
     backgroundColor: C.field,
     borderWidth: 1,
     borderColor: C.border,
   },
-  btnOutlineText: { color: C.text2, fontWeight: "600", fontSize: 13 },
+  btnOutlineText: { color: C.text2, fontWeight: "600", fontSize: 13, flexShrink: 1 },
 });

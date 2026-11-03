@@ -16,10 +16,12 @@ export function OpenMessageButton({
   userId,
   compact = false,
   label = "Nhắn",
+  appearance = "default",
 }: {
   userId: string;
   compact?: boolean;
   label?: string;
+  appearance?: "default" | "profile";
 }) {
   const me = useSelector((s: any) => s.auth?.userInfo);
   const [openDm, { isLoading }] = useOpenDmMutation();
@@ -39,10 +41,10 @@ export function OpenMessageButton({
     <Pressable
       onPress={onPress}
       disabled={isLoading}
-      style={[styles.btn, compact && styles.btnCompact]}
+      style={[styles.btn, compact && styles.btnCompact, appearance === "profile" && styles.profile]}
     >
-      <Ionicons name="chatbubble-outline" size={16} color="#0066FF" />
-      {!compact && <Text style={styles.text}>{label}</Text>}
+      <Ionicons name="chatbubble-outline" size={16} color={appearance === "profile" ? "#EAF3FF" : "#0066FF"} />
+      {!compact && <Text style={[styles.text, appearance === "profile" && { color: "#EAF3FF" }]}>{label}</Text>}
     </Pressable>
   );
 }
@@ -67,4 +69,11 @@ const styles = StyleSheet.create({
     borderRadius: 17,
   },
   text: { color: "#0066FF", fontWeight: "600", fontSize: 13 },
+  profile: {
+    minHeight: 44,
+    justifyContent: "center",
+    borderRadius: 12,
+    borderColor: "rgba(157,180,204,0.7)",
+    backgroundColor: "rgba(11,32,53,0.92)",
+  },
 });

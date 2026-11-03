@@ -20,8 +20,9 @@ import {
 import { Text } from "@/components/ui/i18nText";
 import { TextInput } from "@/components/ui/i18nTextInput";
 import { Image } from "expo-image";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Circle, Path } from "react-native-svg";
 import { useSelector } from "react-redux";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "@react-navigation/native";
@@ -54,7 +55,6 @@ import { useGetPlayerPositionQuery } from "@/slices/headtoheadApiSlice";
 import { useLocalSearchParams, router } from "expo-router";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
-import { useLiquidGlassEnabled } from "@/context/GlassAppearanceContext";
 import { IOS_26_LIQUID_GLASS_ENABLED } from "@/utils/nativeTabs";
 import { FriendActions } from "@/components/social/FriendActions";
 import { OpenMessageButton } from "@/components/social/OpenMessageButton";
@@ -63,9 +63,9 @@ import { CoachAchievementsMobile } from "./CoachAchievementsMobile";
 import PlayerNameText from "@/components/PlayerNameText";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const HEADER_HEIGHT = 350;
-const AVATAR_SIZE = 120;
-const isSmallDevice = SCREEN_WIDTH <= 360;
+const HEADER_HEIGHT = 230;
+const AVATAR_SIZE = 88;
+const NAVIGATION_HEIGHT = 52;
 const TAB_BAR_HEIGHT = 52;
 
 /* ---------- CONSTANTS & UTILS ---------- */
@@ -221,75 +221,28 @@ const ProfileGlassSurface = React.memo(
 );
 ProfileGlassSurface.displayName = "ProfileGlassSurface";
 
-const ProfileLiquidBackdrop = React.memo(({ colors }) => {
-  const anim = useRef(new Animated.Value(0)).current;
-  const liquidGlassEnabled = useLiquidGlassEnabled();
-
-  React.useEffect(() => {
-    if (!IOS_26_LIQUID_GLASS_ENABLED || !liquidGlassEnabled) {
-      anim.stopAnimation();
-      return undefined;
-    }
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(anim, {
-          toValue: 1,
-          duration: 2800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(anim, {
-          toValue: 0,
-          duration: 2800,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [anim, liquidGlassEnabled]);
-
-  if (!IOS_26_LIQUID_GLASS_ENABLED || !liquidGlassEnabled) return null;
-
-  const translateY = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-12, 16],
-  });
-  const opacity = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.24, 0.46],
-  });
-
-  return (
-    <View pointerEvents="none" style={styles.profileAmbientBackdrop}>
-      <Animated.View
-        style={[
-          styles.profileAmbientBand,
-          {
-            backgroundColor: colors.isDark
-              ? "rgba(99,102,241,0.2)"
-              : "rgba(99,102,241,0.14)",
-            opacity,
-            transform: [{ translateY }, { rotate: "-8deg" }],
-          },
-        ]}
+const ProfileCourtBackdrop = React.memo(({ colors }) => (
+  <View pointerEvents="none" style={styles.profileCourtBackdrop}>
+    <Svg width="100%" height="100%" viewBox="0 0 390 130" preserveAspectRatio="xMidYMid slice">
+      <Path
+        d="M-40 110 L105 12 L285 30 L405 113 M31 65 L342 85 M78 31 L309 51 M184 20 L178 78"
+        stroke={colors.primary}
+        strokeWidth={1.2}
+        opacity={0.17}
+        fill="none"
       />
-      <Animated.View
-        style={[
-          styles.profileAmbientBand,
-          styles.profileAmbientBandAlt,
-          {
-            backgroundColor: colors.isDark
-              ? "rgba(236,72,153,0.13)"
-              : "rgba(236,72,153,0.1)",
-            opacity,
-            transform: [{ translateY }, { rotate: "7deg" }],
-          },
-        ]}
+      <Circle cx={347} cy={39} r={23} fill={colors.primary} opacity={0.08} />
+      <Path
+        d="M334 25 l3 -1 M348 22 l3 1 M360 31 l1 3 M354 46 l-2 2 M339 45 l-3 -2 M344 34 l2 2"
+        stroke={colors.primary}
+        strokeWidth={5}
+        strokeLinecap="round"
+        opacity={0.14}
       />
-    </View>
-  );
-});
-ProfileLiquidBackdrop.displayName = "ProfileLiquidBackdrop";
+    </Svg>
+  </View>
+));
+ProfileCourtBackdrop.displayName = "ProfileCourtBackdrop";
 
 const ProfileSection = React.memo(({ children, colors, style }) => (
   <ProfileGlassSurface
@@ -371,33 +324,28 @@ const ProfileTabPill = React.memo(
     const textStyle = sticky ? styles.stickyTabText : styles.tabText;
     return (
       <TouchableOpacity
-        style={sticky ? styles.stickyTab : styles.tab}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: active }}
+        style={[
+          sticky ? styles.stickyTab : styles.tab,
+          index === 1 && styles.historyTab,
+          active && { borderBottomColor: colors.primary },
+        ]}
         onPress={() => onPress(index)}
         activeOpacity={0.82}
       >
-        {active ? (
-          <ProfileGlassSurface
-            colors={colors}
-            interactive
-            tintColor={profileGlassAccentTint(colors, 0.48)}
-            style={[
-              styles.profileActiveTabGlass,
-              { backgroundColor: colors.tabActive },
-              IOS_26_LIQUID_GLASS_ENABLED && styles.profileInnerGlass,
-            ]}
-          >
-            <Text style={[textStyle, styles.tabTextActive]} numberOfLines={1}>
-              {tab}
-            </Text>
-          </ProfileGlassSurface>
-        ) : (
-          <Text
-            style={[textStyle, { color: colors.tabInactive }]}
-            numberOfLines={1}
-          >
-            {tab}
-          </Text>
-        )}
+        <Text
+          style={[
+            textStyle,
+            { color: active ? colors.text : colors.tabInactive },
+            active && styles.tabTextActive,
+          ]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+        >
+          {tab}
+        </Text>
       </TouchableOpacity>
     );
   }
@@ -406,41 +354,81 @@ ProfileTabPill.displayName = "ProfileTabPill";
 
 /* ---------- SUB-COMPONENTS ---------- */
 
-const StatCard = React.memo(({ icon, value, label, gradient, onPress, colors }) => (
-  <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={{ flex: 1 }}>
-    <ProfileGlassSurface
-      colors={colors}
-      interactive
-      tintColor={profileGlassAccentTint(colors, 0.38)}
-      style={[
-        styles.statCard,
-        { backgroundColor: gradient?.[0] || colors.primary },
-        isSmallDevice && styles.statCardSmall,
-        IOS_26_LIQUID_GLASS_ENABLED && styles.statCardGlass,
-      ]}
+const StatCard = React.memo(
+  ({ icon, value, label, secondary, details, onPress, colors }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? "button" : undefined}
+      accessibilityLabel={`${label}: ${details ? details.map((row) => `${row.label} ${row.value}`).join(", ") : value}${secondary ? `, ${secondary}` : ""}`}
+      activeOpacity={0.8}
+      style={styles.statCardButton}
     >
-      <LinearGradient
-        colors={gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <View
         style={[
-          StyleSheet.absoluteFill,
-          IOS_26_LIQUID_GLASS_ENABLED && styles.statGradientWash,
+          styles.statCard,
+          { backgroundColor: colors.card, borderColor: colors.border },
         ]}
-      />
-      <View style={styles.statIconContainer}>{icon}</View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-      <View style={styles.statCardTapHint}>
-        <Ionicons
-          name="chevron-forward"
-          size={14}
-          color="rgba(255,255,255,0.6)"
-        />
+      >
+        <View style={styles.statHeading}>
+          <View style={[styles.statAccent, { backgroundColor: colors.primary }]} />
+          {icon}
+          {details && (
+            <Text style={[styles.statHeadingText, { color: colors.text }]}>
+              {label}
+            </Text>
+          )}
+        </View>
+        {details ? (
+          <View style={styles.statDetails}>
+            {details.map((row, index) => (
+              <View
+                key={row.label}
+                style={[
+                  styles.statDetailRow,
+                  index > 0 && { borderTopWidth: 1, borderTopColor: colors.border },
+                ]}
+              >
+                <Text style={[styles.statDetailLabel, { color: colors.subText }]}>
+                  {row.label}
+                </Text>
+                <Text
+                  style={[styles.statDetailValue, { color: colors.text }]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.75}
+                >
+                  {row.value}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <>
+            <View style={styles.statValueRow}>
+              <Text
+                style={[styles.statValue, { color: colors.text }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.75}
+              >
+                {value}
+              </Text>
+              {secondary && (
+                <View style={styles.statSecondaryBadge}>
+                  <Text style={styles.statSecondaryText} numberOfLines={1}>
+                    {secondary}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text style={[styles.statLabel, { color: colors.subText }]}>{label}</Text>
+          </>
+        )}
       </View>
-    </ProfileGlassSurface>
-  </TouchableOpacity>
-));
+    </TouchableOpacity>
+  )
+);
 
 const InfoBadge = React.memo(
   ({ icon, text, color = "#666", bgColor, textColor }) => (
@@ -482,7 +470,7 @@ const KycBadge = React.memo(({ status }) => {
         glassTintColor={meta.bgColor}
         style={[
           styles.kycBadge,
-          { backgroundColor: meta.bgColor },
+          { backgroundColor: `${meta.color}14`, borderColor: `${meta.color}88` },
           IOS_26_LIQUID_GLASS_ENABLED && styles.profileHeaderChipGlass,
         ]}
       >
@@ -611,7 +599,7 @@ const MatchCard = React.memo(({ match, userId, onPress, colors }) => {
           <View
             style={[
               styles.resultBadge,
-              { backgroundColor: isMyWin ? "#4CAF50" : "#9E9E9E" },
+              { backgroundColor: isMyWin ? "#2A8C5C" : "#B74651" },
             ]}
           >
             <Text style={styles.resultText}>{isMyWin ? "THẮNG" : "THUA"}</Text>
@@ -620,11 +608,11 @@ const MatchCard = React.memo(({ match, userId, onPress, colors }) => {
             <Text style={[styles.matchDate, { color: colors.subText }]}>
               {fmtDT(match.dateTime)}
             </Text>
-            <Text style={[styles.tournamentName, { color: colors.text }]}>
-              {match.tournament?.name || "Giao hữu"}
-            </Text>
           </View>
         </View>
+        <Text style={[styles.tournamentName, { color: colors.text }]}>
+          {match.tournament?.name || "Giao hữu"}
+        </Text>
 
         <View style={styles.teamsVerticalContainer}>
           <ProfileGlassSurface
@@ -678,6 +666,10 @@ const MatchCard = React.memo(({ match, userId, onPress, colors }) => {
           </ProfileGlassSurface>
         </View>
 
+        <View style={[styles.matchDetailLink, { borderTopColor: colors.border }]}>
+          <Text style={{ color: colors.subText, fontSize: 13 }}>Xem chi tiết</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.subText} />
+        </View>
         {match.video && (
           <TouchableOpacity
             style={[
@@ -1314,19 +1306,20 @@ const SimpleBarChart = React.memo(
 /* ---------- MAIN COMPONENT ---------- */
 export default function PublicProfileScreen() {
   const theme = useTheme() as any;
+  const insets = useSafeAreaInsets();
   const isDark = theme.dark;
   const v2 = theme?.version === "v2";
 
   const colors = useMemo(
     () => ({
       isDark,
-      primary: v2 ? "#12B6F3" : theme.colors.primary || "#6366F1",
-      bg: v2 ? "#040E20" : isDark ? "#0f1115" : "#F5F7FA",
-      card: v2 ? "#0A1B34" : isDark ? "#181a20" : "#FFFFFF",
+      primary: v2 ? "#0BBFE7" : theme.colors.primary || "#6366F1",
+      bg: v2 ? "#051221" : isDark ? "#0f1115" : "#F5F7FA",
+      card: v2 ? "#0B2035" : isDark ? "#181a20" : "#FFFFFF",
       text: v2 ? "#EAF3FF" : isDark ? "#FFFFFF" : "#333333",
-      subText: v2 ? "#8CA6C8" : isDark ? "#848E9C" : "#666666",
-      border: v2 ? "rgba(92,180,255,0.16)" : isDark ? "#262932" : "#E0E0E0",
-      bgMuted: v2 ? "#0E2244" : isDark ? "#20232b" : "#F8F9FA",
+      subText: v2 ? "#9DB4CC" : isDark ? "#848E9C" : "#666666",
+      border: v2 ? "rgba(103,181,219,0.38)" : isDark ? "#262932" : "#E0E0E0",
+      bgMuted: v2 ? "#0B263A" : isDark ? "#20232b" : "#F8F9FA",
       tabActive: v2 ? "#12B6F3" : "#6366F1",
       tabInactive: v2 ? "#8CA6C8" : isDark ? "#A0A0A0" : "#666666",
     }),
@@ -1336,7 +1329,6 @@ export default function PublicProfileScreen() {
   const { id } = useLocalSearchParams();
   const [activeTab, setActiveTab] = useState(0);
 
-  const scrollY = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef(null);
   const [tabBarY, setTabBarY] = useState(0);
   const [isTabBarSticky, setIsTabBarSticky] = useState(false);
@@ -1694,7 +1686,7 @@ export default function PublicProfileScreen() {
         );
       } else {
         const targetY =
-          tabBarY - (Platform.OS === "ios" ? 44 : 0) + TAB_BAR_HEIGHT + 16;
+          tabBarY;
         requestAnimationFrame(() =>
           scrollViewRef.current?.scrollTo({
             y: Math.max(0, targetY),
@@ -2104,28 +2096,13 @@ export default function PublicProfileScreen() {
     base?.primaryClub?.name ||
     base?.club?.name;
 
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, HEADER_HEIGHT - 100],
-    outputRange: [1, 0],
-    extrapolate: "clamp",
-  });
-
-  const avatarScale = scrollY.interpolate({
-    inputRange: [0, HEADER_HEIGHT - 100],
-    outputRange: [1, 0.6],
-    extrapolate: "clamp",
-  });
-
-  const handleScroll = useMemo(
-    () =>
-      Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
-        useNativeDriver: true,
-        listener: (e) => {
-          if (tabBarY > 0)
-            setIsTabBarSticky(e.nativeEvent.contentOffset.y > tabBarY - 60);
-        },
-      }),
-    [scrollY, tabBarY]
+  const handleScroll = useCallback(
+    (event) => {
+      setIsTabBarSticky(
+        tabBarY > 0 && event.nativeEvent.contentOffset.y >= tabBarY
+      );
+    },
+    [tabBarY]
   );
 
   const onTabBarLayout = useCallback(
@@ -2161,7 +2138,6 @@ export default function PublicProfileScreen() {
     >
       <BottomSheetModalProvider>
         <StatusBar barStyle="light-content" />
-        <ProfileLiquidBackdrop colors={colors} />
 
         {/* Sticky Tab Bar */}
         {isTabBarSticky && (
@@ -2195,167 +2171,37 @@ export default function PublicProfileScreen() {
           </ProfileGlassSurface>
         )}
 
-        {/* Animated Header */}
-        <Animated.View style={[styles.header, { opacity: headerOpacity }]}>
-          <LinearGradient
-            colors={["#6366F1", "#8B5CF6", "#EC4899"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.headerGradient}
+        <View style={[styles.profileNavigation, { backgroundColor: colors.bg }]}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            accessibilityLabel="Quay lại"
+            accessibilityRole="button"
+            style={styles.navigationButton}
           >
-            <View style={styles.headerCircle1} />
-            <View style={styles.headerCircle2} />
-
-            <Animated.View
-              style={[
-                styles.avatarContainer,
-                { transform: [{ scale: avatarScale }] },
-              ]}
-            >
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => setIsImageViewVisible(true)}
-                style={styles.avatarPressable}
-              >
-                <View
-                  style={[styles.avatarWrapper, { borderColor: colors.card }]}
-                >
-                  <Image
-                    source={{ uri: avatarUrl }}
-                    style={styles.avatar}
-                    contentFit="cover"
-                    cachePolicy="memory-disk"
-                    transition={200}
-                    onLoadStart={() => setIsAvatarLoading(true)}
-                    onLoad={() => setIsAvatarLoading(false)}
-                  />
-                  {isAvatarLoading && (
-                    <View style={styles.avatarLoadingOverlay}>
-                      <ActivityIndicator size="small" color="#FFF" />
-                    </View>
-                  )}
-
-                  <View
-                    style={[
-                      styles.onlineStatusBadge,
-                      {
-                        backgroundColor: isOnline ? "#4CAF50" : "#9E9E9E",
-                        borderColor: colors.card,
-                      },
-                    ]}
-                  />
-                </View>
-              </TouchableOpacity>
-
-              {base?.isAdmin && (
-                <View
-                  style={[styles.verifiedBadge, { borderColor: colors.card }]}
-                >
-                  <Ionicons name="shield-checkmark" size={20} color="#FFF" />
-                </View>
-              )}
-            </Animated.View>
-
-            <PlayerNameText
-              user={base}
-              name={base?.name || base?.fullName || "Người dùng"}
-              style={[styles.userName, { textAlign: "center" }]}
-            />
-
-
-            <ProfileGlassSurface
-              colors={colors}
-              effect="clear"
-              tintColor="rgba(255,255,255,0.18)"
-              style={[
-                styles.nicknameContainer,
-                IOS_26_LIQUID_GLASS_ENABLED && styles.profileHeaderChipGlass,
-              ]}
-            >
-              <Text style={styles.userNickname}>
-                @{base?.nickname || "no_nick"}
-              </Text>
-            </ProfileGlassSurface>
-
-            <View style={styles.quickInfoContainer}>
-              {hasData(base?.province) && (
-                <InfoBadge
-                  icon={<Ionicons name="location" size={14} color="#FFF" />}
-                  text={base.province}
-                  color="#FFF"
-                />
-              )}
-
-              <InfoBadge
-                icon={
-                  <MaterialCommunityIcons
-                    name={
-                      genderInfo.label === "Nam"
-                        ? "gender-male"
-                        : "gender-female"
-                    }
-                    size={14}
-                    color="#FFF"
-                  />
-                }
-                text={genderInfo.label}
-                color="#FFF"
-              />
-              <KycBadge status={base?.cccdStatus} />
-
-              {sc?.single != null && (
-                <InfoBadge
-                  text={`SC Đơn: ${num(sc.single)}`}
-                  bgColor="#dcfce7"
-                  textColor="#166534"
-                />
-              )}
-              {sc?.double != null && (
-                <InfoBadge
-                  text={`SC Đôi: ${num(sc.double)}`}
-                  bgColor="#fef9c3"
-                  textColor="#854d0e"
-                />
-              )}
-            </View>
-
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-              activeOpacity={0.8}
-            >
-              <ProfileGlassSurface
-                colors={colors}
-                effect="clear"
-                interactive
-                tintColor="rgba(255,255,255,0.22)"
-                style={styles.headerButtonGlass}
-              >
-                <Ionicons name="chevron-back" size={24} color="#FFF" />
-              </ProfileGlassSurface>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.shareButton}
-              onPress={handleOpenShareSheet}
-            >
-              <ProfileGlassSurface
-                colors={colors}
-                effect="clear"
-                interactive
-                tintColor="rgba(255,255,255,0.22)"
-                style={styles.headerButtonGlass}
-              >
-                <Ionicons name="share-social" size={20} color="#FFF" />
-              </ProfileGlassSurface>
-            </TouchableOpacity>
-          </LinearGradient>
-        </Animated.View>
+            <Ionicons name="chevron-back" size={26} color={colors.text} />
+          </TouchableOpacity>
+          <Text
+            style={[styles.navigationTitle, { color: colors.text }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
+            Hồ sơ vận động viên
+          </Text>
+          <TouchableOpacity
+            onPress={handleOpenShareSheet}
+            accessibilityLabel="Chia sẻ hồ sơ"
+            accessibilityRole="button"
+            style={styles.navigationButton}
+          >
+            <Ionicons name="share-social-outline" size={23} color={colors.text} />
+          </TouchableOpacity>
+        </View>
 
         <Animated.ScrollView
           ref={scrollViewRef}
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 32 }]}
           onScroll={handleScroll}
           scrollEventThrottle={16}
           refreshControl={
@@ -2364,24 +2210,125 @@ export default function PublicProfileScreen() {
               onRefresh={onRefresh}
               tintColor={colors.primary}
               colors={[colors.primary]}
-              progressViewOffset={HEADER_HEIGHT}
             />
           }
         >
-          {/* Social action buttons (Nhắn / Kết bạn) */}
-          <View
-            style={{
-              flexDirection: "row",
-              gap: 8,
-              paddingHorizontal: 16,
-              paddingTop: 8,
-              paddingBottom: 4,
-              justifyContent: "center",
-            }}
-          >
-            <FriendActions userId={String(id)} />
-            <OpenMessageButton userId={String(id)} />
-            {!isSelf ? (
+          <View style={styles.profileHero}>
+            <ProfileCourtBackdrop colors={colors} />
+            <View style={styles.profileIdentity}>
+              <View style={styles.avatarContainer}>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => setIsImageViewVisible(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Xem ảnh đại diện"
+                  style={styles.avatarPressable}
+                >
+                  <View style={[styles.avatarWrapper, { borderColor: colors.primary }]}>
+                    <Image
+                      source={{ uri: avatarUrl }}
+                      style={styles.avatar}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={200}
+                      onLoadStart={() => setIsAvatarLoading(true)}
+                      onLoad={() => setIsAvatarLoading(false)}
+                    />
+                    {isAvatarLoading && (
+                      <View style={styles.avatarLoadingOverlay}>
+                        <ActivityIndicator size="small" color={colors.text} />
+                      </View>
+                    )}
+                    <View
+                      style={[
+                        styles.onlineStatusBadge,
+                        {
+                          backgroundColor: isOnline ? "#4CAF50" : "#9E9E9E",
+                          borderColor: colors.card,
+                        },
+                      ]}
+                    />
+                  </View>
+                </TouchableOpacity>
+                {base?.isAdmin && (
+                  <View
+                    style={[
+                      styles.verifiedBadge,
+                      { borderColor: colors.bg, backgroundColor: colors.primary },
+                    ]}
+                  >
+                    <Ionicons name="shield-checkmark" size={14} color="#FFF" />
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.identityDetails}>
+                <PlayerNameText
+                  user={base}
+                  name={base?.name || base?.fullName || "Người dùng"}
+                  style={[styles.userName, { color: colors.text }]}
+                  numberOfLines={2}
+                />
+                <View style={styles.nicknameStatusRow}>
+                  <Text style={[styles.userNickname, { color: colors.subText }]}>
+                    @{base?.nickname || "no_nick"}
+                  </Text>
+                  <KycBadge status={base?.cccdStatus} />
+                </View>
+                <View style={styles.quickInfoContainer}>
+                  {hasData(base?.province) && (
+                    <View style={styles.identityMeta}>
+                      <Ionicons name="location" size={14} color={colors.subText} />
+                      <Text style={[styles.identityMetaText, { color: colors.subText }]}>
+                        {base.province}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.identityMeta}>
+                    <MaterialCommunityIcons
+                      name={genderInfo.label === "Nam" ? "gender-male" : "gender-female"}
+                      size={15}
+                      color={colors.subText}
+                    />
+                    <Text style={[styles.identityMetaText, { color: colors.subText }]}>
+                      {genderInfo.label}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+            {(sc?.single != null || sc?.double != null) && (
+              <View style={styles.scSummary}>
+                {sc?.single != null && (
+                  <InfoBadge
+                    text={"SC Đơn " + num(sc.single)}
+                    color={colors.primary}
+                    textColor={colors.text}
+                  />
+                )}
+                {sc?.double != null && (
+                  <InfoBadge
+                    text={"SC Đôi " + num(sc.double)}
+                    color={colors.primary}
+                    textColor={colors.text}
+                  />
+                )}
+              </View>
+            )}
+          </View>
+
+          {!isSelf && (
+            <View style={styles.actionRow}>
+              {!!userInfo && (
+                <>
+                  <View style={styles.socialActionCell}>
+                    <FriendActions userId={String(id)} appearance="profile" />
+                  </View>
+                  <View style={styles.socialActionCell}>
+                    <OpenMessageButton userId={String(id)} appearance="profile" />
+                  </View>
+                </>
+              )}
               <TouchableOpacity
                 onPress={() =>
                   router.push({
@@ -2393,119 +2340,85 @@ export default function PublicProfileScreen() {
                     },
                   })
                 }
+                accessibilityRole="button"
                 activeOpacity={0.85}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 6,
-                  paddingHorizontal: 14,
-                  height: 40,
-                  borderRadius: 12,
-                  backgroundColor: "#f59e0b",
-                }}
+                style={[styles.profileAction, styles.challengeAction]}
               >
-                <MaterialCommunityIcons name="sword-cross" size={18} color="#fff" />
-                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>
+                <MaterialCommunityIcons name="sword-cross" size={20} color="#F5B935" />
+                <Text style={[styles.profileActionText, { color: "#F5B935" }]}>
                   Đối đầu
                 </Text>
               </TouchableOpacity>
-            ) : null}
-            <UserActionsMenu
-              userId={String(id)}
-              userName={base?.nickname || base?.name}
-            />
-          </View>
-
-          {/* Hành động dành cho ADMIN: chấm trình + xem CCCD/KYC ngay tại trang hồ sơ */}
-          {isAdminViewer ? (
-            <View
-              style={{
-                flexDirection: "row",
-                gap: 8,
-                paddingHorizontal: 16,
-                paddingTop: 4,
-                paddingBottom: 4,
-                justifyContent: "center",
-              }}
-            >
-              <TouchableOpacity
-                onPress={() => router.push(`/user/${String(id)}/grade` as any)}
-                activeOpacity={0.85}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 6,
-                  paddingHorizontal: 14,
-                  height: 40,
-                  borderRadius: 12,
-                  backgroundColor: "#0EA5E9",
-                }}
-              >
-                <Ionicons name="ribbon-outline" size={18} color="#fff" />
-                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>
-                  Chấm trình
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => router.push(`/user/${String(id)}/kyc` as any)}
-                activeOpacity={0.85}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 6,
-                  paddingHorizontal: 14,
-                  height: 40,
-                  borderRadius: 12,
-                  backgroundColor: "#7C3AED",
-                }}
-              >
-                <Ionicons name="card-outline" size={18} color="#fff" />
-                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>
-                  CCCD / KYC
-                </Text>
-              </TouchableOpacity>
             </View>
-          ) : null}
+          )}
 
-          {/* Stats Cards */}
-          <View
-            style={[
-              styles.statsContainer,
-              isSmallDevice && styles.statsContainerSmall,
-            ]}
-          >
+          {(isAdminViewer || (!!userInfo && !isSelf)) && (
+            <View style={[styles.actionRow, styles.secondaryActions]}>
+              {isAdminViewer && (
+                <>
+                  <TouchableOpacity
+                    onPress={() => router.push(("/user/" + String(id) + "/grade") as any)}
+                    accessibilityRole="button"
+                    activeOpacity={0.85}
+                    style={[styles.profileAction, { borderColor: colors.border }]}
+                  >
+                    <Ionicons name="ribbon-outline" size={20} color={colors.text} />
+                    <Text style={[styles.profileActionText, { color: colors.text }]}>
+                      Chấm trình
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => router.push(("/user/" + String(id) + "/kyc") as any)}
+                    accessibilityRole="button"
+                    activeOpacity={0.85}
+                    style={[styles.profileAction, { borderColor: colors.border }]}
+                  >
+                    <Ionicons name="card-outline" size={20} color={colors.text} />
+                    <Text style={[styles.profileActionText, { color: colors.text }]}>
+                      CCCD / KYC
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+              <UserActionsMenu
+                userId={String(id)}
+                userName={base?.nickname || base?.name}
+                appearance="profile"
+              />
+            </View>
+          )}
+
+          <View style={styles.statsContainer}>
             <StatCard
-              icon={
-                <MaterialCommunityIcons name="tennis" size={32} color="#FFF" />
-              }
+              icon={<MaterialCommunityIcons name="tennis" size={25} color={colors.text} />}
               value={totalMatches}
               label="Tổng trận"
-              gradient={v2 ? ["#0E63B3", "#12B6F3"] : ["#6366F1", "#8B5CF6"]}
               colors={colors}
               onPress={() => handleOpenStatsSheet("matches")}
             />
             <StatCard
-              icon={<FontAwesome5 name="trophy" size={28} color="#FFF" />}
-              value={`${wins} (${winRate}%)`}
+              icon={<FontAwesome5 name="trophy" size={23} color={colors.text} />}
+              value={wins}
+              secondary={String(winRate) + "%"}
               label="Chiến thắng"
-              gradient={v2 ? ["#0891B2", "#22D3EE"] : ["#F59E0B", "#EF4444"]}
               colors={colors}
               onPress={() => handleOpenStatsSheet("wins")}
             />
             <StatCard
-              icon={<Ionicons name="trending-up" size={32} color="#FFF" />}
-              value={`${num(latestSingle)} / ${num(latestDouble)}`}
-              label="Điểm Đơn/Đôi"
-              gradient={v2 ? ["#0A4C8A", "#12B6F3"] : ["#10B981", "#059669"]}
+              icon={<Ionicons name="trending-up" size={25} color={colors.text} />}
+              details={[
+                { label: "Đơn", value: num(latestSingle) },
+                { label: "Đôi", value: num(latestDouble) },
+              ]}
+              label="Điểm trình"
               colors={colors}
               onPress={() => handleOpenStatsSheet("rating")}
             />
             {positionStat?.label ? (
               <StatCard
-                icon={<Ionicons name="grid" size={30} color="#FFF" />}
+                icon={<Ionicons name="grid-outline" size={25} color={colors.text} />}
                 value={positionStat.label}
                 label="Sở trường"
-                gradient={["#7C3AED", "#A855F7"]}
                 colors={colors}
               />
             ) : null}
@@ -2524,14 +2437,10 @@ export default function PublicProfileScreen() {
 
           {/* Tab Navigation */}
           <View style={styles.tabContainer} onLayout={onTabBarLayout}>
-            <ProfileGlassSurface
-              colors={colors}
-              interactive
-              tintColor={profileGlassSurfaceTint(colors, 0.66, 0.54)}
+            <View
               style={[
                 styles.tabWrapper,
-                { backgroundColor: colors.card, borderColor: colors.border },
-                IOS_26_LIQUID_GLASS_ENABLED && styles.profileGlassPanel,
+                { backgroundColor: colors.bg, borderBottomColor: colors.border },
               ]}
             >
               {["Hồ sơ", "Lịch sử thi đấu", "Điểm trình", "Thành tích"].map(
@@ -2546,7 +2455,7 @@ export default function PublicProfileScreen() {
                   />
                 )
               )}
-            </ProfileGlassSurface>
+            </View>
           </View>
 
           {/* Tab Content */}
@@ -2697,6 +2606,9 @@ export default function PublicProfileScreen() {
             {/* TAB 1 (RESTORED OLD UI) */}
             {activeTab === 1 && (
               <View style={styles.matchTab}>
+                <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>
+                  Lịch sử thi đấu
+                </Text>
                 {matchQ.isLoading || (matchQ.isFetching && !matchRaw.length) ? (
                   <EmptyGlassState colors={colors}>
                     <ActivityIndicator size="large" color={colors.primary} />
@@ -2740,10 +2652,7 @@ export default function PublicProfileScreen() {
                               Haptics.ImpactFeedbackStyle.Light
                             );
                             const targetY =
-                              tabBarY -
-                              (Platform.OS === "ios" ? 44 : 0) +
-                              TAB_BAR_HEIGHT +
-                              16;
+                              tabBarY;
                             requestAnimationFrame(() => {
                               scrollViewRef.current?.scrollTo({
                                 y: Math.max(0, targetY),
@@ -2781,10 +2690,7 @@ export default function PublicProfileScreen() {
                               Haptics.ImpactFeedbackStyle.Light
                             );
                             const targetY =
-                              tabBarY -
-                              (Platform.OS === "ios" ? 44 : 0) +
-                              TAB_BAR_HEIGHT +
-                              16;
+                              tabBarY;
                             requestAnimationFrame(() => {
                               scrollViewRef.current?.scrollTo({
                                 y: Math.max(0, targetY),
@@ -2861,10 +2767,7 @@ export default function PublicProfileScreen() {
                               Haptics.ImpactFeedbackStyle.Light
                             );
                             const targetY =
-                              tabBarY -
-                              (Platform.OS === "ios" ? 44 : 0) +
-                              TAB_BAR_HEIGHT +
-                              16;
+                              tabBarY;
                             requestAnimationFrame(() => {
                               scrollViewRef.current?.scrollTo({
                                 y: Math.max(0, targetY),
@@ -2902,10 +2805,7 @@ export default function PublicProfileScreen() {
                               Haptics.ImpactFeedbackStyle.Light
                             );
                             const targetY =
-                              tabBarY -
-                              (Platform.OS === "ios" ? 44 : 0) +
-                              TAB_BAR_HEIGHT +
-                              16;
+                              tabBarY;
                             requestAnimationFrame(() => {
                               scrollViewRef.current?.scrollTo({
                                 y: Math.max(0, targetY),
@@ -3318,7 +3218,7 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
 
-  userName: { fontSize: 24, fontWeight: "800", color: "#FFF", marginBottom: 8 },
+  userName: { fontSize: 23, fontWeight: "800", color: "#FFF", marginBottom: 8, flexShrink: 1 },
   nicknameContainer: {
     backgroundColor: "rgba(255,255,255,0.2)",
     paddingHorizontal: 16,
@@ -3331,10 +3231,8 @@ const styles = StyleSheet.create({
   quickInfoContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "center",
     gap: 8,
     alignItems: "center",
-    maxWidth: "90%",
   },
   badge: {
     flexDirection: "row",
@@ -3354,6 +3252,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 14,
+    borderWidth: 1,
   },
   kycBadgeText: { fontSize: 12, fontWeight: "700" },
 
@@ -3391,10 +3290,124 @@ const styles = StyleSheet.create({
   },
 
   scrollView: { flex: 1 },
-  scrollContent: { paddingTop: HEADER_HEIGHT + 8, paddingBottom: 40 },
+  scrollContent: { paddingTop: 4, paddingBottom: 40 },
+
+  profileNavigation: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    height: 52,
+    paddingHorizontal: 8,
+  },
+  navigationButton: {
+    width: 44,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  navigationTitle: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 17,
+    fontWeight: "700",
+  },
+
+  profileHero: {
+    position: "relative",
+    overflow: "hidden",
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingVertical: 12,
+  },
+  profileCourtBackdrop: { ...StyleSheet.absoluteFillObject },
+  profileIdentity: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  identityDetails: { flex: 1, minWidth: 0 },
+  nicknameStatusRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  identityMeta: { flexDirection: "row", alignItems: "center", gap: 4 },
+  identityMetaText: { fontSize: 13, fontWeight: "600" },
+  scSummary: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 12,
+  },
+
+  actionRow: {
+    flexDirection: "row",
+    gap: 10,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  secondaryActions: { alignItems: "center" },
+  socialActionCell: { flex: 1, minWidth: 0 },
+  profileAction: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    minHeight: 44,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  challengeAction: {
+    borderColor: "rgba(245,185,53,0.55)",
+    backgroundColor: "rgba(245,185,53,0.12)",
+  },
+  profileActionText: { fontSize: 13, fontWeight: "700", flexShrink: 1 },
+
+  statCardButton: { flexGrow: 1, flexBasis: "47%", minWidth: 0 },
+  statHeading: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 8,
+  },
+  statAccent: { width: 3, height: 16, borderRadius: 2 },
+  statHeadingText: { fontSize: 12, fontWeight: "700" },
+  statDetails: { alignSelf: "stretch" },
+  statDetailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 4,
+  },
+  statDetailLabel: { fontSize: 12, fontWeight: "600" },
+  statDetailValue: {
+    fontSize: 21,
+    fontWeight: "800",
+    fontVariant: ["tabular-nums"],
+    marginLeft: 6,
+    flexShrink: 1,
+  },
+  statValueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    maxWidth: "100%",
+  },
+  statSecondaryBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    backgroundColor: "rgba(76,175,80,0.18)",
+  },
+  statSecondaryText: { fontSize: 11, fontWeight: "700", color: "#4CAF50" },
 
   statsContainer: {
     flexDirection: "row",
+    flexWrap: "wrap",
     paddingHorizontal: 16,
     gap: 12,
     marginBottom: 16,
@@ -3402,11 +3415,12 @@ const styles = StyleSheet.create({
   statsContainerSmall: { flexDirection: "column" },
   statCard: {
     flex: 1,
-    padding: 16,
+    padding: 14,
     borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 110,
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    minHeight: 116,
+    borderWidth: 1,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -3424,26 +3438,28 @@ const styles = StyleSheet.create({
   statCardSmall: { width: "100%", alignSelf: "stretch" },
   statIconContainer: { marginBottom: 8 },
   statValue: {
-    fontSize: 20,
+    fontSize: 30,
     fontWeight: "800",
+    fontVariant: ["tabular-nums"],
+    flexShrink: 1,
     color: "#FFF",
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 13,
     color: "rgba(255,255,255,0.9)",
-    textAlign: "center",
+    textAlign: "left",
     fontWeight: "600",
   },
   statCardTapHint: { position: "absolute", right: 10, top: 10, opacity: 0.9 },
 
   stickyTabBar: {
     position: "absolute",
-    top: 0,
+    top: NAVIGATION_HEIGHT,
     left: 0,
     right: 0,
-    height: TAB_BAR_HEIGHT + (Platform.OS === "ios" ? 44 : 0),
-    paddingTop: Platform.OS === "ios" ? 44 : 0,
+    height: TAB_BAR_HEIGHT,
+    paddingTop: 0,
     zIndex: 100,
     borderBottomWidth: 1,
     shadowColor: "#000",
@@ -3460,10 +3476,13 @@ const styles = StyleSheet.create({
   },
   stickyTab: {
     flex: 1,
-    height: 40,
+    minWidth: 0,
+    height: TAB_BAR_HEIGHT,
+    borderBottomWidth: 3,
+    borderBottomColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 8,
+    borderRadius: 0,
   },
   stickyTabActive: { backgroundColor: "#6366F1" },
   stickyTabText: { fontSize: 12, fontWeight: "600" },
@@ -3478,11 +3497,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
 
-  tabContainer: { marginBottom: 16, paddingHorizontal: 16 },
+  tabContainer: { marginBottom: 20, paddingHorizontal: 16 },
   tabWrapper: {
     flexDirection: "row",
-    borderRadius: 12,
-    padding: 4,
+    borderBottomWidth: 1,
+    padding: 0,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -3491,14 +3510,17 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
+    minWidth: 0,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderBottomWidth: 3,
+    borderBottomColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
   },
   tabActive: { backgroundColor: "#6366F1" },
-  tabText: { fontSize: 13, fontWeight: "600" },
-  tabTextActive: { color: "#FFF" },
+  historyTab: { flex: 1.5 },
+  tabText: { fontSize: 12, fontWeight: "600" },
+  tabTextActive: { fontWeight: "800" },
 
   tabContent: { paddingHorizontal: 16 },
   profileTab: { gap: 20 },
@@ -3537,6 +3559,8 @@ const styles = StyleSheet.create({
   matchCard: { borderRadius: 16, overflow: "hidden", marginBottom: 12 },
   matchCardContainer: {
     padding: 16,
+    borderWidth: 1,
+    borderRadius: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -3563,7 +3587,15 @@ const styles = StyleSheet.create({
   },
   matchHeaderRight: { flex: 1, alignItems: "flex-end" },
   matchDate: { fontSize: 11, marginBottom: 2 },
-  tournamentName: { fontSize: 13, fontWeight: "600" },
+  tournamentName: { fontSize: 16, fontWeight: "700", marginBottom: 14 },
+  matchDetailLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderTopWidth: 1,
+    marginTop: 14,
+    paddingTop: 12,
+  },
   teamsVerticalContainer: { gap: 12 },
   teamSection: { borderRadius: 12, padding: 12 },
   teamPlayers: { gap: 8 },
@@ -3596,7 +3628,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     flexWrap: "wrap",
   },
-  scoreChangeCompact: { flexDirection: "row", alignItems: "center", gap: 6 },
+  scoreChangeCompact: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 },
   scoreChangeTextCompact: { fontSize: 11 },
   deltaTextCompact: { fontSize: 10, fontWeight: "700" },
   scChipsRow: { flexDirection: "row", gap: 4 },

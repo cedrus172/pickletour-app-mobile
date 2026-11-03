@@ -17,9 +17,11 @@ import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
 export function UserActionsMenu({
   userId,
   userName,
+  appearance = "default",
 }: {
   userId: string;
   userName?: string;
+  appearance?: "default" | "profile";
 }) {
   const C = useThemeTokens();
   const styles = useMemo(() => mk_styles(C), [C]);
@@ -80,7 +82,7 @@ export function UserActionsMenu({
     <Pressable
       onPress={openMenu}
       disabled={blocking || unblocking}
-      style={styles.btn}
+      style={[styles.btn, appearance === "profile" && { width: 44, height: 44, borderRadius: 12 }]}
       hitSlop={10}
     >
       <Ionicons name="ellipsis-horizontal" size={20} color={C.text2} />
