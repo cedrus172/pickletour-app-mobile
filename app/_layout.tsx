@@ -7,7 +7,7 @@ import { useFonts } from "expo-font";
 import { useIconFontsReady } from "@/hooks/useIconFontsReady";
 import { router,
   Stack,
-  useSegments } from "expo-router";
+  useSegments, usePathname, useGlobalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React,
   { useEffect } from "react";
@@ -75,6 +75,8 @@ import { IOS_26_NATIVE_TABS_ENABLED } from "@/utils/nativeTabs";
 import { enableFreeze } from "react-native-screens";
 import { installJsCrashReporter } from "@/services/crashFeedbackService";
 
+const { buildOtaRoute, validOtaSnapshot } = require("@/utils/otaRouteRestore.cjs");
+
 const ENABLE_SCREEN_FREEZE = Platform.OS !== "android";
 
 enableFreeze(ENABLE_SCREEN_FREEZE);
@@ -134,6 +136,7 @@ const SPLASH_GLOBAL_FAILSAFE_MS = 5000;
 const PREF_THEME_KEY = "PREF_THEME"; // "system" | "light" | "dark"
 const HOT_UPDATE_NOTIFY_EVENT = "hotupdater:notify";
 const HOT_UPDATE_NOTIFY_KEY = "__PICKLETOUR_HOTUPDATE_NOTIFY__";
+const OTA_ROUTE_RESTORE_KEY = "__PICKLETOUR_OTA_ROUTE_RESTORE__";
 const HOT_UPDATE_RELOAD_EVENT = "hotupdater:before-reload";
 const HOT_UPDATE_RELOAD_KEY = "__PICKLETOUR_HOTUPDATE_RELOAD__";
 const HOT_UPDATE_PENDING_KEY = "__PICKLETOUR_HOTUPDATE_PENDING__";
@@ -681,6 +684,10 @@ function RootLayout() {
   }, []);
 
   const segments = useSegments();
+  const currentPathname = usePathname();
+  const currentParams = useGlobalSearchParams();
+  const otaRouteRef = React.useRef<string | null>(null);
+  otaRouteRef.current = buildOtaRoute(currentPathname, currentParams);
   const isMainNotificationScreen = isMainNotificationRoute(segments);
   const isRefereeScoringScreen = isRefereeScoringRoute(segments);
   const isTabsRoute = segments[0] === "(tabs)";
@@ -922,9 +929,34 @@ function RootLayout() {
       if (!pendingPayload || otaReloadInProgressRef.current || otaReloadProtectedRef.current || AppState.currentState !== "active") return;
       otaReloadInProgressRef.current = true;
       otaDiag("đã tải; tự reload ngoài màn hình trọng tài");
-      (globalThis as any)[HOT_UPDATE_RELOAD_KEY] = true;
-      DeviceEventEmitter.emit(HOT_UPDATE_RELOAD_EVENT);
-      (async () => { await HotUpdater.reload(); })().catch((error: unknown) => {
+      (async () => {
+        const route = otaRouteRef.current;
+        const user: any = store.getState()?.auth?.userInfo;
+        try {
+          if (route && !mobileAppShellActiveRef.current) {
+            await SecureStore.setItemAsync(OTA_ROUTE_RESTORE_KEY, JSON.stringify({
+              route, bundleId: pendingPayload.bundleId,
+              userId: String(user?._id || user?.id || ""), createdAt: Date.now(),
+            }));
+          } else {
+            await SecureStore.deleteItemAsync(OTA_ROUTE_RESTORE_KEY);
+          }
+        } catch (error) {
+          console.warn("[HotUpdater] Không lưu được trang hiện tại:", error);
+        }
+        // Người dùng có thể đổi trang hoặc vào màn trọng tài trong lúc đang lưu.
+        if (otaReloadProtectedRef.current || AppState.currentState !== "active" || otaRouteRef.current !== route) {
+          await SecureStore.deleteItemAsync(OTA_ROUTE_RESTORE_KEY).catch(() => {});
+          (globalThis as any)[HOT_UPDATE_RELOAD_KEY] = false;
+          otaReloadInProgressRef.current = false;
+          scheduleHotUpdateReload();
+          return;
+        }
+        (globalThis as any)[HOT_UPDATE_RELOAD_KEY] = true;
+        DeviceEventEmitter.emit(HOT_UPDATE_RELOAD_EVENT);
+        await HotUpdater.reload();
+      })().catch((error: unknown) => {
+        void SecureStore.deleteItemAsync(OTA_ROUTE_RESTORE_KEY).catch(() => {});
         (globalThis as any)[HOT_UPDATE_RELOAD_KEY] = false;
         otaReloadInProgressRef.current = false;
         otaReadyPayloadRef.current = null;
@@ -1575,6 +1607,33 @@ function RootLayout() {
     },
     [lifecycle.phase],
   );
+
+  const otaRouteRestoreAttemptedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (lifecycle.phase !== "ready" || !mobileAppShellReady || otaRouteRestoreAttemptedRef.current) return;
+    otaRouteRestoreAttemptedRef.current = true;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const raw = await SecureStore.getItemAsync(OTA_ROUTE_RESTORE_KEY);
+        if (!raw) return;
+        await SecureStore.deleteItemAsync(OTA_ROUTE_RESTORE_KEY);
+        const snapshot = JSON.parse(raw);
+        const cached: any = store.getState()?.auth?.userInfo || await loadUserInfo();
+        const initialUrl = await Linking.getInitialURL();
+        if (cancelled || isWebViewShellActive || navigationQueue.current.length ||
+            (initialUrl && !/^exp(s)?:/i.test(initialUrl)) ||
+            !validOtaSnapshot(snapshot, {
+              now: Date.now(), bundleId: String(HotUpdater?.getBundleId?.() || ""),
+              userId: String(cached?._id || cached?.id || ""),
+            })) return;
+        queueNavigation(snapshot.route);
+      } catch (error) {
+        console.warn("[HotUpdater] Không khôi phục được trang:", error);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [lifecycle.phase, mobileAppShellReady, isWebViewShellActive, queueNavigation]);
 
   // Process queue when ready
   React.useEffect(() => {

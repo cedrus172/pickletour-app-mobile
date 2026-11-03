@@ -21,6 +21,10 @@ function fixture(options = {}) {
     isRefereeScoringScreen: !!options.protected,
     otaReloadProtectedRef: { current: !!options.protected }, otaReadyPayloadRef: { current: null }, otaReloadInProgressRef: { current: false },
     isExpoGo: false, Platform: { OS: 'ios' },
+    otaRouteRef: { current: '/profile' }, mobileAppShellActiveRef: { current: false },
+    store: { getState: () => ({ auth: { userInfo: { _id: 'user' } } }) },
+    SecureStore: { setItemAsync: async (_k, v) => { state.route = v; }, deleteItemAsync: async () => { state.route = null; } },
+    OTA_ROUTE_RESTORE_KEY: 'test:route',
     otaCheckInFlightRef: { current: false }, otaLastCheckAtRef: { current: 0 }, otaIgnoredUpdateIdRef: { current: null }, otaCompletionTimerRef: { current: null },
     setHotUpdateVisible: v => state.visible = v, setHotUpdateBlocking: v => state.blocking = v, setHotUpdateProgress: v => state.progress = v, setHotUpdateStatus: v => state.status = v, setHotUpdateMessage: v => state.message = v,
     savePendingHotUpdate: async p => state.pending = p, getPendingHotUpdate: async () => state.pending, clearPendingHotUpdate: async () => state.pending = null,
@@ -45,7 +49,7 @@ test('ordinary update downloads without alert or blocking UI, then automatically
   assert.equal(f.state.downloads, 1); assert.equal(f.state.alerts.length, 0); assert.equal(f.state.blocking, false);
   assert.equal(f.state.pending.bundleId, '0003'); assert.equal(f.state.reloads, 0); assert.equal(f.state.events.length, 0);
   assert.equal(f.state.status, 'done'); assert.equal(f.env.otaCheckInFlightRef.current, false);
-  assert.equal(f.state.timers[0].ms, 700); f.state.timers[0].f(); assert.equal(f.state.reloads, 1); assert.deepEqual(f.state.events, ['test:reload']);
+  assert.equal(f.state.timers[0].ms, 700); f.state.timers[0].f(); await new Promise(r => setImmediate(r)); assert.equal(f.state.reloads, 1); assert.deepEqual(f.state.events, ['test:reload']);
 });
 test('hung telemetry does not delay download completion', async () => {
   const f = fixture({ hungTelemetry: true }); await f.checkForHotUpdate(); assert.equal(f.state.status, 'done'); assert.equal(f.state.pending.bundleId, '0003');
@@ -64,7 +68,7 @@ for (const force of ['server', 'remote']) {
     assert.equal(f.state.alerts.length, 1); assert.equal(f.state.downloads, 0);
     f.state.alerts[0][2][0].onPress(); await new Promise(r => setImmediate(r));
     assert.equal(f.state.blocking, true); assert.equal(f.state.timers[0].ms, 700);
-    f.state.timers[0].f(); assert.equal(f.state.reloads, 1); assert.deepEqual(f.state.events, ['test:reload']);
+    f.state.timers[0].f(); await new Promise(r => setImmediate(r)); assert.equal(f.state.reloads, 1); assert.deepEqual(f.state.events, ['test:reload']);
   });
 }
 test('remote kill switch still prevents updates', async () => {
@@ -82,7 +86,7 @@ test('a stale crashed pending bundle does not prevent downloading a healthy newe
   const f = fixture({ pending: { bundleId: '0002' }, crashed: ['0002'] });
   await f.checkForHotUpdate();
   assert.equal(f.state.pending.bundleId, '0003'); assert.equal(f.state.downloads, 1);
-  f.state.timers[0].f(); assert.equal(f.state.reloads, 1);
+  f.state.timers[0].f(); await new Promise(r => setImmediate(r)); assert.equal(f.state.reloads, 1);
 });
 test('a staged bundle is not reported as applied by the previous runtime', async () => {
   const f = fixture({ pending: { bundleId: '0003' } }); await f.handleHotUpdateNotifyTelemetry({ status: 'STABLE' });
@@ -103,45 +107,94 @@ test('route policy protects match scoring with route groups, actual IDs and the 
 });
 test('download on referee scoring waits without any reload event, then reloads on leaving', async () => {
   const f = fixture({ protected: true }); await f.checkForHotUpdate();
-  assert.equal(f.state.timers[0].ms, 2000); f.state.timers[0].f(); assert.equal(f.state.reloads, 0); assert.equal(f.state.events.length, 0);
-  f.changeRoute(['(tabs)']); assert.equal(f.state.timers[0].ms, 700); f.state.timers[0].f(); assert.equal(f.state.reloads, 1);
+  assert.equal(f.state.timers[0].ms, 2000); f.state.timers[0].f(); await new Promise(r => setImmediate(r)); assert.equal(f.state.reloads, 0); assert.equal(f.state.events.length, 0);
+  f.changeRoute(['(tabs)']); assert.equal(f.state.timers[0].ms, 700); f.state.timers[0].f(); await new Promise(r => setImmediate(r)); assert.equal(f.state.reloads, 1);
 });
 test('entering scoring before reload cancels the timer; even an old callback cannot reload', async () => {
   const f = fixture(); await f.checkForHotUpdate(); const oldTimer = f.state.timers[0];
-  f.changeRoute(['match','[id]','referee']); assert.equal(f.state.timers.length, 0); oldTimer.f();
+  f.changeRoute(['match','[id]','referee']); assert.equal(f.state.timers.length, 0); oldTimer.f(); await new Promise(r => setImmediate(r));
   assert.equal(f.state.reloads, 0); assert.equal(f.state.events.length, 0);
 });
 test('download starts outside scoring but finishes inside: latest route wins', async () => {
   let resolve; const f = fixture({ update: { updateBundle: () => new Promise(r => resolve = r) } });
   const pending = f.checkForHotUpdate(); await new Promise(r => setImmediate(r)); f.changeRoute(['match','123','referee']); resolve(true); await pending;
-  assert.equal(f.state.timers[0].ms, 2000); f.state.timers[0].f(); assert.equal(f.state.reloads, 0);
+  assert.equal(f.state.timers[0].ms, 2000); f.state.timers[0].f(); await new Promise(r => setImmediate(r)); assert.equal(f.state.reloads, 0);
 });
 test('leaving then quickly returning to scoring keeps the downloaded update queued', async () => {
   const f = fixture({ protected: true }); await f.checkForHotUpdate(); f.changeRoute(['(tabs)']); const timer = f.state.timers[0];
-  f.changeRoute(['match','456','referee']); timer.f(); assert.equal(f.state.reloads, 0); assert.equal(f.state.pending.bundleId, '0003');
+  f.changeRoute(['match','456','referee']); timer.f(); await new Promise(r => setImmediate(r)); assert.equal(f.state.reloads, 0); assert.equal(f.state.pending.bundleId, '0003');
 });
 test('background completion waits for foreground; scoring still blocks foreground reload', async () => {
   const f = fixture({ appState: 'background' }); await f.checkForHotUpdate(); assert.equal(f.state.timers.length, 0);
   f.changeRoute(['match','123','referee']); f.changeAppState('active'); assert.equal(f.state.timers.length, 0);
-  f.changeRoute(['(tabs)']); f.state.timers[0].f(); assert.equal(f.state.reloads, 1);
+  f.changeRoute(['(tabs)']); f.state.timers[0].f(); await new Promise(r => setImmediate(r)); assert.equal(f.state.reloads, 1);
 });
 test('becoming inactive before reload cancels it until the app is active again', async () => {
-  const f = fixture(); await f.checkForHotUpdate(); const timer = f.state.timers[0]; f.changeAppState('inactive'); timer.f();
-  assert.equal(f.state.reloads, 0); f.changeAppState('active'); f.state.timers[0].f(); assert.equal(f.state.reloads, 1);
+  const f = fixture(); await f.checkForHotUpdate(); const timer = f.state.timers[0]; f.changeAppState('inactive'); timer.f(); await new Promise(r => setImmediate(r));
+  assert.equal(f.state.reloads, 0); f.changeAppState('active'); f.state.timers[0].f(); await new Promise(r => setImmediate(r)); assert.equal(f.state.reloads, 1);
 });
 test('forced update cannot reload or block scoring either', async () => {
   const f = fixture({ protected: true }); await f.startHotUpdate(f.update, true);
-  assert.equal(f.state.blocking, false); f.state.timers[0].f(); assert.equal(f.state.reloads, 0);
-  f.changeRoute(['(tabs)']); f.state.timers[0].f(); assert.equal(f.state.reloads, 1);
+  assert.equal(f.state.blocking, false); f.state.timers[0].f(); await new Promise(r => setImmediate(r)); assert.equal(f.state.reloads, 0);
+  f.changeRoute(['(tabs)']); f.state.timers[0].f(); await new Promise(r => setImmediate(r)); assert.equal(f.state.reloads, 1);
 });
 test('repeated scheduling cannot trigger duplicate reloads', async () => {
-  const f = fixture(); await f.checkForHotUpdate(); f.scheduleHotUpdateReload(); const timer = f.state.timers[0]; timer.f(); timer.f(); f.scheduleHotUpdateReload();
+  const f = fixture(); await f.checkForHotUpdate(); f.scheduleHotUpdateReload(); const timer = f.state.timers[0]; timer.f(); await new Promise(r => setImmediate(r)); timer.f(); await new Promise(r => setImmediate(r)); f.scheduleHotUpdateReload();
   assert.equal(f.state.reloads, 1); assert.equal(f.state.events.length, 1);
 });
 test('reload failure retains pending for cold start and does not loop', async () => {
-  const f = fixture({ reloadError: true }); await f.checkForHotUpdate(); f.state.timers[0].f(); await new Promise(r => setImmediate(r));
+  const f = fixture({ reloadError: true }); await f.checkForHotUpdate(); f.state.timers[0].f(); await new Promise(r => setImmediate(r)); await new Promise(r => setImmediate(r));
   assert.equal(f.state.pending.bundleId, '0003'); assert.equal(f.env.otaReadyPayloadRef.current, null); f.scheduleHotUpdateReload(); assert.equal(f.state.reloads, 1);
 });
 test('unmount removes the app-state listener and cancels scheduled reload', async () => {
   const f = fixture(); await f.checkForHotUpdate(); f.cleanups.forEach(f => f?.()); assert.equal(f.state.timers.length, 0); assert.equal(f.state.listeners.length, 0);
+});
+
+test('trì hoãn reload nếu người dùng vào màn trọng tài trong lúc lưu trang', async () => {
+  let finishSave;
+  const f = fixture();
+  f.env.SecureStore.setItemAsync = () => new Promise(resolve => { finishSave = resolve; });
+  await f.checkForHotUpdate();
+  f.state.timers[0].f();
+  assert.equal(f.state.reloads, 0);
+  f.env.otaReloadProtectedRef.current = true;
+  finishSave();
+  await new Promise(r => setImmediate(r));
+  assert.equal(f.state.reloads, 0);
+  assert.deepEqual(f.state.events, []);
+});
+
+test('lưu trang và tài khoản trước khi reload OTA', async () => {
+  const f = fixture();
+  await f.checkForHotUpdate();
+  f.state.timers[0].f();
+  await new Promise(r => setImmediate(r));
+  const saved = JSON.parse(f.state.route);
+  assert.equal(saved.route, '/profile');
+  assert.equal(saved.userId, 'user');
+  assert.equal(saved.bundleId, '0003');
+  assert.equal(f.state.reloads, 1);
+});
+
+test('đổi trang khi lưu sẽ lập lịch lại thay vì khôi phục sai trang', async () => {
+  let finishSave;
+  const f = fixture();
+  f.env.SecureStore.setItemAsync = () => new Promise(resolve => { finishSave = resolve; });
+  await f.checkForHotUpdate();
+  f.state.timers[0].f();
+  f.env.otaRouteRef.current = '/rankings';
+  finishSave();
+  await new Promise(r => setImmediate(r));
+  assert.equal(f.state.reloads, 0);
+  assert.deepEqual(f.state.events, []);
+  assert.equal(f.state.timers.at(-1).ms, 700);
+});
+
+test('không chặn cập nhật khi bộ nhớ lưu trang gặp lỗi', async () => {
+  const f = fixture();
+  f.env.SecureStore.setItemAsync = async () => { throw new Error('storage'); };
+  await f.checkForHotUpdate();
+  f.state.timers[0].f();
+  await new Promise(r => setImmediate(r));
+  assert.equal(f.state.reloads, 1);
 });
