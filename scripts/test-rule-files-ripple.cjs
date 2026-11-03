@@ -46,18 +46,14 @@ test('ripple adapter preserves native lazy getters and namespace exports', () =>
   assert.equal(wrapperLoads, 0); assert.equal(mod.exports.Pressable, 'RipplePressable'); assert.equal(wrapperLoads, 1); assert.equal(mod.exports.TouchableOpacity, 'RippleTouchable');
   assert.deepEqual(Object.keys(mod.exports), Object.keys(native));
 });
-test('Metro wraps app buttons, leaves dependencies/native internals untouched and retains isolated icons', () => {
+test('Metro keeps native imports unchanged and retains isolated icons', () => {
   const mod = { exports: {} };
   const req = (name) => name === 'path' ? path : { getDefaultConfig: () => ({ resolver: {} }) };
   req.resolve = () => '/expo/createIconSet.js';
   vm.runInNewContext(fs.readFileSync(path.join(root, 'metro.config.cjs'), 'utf8'), { require: req, module: mod, __dirname: root });
   const resolve = mod.exports.resolver.resolveRequest;
   const context = (origin, target = '/native/index.js') => ({ originModulePath: origin, resolveRequest: () => ({ type: 'sourceFile', filePath: target }) });
-  assert.equal(resolve(context(path.join(root, 'app/test.tsx')), 'react-native', 'ios').filePath, path.join(root, 'utils/rippleNative.cjs'));
-  for (const origin of [path.join(root, 'node_modules/library/button.js'), path.join(root, 'utils/rippleNative.cjs'), path.join(root, 'components/ui/RippleButtons.tsx')]) {
-    assert.equal(resolve(context(origin), 'react-native', 'ios').filePath, '/native/index.js');
-  }
-  assert.equal(resolve(context(path.join(root, 'app/test.tsx')), 'react-native', 'web').filePath, '/native/index.js');
+  assert.equal(resolve(context(path.join(root, 'app/test.tsx')), 'react-native', 'ios').filePath, '/native/index.js');
   assert.equal(resolve(context(path.join(root, 'app/test.tsx'), '/expo/createIconSet.js'), 'icon-factory', 'ios').filePath, path.join(root, 'utils/createIsolatedIconSet.ts'));
 });
 test('ranking filters expose only singles and doubles without deleting stored mixed ratings', () => {
