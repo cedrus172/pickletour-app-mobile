@@ -1656,10 +1656,9 @@ MemoizedChartView.displayName = "MemoizedChartView";
 // ===== Lọc điểm trình theo range (thanh kéo) =====
 const SCORE_MIN = 2.0;
 const SCORE_MAX = 8.0;
-const SCORE_TYPES: { value: "single" | "double" | "mix"; label: string }[] = [
+const SCORE_TYPES: { value: "single" | "double"; label: string }[] = [
   { value: "single", label: "Đơn" },
   { value: "double", label: "Đôi" },
-  { value: "mix", label: "Đôi NN" },
 ];
 
 export default function RankingListScreen({ isBack = false }) {

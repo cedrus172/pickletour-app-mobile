@@ -1,4 +1,5 @@
 import OverviewHeroArt from "@/components/tournament/OverviewHeroArt";
+import TournamentRuleFiles from "@/components/tournament/TournamentRuleFiles";
 import { t } from "@/utils/i18n";
 import { useUiVersion } from "@/hooks/uiVersion";
 // app/screens/TournamentRegistrationScreen.tsx
@@ -2793,6 +2794,7 @@ export default function TournamentRegistrationScreen() {
 
           {/* HTML Columns (Content/Contact) */}
           <HtmlCols tour={tour} />
+          <TournamentRuleFiles tournamentId={String(id)} canManage={canManage} />
 
           {/* Registration Form */}
           <RegisterGlassSurface

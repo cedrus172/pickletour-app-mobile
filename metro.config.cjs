@@ -47,8 +47,18 @@ config.resolver.blockList = [
 // PostScript names. Isolate the Expo copies without changing screen imports.
 const expoIconFactory = require.resolve('@expo/vector-icons/build/createIconSet');
 const isolatedIconFactory = path.join(projectRoot, 'utils/createIsolatedIconSet.ts');
+const rippleNative = path.join(projectRoot, 'utils/rippleNative.cjs');
+const rippleButtons = path.join(projectRoot, 'components/ui/RippleButtons.tsx');
 const resolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // Only app-owned imports are wrapped. Native internals and dependencies keep
+  // their original exports, and the wrapper itself must never resolve recursively.
+  if (platform !== 'web' && moduleName === 'react-native' &&
+      context.originModulePath.startsWith(projectRoot + path.sep) &&
+      !context.originModulePath.includes(path.sep + 'node_modules' + path.sep) &&
+      ![rippleNative, rippleButtons].includes(context.originModulePath)) {
+    return { type: 'sourceFile', filePath: rippleNative };
+  }
   const resolved = resolveRequest
     ? resolveRequest(context, moduleName, platform)
     : context.resolveRequest(context, moduleName, platform);
