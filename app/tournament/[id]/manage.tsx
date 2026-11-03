@@ -4039,9 +4039,8 @@ ${html.replace(/<html>|<\/html>|<head>.*?<\/head>|<!doctype[^>]*>/gis, "")}
                   style={[
                     styles.modalCard,
                     {
-                      backgroundColor: IOS_26_LIQUID_GLASS_ENABLED
-                        ? "transparent"
-                        : colors.card,
+                      backgroundColor: dark ? "#0B1D34" : "#FFFFFF",
+                      bottom: Math.max(20, insets.bottom + 8),
                       borderColor: colors.border,
                     },
                     IOS_26_LIQUID_GLASS_ENABLED && styles.glassModalCard,
@@ -4081,7 +4080,7 @@ ${html.replace(/<html>|<\/html>|<head>.*?<\/head>|<!doctype[^>]*>/gis, "")}
                   <View
                     style={[
                       styles.inputWrap,
-                      { borderColor: colors.border },
+                      { borderColor: colors.border, backgroundColor: dark ? "#102943" : "#F1F5F9" },
                       IOS_26_LIQUID_GLASS_ENABLED && styles.glassInput,
                     ]}
                   >

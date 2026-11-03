@@ -14,7 +14,7 @@ import {
   BottomSheetModal,
   BottomSheetBackdrop,
   BottomSheetScrollView,
-} from "@gorhom/bottom-sheet";
+} from "@/components/sheets/rnModalSheet";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
 
@@ -264,11 +264,12 @@ export default function AssignRefSheet({
     data: referees = [],
     isLoading,
     isFetching,
+    isUninitialized: refereesUninitialized,
     error,
     refetch,
   } = useListTournamentRefereesQuery(
     { tid: tournamentId, q: debouncedQ, limit },
-    { skip: !open || !tournamentId }
+    { skip: !open || !tournamentId, refetchOnMountOrArgChange: true }
   );
 
   // Danh sách TT đã gán (khi chỉ 1 trận)
@@ -276,18 +277,12 @@ export default function AssignRefSheet({
     data: assignedForSingle = [],
     isLoading: assignedLoading,
     isFetching: assignedFetching,
+    isUninitialized: assignedUninitialized,
     refetch: refetchAssigned,
   } = useAdminGetMatchRefereesQuery(
     { tid: tournamentId, matchId: singleMatchId || "" },
-    { skip: !open || !tournamentId || !singleMatchId }
+    { skip: !open || !tournamentId || !singleMatchId, refetchOnMountOrArgChange: true }
   );
-
-  // mỗi lần sheet mở thì refetch lại
-  useEffect(() => {
-    if (!open) return;
-    refetch?.();
-    if (singleMatchId) refetchAssigned?.();
-  }, [open, refetch, refetchAssigned, singleMatchId]);
 
   // State chọn
   const [selected, setSelected] = useState([]);
@@ -315,7 +310,7 @@ export default function AssignRefSheet({
   // Prefill 1 lần khi đã có assigned list
   useEffect(() => {
     if (!open || !singleMatchId) return;
-    if (assignedLoading || assignedFetching) return;
+    if (assignedUninitialized || assignedLoading || assignedFetching) return;
     if (didInitRef.current) return;
     const ids = (assignedForSingle || []).map((u) => String(u._id));
     setSelected(ids);
@@ -325,6 +320,7 @@ export default function AssignRefSheet({
     singleMatchId,
     assignedLoading,
     assignedFetching,
+    assignedUninitialized,
     assignedForSingle,
   ]);
 
@@ -419,14 +415,14 @@ export default function AssignRefSheet({
               t={t}
               name="refresh"
               onPress={() => {
-                refetch?.();
-                if (singleMatchId) refetchAssigned?.();
+                if (!refereesUninitialized) refetch?.();
+                if (singleMatchId && !assignedUninitialized) refetchAssigned?.();
               }}
             />
             <ThemedIconBtn
               t={t}
               name="close"
-              onPress={() => sheetRef.current?.dismiss()}
+              onPress={onClose}
             />
           </Row>
         </Row>
@@ -502,8 +498,8 @@ export default function AssignRefSheet({
             <ThemedBtn
               t={t}
               onPress={() => {
-                refetch?.();
-                if (singleMatchId) refetchAssigned?.();
+                if (!refereesUninitialized) refetch?.();
+                if (singleMatchId && !assignedUninitialized) refetchAssigned?.();
               }}
               variant="outline"
             >
@@ -577,7 +573,7 @@ export default function AssignRefSheet({
 
         {/* Footer actions */}
         <Row style={{ justifyContent: "flex-end", gap: 8 }}>
-          <ThemedBtn t={t} variant="outline" onPress={() => sheetRef.current?.dismiss()}>
+          <ThemedBtn t={t} variant="outline" onPress={onClose}>
             Đóng
           </ThemedBtn>
           <ThemedBtn
