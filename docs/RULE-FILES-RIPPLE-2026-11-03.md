@@ -1,3 +1,11 @@
+## Khôi phục OTA sau crash — 03/11/2026
+
+- Crash tái hiện từ OTA `1fc1486`: vòng khởi tạo ripple khiến `AccessibilityInfo` undefined trên iOS. Bản getter `2f62b72` còn OOM; cả hai không được phát.
+- Source `6e06fcf` giữ chức năng điều lệ và bộ lọc, tạm ngừng lớp ripple toàn cục trên mobile (`32e0ded`); web ripple giữ nguyên. Không reset hoặc bỏ commit Claude.
+- OTA mới production/1.1.x, không bắt buộc: iOS `01a1a237-b3d2-7802-807c-f2233ca3cc33`, Android `01a1a239-ec16-79db-88f0-626c7a38ca08`. Hai gói lỗi `1fc1486` disabled; bundle trước vẫn được giữ.
+- 43 test đạt. Gói iOS phát hành được cài vào binary giả lập riêng, khởi động và notifyAppReady thành công; chưa kiểm tra OTA trên iPhone thật. Android chưa có thiết bị giả lập để thử native. Hash local/server/metadata, marker giao diện cũ/mới, 20 icon, 10 font và endpoint UPDATE đã kiểm tra.
+- Hot Updater build phải dùng `TMPDIR` riêng chưa dùng để tránh Metro tái sử dụng cache cũ không tạo BUNDLE_ID. Backup và báo cáo `/Users/admin/Projects/Pickletour/backups/2026-11-03-rule-files-ripple/stable-release.json`.
+
 # Điều lệ ảnh/PDF, ripple và bộ lọc xếp hạng — 03/11/2026
 
 ## Cập nhật mới nhất — 03/11/2026: Điều lệ ảnh/PDF và ripple đã phát hành
