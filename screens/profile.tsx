@@ -1476,7 +1476,7 @@ export default function ProfileScreen({ isBack = false }) {
 
             {activeTab === "profile" && (
               <Card title="Chỉnh sửa hồ sơ" t={t}>
-                <FormField
+                <FormField compact
                   label="Họ và tên"
                   value={form.name}
                   onChange={(v) => setField("name", v)}
@@ -1486,7 +1486,7 @@ export default function ProfileScreen({ isBack = false }) {
                   highlighted={HL.name}
                   t={t}
                 />
-                <FormField
+                <FormField compact
                   label="Biệt danh"
                   value={form.nickname}
                   onChange={(v) => setField("nickname", v)}
@@ -1495,7 +1495,7 @@ export default function ProfileScreen({ isBack = false }) {
                   icon="at-sign"
                   t={t}
                 />
-                <FormField
+                <FormField compact
                   label="Số điện thoại"
                   value={form.phone}
                   onChange={(v) => setField("phone", v)}
@@ -1505,7 +1505,7 @@ export default function ProfileScreen({ isBack = false }) {
                   keyboardType="phone-pad"
                   t={t}
                 />
-                <FormField
+                <FormField compact
                   label="Email"
                   value={form.email}
                   onChange={(v) => setField("email", v)}
@@ -1515,7 +1515,7 @@ export default function ProfileScreen({ isBack = false }) {
                   keyboardType="email-address"
                   t={t}
                 />
-                <FormSelect
+                <FormSelect compact
                   label="Giới tính"
                   value={form.gender}
                   options={GENDER_OPTIONS}
@@ -1527,7 +1527,7 @@ export default function ProfileScreen({ isBack = false }) {
                   highlighted={HL.gender}
                   t={t}
                 />
-                <FormDatePicker
+                <FormDatePicker compact
                   label="Ngày sinh"
                   value={form.dob}
                   onChange={(v) => {
@@ -1538,7 +1538,7 @@ export default function ProfileScreen({ isBack = false }) {
                   highlighted={HL.dob}
                   t={t}
                 />
-                <FormSelect
+                <FormSelect compact
                   label="Tỉnh/TP"
                   value={form.province}
                   options={[
@@ -1556,7 +1556,7 @@ export default function ProfileScreen({ isBack = false }) {
                 <Text style={[styles.subTitle, { color: t.text }]}>
                   Đổi mật khẩu
                 </Text>
-                <FormField
+                <FormField compact
                   label="Mật khẩu mới"
                   value={form.password}
                   onChange={(v) => setField("password", v)}
@@ -1567,7 +1567,7 @@ export default function ProfileScreen({ isBack = false }) {
                   placeholder="Để trống nếu không đổi"
                   t={t}
                 />
-                <FormField
+                <FormField compact
                   label="Xác nhận"
                   value={form.confirmPassword}
                   onChange={(v) => setField("confirmPassword", v)}
@@ -1590,6 +1590,13 @@ export default function ProfileScreen({ isBack = false }) {
 
             {activeTab === "verify" && (
               <Card title="Xác minh CCCD" t={t}>
+                <View style={[styles.verificationIntro, { backgroundColor: t.surfaceAlt, borderColor: t.border }]}>
+                  <Feather name="shield" size={24} color={t.accent} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: t.text, fontWeight: "800", fontSize: 15 }}>Xác minh danh tính</Text>
+                    <Text style={{ color: t.textSecondary, marginTop: 4, fontSize: 12 }}>Cung cấp thông tin CCCD để xác minh tài khoản.</Text>
+                  </View>
+                </View>
                 <FormField
                   label="Số CCCD (12 số)"
                   value={form.cccd}
@@ -1631,10 +1638,11 @@ export default function ProfileScreen({ isBack = false }) {
                       },
                     ]}
                   >
-                    <Feather name="maximize" size={18} color={t.accent} />
+                    <Feather name="maximize" size={28} color={t.accent} />
                     <Text style={[styles.qrBtnText, { color: t.accent }]}>
                       Quét QR trên CCCD
                     </Text>
+                    <Text style={{ color: t.textSecondary, fontSize: 12, textAlign: "center" }}>Dùng camera để quét mã QR trên thẻ CCCD</Text>
                   </ProfileGlassSurface>
                 </Pressable>
                 {showUpload ? (
@@ -2140,7 +2148,7 @@ export default function ProfileScreen({ isBack = false }) {
                       title="Đăng xuất"
                       icon="log-out"
                       onPress={confirmLogout}
-                      color={t.warning}
+                      color={t.error}
                     />
                     <DangerBtn
                       title="Xoá tài khoản"
@@ -2762,6 +2770,11 @@ const BentoCardWide = ({ gradient, icon, value, label }) => {
   );
 };
 
+const PROFILE_CARD_ICONS: Record<string, React.ComponentProps<typeof Feather>["name"]> = {
+  "Chỉnh sửa hồ sơ": "user", "Xác minh CCCD": "shield", "Giao diện": "sliders",
+  "Giải đấu": "award", "Thông báo": "bell", "Riêng tư & An toàn": "lock", "Tài khoản": "user",
+};
+
 const Card = ({ title, children, t }) => (
   <ProfileGlassSurface
     effect="regular"
@@ -2795,7 +2808,12 @@ const Card = ({ title, children, t }) => (
       />
     )}
     {title && (
-      <Text style={[styles.cardTitle, { color: t.text }]}>{title}</Text>
+      <View style={styles.cardTitleRow}>
+        {PROFILE_CARD_ICONS[title] && (
+          <Feather name={PROFILE_CARD_ICONS[title]} size={18} color={t.accent} />
+        )}
+        <Text style={[styles.cardTitle, { color: t.text, marginBottom: 0, flex: 1 }]}>{title}</Text>
+      </View>
     )}
     {children}
   </ProfileGlassSurface>
@@ -2829,12 +2847,13 @@ const FormField = ({
   placeholder,
   maxLength,
   highlighted,
+  compact = false,
   t,
 }) => {
   const [focused, setFocused] = useState(false);
   return (
-    <View style={styles.formField}>
-      <Text style={[styles.formLabel, { color: t.textSecondary }]}>
+    <View style={[styles.formField, compact && styles.formFieldCompact]}>
+      <Text style={[styles.formLabel, compact && styles.formLabelCompact, { color: t.textSecondary }]}>
         {label}
       </Text>
       <ProfileGlassSurface
@@ -2843,6 +2862,7 @@ const FormField = ({
         tintColor={profileFieldTintFor(t, focused || highlighted, !!error)}
         style={[
           styles.formInput,
+          compact && styles.formInputCompact,
           IOS_26_LIQUID_GLASS_ENABLED && styles.formInputGlass,
           (focused || highlighted) &&
             IOS_26_LIQUID_GLASS_ENABLED &&
@@ -2880,7 +2900,7 @@ const FormField = ({
         />
       </ProfileGlassSurface>
       {!!error && (
-        <Text style={{ color: t.error, fontSize: 12, marginTop: 4 }}>
+        <Text style={{ color: t.error, fontSize: 12, marginTop: 4, width: compact ? "100%" : undefined }}>
           {error}
         </Text>
       )}
@@ -2895,19 +2915,21 @@ const FormSelect = ({
   onChange,
   icon,
   highlighted,
+  compact = false,
   t,
 }) => {
   const [open, setOpen] = useState(false);
   const display = options.find((o) => o.value === value)?.label || "-- Chọn --";
   return (
-    <View style={styles.formField}>
-      <Text style={[styles.formLabel, { color: t.textSecondary }]}>
+    <View style={[styles.formField, compact && styles.formFieldCompact]}>
+      <Text style={[styles.formLabel, compact && styles.formLabelCompact, { color: t.textSecondary }]}>
         {label}
       </Text>
       <Pressable
         onPress={() => setOpen(true)}
         style={({ pressed }) => [
           styles.formPressable,
+          compact && styles.formPressableCompact,
           { opacity: pressed ? 0.92 : 1 },
         ]}
       >
@@ -3023,7 +3045,7 @@ const FormSelect = ({
   );
 };
 
-const FormDatePicker = ({ label, value, onChange, icon, highlighted, t }) => {
+const FormDatePicker = ({ label, value, onChange, icon, highlighted, compact = false, t }) => {
   const [open, setOpen] = useState(false);
   const [temp, setTemp] = useState(
     value ? new Date(value) : new Date(1990, 0, 1),
@@ -3032,14 +3054,15 @@ const FormDatePicker = ({ label, value, onChange, icon, highlighted, t }) => {
     if (value) setTemp(new Date(value));
   }, [value]);
   return (
-    <View style={styles.formField}>
-      <Text style={[styles.formLabel, { color: t.textSecondary }]}>
+    <View style={[styles.formField, compact && styles.formFieldCompact]}>
+      <Text style={[styles.formLabel, compact && styles.formLabelCompact, { color: t.textSecondary }]}>
         {label}
       </Text>
       <Pressable
         onPress={() => setOpen(true)}
         style={({ pressed }) => [
           styles.formPressable,
+          compact && styles.formPressableCompact,
           { opacity: pressed ? 0.92 : 1 },
         ]}
       >
@@ -3191,9 +3214,11 @@ const GradientBtn = ({ title, onPress, disabled = false, loading = false }) => {
               ? IOS_26_LIQUID_GLASS_ENABLED
                 ? ["rgba(113,113,122,0.62)", "rgba(82,82,91,0.48)"]
                 : ["#71717a", "#52525b"]
-              : IOS_26_LIQUID_GLASS_ENABLED
-                ? ["rgba(139,92,246,0.94)", "rgba(99,102,241,0.86)"]
-                : ["#8b5cf6", "#6366f1"]
+              : t.v2
+                ? ["#06B6D4", "#12B6F3"]
+                : IOS_26_LIQUID_GLASS_ENABLED
+                  ? ["rgba(139,92,246,0.94)", "rgba(99,102,241,0.86)"]
+                  : ["#8b5cf6", "#6366f1"]
           }
           style={StyleSheet.absoluteFill}
         />
@@ -3673,6 +3698,7 @@ const styles = StyleSheet.create({
   bentoLabel: { fontSize: 12, color: "rgba(255,255,255,0.8)" },
 
   card: { borderRadius: 20, padding: 16, borderWidth: 1 },
+  cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 14 },
   cardGlass: {
     borderColor: "rgba(255,255,255,0.24)",
     overflow: "hidden",
@@ -3704,6 +3730,10 @@ const styles = StyleSheet.create({
   infoRowLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
 
   formField: { marginBottom: 16 },
+  formFieldCompact: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", marginBottom: 8 },
+  formLabelCompact: { width: "34%", marginBottom: 0, paddingRight: 8 },
+  formInputCompact: { flex: 1, minWidth: 0 },
+  formPressableCompact: { flex: 1, minWidth: 0 },
   formLabel: { fontSize: 13, fontWeight: "500", marginBottom: 8 },
   formPressable: {
     borderRadius: 12,
@@ -3754,16 +3784,19 @@ const styles = StyleSheet.create({
   },
   gradientBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
 
+  verificationIntro: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 16 },
   qrPressable: {
     borderRadius: 12,
     marginBottom: 14,
   },
   qrBtn: {
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    padding: 14,
+    padding: 18,
+    borderWidth: 1,
+    borderStyle: "dashed",
     borderRadius: 12,
     overflow: "hidden",
   },
