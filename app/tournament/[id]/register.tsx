@@ -2052,10 +2052,20 @@ export default function TournamentRegistrationScreen() {
         setMsg("");
         handleRefresh();
       } catch (e: any) {
-        Alert.alert("Lỗi", e?.data?.message || "Đăng ký thất bại");
+        const detail = e?.data;
+        const p1NeedsKyc = detail?.code === "KYC_REQUIRED" &&
+          (detail?.slot === "p1" || detail?.targets?.some((target: any) => target.slot === "p1"));
+        if (p1NeedsKyc && String(payload.player1Id) === String(me?._id)) {
+          Alert.alert("Yêu cầu xác minh danh tính", "Giải đấu yêu cầu VĐV 1 xác minh CCCD trước khi đăng ký.", [
+            { text: "Để sau", style: "cancel" },
+            { text: "Xác minh ngay", onPress: () => router.push({ pathname: "/more/profile", params: { tab: "verify" } } as any) },
+          ]);
+          return;
+        }
+        Alert.alert("Lỗi", detail?.message || "Đăng ký thất bại");
       }
     },
-    [createInvite, isAdmin, handleRefresh],
+    [createInvite, isAdmin, handleRefresh, me?._id, router],
   );
 
   const handleSubmit = useCallback(async () => {

@@ -16,7 +16,7 @@ import * as ImagePicker from "expo-image-picker";
 import {
   Image as ExpoImage,
   Image } from "expo-image";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 
 import React,
@@ -520,7 +520,11 @@ export default function ProfileScreen({ isBack = false }) {
   const [viewerIndex, setViewerIndex] = useState(0);
   const [viewerImages, setViewerImages] = useState([]);
   const [viewerLabels, setViewerLabels] = useState([]);
+  const { tab: requestedTab } = useLocalSearchParams<{ tab?: string }>();
   const [activeTab, setActiveTab] = useState("home");
+  useEffect(() => {
+    if (requestedTab === "verify") setActiveTab("verify");
+  }, [requestedTab]);
   const [refreshing, setRefreshing] = useState(false);
   const [logoutBusy, setLogoutBusy] = useState(false);
 
@@ -1194,6 +1198,7 @@ export default function ProfileScreen({ isBack = false }) {
               justifyContent: "center",
             },
             coverCenterNameStyle,
+            activeTab === "home" && { opacity: 0 },
           ]}
         >
           <ProfileGlassSurface
@@ -1211,7 +1216,7 @@ export default function ProfileScreen({ isBack = false }) {
           </ProfileGlassSurface>
         </Animated.View>
         {/* Content bên trong Header */}
-        <View style={[styles.profileArea, { paddingTop: insets.top + TOP_ROW_H }]}>
+        <View style={[styles.profileArea, { paddingTop: insets.top + TOP_ROW_H }, activeTab === "home" && { flexDirection: "row", alignItems: "center", gap: 16 }]}>
           <Animated.View style={[styles.avatarContainer, avatarContainerStyle]}>
             <Pressable onPress={openAvatarViewer} style={styles.avatarInner}>
               <XImage
@@ -1248,7 +1253,7 @@ export default function ProfileScreen({ isBack = false }) {
             </Pressable>
           </Animated.View>
 
-          <Animated.View style={[styles.nameArea, nameStyle]}>
+          <Animated.View style={[styles.nameArea, nameStyle, activeTab === "home" && { alignItems: "flex-start", flex: 1, minWidth: 0 }]}>
             {/* ✅ FIX: ép 1 dòng + ellipsize để không bị che/cắt */}
             <Text
               style={styles.userName}
@@ -1392,33 +1397,35 @@ export default function ProfileScreen({ isBack = false }) {
           >
             {activeTab === "home" && (
               <>
-                <View style={styles.bentoGrid}>
-                  <BentoCard
-                    gradient={t.v2 ? ["#0E63B3", "#12B6F3"] : ["#6366f1", "#8b5cf6"]}
-                    icon="award"
-                    value={user.stats?.tournaments || 0}
-                    label="Giải đấu"
-                  />
-                  {/* ✅ BỎ LIVE -> thay bằng Uy tín */}
-                  <BentoCard
-                    gradient={t.v2 ? ["#0891B2", "#22D3EE"] : ["#f59e0b", "#f97316"]}
-                    icon="shield"
-                    value={user.stats?.reputation || 0}
-                    label="Uy tín"
-                    onInfoPress={() => setRepInfoOpen(true)}
-                  />
+                <View style={{ backgroundColor: t.surface, borderColor: t.border, borderWidth: 1, borderRadius: 20, padding: 16, gap: 12 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                    <View style={{ width: 4, height: 32, borderRadius: 2, backgroundColor: "#A3E635" }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: t.text, fontSize: 19, fontWeight: "800" }}>Tổng quan tài khoản</Text>
+                      <Text style={{ color: t.textSecondary, fontSize: 12 }}>Thành tích và chỉ số PickleTour của bạn</Text>
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: "row", gap: 10 }}>
+                    <View style={{ flex: 1, borderWidth: 1, borderColor: t.border, borderLeftWidth: 4, borderLeftColor: "#06BDE5", borderRadius: 14, padding: 14 }}>
+                      <Feather name="award" size={22} color="#06BDE5" />
+                      <Text style={{ color: t.text, fontSize: 26, fontWeight: "800", marginTop: 7 }}>{user.stats?.tournaments || 0}</Text>
+                      <Text style={{ color: t.textSecondary }}>Giải đấu</Text>
+                    </View>
+                    <Pressable onPress={() => setRepInfoOpen(true)} accessibilityRole="button" accessibilityLabel="Thông tin uy tín" style={{ flex: 1, borderWidth: 1, borderColor: t.border, borderLeftWidth: 4, borderLeftColor: "#A3E635", borderRadius: 14, padding: 14 }}>
+                      <Feather name="shield" size={22} color="#A3E635" />
+                      <Text style={{ color: t.text, fontSize: 26, fontWeight: "800", marginTop: 7 }}>{user.stats?.reputation || 0}</Text>
+                      <Text style={{ color: t.textSecondary }}>Uy tín</Text>
+                    </Pressable>
+                  </View>
+                  <View style={{ flexDirection: "row", borderWidth: 1, borderColor: t.border, borderLeftWidth: 4, borderLeftColor: "#06BDE5", borderRadius: 14, padding: 14 }}>
+                    {[{ label: "Điểm đôi", value: user.ratingDouble }, { label: "Điểm đơn", value: user.ratingSingle }].map((score, index) => (
+                      <View key={score.label} style={{ flex: 1, paddingLeft: index ? 14 : 0, borderLeftWidth: index ? 1 : 0, borderLeftColor: t.border }}>
+                        <Text style={{ color: t.text, fontSize: 24, fontWeight: "800" }}>{user.rated === false ? "Chưa chấm" : fmtScore(score.value)}</Text>
+                        <Text style={{ color: t.textSecondary }}>{score.label}</Text>
+                      </View>
+                    ))}
+                  </View>
                 </View>
-                {/* ✅ Đổi “Điểm xếp hạng” -> “điểm đôi/điểm đơn” */}
-                <BentoCardWide
-                  gradient={t.v2 ? ["#0A4C8A", "#12B6F3"] : ["#14b8a6", "#06b6d4"]}
-                  icon="trending-up"
-                  value={
-                    user.rated === false
-                      ? "Chưa chấm"
-                      : `${fmtScore(user.ratingDouble)}/${fmtScore(user.ratingSingle)}`
-                  }
-                  label="Điểm đôi/điểm đơn"
-                />
                 <Card title="Thông tin" t={t}>
                   <InfoRow icon="mail" label="Email" value={user.email} t={t} />
                   <InfoRow
