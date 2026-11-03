@@ -35,15 +35,15 @@ test('system file picker handles PDFs with missing MIME and prevents oversized r
   change(); assert.equal(reads, 1); assert.match(status.textContent, /10 MB/);
 });
 test('ripple adapter preserves native lazy getters and namespace exports', () => {
-  let reads = 0;
+  let reads = 0; let wrapperLoads = 0;
   const native = { get View() { reads++; return 'NativeView'; }, Pressable: 'OldPressable', TouchableOpacity: 'OldTouchable', Button: 'OldButton' };
   const wrapped = { RipplePressable: 'RipplePressable', RippleTouchableOpacity: 'RippleTouchable', RippleButton: 'RippleButton' };
   const mod = { exports: {} };
   vm.runInNewContext(fs.readFileSync(path.join(root, 'utils/rippleNative.cjs'), 'utf8'), {
-    module: mod, require: (name) => name === 'react-native' ? native : wrapped,
+    module: mod, require: (name) => { if (name === 'react-native') return native; wrapperLoads++; return wrapped; },
   });
-  assert.equal(reads, 0); assert.equal(mod.exports.View, 'NativeView'); assert.equal(reads, 1);
-  assert.equal(mod.exports.Pressable, 'RipplePressable'); assert.equal(mod.exports.TouchableOpacity, 'RippleTouchable');
+  assert.equal(wrapperLoads, 0); assert.equal(reads, 0); assert.equal(mod.exports.View, 'NativeView'); assert.equal(reads, 1);
+  assert.equal(wrapperLoads, 0); assert.equal(mod.exports.Pressable, 'RipplePressable'); assert.equal(wrapperLoads, 1); assert.equal(mod.exports.TouchableOpacity, 'RippleTouchable');
   assert.deepEqual(Object.keys(mod.exports), Object.keys(native));
 });
 test('Metro wraps app buttons, leaves dependencies/native internals untouched and retains isolated icons', () => {
