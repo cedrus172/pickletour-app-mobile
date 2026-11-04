@@ -17,7 +17,9 @@ import {
   BottomSheetScrollView,
 } from "@/components/sheets/rnModalSheet";
 import { MaterialIcons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { useTheme } from "@react-navigation/native";
+import { normalizeUrl } from "@/utils/normalizeUri";
 
 import {
   useListTournamentRefereesQuery,
@@ -35,13 +37,19 @@ const personNickname = (p: any) =>
   p?.name ||
   "—";
 
-const InitialAvatar = ({ name }: { name?: string }) => {
+const InitialAvatar = ({ name, avatar }: { name?: string; avatar?: string }) => {
   const { colors } = useTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
+  const [failedUri, setFailedUri] = useState<string | null>(null);
+  const uri = typeof avatar === "string" ? normalizeUrl(avatar.trim()) : "";
   const ch = (name?.trim?.()[0] || "U").toUpperCase();
   return (
     <View style={s.avatar}>
-      <Text style={{ color: "#fff", fontWeight: "700" }}>{ch}</Text>
+      {uri && failedUri !== uri ? (
+        <Image source={{ uri }} style={s.avatarImage} contentFit="cover" onError={() => setFailedUri(uri)} />
+      ) : (
+        <Text style={{ color: "#fff", fontWeight: "700" }}>{ch}</Text>
+      )}
     </View>
   );
 };
@@ -217,7 +225,7 @@ export default function ManageRefereesSheet({
               {(assigned as any[]).map((u) => (
                 <Row key={u._id} style={s.itemRow}>
                   <Row style={{ alignItems: "center", gap: 10 }}>
-                    <InitialAvatar name={personNickname(u)} />
+                    <InitialAvatar name={personNickname(u)} avatar={u?.avatar} />
                     <View style={{ gap: 2 }}>
                       <Text style={s.itemName}>{personNickname(u)}</Text>
                       <Text style={s.itemMeta}>
@@ -287,7 +295,7 @@ export default function ManageRefereesSheet({
                   return (
                     <Row key={u._id} style={s.itemRow}>
                       <Row style={{ alignItems: "center", gap: 10 }}>
-                        <InitialAvatar name={personNickname(u)} />
+                        <InitialAvatar name={personNickname(u)} avatar={u?.avatar} />
                         <View style={{ gap: 2 }}>
                           <Text style={s.itemName}>{personNickname(u)}</Text>
                           <Text style={s.itemMeta}>
@@ -419,7 +427,9 @@ function makeStyles(colors: any, dark?: boolean) {
       backgroundColor: primary,
       alignItems: "center",
       justifyContent: "center",
+      overflow: "hidden",
     },
+    avatarImage: { width: "100%", height: "100%" },
     itemName: { color: text, fontWeight: "600" },
     itemMeta: { color: muted, fontSize: 12 },
 
