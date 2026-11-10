@@ -80,6 +80,8 @@
 	<string>Cho phép PickleTour dùng vị trí của bạn để tìm người chơi và sân gần nhất.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Dùng micro cho tính năng điều khiển bằng giọng nói khi chấm trận.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Cho phép PickleTour lưu clip đã cắt vào thư viện ảnh của bạn.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Pick photos to upload your avatar and CCCD images.</string>
 	<key>NSRemindersFullAccessUsageDescription</key>

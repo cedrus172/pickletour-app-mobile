@@ -4,7 +4,7 @@
 // chỉ thấy zoom vào giữa. Dùng Image.getSize ở runtime + cache theo URL để lần
 // sau render tức thì.
 import React, { useEffect, useMemo, useState } from "react";
-import { Image, Pressable, StyleProp, ImageStyle } from "react-native";
+import { Image, Pressable, StyleProp, ImageStyle, View } from "react-native";
 
 const aspectCache = new Map<string, number>();
 
@@ -59,6 +59,7 @@ export function AspectImage({
   borderRadius = 10,
   onPress,
   style,
+  blurredBackground = false,
 }: {
   url: string;
   width: number;
@@ -68,19 +69,25 @@ export function AspectImage({
   borderRadius?: number;
   onPress?: () => void;
   style?: StyleProp<ImageStyle>;
+  blurredBackground?: boolean;
 }) {
   const aspect = useImageAspect(url, initialAspect);
   const rawH = width / aspect;
   const h = Math.max(minHeight, Math.min(maxHeight, rawH));
   const img = (
-    <Image
-      source={{ uri: url }}
-      style={[
-        { width, height: h, borderRadius, backgroundColor: "#0b1220" },
-        style,
-      ]}
-      resizeMode="contain"
-    />
+    <View style={{ width, height: h, borderRadius, overflow: "hidden", backgroundColor: "#0b1220" }}>
+      {blurredBackground ? (
+        <>
+          <Image source={{ uri: url }} style={{ position: "absolute", width, height: h }} resizeMode="cover" blurRadius={24} />
+          <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.35)" }} />
+        </>
+      ) : null}
+      <Image
+        source={{ uri: url }}
+        style={[{ width, height: h, borderRadius }, style]}
+        resizeMode="contain"
+      />
+    </View>
   );
   if (onPress) {
     return <Pressable onPress={onPress}>{img}</Pressable>;

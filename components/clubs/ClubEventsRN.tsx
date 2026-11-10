@@ -48,7 +48,7 @@ function GradLightCard({
   return (
     <View style={[styles.card, style]}>
       <LinearGradient
-        colors={["rgba(102,126,234,0.06)", "rgba(118,75,162,0.06)"]}
+        colors={["rgba(8,188,215,0.06)", "rgba(7,141,180,0.06)"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -81,7 +81,7 @@ function SmallPrimaryGradBtn({
       disabled={loading}
     >
       <LinearGradient
-        colors={["#667eea", "#764ba2"]}
+        colors={["#08bcd7", "#078db4"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}

@@ -4,7 +4,7 @@
 //    THẲNG bằng VLC (mượt, KHÔNG tốn tài nguyên VPS). Nếu không tới được → tự
 //    fallback video qua WebRTC (VPS kéo RTSP full-res/360p) — chỉ tốn VPS khi cần.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, Redirect, router, useLocalSearchParams } from "expo-router";
@@ -21,6 +21,8 @@ import { VLCPlayer } from "react-native-vlc-media-player";
 import {
   useCreateCommentaryTokenMutation,
   useCommentaryOfferMutation,
+  useGetCommentaryDelayQuery,
+  useSetCommentaryDelayMutation,
   useGetSessionRtspQuery,
 } from "@/slices/liveControlApiSlice";
 
@@ -57,6 +59,7 @@ export default function NativeCommentaryScreen() {
       primary: "#0EA5E9",
       danger: "#EF4444",
       ok: "#22C55E",
+      border: "rgba(148,163,184,0.35)",
     }),
     [isDark, theme],
   );
@@ -77,6 +80,9 @@ export default function NativeCommentaryScreen() {
   const [talking, setTalking] = useState(false);
   const [remoteUrl, setRemoteUrl] = useState<string | null>(null);
   const [videoMode, setVideoMode] = useState<"rtsp" | "webrtc">("webrtc");
+  // Độ trễ giọng: máy live giữ giọng lại cho khớp hình trên luồng (hình live trễ hơn cam gốc).
+  const [delayToken, setDelayToken] = useState<string | null>(null);
+  const [setDelay, { isLoading: delaySaving }] = useSetCommentaryDelayMutation();
 
   const pcRef = useRef<any>(null);
   const streamRef = useRef<any>(null);
@@ -116,6 +122,7 @@ export default function NativeCommentaryScreen() {
         }).unwrap();
         const token = tk?.token;
         if (!token) throw new Error("Không tạo được token bình luận");
+        setDelayToken(token);
 
         const stream = await mediaDevices.getUserMedia({ audio: true, video: false });
         streamRef.current = stream;
@@ -210,6 +217,27 @@ export default function NativeCommentaryScreen() {
   const reconnect = () => { cleanup(); startedRef.current = true; doConnect(videoMode === "rtsp"); };
   const disconnect = () => { cleanup(); router.back(); };
 
+  const { data: delayData, error: delayErr, refetch: refetchDelay } = useGetCommentaryDelayQuery(
+    { token: String(delayToken || "") },
+    { skip: status !== "connected" || !delayToken, pollingInterval: 3000 },
+  );
+  const delayStatus: any = (delayData as any)?.status || null;
+  const delayUnsupported = (delayErr as any)?.status === 501;
+  const appliedSec = delayStatus ? (Number(delayStatus.appliedMs) || 0) / 1000 : null;
+  const changeDelay = async (next: { mode: "auto" } | { mode: "manual"; ms: number }) => {
+    if (!delayToken) return;
+    try {
+      await setDelay({ token: delayToken, ...next }).unwrap();
+      refetchDelay();
+    } catch (e: any) {
+      Alert.alert("Không chỉnh được độ trễ", e?.data?.message || e?.message || "Thử lại sau.");
+    }
+  };
+  const stepDelay = (deltaMs: number) => {
+    const cur = Number(delayStatus?.appliedMs) || 0;
+    changeDelay({ mode: "manual", ms: Math.max(0, Math.min(20000, cur + deltaMs)) });
+  };
+
   if (!canAccess) return <Redirect href="/(tabs)/more" />;
 
   const connected = status === "connected";
@@ -270,6 +298,42 @@ export default function NativeCommentaryScreen() {
           </View>
         )}
 
+        {connected && (delayStatus || delayUnsupported) && (
+          <View style={[styles.delayRow, { borderColor: C.border }]}>
+            {delayUnsupported ? (
+              <Text style={{ color: C.sub, fontSize: 12, flex: 1, textAlign: "center" }}>
+                Máy live chưa cập nhật bản hỗ trợ chỉnh độ trễ giọng.
+              </Text>
+            ) : (
+              <>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: C.text, fontWeight: "700", fontSize: 13 }}>
+                    Độ trễ giọng: {appliedSec !== null ? appliedSec.toFixed(1).replace(".", ",") : "–"} s
+                  </Text>
+                  <Text style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>
+                    {delayStatus?.mode === "manual"
+                      ? "Chỉnh tay"
+                      : delayStatus?.videoLagMs != null
+                        ? "Tự động theo độ trễ hình"
+                        : "Tự động · đang đo…"}
+                  </Text>
+                </View>
+                <Pressable disabled={delaySaving} onPress={() => stepDelay(-500)} style={[styles.delayBtn, { borderColor: C.border }]}>
+                  <Text style={{ color: C.text, fontWeight: "800" }}>−0,5</Text>
+                </Pressable>
+                <Pressable disabled={delaySaving} onPress={() => stepDelay(500)} style={[styles.delayBtn, { borderColor: C.border }]}>
+                  <Text style={{ color: C.text, fontWeight: "800" }}>+0,5</Text>
+                </Pressable>
+                {delayStatus?.mode === "manual" && (
+                  <Pressable disabled={delaySaving} onPress={() => changeDelay({ mode: "auto" })} style={[styles.delayBtn, { borderColor: C.primary }]}>
+                    <Text style={{ color: C.primary, fontWeight: "800" }}>Tự động</Text>
+                  </Pressable>
+                )}
+              </>
+            )}
+          </View>
+        )}
+
         {(connected || status === "connecting" || status === "idle") && (
           <Pressable
             onPress={toggleTalk}
@@ -305,5 +369,7 @@ const styles = StyleSheet.create({
   videoBox: { flex: 1, margin: 16, borderRadius: 16, overflow: "hidden", backgroundColor: "#000" },
   videoPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   switchBtn: { position: "absolute", right: 8, bottom: 8, flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  delayRow: { flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 4 },
+  delayBtn: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
   talkBtn: { flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center", borderWidth: 2, borderRadius: 14, paddingVertical: 16, marginTop: 8 },
 });

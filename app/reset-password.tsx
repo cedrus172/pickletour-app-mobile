@@ -31,6 +31,7 @@ import {
 } from "@/slices/usersApiSlice";
 import LottieView from "lottie-react-native"; // ⬅️ NEW
 import { SHOULD_RENDER_NATIVE_LOTTIE } from "@/utils/runtimeSafety";
+import { AuthBrand, useAuthWide } from "@/components/auth/AuthBrand";
 
 const OTP_LOTTIE = require("@/assets/lottie/otp-verification.json"); // ⬅️ NEW
 
@@ -119,6 +120,7 @@ function OtpCells({ value, setValue, themed, editable = true }) {
 }
 
 export default function ResetPasswordOtpScreen() {
+  const authWide = useAuthWide();
   const router = useRouter();
   const params = useLocalSearchParams();
 
@@ -308,13 +310,14 @@ export default function ResetPasswordOtpScreen() {
           keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
         >
           <ScrollView
-            contentContainerStyle={styles.container}
+            contentContainerStyle={[styles.container, { flexDirection: authWide ? "row" : "column", alignItems: authWide ? "stretch" : "center" }]}
             keyboardShouldPersistTaps="handled"
           >
+            <AuthBrand wide={authWide} />
             <View
               style={[
                 styles.card,
-                { backgroundColor: themed.cardBg, borderColor: themed.border },
+                { backgroundColor: themed.cardBg, borderColor: themed.border, width: authWide ? "54%" : "100%", maxWidth: authWide ? 520 : 460, alignSelf: authWide ? "stretch" : "center" },
               ]}
             >
               <Text style={[styles.title, { color: themed.text }]}>
@@ -331,7 +334,7 @@ export default function ResetPasswordOtpScreen() {
               </Text>
 
               {/* ⬇️ NEW: Lottie OTP — chỉ hiện ở phase OTP */}
-              {phase === "otp" && SHOULD_RENDER_NATIVE_LOTTIE && (
+              {false && phase === "otp" && SHOULD_RENDER_NATIVE_LOTTIE && (
                 <View style={styles.otpAnimWrap}>
                   <LottieView
                     ref={otpAnimRef}

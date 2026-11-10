@@ -34,7 +34,7 @@ function PrimaryButton({
       style={[styles.btnBase, styles.btnPrimary]}
     >
       <LinearGradient
-        colors={["#667eea", "#764ba2"]}
+        colors={["#c5f436", "#a8eb1b"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -193,7 +193,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
   },
 
   btnText: { fontWeight: "800", fontSize: 15 },
-  btnTextLight: { color: "#FFFFFF" },
+  btnTextLight: { color: "#06182d" },
   btnTextDark: { color: C.text2 },
   btnTextDanger: { color: C.redText },
 });

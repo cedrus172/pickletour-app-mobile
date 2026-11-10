@@ -14,11 +14,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Animated,
-  StatusBar as RNStatusBar,
-  Keyboard,
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
-import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -34,12 +31,12 @@ import {
 import { useUploadAvatarMutation } from "@/slices/uploadApiSlice";
 import { VN_PROVINCES } from "@/constants/provinces";
 
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { normalizeUrl } from "@/utils/normalizeUri";
 // 1. IMPORT THEME
 import { useTheme } from "@react-navigation/native";
 
+import AppModal, { ModalTopInset } from "@/components/ui/AppModal";
 type ClubCreateModalProps = {
   visible: boolean;
   onClose: (changed?: boolean) => void;
@@ -98,7 +95,6 @@ function extractErrorMessage(err: any) {
   );
 }
 
-const HEADER_MAX_HEIGHT = 300;
 
 export default function ClubCreateModal({
   visible,
@@ -112,13 +108,13 @@ export default function ClubCreateModal({
 
   const colors = useMemo(
     () => ({
-      bg: isDark ? "#121212" : "#f6f7fb",
-      card: isDark ? "#1E1E1E" : "#fff",
-      text: isDark ? "#FFF" : "#222",
-      subText: isDark ? "#AAA" : "#666",
-      border: isDark ? "#333" : "#94a3b8",
-      placeholder: isDark ? "#666" : "#999",
-      inputBg: isDark ? "#2C2C2E" : "#fff",
+      bg: "#03172d",
+      card: "#0a2943",
+      text: "#FFF",
+      subText: "#a9bfd6",
+      border: "#31536e",
+      placeholder: "#91a9bf",
+      inputBg: "#0a2139",
       switchOff: isDark ? "#444" : "#d1d5db",
       sheetHandle: isDark ? "#444" : "#e5e7eb",
       divider: isDark ? "#333" : "#eee",
@@ -127,10 +123,6 @@ export default function ClubCreateModal({
     [isDark]
   );
 
-  const insets = useSafeAreaInsets();
-  const topPad = Math.max(insets.top, RNStatusBar.currentHeight || 20);
-  const HEADER_MIN_HEIGHT = topPad + 60;
-  const SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
   const isEdit = !!initial?._id;
   const [focusField, setFocusField] = useState<string | null>(null);
@@ -240,55 +232,6 @@ export default function ClubCreateModal({
 
   const [showProvincePicker, setShowProvincePicker] = useState(false);
 
-  // ==== ANIMATION LOGIC ====
-  const scrollY = useRef(new Animated.Value(0)).current;
-
-  const headerTranslateY = scrollY.interpolate({
-    inputRange: [0, SCROLL_DISTANCE],
-    outputRange: [0, -SCROLL_DISTANCE],
-    extrapolate: "clamp",
-  });
-
-  const navbarTranslateY = scrollY.interpolate({
-    inputRange: [0, SCROLL_DISTANCE],
-    outputRange: [0, SCROLL_DISTANCE],
-    extrapolate: "clamp",
-  });
-
-  const logoOpacity = scrollY.interpolate({
-    inputRange: [0, SCROLL_DISTANCE * 0.6, SCROLL_DISTANCE],
-    outputRange: [1, 0.5, 0],
-    extrapolate: "clamp",
-  });
-
-  const logoScale = scrollY.interpolate({
-    inputRange: [0, SCROLL_DISTANCE],
-    outputRange: [1, 0.8],
-    extrapolate: "clamp",
-  });
-
-  const coverTranslateY = scrollY.interpolate({
-    inputRange: [0, SCROLL_DISTANCE],
-    outputRange: [0, SCROLL_DISTANCE * 0.5],
-    extrapolate: "clamp",
-  });
-  const coverScale = scrollY.interpolate({
-    inputRange: [-100, 0],
-    outputRange: [2, 1],
-    extrapolate: "clamp",
-  });
-
-  const headerRadius = scrollY.interpolate({
-    inputRange: [0, SCROLL_DISTANCE],
-    outputRange: [24, 0],
-    extrapolate: "clamp",
-  });
-
-  const onScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    { useNativeDriver: true }
-  );
-
   const scrollRef = useRef<Animated.ScrollView | null>(null);
   const ensureVisible = useCallback(() => {
     // @ts-ignore
@@ -296,153 +239,21 @@ export default function ClubCreateModal({
   }, []);
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       animationType="slide"
       presentationStyle="fullScreen"
       onRequestClose={() => onClose?.(false)}
     >
+<ModalTopInset>{(modalTop) => (<>
       <StatusBar style="light" translucent backgroundColor="transparent" />
       <View style={[styles.modalRoot, { backgroundColor: colors.bg }]}>
-        {/* === ANIMATED HEADER === */}
-        <Animated.View
-          style={[
-            styles.headerContainer,
-            {
-              height: HEADER_MAX_HEIGHT,
-              transform: [{ translateY: headerTranslateY }],
-              borderBottomLeftRadius: headerRadius,
-              borderBottomRightRadius: headerRadius,
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={["#667eea", "#764ba2"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-
-          <Animated.View
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                transform: [
-                  { translateY: coverTranslateY },
-                  { scale: coverScale },
-                ],
-              },
-            ]}
-          >
-            {form.coverUrl ? (
-              <Image
-                source={{ uri: normalizeUrl(form.coverUrl) }}
-                style={styles.coverImg}
-                contentFit="cover"
-              />
-            ) : (
-              <View style={styles.coverPlaceholder}>
-                <MaterialCommunityIcons
-                  name="image-plus"
-                  size={40}
-                  color="#ffffff80"
-                />
-                <Text style={styles.coverHelp}>Ảnh bìa (16:9)</Text>
-              </View>
-            )}
-            <TouchableOpacity
-              onPress={() => pickImage("coverUrl")}
-              style={StyleSheet.absoluteFill}
-            />
-          </Animated.View>
-
-          {uploading && (
-            <View style={styles.uploadMask}>
-              <View
-                style={{
-                  backgroundColor: "rgba(0,0,0,0.6)",
-                  padding: 12,
-                  borderRadius: 10,
-                }}
-              >
-                <Text style={{ color: "#fff" }}>Đang tải...</Text>
-              </View>
-            </View>
-          )}
-
-          {/* NAVBAR */}
-          <Animated.View
-            style={[
-              styles.navBar,
-              {
-                height: HEADER_MIN_HEIGHT,
-                paddingTop: topPad,
-                transform: [{ translateY: navbarTranslateY }],
-              },
-            ]}
-            pointerEvents="box-none"
-          >
-            <TouchableOpacity
-              onPress={() => onClose?.(false)}
-              style={styles.iconBtn}
-            >
-              <MaterialCommunityIcons name="close" size={24} color="#fff" />
-            </TouchableOpacity>
-
-            <Text style={styles.headerTitle} numberOfLines={1}>
-              {isEdit ? "Sửa CLB" : "Tạo CLB"}
-            </Text>
-
-            <TouchableOpacity
-              onPress={onSubmit}
-              disabled={!canSubmit || creating || updating || uploading}
-              style={[
-                styles.iconBtn,
-                { opacity: !canSubmit || uploading ? 0.5 : 1 },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="content-save"
-                size={24}
-                color="#fff"
-              />
-            </TouchableOpacity>
-          </Animated.View>
-
-          {/* LOGO */}
-          <Animated.View
-            style={[
-              styles.logoWrap,
-              {
-                borderColor: colors.logoBorder, // Border match bg or white
-                opacity: logoOpacity,
-                transform: [{ scale: logoScale }],
-              },
-            ]}
-          >
-            <TouchableOpacity
-              onPress={() => pickImage("logoUrl")}
-              activeOpacity={0.9}
-              style={{ flex: 1 }}
-            >
-              {form.logoUrl ? (
-                <Image
-                  source={{ uri: normalizeUrl(form.logoUrl) }}
-                  style={styles.logoImg}
-                  contentFit="cover"
-                />
-              ) : (
-                <View style={styles.logoPlaceholder}>
-                  <MaterialCommunityIcons
-                    name="camera-plus"
-                    size={24}
-                    color="#fff"
-                  />
-                </View>
-              )}
-            </TouchableOpacity>
-          </Animated.View>
-        </Animated.View>
+        <View style={{ paddingTop: Math.max(modalTop, 12), paddingHorizontal: 16, paddingBottom: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <TouchableOpacity onPress={() => onClose?.(false)} accessibilityRole="button" accessibilityLabel="Đóng">
+            <MaterialCommunityIcons name="chevron-left" size={28} color="#fff" />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { flex: 1 }]}>{isEdit ? "Sửa câu lạc bộ" : "Tạo câu lạc bộ"}</Text>
+        </View>
 
         {/* === BODY CONTENT === */}
         <KeyboardAvoidingView
@@ -451,10 +262,8 @@ export default function ClubCreateModal({
         >
           <Animated.ScrollView
             ref={scrollRef as any}
-            onScroll={onScroll}
-            scrollEventThrottle={16}
             contentContainerStyle={{
-              paddingTop: HEADER_MAX_HEIGHT + 20,
+              paddingTop: 12,
               paddingHorizontal: 16,
               paddingBottom: 40,
             }}
@@ -705,6 +514,17 @@ export default function ClubCreateModal({
               ]}
             />
 
+            <Text style={[styles.fieldTitle, { color: colors.text, marginTop: 18 }]}>Ảnh câu lạc bộ</Text>
+            <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
+              {(["logoUrl", "coverUrl"] as const).map((field) => (
+                <TouchableOpacity key={field} onPress={() => pickImage(field)} disabled={uploading} style={{ flex: 1, height: 110, borderWidth: 1, borderColor: colors.border, borderStyle: "dashed", borderRadius: 14, alignItems: "center", justifyContent: "center", overflow: "hidden", backgroundColor: colors.card }}>
+                  {form[field] ? <Image source={{ uri: normalizeUrl(form[field]) }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <MaterialCommunityIcons name="image-plus" size={28} color="#a9bfd6" />}
+                  {!form[field] && <Text style={{ color: colors.text, marginTop: 8 }}>{field === "logoUrl" ? "Chọn ảnh đại diện" : "Chọn ảnh bìa"}</Text>}
+                </TouchableOpacity>
+              ))}
+            </View>
+            {uploading && <Text style={{ color: colors.subText, marginTop: 8 }}>Đang tải ảnh...</Text>}
+
             <Button
               title={isEdit ? "Lưu" : "Tạo CLB"}
               label={isEdit ? "Lưu" : "Tạo CLB"}
@@ -798,7 +618,8 @@ export default function ClubCreateModal({
           </View>
         </Modal>
       </View>
-    </Modal>
+    </>)}</ModalTopInset>
+</AppModal>
   );
 }
 

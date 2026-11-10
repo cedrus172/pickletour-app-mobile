@@ -53,7 +53,7 @@ import {
 } from "@gorhom/bottom-sheet";
 import { useDispatch, useSelector } from "react-redux";
 import { useTheme } from "@react-navigation/native";
-import ImageViewing from "react-native-image-viewing";
+import ImageViewing from "@/components/ui/ResponsiveImageViewer";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView as EdgeSafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";

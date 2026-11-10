@@ -79,7 +79,7 @@ function GradientCard({
   return (
     <View style={[styles.gradCard, style]}>
       <LinearGradient
-        colors={["#667eea", "#764ba2"]}
+        colors={["#0a2943", "#092038"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -217,7 +217,7 @@ export default function ClubDetailPageRN() {
         style={[styles.fabBtn, { right: 94 }]}
       >
         <LinearGradient
-          colors={["#667eea", "#764ba2"]}
+          colors={["#0aaec8", "#087ba6"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
@@ -232,7 +232,7 @@ export default function ClubDetailPageRN() {
         style={[styles.fabBtn, { right: 16 }]}
       >
         <LinearGradient
-          colors={["#667eea", "#764ba2"]}
+          colors={["#0aaec8", "#087ba6"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
@@ -315,8 +315,8 @@ export default function ClubDetailPageRN() {
                 >
                   <LinearGradient
                     colors={[
-                      "rgba(255,255,255,0.98)",
-                      "rgba(255,255,255,0.98)",
+                      "#09d1ea",
+                      "#09d1ea",
                     ]}
                     style={StyleSheet.absoluteFill}
                     pointerEvents="none"
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
   },
   // chữ mặc định sáng để nổi trên gradient, active thì đậm tối để không "mất chữ" trên nền trắng
   tabText: { color: "#ffffffd9", fontWeight: "700" },
-  tabTextActive: { color: "#2f2a86", fontWeight: "800" },
+  tabTextActive: { color: "#031829", fontWeight: "800" },
 
   // FAB
   fabWrap: {

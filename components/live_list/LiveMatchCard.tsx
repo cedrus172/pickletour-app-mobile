@@ -2,7 +2,6 @@ import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Linking,
-  Modal,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -39,6 +38,7 @@ import {
   isFacebookSession,
 } from "./liveUtils";
 
+import AppModal from "@/components/ui/AppModal";
 const BLURHASH = "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXo";
 
 function useThemeTokens() {
@@ -381,7 +381,7 @@ const LiveMatchCard = memo(
           </View>
         </TouchableOpacity>
 
-        <Modal
+        <AppModal
           visible={playerVisible}
           animationType="slide"
           presentationStyle="fullScreen"
@@ -487,7 +487,7 @@ const LiveMatchCard = memo(
               </View>
             </View>
           </SafeAreaView>
-        </Modal>
+        </AppModal>
 
         <BottomSheetModalProvider>
           <InfoModal

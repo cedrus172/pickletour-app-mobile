@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
-  Modal,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -13,6 +12,7 @@ import { Text } from "@/components/ui/i18nText";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
 
+import AppModal from "@/components/ui/AppModal";
 export type CccdQrResult = {
   id?: string;
   name?: string;
@@ -321,7 +321,7 @@ export default function CccdQrModal({
   const canUseCamera = !!perm?.granted && active;
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       animationType="slide"
       onRequestClose={() => {
@@ -455,7 +455,7 @@ export default function CccdQrModal({
           )}
         </SafeAreaView>
       </View>
-    </Modal>
+    </AppModal>
   );
 }
 

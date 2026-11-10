@@ -2,6 +2,11 @@ import { apiSlice } from "./apiSlice";
 
 export const courtClustersAdminApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    getCourtStationRefereeQr: builder.query({
+      query: ({ tournamentId, stationId }) =>
+        `/api/admin/tournaments/${tournamentId}/court-stations/${stationId}/referee-qr`,
+      keepUnusedDataFor: 0,
+    }),
     getTournamentCourtClusterOptions: builder.query({
       query: (tournamentId) =>
         `/api/admin/tournaments/${tournamentId}/allowed-court-clusters/options`,
@@ -141,6 +146,7 @@ export const courtClustersAdminApiSlice = apiSlice.injectEndpoints({
 });
 
 export const {
+  useLazyGetCourtStationRefereeQrQuery,
   useGetTournamentCourtClusterOptionsQuery,
   useUpdateTournamentAllowedCourtClustersMutation,
   useGetTournamentCourtClusterRuntimeQuery,

@@ -2,7 +2,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Platform } from "react-native";
 import * as Application from "expo-application";
-import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as SecureStore from "expo-secure-store";
 import { useSelector } from "react-redux";
@@ -130,9 +129,9 @@ export function useExpoPushToken() {
         return;
       }
 
-      const projectId =
-        (Constants?.expoConfig?.extra as any)?.eas?.projectId ??
-        (Constants as any)?.easConfig?.projectId;
+      // Project Expo mới (@cedrus172/pickletour-app). Ghi cứng để bản native cũ
+      // (còn nhúng projectId của project cũ) nhận token mới qua OTA.
+      const projectId = "7cd10bac-a221-41c7-b527-5ba89c271324";
 
       if (!projectId) {
         console.error("Missing EAS projectId. Run 'eas build:configure'.");

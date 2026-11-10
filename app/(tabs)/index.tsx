@@ -37,7 +37,7 @@ import { useGetMyRankQuery } from "@/slices/usersApiSlice";
 import LottieView from "lottie-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { normalizeUrl } from "@/utils/normalizeUri";
-import ImageViewing from "react-native-image-viewing";
+import ImageViewing from "@/components/ui/ResponsiveImageViewer";
 import LeaderboardSection from "@/components/home/LeaderboardSection";
 import EventLiveBanner from "@/components/home/EventLiveBanner";
 import CourtBookingBanner from "@/components/home/CourtBookingBanner";
@@ -52,7 +52,6 @@ import {
 import { SHOULD_RENDER_NATIVE_LOTTIE } from "@/utils/runtimeSafety";
 import { useUiVersion, V2 } from "@/hooks/uiVersion";
 import { useResponsive } from "@/hooks/useResponsive";
-import { AdaptiveContainer } from "@/components/ui/AdaptiveContainer";
 import PlayerNameText from "@/components/PlayerNameText";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
 import { useLiquidGlassEnabled } from "@/context/GlassAppearanceContext";
@@ -102,6 +101,16 @@ const FALLBACK = {
 
 /* ---------- Features Data ---------- */
 const FEATURES = [
+  {
+    id: 43,
+    icon: "game-controller",
+    iconLib: "Ionicons",
+    title: "Game Hot",
+    color: "#22c1d6",
+    link: "/game-hot",
+    isNew: true,
+    isHot: true,
+  },
   {
     id: 21,
     icon: "tennisball",
@@ -991,7 +1000,7 @@ function FeatureItem({ item, theme, colWidth }) {
     { Ionicons, MaterialIcons, FontAwesome, FontAwesome5 }[item.iconLib] ||
     Ionicons;
 
-  // V2: bộ biểu tượng vector đồng nhất theo thứ tự tính năng trên trang chủ.
+  // V2: dùng chung bộ biểu tượng cho các tính năng trên trang chủ.
   if (v2) {
     return (
       <TouchableOpacity
@@ -1098,12 +1107,12 @@ function FeatureItem({ item, theme, colWidth }) {
 }
 
 /* ---------- Features Grid ---------- */
-function FeaturesGrid() {
+function FeaturesGrid({ compactColumns = false }: { compactColumns?: boolean }) {
   const theme = useTheme();
   const r = useResponsive();
 
   // Số cột theo bề rộng (iPhone Duo mở → 6–8 cột). Hàng cuối chèn ô rỗng cho thẳng lưới.
-  const NUM_COLUMNS = r.featureColumns;
+  const NUM_COLUMNS = compactColumns ? 4 : r.featureColumns;
   const colWidth: any = `${(100 / NUM_COLUMNS) - 1.8}%`;
   const remainder = FEATURES.length % NUM_COLUMNS;
   const emptySlots = remainder === 0 ? 0 : NUM_COLUMNS - remainder;
@@ -1131,6 +1140,7 @@ function FeaturesGrid() {
 const TournamentCard = React.memo(function TournamentCard({
   group,
   theme,
+  cardWidth,
 }) {
   const isDark = !!theme?.dark;
   const v2 = useUiVersion() === "v2";
@@ -1160,7 +1170,7 @@ const TournamentCard = React.memo(function TournamentCard({
       isInteractive
       style={[
         styles.tournamentCard,
-        { backgroundColor: bg, borderColor: border },
+        { backgroundColor: bg, borderColor: border, ...(cardWidth ? { width: cardWidth } : {}) },
       ]}
     >
       <View style={styles.tournamentImageContainer}>
@@ -1324,6 +1334,9 @@ const TournamentCard = React.memo(function TournamentCard({
 
 /* ---------- Tournaments Section ---------- */
 function TournamentsSection() {
+  const { width: screenWidth } = useWindowDimensions();
+  const [containerWidth, setContainerWidth] = useState(0);
+  const cardWidth = Math.max(180, (containerWidth || screenWidth) * 0.8);
   const theme = useTheme();
   const flatListRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -1347,17 +1360,17 @@ function TournamentsSection() {
   }, [tournaments]);
 
   const renderTournamentItem = useCallback(
-    ({ item }) => <TournamentCard group={item} theme={theme} />,
-    [theme]
+    ({ item }) => <TournamentCard group={item} theme={theme} cardWidth={cardWidth} />,
+    [theme, cardWidth]
   );
 
   const getTournamentItemLayout = useCallback(
     (_data, index) => ({
-      length: CARD_WIDTH + CARD_MARGIN,
-      offset: (CARD_WIDTH + CARD_MARGIN) * index,
+      length: cardWidth + CARD_MARGIN,
+      offset: (cardWidth + CARD_MARGIN) * index,
       index,
     }),
-    []
+    [cardWidth]
   );
 
   const scrollToIndex = (index) => {
@@ -1381,7 +1394,7 @@ function TournamentsSection() {
   if (isLoading || tournamentGroups.length === 0) return null;
 
   return (
-    <View style={styles.tournamentsSection}>
+    <View style={styles.tournamentsSection} onLayout={(event) => setContainerWidth(event.nativeEvent.layout.width)}>
       <View style={styles.homeSectionHeaderPad}>
         <HomeSectionHeader
           title="Giải đấu nổi bật"
@@ -1464,7 +1477,7 @@ function TournamentsSection() {
         renderItem={renderTournamentItem}
         getItemLayout={getTournamentItemLayout}
         contentContainerStyle={styles.tournamentsList}
-        snapToInterval={CARD_WIDTH + CARD_MARGIN}
+        snapToInterval={cardWidth + CARD_MARGIN}
         decelerationRate="fast"
         initialNumToRender={2}
         maxToRenderPerBatch={2}
@@ -1472,7 +1485,7 @@ function TournamentsSection() {
         removeClippedSubviews={Platform.OS === "android"}
         onMomentumScrollEnd={(event) => {
           const index = Math.round(
-            event.nativeEvent.contentOffset.x / (CARD_WIDTH + CARD_MARGIN)
+            event.nativeEvent.contentOffset.x / (cardWidth + CARD_MARGIN)
           );
           setCurrentIndex(index);
         }}
@@ -1481,7 +1494,7 @@ function TournamentsSection() {
 
       <TouchableOpacity
         activeOpacity={0.8}
-        onPress={() => router.push("/tournament/stack")}
+        onPress={() => router.navigate("/(tabs)/tournaments")}
         style={styles.viewAllContainerNew}
       >
         <AppleLiquidGlassView
@@ -1521,7 +1534,7 @@ function TournamentsSection() {
 }
 
 /* ---------- News Card ---------- */
-const NewsCard = React.memo(function NewsCard({ news, theme }) {
+const NewsCard = React.memo(function NewsCard({ news, theme, cardWidth }) {
   const [imageError, setImageError] = useState(false);
   const isDark = !!theme?.dark;
   const v2 = useUiVersion() === "v2";
@@ -1539,7 +1552,7 @@ const NewsCard = React.memo(function NewsCard({ news, theme }) {
         isDark ? "rgba(26, 29, 35, 0.48)" : "rgba(255, 255, 255, 0.4)"
       }
       isInteractive
-      style={[styles.newsCard, { backgroundColor: bg, borderColor: border }]}
+      style={[styles.newsCard, { backgroundColor: bg, borderColor: border, ...(cardWidth ? { width: cardWidth } : {}) }]}
     >
       <TouchableOpacity
         activeOpacity={0.95}
@@ -1591,6 +1604,9 @@ const NewsCard = React.memo(function NewsCard({ news, theme }) {
 
 /* ---------- News Section ---------- */
 function NewsSection() {
+  const { width: screenWidth } = useWindowDimensions();
+  const [containerWidth, setContainerWidth] = useState(0);
+  const cardWidth = Math.max(170, (containerWidth || screenWidth) * 0.68);
   const theme = useTheme();
   const isDark = !!theme?.dark;
   const { data: news, isLoading } = useGetNewsQuery(undefined, {
@@ -1601,22 +1617,22 @@ function NewsSection() {
     [news]
   );
   const renderNewsItem = useCallback(
-    ({ item }) => <NewsCard news={item} theme={theme} />,
-    [theme]
+    ({ item }) => <NewsCard news={item} theme={theme} cardWidth={cardWidth} />,
+    [theme, cardWidth]
   );
   const getNewsItemLayout = useCallback(
     (_data, index) => ({
-      length: NEWS_CARD_WIDTH + 12,
-      offset: (NEWS_CARD_WIDTH + 12) * index,
+      length: cardWidth + 12,
+      offset: (cardWidth + 12) * index,
       index,
     }),
-    []
+    [cardWidth]
   );
 
   if (isLoading || topNews.length === 0) return null;
 
   return (
-    <View style={styles.newsSection}>
+    <View style={styles.newsSection} onLayout={(event) => setContainerWidth(event.nativeEvent.layout.width)}>
       <View style={styles.newsSectionHeaderRow}>
         <View style={styles.newsHeaderFlex}>
           <HomeSectionHeader
@@ -1875,7 +1891,10 @@ export default function HomeScreen() {
   // Màn hình thấp/gần vuông (máy gập, iPhone SE, cửa sổ ngắn) → bố cục gọn lại
   // để hero + lối tắt không bị chật. Reactive theo useWindowDimensions nên tự
   // cập nhật khi gập/mở máy.
-  const { height: winH } = useWindowDimensions();
+  const { height: winH } = useResponsive();
+  const [homeWidth, setHomeWidth] = React.useState(0);
+  const twoPane = homeWidth >= 640 && winH >= 500 && homeWidth > winH;
+  const paneWidth = Math.max(0, (homeWidth - 48) / 2);
   const compact = winH > 0 && winH < 780;
   const gap = compact ? 14 : 24;
   React.useEffect(() => {
@@ -1953,19 +1972,24 @@ export default function HomeScreen() {
         }}
       />
       <HomePage>
-      <View style={[styles.homeRoot, { backgroundColor: "transparent" }]}>
+      <View
+        style={[styles.homeRoot, { backgroundColor: "transparent" }]}
+        onLayout={(event) => setHomeWidth(event.nativeEvent.layout.width)}
+      >
         {!v2 ? <HomeLiquidGlassBackdrop isDark={isDark} active={isFocused} /> : null}
         <ScrollView
           ref={scrollViewRef}
           style={styles.homeScroll}
           contentInsetAdjustmentBehavior="never"
-          contentContainerStyle={{ paddingBottom: bottomPadding }}
+          contentContainerStyle={{ width: "100%", paddingBottom: bottomPadding }}
         >
+          <View testID="home-responsive-layout" style={twoPane ? { width: homeWidth, flexDirection: "row", alignItems: "flex-start", gap: 16, paddingHorizontal: 16 } : undefined}>
+            <View testID="home-primary-pane" style={twoPane ? { width: paneWidth } : undefined}>
           <View
             style={[
               styles.hero3dWrap,
-              { height: (compact ? (v2 ? 176 : 168) : (v2 ? 252 : 240)) + heroTopBleed },
-              v2 && { justifyContent: "flex-start", paddingTop: heroTopBleed + 6 },
+              { height: undefined, minHeight: (compact ? (v2 ? 176 : 168) : (v2 ? 252 : 240)) + heroTopBleed },
+              v2 && { justifyContent: "flex-start", paddingTop: heroTopBleed + 6, paddingBottom: 12 },
             ]}
           >
             {v2 ? (
@@ -1984,32 +2008,27 @@ export default function HomeScreen() {
             ) : null}
             <AthleteIsland />
           </View>
-
-          <AdaptiveContainer>
-            {v2 ? <QuickActions /> : null}
-            <EventLiveBanner />
-            <CourtBookingBanner />
-
-            <View style={{ height: compact ? 8 : 12 }} />
-            <YoutubeClipsHome />
-
-            <View style={{ height: compact ? 4 : 8 }} />
-            <FeaturesGrid />
-
-            <View style={{ height: gap }} />
-            <TournamentsSection />
-
-            <View style={{ height: gap }} />
-            <NewsSection />
-
-            <View style={{ height: gap }} />
-            <LeaderboardSection />
-
-            <View style={{ height: compact ? 10 : 16 }} />
-            <View style={{ paddingHorizontal: 16 }}>
-              <ContactCard />
+              <View>
+                {v2 ? <QuickActions /> : null}
+                <EventLiveBanner />
+                <CourtBookingBanner />
+                <View style={{ height: compact ? 8 : 12 }} />
+                <YoutubeClipsHome />
+                <View style={{ height: compact ? 4 : 8 }} />
+                <FeaturesGrid compactColumns={twoPane} />
+              </View>
             </View>
-          </AdaptiveContainer>
+            <View testID="home-secondary-pane" style={twoPane ? { width: paneWidth, paddingTop: heroTopBleed + 12 } : undefined}>
+              <View style={{ height: gap }} />
+              <TournamentsSection />
+              <View style={{ height: gap }} />
+              <NewsSection />
+              <View style={{ height: gap }} />
+              <LeaderboardSection />
+              <View style={{ height: compact ? 10 : 16 }} />
+              <View style={{ paddingHorizontal: 16 }}><ContactCard /></View>
+            </View>
+          </View>
         </ScrollView>
       </View>
       </HomePage>

@@ -1,7 +1,6 @@
 // app/components/CCCDModal.native.jsx
 import React, { useMemo } from "react";
 import {
-  Modal,
   SafeAreaView,
   StyleSheet,
   View,
@@ -15,6 +14,7 @@ import { Image } from "expo-image";
 import { useTheme } from "@react-navigation/native";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import RefereeModalSurface, { modalStyles, refereeModalColors as M } from "./match/RefereeModalSurface";
+import AppModal from "@/components/ui/AppModal";
 // import { normalizeUrl } from "@/utils/normalizeUrl";
 
 const textOf = (v) => {
@@ -70,7 +70,7 @@ export default function CCCDModal({ visible, onClose, user, refereeDesign = fals
   const hasBack = !!imgs.back;
 
   return (
-    <Modal
+    <AppModal
       visible={!!visible}
       animationType="slide"
       presentationStyle="fullScreen"
@@ -150,7 +150,7 @@ export default function CCCDModal({ visible, onClose, user, refereeDesign = fals
         </ScrollView>
       </ModalRoot>
       </RefereeModalSurface>
-    </Modal>
+    </AppModal>
   );
 }
 

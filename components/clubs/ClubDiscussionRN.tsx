@@ -54,7 +54,7 @@ function GradLightCard({
   return (
     <View style={[styles.card, style]}>
       <LinearGradient
-        colors={["rgba(102,126,234,0.06)", "rgba(118,75,162,0.06)"]}
+        colors={["rgba(8,188,215,0.06)", "rgba(7,141,180,0.06)"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -319,7 +319,7 @@ function PostItem({
           <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
             <TouchableOpacity style={styles.primaryBtn} onPress={saveEdit}>
               <LinearGradient
-                colors={["#667eea", "#764ba2"]}
+                colors={["#08bcd7", "#078db4"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
@@ -496,7 +496,7 @@ export default function ClubDiscussionRN({
               disabled={posting || uploadingImg}
             >
               <LinearGradient
-                colors={["#667eea", "#764ba2"]}
+                colors={["#08bcd7", "#078db4"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
@@ -677,7 +677,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#667eea",
+    backgroundColor: "#08bcd7",
     alignItems: "center",
     justifyContent: "center",
   },

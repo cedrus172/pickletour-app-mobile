@@ -214,8 +214,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "33bf4371-b5a6-4121-a651-99f3c2f19ba2"
+        "projectId": "7cd10bac-a221-41c7-b527-5ba89c271324"
       }
-    }
+    },
+    "owner": "cedrus172"
   }
 }

@@ -15,9 +15,10 @@ import { PLAY_STATUS,
   formatPlayTime,
   skillLabel } from "@/constants/play";
 import * as ImageManipulator from "expo-image-manipulator";
+import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useVideoPlayer,
-  VideoView } from "expo-video";
+  VideoView, type VideoThumbnail } from "expo-video";
 import React, { useState,
   useCallback,
   useEffect,
@@ -25,7 +26,6 @@ import React, { useState,
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -71,6 +71,7 @@ import { AuthorAvatar } from "@/components/social/AuthorAvatar";
 import PlayerNameText from "@/components/PlayerNameText";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
 import { useResponsive } from "@/hooks/useResponsive";
+import { useDuoSideNavigationActive } from "@/hooks/useDuoSideNavigation";
 import {
   FEED_COLORS,
   FeedFilters,
@@ -920,8 +921,8 @@ function TournamentPickerModal({
  * Media hiển thị cho post:
  *  - 1 ảnh: full width card, auto-scale theo tỉ lệ ảnh (giới hạn tối đa 480pt),
  *    căn giữa chiều ngang.
- *  - Nhiều ảnh/video: horizontal ScrollView pagingEnabled, mỗi slide = full width card
- *    (không lệch trái/phải nữa).
+ *  - Nhiều ảnh: hiển thị dạng lưới, chạm để xem toàn bộ.
+ *  - Bài có video: giữ trình phát và danh sách vuốt ngang hiện tại.
  */
 // Nén ảnh trước khi upload — giảm dung lượng ~5-10x như FB.
 // Max cạnh dài 1600px, quality 0.7 JPEG.
@@ -951,6 +952,7 @@ function InlineVideo({
   height: number;
 }) {
   const [ready, setReady] = useState(false);
+  const [thumbnail, setThumbnail] = useState<VideoThumbnail | null>(null);
   const player = useVideoPlayer(uri, (p) => {
     p.loop = false;
     p.muted = true;
@@ -959,16 +961,45 @@ function InlineVideo({
   useEffect(() => {
     setReady(true);
   }, []);
+  useEffect(() => {
+    let cancelled = false;
+    let requested = false;
+    setThumbnail(null);
+    const loadThumbnail = async () => {
+      if (requested || typeof player.generateThumbnailsAsync !== "function") return;
+      requested = true;
+      try {
+        const [frame] = await player.generateThumbnailsAsync(0, { maxWidth: 256, maxHeight: 256 });
+        if (!cancelled && frame?.width && frame?.height) setThumbnail(frame);
+      } catch {
+        // Vẫn cho phép phát video khi nguồn không hỗ trợ trích khung hình.
+      }
+    };
+    const subscription = player.addListener("statusChange", ({ status }) => {
+      if (status === "readyToPlay") void loadThumbnail();
+    });
+    if (player.status === "readyToPlay") void loadThumbnail();
+    return () => { cancelled = true; subscription.remove(); };
+  }, [player, uri]);
   if (!ready) return null;
+  const aspect = thumbnail ? thumbnail.width / thumbnail.height : width / height;
+  const videoWidth = Math.min(width, height * aspect);
+  const videoHeight = Math.min(height, width / aspect);
   return (
-    <VideoView
-      style={{ width, height, borderRadius: 10, backgroundColor: "#000" }}
-      player={player}
-      contentFit="contain"
-      nativeControls
-      fullscreenOptions={{ enable: true }}
-      allowsPictureInPicture={false}
-    />
+    <View style={{ width, height, borderRadius: 10, overflow: "hidden", alignItems: "center", justifyContent: "center", backgroundColor: "#0b1220" }}>
+      {thumbnail ? <>
+        <ExpoImage source={thumbnail} contentFit="cover" blurRadius={24} style={StyleSheet.absoluteFillObject} />
+        <View pointerEvents="none" style={[StyleSheet.absoluteFillObject, { backgroundColor: "rgba(0,0,0,0.35)" }]} />
+      </> : null}
+      <VideoView
+        style={{ width: videoWidth, height: videoHeight }}
+        player={player}
+        contentFit="contain"
+        nativeControls
+        fullscreenOptions={{ enable: true }}
+        allowsPictureInPicture={false}
+      />
+    </View>
   );
 }
 
@@ -979,9 +1010,17 @@ function PostMedia({
   media: any[];
   onOpenViewer: (index: number) => void;
 }) {
-  const screenW = Dimensions.get("window").width;
-  // Card padding ngang 12 + margin ngang 12 → cardContent = screenW - 48
-  const cardContentW = Math.max(240, screenW - 12 * 2 - 12 * 2);
+  const [cardContentW, setCardContentW] = useState(0);
+  const onMediaLayout = useCallback((event: any) => {
+    const width = event.nativeEvent.layout.width;
+    setCardContentW((previous) => previous === width ? previous : width);
+  }, []);
+
+  const mediaContainer = { marginTop: 10, width: "100%" as const, overflow: "hidden" as const };
+
+  if (!cardContentW) {
+    return <View onLayout={onMediaLayout} style={mediaContainer} />;
+  }
 
   if (media.length === 1) {
     const m = media[0];
@@ -990,30 +1029,63 @@ function PostMedia({
     if (m.type === "video") {
       const h = Math.min(480, cardContentW / (initAspect || 1));
       return (
-        <View style={{ marginTop: 10, alignItems: "center" }}>
+        <View onLayout={onMediaLayout} style={[mediaContainer, { alignItems: "center" }]}>
           <InlineVideo uri={m.url} width={cardContentW} height={h} />
         </View>
       );
     }
     return (
-      <View style={{ marginTop: 10, alignItems: "center" }}>
+      <View onLayout={onMediaLayout} style={[mediaContainer, { alignItems: "center" }]}>
         <AspectImage
           url={m.url}
           width={cardContentW}
           maxHeight={480}
           initialAspect={initAspect}
+          blurredBackground
           onPress={() => onOpenViewer(0)}
         />
       </View>
     );
   }
 
+  if (media.every((item: any) => item.type !== "video")) {
+    const visibleCount = Math.min(media.length, 4);
+    const height = Math.min(cardContentW * (visibleCount === 2 ? 0.65 : 1), 480);
+    const tile = (index: number, style: object) => (
+      <Pressable
+        key={index}
+        accessibilityRole="button"
+        accessibilityLabel={`Xem ảnh ${index + 1} trên ${media.length}`}
+        onPress={() => onOpenViewer(index)}
+        style={[{ overflow: "hidden", backgroundColor: "#0b1220" }, style]}
+      >
+        <ExpoImage source={{ uri: media[index].url }} contentFit="cover" style={StyleSheet.absoluteFillObject} />
+        {index === 3 && media.length > 4 && (
+          <View pointerEvents="none" style={[StyleSheet.absoluteFillObject, { backgroundColor: "rgba(0,0,0,0.58)", alignItems: "center", justifyContent: "center" }]}>
+            <Text style={{ color: "#fff", fontSize: 30, fontWeight: "800" }}>+{media.length - 4}</Text>
+          </View>
+        )}
+      </Pressable>
+    );
+    return (
+      <View onLayout={onMediaLayout} style={[mediaContainer, { height, borderRadius: 10, flexDirection: "row", gap: 3 }]}>
+        {visibleCount === 2 ? (
+          <>{tile(0, { flex: 1 })}{tile(1, { flex: 1 })}</>
+        ) : visibleCount === 3 ? (
+          <>{tile(0, { flex: 1 })}<View style={{ flex: 1, gap: 3 }}>{tile(1, { flex: 1 })}{tile(2, { flex: 1 })}</View></>
+        ) : (
+          <><View style={{ flex: 1, gap: 3 }}>{tile(0, { flex: 1 })}{tile(2, { flex: 1 })}</View><View style={{ flex: 1, gap: 3 }}>{tile(1, { flex: 1 })}{tile(3, { flex: 1 })}</View></>
+        )}
+      </View>
+    );
+  }
+
   return (
+    <View onLayout={onMediaLayout} style={mediaContainer}>
     <ScrollView
       horizontal
       pagingEnabled
       showsHorizontalScrollIndicator={false}
-      style={{ marginTop: 10 }}
       contentContainerStyle={{ alignItems: "center" }}
     >
       {media.slice(0, 8).map((m: any, i: number) => {
@@ -1023,7 +1095,7 @@ function PostMedia({
           return (
             <View
               key={i}
-              style={{ width: cardContentW, marginRight: 8, alignItems: "center" }}
+              style={{ width: cardContentW, alignItems: "center" }}
             >
               <InlineVideo uri={m.url} width={cardContentW} height={cardContentW} />
             </View>
@@ -1032,19 +1104,21 @@ function PostMedia({
         return (
           <View
             key={i}
-            style={{ width: cardContentW, marginRight: 8, alignItems: "center" }}
+            style={{ width: cardContentW, alignItems: "center" }}
           >
             <AspectImage
               url={m.url}
               width={cardContentW}
               maxHeight={cardContentW}
               initialAspect={initAspect}
+              blurredBackground
               onPress={() => onOpenViewer(i)}
             />
           </View>
         );
       })}
     </ScrollView>
+    </View>
   );
 }
 
@@ -1815,6 +1889,7 @@ export default function FeedScreen() {
   const C = useThemeTokens();
   const styles = useMemo(() => mk_styles(C), [C]);
   const r = useResponsive();
+  const duoWide = useDuoSideNavigationActive() && r.width >= 800;
   const me = useSelector((s: any) => s.auth?.userInfo);
   const dispatch = useDispatch();
   const socket = useSocket();
@@ -1952,30 +2027,29 @@ export default function FeedScreen() {
     [me]
   );
 
+  const feedHeader = (
+    <>
+      <FeedHeader />
+      {me ? <Composer onPosted={handleRefresh} /> : <GuestBanner />}
+      {me ? <FeedFilters active={feedTab} onChange={(nextTab) => {
+        if (feedTab === nextTab) return;
+        setCursor(null);
+        setFeedTab(nextTab);
+      }} /> : null}
+    </>
+  );
+
   return (
     <FeedPage>
       <SafeAreaView style={styles.container} edges={["top"]}>
         <Stack.Screen options={{ title: t("Bảng tin"), headerShown: false }} />
+        <View style={duoWide ? { flex: 1, flexDirection: "row", gap: 12, paddingHorizontal: 12 } : { flex: 1 }}>
+        {duoWide ? <ScrollView style={{ flex: 1, minWidth: 0 }} contentContainerStyle={{ paddingBottom: 16 }} keyboardShouldPersistTaps="handled">{feedHeader}</ScrollView> : null}
         <FlatList
           data={items}
           keyExtractor={(i: any) => i._id}
-          style={r.isWide ? { alignSelf: "center", width: "100%", maxWidth: r.contentMaxWidth } : undefined}
-          ListHeaderComponent={
-            <>
-              <FeedHeader />
-              {me ? <Composer onPosted={handleRefresh} /> : <GuestBanner />}
-              {me ? (
-                <FeedFilters
-                  active={feedTab}
-                  onChange={(nextTab) => {
-                    if (feedTab === nextTab) return;
-                    setCursor(null);
-                    setFeedTab(nextTab);
-                  }}
-                />
-              ) : null}
-            </>
-          }
+          style={duoWide ? { flex: 1, minWidth: 0 } : r.isWide ? { alignSelf: "center", width: "100%", maxWidth: r.contentMaxWidth } : undefined}
+          ListHeaderComponent={duoWide ? null : feedHeader}
           renderItem={renderItem}
           refreshControl={
             <RefreshControl
@@ -2026,6 +2100,7 @@ export default function FeedScreen() {
           }
           contentContainerStyle={[styles.listContent, { paddingBottom: bottomPadding }]}
         />
+        </View>
       </SafeAreaView>
     </FeedPage>
   );

@@ -2,11 +2,12 @@
 // Bất kỳ user đã đăng nhập: quét QR (admin hiện ở Quản lý sân) → được thêm vào trọng
 // tài sân, vào thẳng màn chấm trận của giải đang chạy trên sân. Không cần admin add.
 import React, { useRef, useState } from "react";
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, KeyboardAvoidingView, Platform } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
-import { CameraView, useCameraPermissions } from "expo-camera";
+import { CameraView, scanFromURLAsync, useCameraPermissions } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "@react-navigation/native";
 import {
@@ -42,6 +43,8 @@ export default function RefereeScanScreen() {
   const [claimCluster] = useClaimClusterRefereeMutation();
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<any>(null); // { ok, stationName, tournamentId } | { ok, clusterId } | { error }
+  const [manualCode, setManualCode] = useState("");
+  const [choosing, setChoosing] = useState(false);
   const lockRef = useRef(false);
 
   const onScanned = async ({ data }: { data: string }) => {
@@ -75,6 +78,29 @@ export default function RefereeScanScreen() {
     lockRef.current = false;
   };
 
+  const submitCode = (data: string) => {
+    if (!parseClusterQr(data) && !parseCourtQr(data)) {
+      Alert.alert("Mã không hợp lệ", "Hãy nhập đầy đủ mã trọng tài hoặc đường dẫn trong mã QR.");
+      return;
+    }
+    void onScanned({ data });
+  };
+
+  const chooseQrImage = async () => {
+    if (choosing || busy) return;
+    setChoosing(true);
+    try {
+      const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsMultipleSelection: false, quality: 1 });
+      if (picked.canceled || !picked.assets?.[0]?.uri) return;
+      const codes = await scanFromURLAsync(picked.assets[0].uri, ["qr"]);
+      const match = codes.find((code) => parseClusterQr(code.data) || parseCourtQr(code.data));
+      if (!match) { Alert.alert("Không tìm thấy mã trọng tài", "Hãy chọn ảnh có mã QR trọng tài rõ nét."); return; }
+      submitCode(match.data);
+    } catch {
+      Alert.alert("Không thể đọc ảnh", "Vui lòng thử ảnh khác hoặc nhập mã thủ công.");
+    } finally { setChoosing(false); }
+  };
+
   const goReferee = () => {
     if (result?.kind === "cluster" && result?.clusterId) {
       router.replace(`/referee/cluster/${result.clusterId}` as any);
@@ -85,30 +111,10 @@ export default function RefereeScanScreen() {
     }
   };
 
-  if (!perm) {
-    return <View style={{ flex: 1, backgroundColor: "#000" }}><Stack.Screen options={{ title: "Quét QR trọng tài" }} /></View>;
-  }
-  if (!perm.granted) {
-    return (
-      <View style={{ flex: 1, backgroundColor: colors.background }}>
-        <Stack.Screen options={{ title: "Quét QR trọng tài" }} />
-        <View style={styles.center}>
-          <Ionicons name="camera-outline" size={54} color={colors.border} />
-          <Text style={{ color: colors.text, fontWeight: "700", marginTop: 12, textAlign: "center" }}>
-            Cần quyền camera để quét mã QR sân
-          </Text>
-          <TouchableOpacity style={[styles.btn, { backgroundColor: colors.primary, marginTop: 16 }]} onPress={() => requestPermission()}>
-            <Text style={{ color: "#fff", fontWeight: "800" }}>Cho phép camera</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={{ flex: 1, backgroundColor: "#000" }}>
       <Stack.Screen options={{ title: "Quét QR trọng tài", headerTransparent: true, headerTintColor: "#fff" }} />
-      {!result && (
+      {!result && perm?.granted && (
         <CameraView
           style={StyleSheet.absoluteFill}
           facing="back"
@@ -116,12 +122,20 @@ export default function RefereeScanScreen() {
           barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
         />
       )}
-      {!result && (
+      {!result && perm?.granted && (
         <View style={styles.overlay} pointerEvents="none">
           <View style={styles.frame} />
           <Text style={styles.hint}>Đưa mã QR dán tại sân vào khung để nhận quyền trọng tài</Text>
         </View>
       )}
+      {!result && !perm?.granted && <View style={styles.center}><Ionicons name="camera-outline" size={48} color="#99b5d2" /><Text style={styles.hint}>Cho phép camera để quét, hoặc nhập mã / chọn ảnh bên dưới.</Text><TouchableOpacity style={[styles.btn, { backgroundColor: colors.primary, marginTop: 12 }]} onPress={() => requestPermission()}><Text style={{ color: "#fff", fontWeight: "800" }}>Cho phép camera</Text></TouchableOpacity></View>}
+      {!result && <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.inputPanel}>
+        <TextInput value={manualCode} onChangeText={setManualCode} placeholder="Nhập mã hoặc đường dẫn QR trọng tài" placeholderTextColor="#91a8c4" autoCapitalize="none" autoCorrect={false} style={styles.codeInput} accessibilityLabel="Mã trọng tài" />
+        <View style={styles.inputActions}>
+          <TouchableOpacity accessibilityRole="button" disabled={busy || choosing} onPress={chooseQrImage} style={[styles.btn, styles.inputButton]}><Text style={{ color: "#fff", fontWeight: "700" }}>{choosing ? "Đang đọc ảnh…" : "Chọn ảnh QR"}</Text></TouchableOpacity>
+          <TouchableOpacity accessibilityRole="button" disabled={busy || choosing} onPress={() => submitCode(manualCode)} style={[styles.btn, styles.inputButton, { backgroundColor: colors.primary }]}><Text style={{ color: "#fff", fontWeight: "800" }}>Nhận quyền</Text></TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>}
       {busy && (
         <View style={styles.overlay}><ActivityIndicator color="#fff" size="large" /></View>
       )}
@@ -172,4 +186,8 @@ const styles = StyleSheet.create({
   frame: { width: 240, height: 240, borderWidth: 3, borderColor: "#fff", borderRadius: 24, backgroundColor: "transparent" },
   hint: { color: "#fff", marginTop: 20, textAlign: "center", paddingHorizontal: 32, fontSize: 15, fontWeight: "600" },
   resultWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: 28 },
+  inputPanel: { position: "absolute", bottom: 24, left: 16, right: 16, padding: 12, backgroundColor: "rgba(3,19,41,0.94)", borderColor: "#185276", borderWidth: 1, borderRadius: 16, gap: 10 },
+  codeInput: { minHeight: 48, borderColor: "#345875", borderWidth: 1, borderRadius: 10, color: "#fff", paddingHorizontal: 12 },
+  inputActions: { flexDirection: "row", gap: 8 },
+  inputButton: { flex: 1, backgroundColor: "#123550", paddingHorizontal: 8 },
 });

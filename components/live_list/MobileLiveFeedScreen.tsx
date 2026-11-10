@@ -23,7 +23,6 @@ import {
   BackHandler,
   FlatList,
   Linking,
-  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -61,6 +60,7 @@ import {
 } from "./liveUtils";
 import { setLiveWatchPayload } from "./liveWatchHandoff";
 
+import AppModal, { ModalTopInset } from "@/components/ui/AppModal";
 const FEED_LIMIT = 8;
 const GLOBAL_MUTE_KEY = "pickletour-live-global-muted-v1";
 const BLURHASH = "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXo";
@@ -1359,7 +1359,7 @@ function FeedFullscreenModal({
   );
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       animationType="none"
       presentationStyle="fullScreen"
@@ -1367,6 +1367,7 @@ function FeedFullscreenModal({
       supportedOrientations={["landscape-left", "landscape-right"]}
       onRequestClose={onClose}
     >
+<ModalTopInset>{(modalTop) => (<>
       <View style={styles.fullscreenModal}>
         <StatusBar hidden />
 
@@ -1395,7 +1396,7 @@ function FeedFullscreenModal({
 
             <LinearGradient
               colors={["rgba(0,0,0,0.72)", "transparent"]}
-              style={[styles.fullscreenTopFade, { paddingTop: insets.top + 10 }]}
+              style={[styles.fullscreenTopFade, { paddingTop: modalTop + 10 }]}
             >
               <View style={styles.fullscreenTopBar}>
                 <TouchableOpacity
@@ -1418,7 +1419,8 @@ function FeedFullscreenModal({
           </>
         )}
       </View>
-    </Modal>
+    </>)}</ModalTopInset>
+</AppModal>
   );
 }
 

@@ -26,6 +26,7 @@ import LottieView from "lottie-react-native"; // ⬅️ NEW
 import { SHOULD_RENDER_NATIVE_LOTTIE } from "@/utils/runtimeSafety";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
 import { IOS_26_LIQUID_GLASS_ENABLED } from "@/utils/nativeTabs";
+import { AuthBrand, useAuthWide } from "@/components/auth/AuthBrand";
 
 // ⬅️ NEW: asset Lottie
 const FORGOT_LOTTIE = require("@/assets/lottie/forgot-password.json");
@@ -83,6 +84,7 @@ function SuccessBanner({ children, isDark }) {
 }
 
 export default function ForgotPasswordScreen() {
+  const authWide = useAuthWide();
   // identifier = email HOẶC số điện thoại; app tự hỏi BE kênh khả dụng.
   const [identifier, setIdentifier] = useState("");
   const [forgotPassword, { isLoading: isSending }] = useForgotPasswordMutation();
@@ -202,9 +204,10 @@ export default function ForgotPasswordScreen() {
           keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
         >
           <ScrollView
-            contentContainerStyle={styles.container}
+            contentContainerStyle={[styles.container, { flexDirection: authWide ? "row" : "column", alignItems: authWide ? "stretch" : "center" }]}
             keyboardShouldPersistTaps="handled"
           >
+            <AuthBrand wide={authWide} />
             <ForgotGlassSurface
               isDark={isDark}
               effect="regular"
@@ -214,11 +217,11 @@ export default function ForgotPasswordScreen() {
               style={[
                 styles.card,
                 IOS_26_LIQUID_GLASS_ENABLED && styles.glassPanel,
-                { backgroundColor: themed.cardBg, borderColor: themed.border },
+                { backgroundColor: themed.cardBg, borderColor: themed.border, width: authWide ? "54%" : "100%", maxWidth: authWide ? 520 : 460, alignSelf: authWide ? "stretch" : "center" },
               ]}
             >
               {/* ⬇️ NEW: Lottie ở trên đầu, căn giữa */}
-              {SHOULD_RENDER_NATIVE_LOTTIE ? (
+              {false && SHOULD_RENDER_NATIVE_LOTTIE ? (
                 <View style={styles.animWrap}>
                   <LottieView
                     source={FORGOT_LOTTIE}

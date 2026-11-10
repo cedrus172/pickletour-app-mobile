@@ -66,6 +66,7 @@ import RefereePortraitScore from "./RefereePortraitScore.native";
 import { formatMatchElapsed, matchTimestamp } from "@/utils/refereeElapsedTime";
 import { CoinFace, DrawCard, DrawColorPair, TwoTeamWheel, DRAW_BLUE, DRAW_RED, DRAW_GOLD } from "./ServeDrawVisuals.native";
 
+import AppModal from "@/components/ui/AppModal";
 const VOICE_API_URL = `${BASE_URL}/api/voice/parse`;
 /* ---------- Theme tokens ---------- */
 function useTokens() {
@@ -1806,7 +1807,7 @@ function CourtAssignModalFull({
   };
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       animationType="slide"
       presentationStyle="fullScreen"
@@ -1957,7 +1958,7 @@ function CourtAssignModalFull({
         </View>
       </ModalRoot>
       </RefereeModalSurface>
-    </Modal>
+    </AppModal>
   );
 }
 
@@ -2312,6 +2313,10 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
   const { width, height, fontScale } = useWindowDimensions();
   const [boardViewport, setBoardViewport] = useState({ width: 0, height: 0 });
   const isLandscape = width > height;
+  const useDuoUtilityRail = Platform.OS === "ios" && isLandscape && insets.right >= 70 && insets.left < 70;
+  const useDuoLeftRail = Platform.OS === "ios" && isLandscape && insets.left >= 70;
+  const isDuoScoringLayout = Platform.OS === "ios" && (Math.min(width, height) >= 640 || Math.max(insets.left, insets.right) >= 70);
+  const useWideBoard = isLandscape || (width >= 640 && height >= 500);
   const [orientationBusy, setOrientationBusy] = useState(false);
   const orientationBusyRef = useRef(false);
   const rotateScreen = useCallback(async () => {
@@ -2473,8 +2478,8 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
   const waitingStartActive = waitingStart || syncedWaitingStart;
   const needsStartAction = isPreMatch || waitingStartActive;
   const boardLayout = useMemo(
-    () => getRefereeBoardLayout(boardViewport.width || width - 20, boardViewport.height || height * 0.65, fontScale, !isLandscape, needsStartAction),
-    [boardViewport.width, boardViewport.height, width, height, fontScale, isLandscape, needsStartAction],
+    () => getRefereeBoardLayout(boardViewport.width || width - 20, boardViewport.height || height * 0.65, fontScale, !useWideBoard, needsStartAction),
+    [boardViewport.width, boardViewport.height, width, height, fontScale, useWideBoard, needsStartAction],
   );
   const firstStartLog = match?.liveLog?.find?.((entry) => entry?.type === "start");
   const optimisticStartedAt = localClockStart.matchId === String(matchId) ? localClockStart.at : 0;
@@ -4390,9 +4395,10 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
                 style={[
                   s.topUtilityControls,
                   useCompactTopChrome && s.topUtilityControlsCompact,
+                  (useDuoUtilityRail || useDuoLeftRail) && { flexDirection: "column", gap: 10 },
                 ]}
               >
-                  {isLandscape ? clockControl : null}
+                  {isLandscape && !useDuoUtilityRail && !useDuoLeftRail ? clockControl : null}
                 {isLandscape ? orientationControl : null}
                 {/* Nút Voice Commands */}
                 <TouchableOpacity
@@ -4528,10 +4534,10 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
             {
               backgroundColor: t.dark ? "#071b35" : t.colors.card,
               borderColor: t.dark ? "#123d62" : t.colors.border,
-              marginLeft: t.dark ? -insets.left : 0,
-              marginRight: t.dark ? -insets.right : 0,
-              paddingLeft: t.dark ? insets.left + 7 : undefined,
-              paddingRight: t.dark ? insets.right + 7 : undefined,
+              marginLeft: t.dark && !isDuoScoringLayout ? -insets.left : 0,
+              marginRight: t.dark && !isDuoScoringLayout ? -insets.right : 0,
+              paddingLeft: t.dark ? (isDuoScoringLayout ? 7 : insets.left + 7) : undefined,
+              paddingRight: t.dark ? (isDuoScoringLayout ? 7 : insets.right + 7) : undefined,
             },
           ]}
         >
@@ -4547,7 +4553,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
               width < 540 && { flexWrap: "wrap" },
             ]}
           >
-              <View
+              {useDuoLeftRail ? <View style={[s.chip, s.topHeaderChip, { backgroundColor: t.dark ? "#0c2746" : t.chipInfoBg, borderColor: t.dark ? "#1c5079" : t.chipInfoBd }]}><Text style={[s.matchCodeText, { color: t.colors.text }]} numberOfLines={1} adjustsFontSizeToFit>{headerText}</Text></View> : <View
                 style={[
                   s.topPrimaryControls,
                   useCompactTopChrome && s.topPrimaryControlsCompact,
@@ -4767,8 +4773,8 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
                       ) : null}
                     </Ripple>
                   )}
-                </View>
-              {utilityControls}
+                </View>}
+              {useDuoUtilityRail || useDuoLeftRail ? clockControl : utilityControls}
           </View>)}
 
         </View>
@@ -4871,8 +4877,8 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
                   },
                 ]}
               >
-                {t.dark ? <Image source={require("@/assets/images/referee-pickleball.png")} style={[{ width: boardLayout.ballSize, height: boardLayout.ballSize, flexShrink: 0 }, !isLandscape && { position: "absolute", top: boardLayout.padding, alignSelf: "center" }]} contentFit="contain" /> : null}
-                {!isLandscape && <View style={{ width: "100%", flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 8 }}>
+                {t.dark ? <Image source={require("@/assets/images/referee-pickleball.png")} style={[{ width: boardLayout.ballSize, height: boardLayout.ballSize, flexShrink: 0 }, !useWideBoard && { position: "absolute", top: boardLayout.padding, alignSelf: "center" }]} contentFit="contain" /> : null}
+                {!useWideBoard && <View style={{ width: "100%", flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 8 }}>
                   <Text style={{ color: "#08c9f7", fontSize: boardLayout.chipFont, fontWeight: "900" }}>ĐỘI {leftSide}</Text>
                   <Text style={{ color: "#9fe92f", fontSize: boardLayout.chipFont, fontWeight: "900" }}>ĐỘI {rightSide}</Text>
                 </View>}
@@ -4884,7 +4890,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
                       { flex: 1, minHeight: 0, gap: boardLayout.gap, paddingVertical: 0 },
                     ]}
                   >
-                    {!isLandscape ? <RefereePortraitScore left={leftGameScore} right={rightGameScore} height={Math.ceil(boardLayout.scoreLine * Math.min(Math.max(fontScale, 1), 1.3))} color={t.colors.text} /> : (
+                    {!useWideBoard ? <RefereePortraitScore left={leftGameScore} right={rightGameScore} height={Math.ceil(boardLayout.scoreLine * Math.min(Math.max(fontScale, 1), 1.3))} color={t.colors.text} /> : (
                     <Text testID="referee-score-digits" minimumFontScale={0.7} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.3} style={[s.refereeCenterScore, { color: t.colors.text, fontSize: boardLayout.scoreFont, lineHeight: boardLayout.scoreLine, width: "100%", height: Math.ceil(boardLayout.scoreLine * Math.min(Math.max(fontScale, 1), 1.3)), flexShrink: 0 }]}>
                       {leftGameScore} : {rightGameScore}
                     </Text>
@@ -4942,7 +4948,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
                       {preStartServeHint}
                     </Text>
                   </View>
-                ) : !isLandscape ? (
+                ) : !useWideBoard ? (
                   <>
                     <RefereePortraitScore left={leftGameScore} right={rightGameScore} height={Math.ceil(boardLayout.scoreLine * Math.min(Math.max(fontScale, 1), 1.3))} color={t.colors.text} />
                     <Ripple accessibilityLabel="Đổi người giao bóng" onPress={toggleServerNum} disabled={incBusy || undoBusy || isOpeningServeLocked} style={[s.refereeServeChip, { minHeight: 32, minWidth: 0, borderColor: "#0b679c", backgroundColor: "#082f52b8", paddingVertical: 3 }]}>
@@ -5028,10 +5034,10 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
             {
               backgroundColor: t.dark ? "#071b35" : t.colors.card,
               borderColor: t.dark ? "#123d62" : t.colors.border,
-              marginLeft: t.dark ? -insets.left : 0,
-              marginRight: t.dark ? -insets.right : 0,
-              paddingLeft: t.dark ? insets.left + 10 : undefined,
-              paddingRight: t.dark ? insets.right + 10 : undefined,
+              marginLeft: t.dark && !isDuoScoringLayout ? -insets.left : 0,
+              marginRight: t.dark && !isDuoScoringLayout ? -insets.right : 0,
+              paddingLeft: t.dark ? (isDuoScoringLayout ? 10 : insets.left + 10) : undefined,
+              paddingRight: t.dark ? (isDuoScoringLayout ? 10 : insets.right + 10) : undefined,
             },
           ]}
         >
@@ -5040,6 +5046,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
             s.bottomBar,
             isTightLandscape && s.bottomBarCompact,
             s.refereeBottomBar,
+            { alignSelf: "stretch", minWidth: 0 },
           ]}>
             {activeBreak ? (
               <Text
@@ -5107,8 +5114,8 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
 	                </Ripple>
 	              </View>
 	            ) : needsStartAction ? (
-              /* Pre-match: CTA buttons inline in 1 row */
-              <View style={[s.row, s.refereePreStartActions, s.refereeActionGroup, { minWidth: 0, width: "100%", flexBasis: "100%", gap: boardLayout.gap, flexWrap: "wrap" }]}>
+              /* Trước trận: nút chính và các nút phụ co theo chiều rộng thực. */
+              <View testID="referee-prestart-actions" style={[s.row, { width: "100%", flex: 0, flexBasis: "auto", minWidth: 0, marginLeft: 0, gap: boardLayout.gap, flexWrap: "wrap" }]}>
                 {cta && (
                   <Ripple
                     onPress={cta.onPress}
@@ -5117,8 +5124,8 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
                       s.bigActionBtn,
                       isTightLandscape && s.bigActionBtnCompact,
                       s.refereePreStartPrimary,
-                      { minWidth: 160 },
-                      !isLandscape && { flexBasis: "100%" },
+                      { minWidth: 0, flexBasis: 0, flexShrink: 1 },
+                      !isLandscape && { flex: 0, width: "100%", flexBasis: "100%" },
                       cta.danger
                         ? { backgroundColor: "#ef4444", borderColor: "#b91c1c" }
                         : { backgroundColor: t.success, borderColor: t.success },
@@ -5149,7 +5156,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
                       s.bigActionBtn,
                       isTightLandscape && s.bigActionBtnCompact,
                       s.refereePreStartSecondary,
-                      { minWidth: 104 },
+                      { minWidth: 0, flexBasis: 0, flexShrink: 1 },
                       {
                         backgroundColor: t.dark ? "#071b35" : t.colors.card,
                         borderColor: t.dark ? "#1597d2" : t.colors.border,
@@ -5184,7 +5191,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
                       s.bigActionBtn,
                       isTightLandscape && s.bigActionBtnCompact,
                       s.refereePreStartSecondary,
-                      { minWidth: 118 },
+                      { minWidth: 0, flexBasis: 0, flexShrink: 1 },
                       {
                         borderColor: "#04c6f5",
                         backgroundColor: t.dark ? "#052c4c" : "#0a84ff15",
@@ -5450,7 +5457,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
       )}
 
       {/* ===== Menu modal ===== */}
-      <Modal
+      <AppModal
         visible={menuOpen}
         animationType="slide"
         presentationStyle="fullScreen"
@@ -5503,7 +5510,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
           </View>
         </SafeAreaView>
         </SafeAreaProvider>
-      </Modal>
+      </AppModal>
 
       {/* ===== Court assign fullscreen modal ===== */}
       <CourtAssignModalFull
@@ -5534,6 +5541,25 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
         }}
       />
       </View>
+      {useDuoUtilityRail ? (
+        <View testID="referee-duo-utility-rail" style={{ position: "absolute", right: 0, top: 120, bottom: pageBottomInset, width: insets.right, alignItems: "center", justifyContent: "center" }}>
+          {utilityControls}
+        </View>
+      ) : null}
+      {useDuoLeftRail ? (
+        <View testID="referee-duo-left-rail" style={{ position: "absolute", left: 0, top: 0, bottom: pageBottomInset, width: insets.left, alignItems: "center" }}>
+          <ScrollView contentContainerStyle={{ alignItems: "center", justifyContent: "center", flexGrow: 1, gap: 8, paddingVertical: 8 }} showsVerticalScrollIndicator={false}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Quay lại" onPress={handleBack} style={[s.iconBtnSetting, s.iconBtnSettingCompact, { backgroundColor: t.dark ? "#0b2747" : t.chipInfoBg }]}><Ionicons name="chevron-back" size={20} color={t.colors.text} /></TouchableOpacity>
+            {!isPreMatch ? <>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Hoàn tác" disabled={undoBusy || !canUndoLive} onPress={onUndo} style={[s.iconBtnSetting, s.iconBtnSettingCompact, { backgroundColor: "#8c5a1a", opacity: undoBusy || !canUndoLive ? 0.5 : 1 }]}>{undoBusy ? <ActivityIndicator size="small" /> : <MaterialIcons name="undo" size={20} color="#fff1bf" />}</TouchableOpacity>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Đổi bên" onPress={swapSides} style={[s.iconBtnSetting, s.iconBtnSettingCompact, { backgroundColor: t.dark ? "#0b2747" : t.chipInfoBg }]}><MaterialIcons name="swap-horiz" size={20} color={t.colors.text} /></TouchableOpacity>
+            </> : null}
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Người giao ${activeServerNum}`} disabled={incBusy || undoBusy || isOpeningServeLocked} onPress={toggleServerNum} style={[s.iconBtnSetting, s.iconBtnSettingCompact, { backgroundColor: t.dark ? "#0b2747" : t.chipInfoBg, opacity: incBusy || undoBusy || isOpeningServeLocked ? 0.5 : 1 }]}><Text style={{ color: t.colors.text, fontWeight: "800" }}>{activeServerNum}</Text></TouchableOpacity>
+            {isPreMatch && userMatch !== "true" ? <TouchableOpacity accessibilityRole="button" accessibilityLabel={currentCourtId ? "Đổi sân" : "Gán sân"} onPress={() => setCourtOpen(true)} style={[s.iconBtnSetting, s.iconBtnSettingCompact, { backgroundColor: t.dark ? "#0b2747" : t.chipInfoBg }]}><MaterialIcons name="edit-location" size={20} color={t.colors.text} /></TouchableOpacity> : null}
+            {utilityControls}
+          </ScrollView>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }

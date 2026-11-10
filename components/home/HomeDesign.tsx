@@ -5,6 +5,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NotificationHeaderActions } from "@/components/GlobalNotificationShell";
+import { useDuoSideNavigation } from "@/hooks/useDuoSideNavigation";
 
 import { Text } from "@/components/ui/i18nText";
 
@@ -25,6 +26,7 @@ export const HOME_COLORS = {
 
 export const HomePage = memo(function HomePage({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
+  const sideNavigation = useDuoSideNavigation();
   return (
     <LinearGradient
       colors={[HOME_COLORS.background, HOME_COLORS.backgroundAlt]}
@@ -35,7 +37,7 @@ export const HomePage = memo(function HomePage({ children }: { children: ReactNo
       <View pointerEvents="none" style={styles.ambientTop} />
       <View pointerEvents="none" style={styles.ambientMid} />
       {children}
-      <View pointerEvents="box-none" testID="home-notification-corner" style={[styles.notificationCorner, { right: Math.max(insets.right, 16) }]}>
+      <View pointerEvents="box-none" testID="home-notification-corner" style={[styles.notificationCorner, { right: sideNavigation.enabled ? 16 : Math.max(insets.right, 16) }]}>
         <NotificationHeaderActions />
       </View>
     </LinearGradient>
@@ -185,7 +187,7 @@ const styles = StyleSheet.create({
   quickTitle: { color: HOME_COLORS.text, fontSize: 18, lineHeight: 23, fontWeight: "900" },
   quickSubtitle: { color: HOME_COLORS.textMuted, fontSize: 11.5, lineHeight: 16, marginTop: 2 },
   quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 9 },
-  quickPressable: { width: "48.7%", minWidth: 0, borderRadius: 18 },
+  quickPressable: { width: "48%", minWidth: 0, borderRadius: 18 },
   quickCard: {
     minHeight: 78,
     flexDirection: "row",

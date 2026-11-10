@@ -1,7 +1,6 @@
 // app/screens/PickleBall/match/MatchSettingsModal.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import {
-  Modal,
   SafeAreaView,
   View,
   StyleSheet,
@@ -19,6 +18,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
 import RefereeModalSurface, { modalStyles, refereeModalColors as M } from "./RefereeModalSurface";
 
+import AppModal from "@/components/ui/AppModal";
 /* ---------- Theme tokens (nhẹ hơn bản full) ---------- */
 function useTokens() {
   const navTheme = useTheme?.() || {};
@@ -137,12 +137,14 @@ export default function MatchSettingsModal({
   matchSnapshot,
   onRefresh,
   onSave,
+  onResetMatch,
 }) {
   const t = useTokens();
   const ModalRoot = t.sport ? View : SafeAreaView;
   const match = matchSnapshot || null;
   const [isFetching, setIsFetching] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   const rules = match?.rules || {};
 
@@ -198,7 +200,7 @@ export default function MatchSettingsModal({
   }, [visible, iv]);
 
   const handleClose = () => {
-    if (isUpdating) return;
+    if (isUpdating || isResetting) return;
     onClose?.();
   };
 
@@ -233,6 +235,28 @@ export default function MatchSettingsModal({
     }
   };
 
+  const confirmResetMatch = () => {
+    if (!onResetMatch || isResetting || isUpdating) return;
+    Alert.alert(
+      "Đưa trận về chưa bắt đầu?",
+      "Điểm số và diễn biến hiện tại sẽ được đặt lại. Trận sẽ bắt đầu lại từ 0-0-2. Không thể đặt lại nếu trận tiếp theo đã bắt đầu.",
+      [
+        { text: "Hủy", style: "cancel" },
+        { text: "Đặt lại trận", style: "destructive", onPress: async () => {
+          try {
+            setIsResetting(true);
+            await onResetMatch();
+            onClose?.();
+          } catch (error: any) {
+            Alert.alert("Không thể đặt lại trận", error?.data?.message || error?.message || "Vui lòng thử lại.");
+          } finally {
+            setIsResetting(false);
+          }
+        } },
+      ],
+    );
+  };
+
   const handleRefresh = async () => {
     if (!matchId || !onRefresh) return;
     try {
@@ -244,7 +268,7 @@ export default function MatchSettingsModal({
   };
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       animationType="slide"
       presentationStyle="fullScreen"
@@ -420,15 +444,33 @@ export default function MatchSettingsModal({
             onChange={setMedicalTimeouts}
           />
 
+          {onResetMatch && ["live", "finished"].includes(String(match?.status || "").toLowerCase()) ? (
+            <View style={[styles.fieldRow, t.sport && styles.sportField]}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={[styles.label, { color: t.colors.text }]}>Đặt lại trận</Text>
+                <Text style={[styles.helper, { color: t.subtext }]}>Đưa trận về chưa bắt đầu và đặt lại điểm số.</Text>
+              </View>
+              <Ripple
+                accessibilityRole="button"
+                accessibilityLabel="Đưa trận về chưa bắt đầu"
+                disabled={isUpdating || isResetting}
+                onPress={confirmResetMatch}
+                style={[styles.resetButton, { borderColor: "#EF4444", opacity: isUpdating || isResetting ? 0.5 : 1 }]}
+              >
+                {isResetting ? <ActivityIndicator color="#EF4444" /> : <Text style={{ color: "#EF4444", fontWeight: "700" }}>Đặt lại</Text>}
+              </Ripple>
+            </View>
+          ) : null}
           <View style={{ height: 24 }} />
         </ScrollView>
       </ModalRoot>
       </RefereeModalSurface>
-    </Modal>
+    </AppModal>
   );
 }
 
 const styles = StyleSheet.create({
+  resetButton: { minHeight: 44, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   sportField: { padding: 12, minHeight: 76, borderWidth: 1, borderColor: M.border, borderRadius: 16, backgroundColor: M.card, flexWrap: "wrap", gap: 10 },
   sportStepButton: { width: 44, height: 44, borderRadius: 10 },
   sportInput: { width: 40, minWidth: 40, minHeight: 44, borderWidth: 0, borderRadius: 0, paddingHorizontal: 2, paddingVertical: 0, fontSize: 17 },

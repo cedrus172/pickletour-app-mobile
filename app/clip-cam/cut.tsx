@@ -383,8 +383,32 @@ export default function ClipCutScreen() {
   const [recBusy, setRecBusy] = useState(false);
   const recTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Đang XEM LẠI → ghi theo mốc thời gian đang xem (không phải giờ hiện tại):
+  // bấm ghi lưu mốc đầu, bấm dừng lấy mốc cuối rồi cắt đoạn đó từ đầu ghi.
+  const recPlayStartRef = useRef<number | null>(null);
+
   const toggleRecord = useCallback(async () => {
     if (recBusy) return;
+    if (recId === "playback") {
+      if (recTimerRef.current) { clearInterval(recTimerRef.current); recTimerRef.current = null; }
+      const startMs = recPlayStartRef.current ?? Date.now();
+      const nowPos = playerRef.current?.currentTimeMs();
+      const endMs = nowPos && nowPos > startMs ? nowPos : startMs + Math.max(1, recSec) * 1000;
+      recPlayStartRef.current = null;
+      setRecId(null);
+      setRecSec(0);
+      void onCut({ start: new Date(startMs), end: new Date(endMs) });
+      return;
+    }
+    if (!recId && previewMode === "playback" && manifest) {
+      const pos = playerRef.current?.currentTimeMs();
+      if (!pos) { Alert.alert("Chưa sẵn sàng", "Đợi video xem lại chạy rồi bấm ghi."); return; }
+      recPlayStartRef.current = pos;
+      setRecId("playback");
+      setRecSec(0);
+      recTimerRef.current = setInterval(() => setRecSec((s) => s + 1), 1000);
+      return;
+    }
     if (recId) {
       // Dừng ghi → nhận clip.
       setRecBusy(true);
@@ -419,7 +443,7 @@ export default function ClipCutScreen() {
         setRecBusy(false);
       }
     }
-  }, [recBusy, recId, baseUrl, channelId]);
+  }, [recBusy, recId, recSec, baseUrl, channelId, previewMode, manifest, onCut]);
 
   // Dọn timer + dừng bản ghi khi rời màn.
   useEffect(() => () => {
@@ -471,11 +495,16 @@ export default function ClipCutScreen() {
     try {
       const dir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
       const safe = (name || `clip-${clipId}.mp4`).replace(/[^\w.\-]+/g, "_");
-      const dl = await FileSystem.downloadAsync(clipDownloadUrl(baseUrl, clipId), `${dir}${safe}`);
+      if (!dir) throw new Error("Không có bộ nhớ tạm để tải clip.");
+      const task = FileSystem.createDownloadResumable(clipDownloadUrl(baseUrl, clipId), `${dir}${safe}`, {}, (p) => {
+        if (p.totalBytesExpectedToWrite > 0) setDlPct(Math.min(100, Math.round(p.totalBytesWritten / p.totalBytesExpectedToWrite * 100)));
+      });
+      const dl = await task.downloadAsync();
+      if (!dl || dl.status < 200 || dl.status >= 300) throw new Error("Không tải được clip (có thể đã quá hạn).");
       // Thử lưu thẳng album; nếu module native thiếu/hỏng (bản app cũ) → fallback share.
       if (MediaLibrary?.saveToLibraryAsync) {
         try {
-          const perm = MediaLibrary.requestPermissionsAsync ? await MediaLibrary.requestPermissionsAsync() : { granted: true };
+          const perm = MediaLibrary.requestPermissionsAsync ? await MediaLibrary.requestPermissionsAsync(true) : { granted: true };
           if (!perm?.granted) { Alert.alert("Cần quyền", "Cho phép truy cập Ảnh để lưu clip vào máy."); return; }
           await MediaLibrary.saveToLibraryAsync(dl.uri);
           Alert.alert("Đã lưu", "Clip đã lưu vào thư viện ảnh.");
@@ -485,12 +514,13 @@ export default function ClipCutScreen() {
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(dl.uri, { mimeType: "video/mp4", UTI: "public.mpeg-4", dialogTitle: "Lưu / chia sẻ clip" });
       } else {
-        Alert.alert("Đã tải", "Clip đã được tải về máy.");
+        Alert.alert("Không thể lưu clip", "Phiên bản ứng dụng này chưa hỗ trợ lưu vào thư viện ảnh.");
       }
     } catch (e: any) {
       Alert.alert("Lỗi lưu clip", e?.message || "Không lưu được clip (có thể đã quá hạn).");
     } finally {
       setSharing(false);
+      setDlPct(0);
     }
   }, [baseUrl, sharing]);
 
@@ -571,7 +601,10 @@ export default function ClipCutScreen() {
               </View>
             </View>
             <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
-              {/* Nút "Lưu vào máy" tạm ẩn — cần build native (expo-media-library) mới bật. */}
+              <Pressable accessibilityRole="button" onPress={() => saveToAlbum(results[0].clipId, results[0].name)} disabled={sharing} style={[styles.resBtn, { backgroundColor: C.primary }]}>
+                <Ionicons name="download-outline" size={16} color={C.onPrimary} />
+                <Text style={{ color: C.onPrimary, fontWeight: "700", marginLeft: 6 }}>Lưu vào Ảnh</Text>
+              </Pressable>
               <Pressable onPress={() => shareClip(results[0].clipId, results[0].name)} disabled={sharing} style={[styles.resBtn, { backgroundColor: C.primary }]}>
                 {sharing ? <ActivityIndicator color={C.onPrimary} size="small" /> : <Ionicons name="share-social" size={16} color={C.onPrimary} />}
                 <Text style={{ color: C.onPrimary, fontWeight: "700", marginLeft: 6 }}>Tải / Chia sẻ</Text>
@@ -591,6 +624,10 @@ export default function ClipCutScreen() {
                   <Text numberOfLines={1} style={{ color: C.text, fontWeight: "700", fontSize: 13 }}>{r.name}</Text>
                   {!!r.size && <Text style={{ color: C.sub, fontSize: 12 }}>{humanSize(r.size)}</Text>}
                 </View>
+                <Pressable accessibilityRole="button" accessibilityLabel={`Lưu ${r.name} vào Ảnh`} onPress={() => saveToAlbum(r.clipId, r.name)} disabled={sharing} style={[styles.shareBtn, { backgroundColor: C.primary, marginRight: 8 }]}>
+                  <Ionicons name="download-outline" size={15} color={C.onPrimary} />
+                  <Text style={{ color: C.onPrimary, fontWeight: "700", marginLeft: 5 }}>Lưu</Text>
+                </Pressable>
                 <Pressable onPress={() => shareClip(r.clipId, r.name)} disabled={sharing} style={[styles.shareBtn, { backgroundColor: C.primary }]}>
                   <Ionicons name="share-social" size={15} color={C.onPrimary} />
                   <Text style={{ color: C.onPrimary, fontWeight: "700", marginLeft: 5 }}>Tải</Text>
@@ -611,7 +648,7 @@ export default function ClipCutScreen() {
           <View style={{ marginTop: 24 }}>
             <Text style={styles.sectionTitle}>Clip gần đây</Text>
             {history.map((h) => (
-              <HistoryRow key={h.clipId} C={C} item={h} onShare={() => shareClip(h.clipId, h.name)} />
+              <HistoryRow key={h.clipId} C={C} item={h} onShare={() => shareClip(h.clipId, h.name)} onSave={() => saveToAlbum(h.clipId, h.name)} />
             ))}
           </View>
         )}
@@ -659,7 +696,7 @@ function DateBtn({ C, label, value, onPress }: { C: ThemeTokens; label: string; 
   );
 }
 
-function HistoryRow({ C, item, onShare }: { C: ThemeTokens; item: ClipHistoryItem; onShare: () => void }) {
+function HistoryRow({ C, item, onShare, onSave }: { C: ThemeTokens; item: ClipHistoryItem; onShare: () => void; onSave: () => void }) {
   const [alive, setAlive] = useState<boolean | null>(null);
   useEffect(() => { isClipAlive(item).then(setAlive); }, [item]);
   const mins = Math.max(0, Math.round((Date.now() - item.createdAt) / 60000));
@@ -673,9 +710,9 @@ function HistoryRow({ C, item, onShare }: { C: ThemeTokens; item: ClipHistoryIte
       {alive === false ? (
         <Text style={{ color: C.muted, fontSize: 12 }}>Đã hết hạn</Text>
       ) : (
-        <Pressable accessibilityRole="button" accessibilityLabel={`Tải / chia sẻ ${item.name}`} onPress={onShare} hitSlop={10} style={{ padding: 8 }}>
+        <><Pressable accessibilityRole="button" accessibilityLabel={`Lưu ${item.name} vào Ảnh`} onPress={onSave} hitSlop={10} style={{ padding: 8 }}><Ionicons name="download-outline" size={20} color={C.primary} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Tải / chia sẻ ${item.name}`} onPress={onShare} hitSlop={10} style={{ padding: 8 }}>
           <Ionicons name="share-social-outline" size={20} color={C.primary} />
-        </Pressable>
+        </Pressable></>
       )}
     </View>
   );

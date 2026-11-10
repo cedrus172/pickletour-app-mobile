@@ -40,7 +40,7 @@ function GradLightCard({
   return (
     <View style={[styles.card, style]}>
       <LinearGradient
-        colors={["rgba(102,126,234,0.08)", "rgba(118,75,162,0.08)"]}
+        colors={["rgba(8,188,215,0.08)", "rgba(7,141,180,0.08)"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -185,7 +185,7 @@ export default function ClubAnnouncementsRN({
             <MaterialCommunityIcons
               name={pinned ? "checkbox-marked" : "checkbox-blank-outline"}
               size={20}
-              color={pinned ? "#667eea" : C.muted}
+              color={pinned ? "#08bcd7" : C.muted}
             />
             <Text style={styles.checkLabel}>Ghim lên đầu</Text>
           </TouchableOpacity>
@@ -193,7 +193,7 @@ export default function ClubAnnouncementsRN({
           <View style={{ marginTop: 12, flexDirection: "row", gap: 8 }}>
             <View style={styles.btnPrimary}>
               <LinearGradient
-                colors={["#667eea", "#764ba2"]}
+                colors={["#08bcd7", "#078db4"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}

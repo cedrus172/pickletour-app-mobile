@@ -30,6 +30,8 @@ import { useTheme } from "@react-navigation/native";
 import { useSocket } from "@/context/SocketContext";
 import { useSocketRoomSet } from "@/hooks/useSocketRoomSet";
 import ResponsiveMatchViewer from "@/components/match/ResponsiveMatchViewer";
+import TicketQrRN from "@/components/courts/TicketQrRN";
+import * as Clipboard from "expo-clipboard";
 import {
   getPairDisplayName,
   normalizeMatchDisplay,
@@ -49,6 +51,7 @@ import {
   useGetAdminCourtClusterRuntimeQuery,
   useGetTournamentCourtClusterOptionsQuery,
   useGetTournamentCourtClusterRuntimeQuery,
+  useLazyGetCourtStationRefereeQrQuery,
   useUpdateTournamentAllowedCourtClustersMutation,
   useUpdateTournamentCourtStationAssignmentConfigMutation,
 } from "@/slices/courtClustersAdminApiSlice";
@@ -969,6 +972,18 @@ function ClusterRuntimeStationCard({
   onFreeCurrent,
   onOpenViewer,
 }) {
+  const [qrData, setQrData] = useState(null);
+  const [fetchRefereeQr, { isFetching: qrLoading }] = useLazyGetCourtStationRefereeQrQuery();
+  const toggleRefereeQr = async () => {
+    if (qrData) { setQrData(null); return; }
+    try {
+      const data = await fetchRefereeQr({ tournamentId, stationId }).unwrap();
+      if (!data?.qrPayload) throw new Error("Không có dữ liệu mã QR.");
+      setQrData(data);
+    } catch (error) {
+      Alert.alert("Không lấy được mã QR", error?.data?.message || error?.message || "Vui lòng thử lại.");
+    }
+  };
   const normalizedPickerQuery = String(pickerQuery || "")
     .trim()
     .toLowerCase();
@@ -1130,6 +1145,15 @@ function ClusterRuntimeStationCard({
           <Chip tone="default">{station?.code || "—"}</Chip>
           <Chip tone="info">{modeLabel(assignmentMode)}</Chip>
         </Row>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Mã QR trọng tài ${station?.name || "sân"}`} onPress={toggleRefereeQr} disabled={qrLoading} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 }}>
+          <MaterialIcons name="qr-code" size={22} color={t.colors.primary} />
+          <Text style={{ color: t.colors.primary, fontWeight: "700" }}>{qrLoading ? "Đang lấy mã QR…" : qrData ? "Ẩn mã QR trọng tài" : "Mã QR trọng tài"}</Text>
+        </Pressable>
+        {qrData?.qrPayload ? <View style={{ alignItems: "center", gap: 10, padding: 12, borderWidth: 1, borderColor: t.colors.border, borderRadius: 12 }}>
+          <TicketQrRN token={qrData.qrPayload} prefix="" size={180} />
+          <Text style={{ color: t.muted, textAlign: "center" }}>Trọng tài quét mã để nhận quyền tại sân này.</Text>
+          <Pressable accessibilityRole="button" onPress={async () => { await Clipboard.setStringAsync(qrData.joinUrl || qrData.qrPayload); Alert.alert("Đã sao chép", "Đã sao chép mã trọng tài."); }}><Text style={{ color: t.colors.primary, fontWeight: "700" }}>Sao chép mã</Text></Pressable>
+        </View> : null}
 
         <Text
           style={[

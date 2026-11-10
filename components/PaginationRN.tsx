@@ -231,6 +231,7 @@ export default function PaginationRN({
                 ]}
               >
                 <Text
+                  numberOfLines={1}
                   style={{ color: active ? "#fff" : text, fontWeight: "700" }}
                 >
                   {it.page}

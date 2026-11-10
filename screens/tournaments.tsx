@@ -15,6 +15,7 @@ import {
   Linking,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   useColorScheme,
@@ -28,7 +29,7 @@ import { Image as ExpoImage } from "expo-image";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import { groupTournaments, subLabelOf, groupStatus } from "@/utils/groupTournaments";
 import { useTheme } from "@react-navigation/native";
-import ImageView from "react-native-image-viewing";
+import ImageView from "@/components/ui/ResponsiveImageViewer";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Calendar } from "react-native-calendars";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
@@ -357,7 +358,9 @@ export default function TournamentDashboardScreen({ isBack = false }) {
   const rsp = useResponsive();
   // iPhone Duo mở (~669pt) / iPad: lưới nhiều cột để hiện nhiều giải cùng lúc thay vì 1
   // cột. Dựa trực tiếp vào bề rộng (foldable mở < ngưỡng isLarge=720 nhưng vẫn đủ rộng).
-  const cols = rsp.width >= 1024 ? 3 : rsp.width >= 640 ? 2 : 1;
+  const twoPane = rsp.width >= 640 && rsp.height >= 500;
+  const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
+  const cols = twoPane ? 1 : rsp.width >= 1024 ? 3 : rsp.width >= 640 ? 2 : 1;
   const wideList: any =
     cols > 1
       ? { alignSelf: "center", width: "100%", maxWidth: cols >= 3 ? 1320 : 1040 }
@@ -504,6 +507,7 @@ export default function TournamentDashboardScreen({ isBack = false }) {
 
   // Gom nhóm giải cùng sự kiện (cùng tên gốc / cùng cụm sân ≤2 ngày)
   const groups = useMemo(() => groupTournaments(filtered), [filtered]);
+  const selectedGroup = groups.find((group) => group.key === selectedGroupKey) || groups[0] || null;
 
   // Lưới nhiều cột: chèn ô trống cho hàng cuối lẻ để các thẻ giữ nửa/1-phần-ba bề rộng.
   const gridData = useMemo(() => {
@@ -517,6 +521,25 @@ export default function TournamentDashboardScreen({ isBack = false }) {
   // === RENDER ITEM ===
   const renderItem = ({ item }) => {
     if (item?.__spacer) return <View style={{ flex: 1 }} />;
+    if (twoPane) {
+      const representative = item?.items?.[0] || {};
+      const selected = selectedGroup?.key === item.key;
+      return (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected }}
+          onPress={() => setSelectedGroupKey(item.key)}
+          testID={`tournament-select-${item.key}`}
+          style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: 14, borderWidth: 1, borderColor: selected ? theme.colors.primary : theme.colors.border, backgroundColor: theme.colors.card }}
+        >
+          {representative.image ? <ExpoImage source={{ uri: normalizeUrl(representative.image) }} style={{ width: 72, height: 56, borderRadius: 8 }} contentFit="cover" /> : null}
+          <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+            <Text numberOfLines={2} style={{ color: theme.colors.text, fontWeight: "700" }}>{item.title || representative.name}</Text>
+            <Text numberOfLines={1} style={{ color: theme.colors.textSec, fontSize: 12 }}>{formatDate(representative.startDate)} · {representative.location || "Chưa cập nhật"}</Text>
+          </View>
+        </Pressable>
+      );
+    }
     const content = item?.isGroup ? (
       <GroupCard group={item} canManage={canManage} formatDate={formatDate} onPreview={setPreview} />
     ) : (
@@ -615,7 +638,8 @@ export default function TournamentDashboardScreen({ isBack = false }) {
 
   const screenContent = (
     <TournamentPage>
-      <View style={styles.container}>
+      <View testID="tournament-responsive-layout" style={[styles.container, twoPane && { flexDirection: "row", gap: 16, paddingRight: 16 }]}>
+        <View testID="tournament-list-pane" style={{ flex: 1, minWidth: 0 }}>
         {/* ✅ FlatList bọc tất cả (kể cả Header) */}
         {isLoading || isFetching ? (
           <TournamentList
@@ -698,6 +722,14 @@ export default function TournamentDashboardScreen({ isBack = false }) {
             }
           />
         )}
+        </View>
+        {twoPane ? (
+          <ScrollView testID="tournament-detail-pane" style={{ flex: 1, minWidth: 0 }} contentContainerStyle={{ paddingTop: 16, paddingBottom: bottomPadding }}>
+            {selectedGroup ? selectedGroup.isGroup ? (
+              <GroupCard key={selectedGroup.key} group={selectedGroup} canManage={canManage} formatDate={formatDate} onPreview={setPreview} />
+            ) : renderSingle(selectedGroup.items[0]) : null}
+          </ScrollView>
+        ) : null}
       </View>
 
       {/* Date range modal */}

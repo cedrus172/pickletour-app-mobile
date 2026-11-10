@@ -27,7 +27,7 @@ import { useSelector } from "react-redux";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "@react-navigation/native";
 import * as Linking from "expo-linking";
-import ImageViewing from "react-native-image-viewing";
+import ImageViewing from "@/components/ui/ResponsiveImageViewer";
 import { skipToken } from "@reduxjs/toolkit/query";
 
 import BottomSheet, {

@@ -44,6 +44,7 @@ import { useFriendCountsQuery } from "@/slices/friendsApiSlice";
 import { useNotifUnreadCountQuery } from "@/slices/notificationCenterApiSlice";
 import { useMyLiveGrantsQuery } from "@/slices/liveGrantsApiSlice";
 import { useResponsive } from "@/hooks/useResponsive";
+import { useDuoSideNavigationActive } from "@/hooks/useDuoSideNavigation";
 
 const MORE_ITEMS = [
   {
@@ -250,6 +251,7 @@ export default function MoreIndexScreen() {
   const insets = useSafeAreaInsets();
   const bottomPadding = useFloatingTabBarPadding(insets.bottom + 28);
   const r = useResponsive();
+  const duoWide = useDuoSideNavigationActive() && r.width >= 800;
   const userInfo = useSelector((state: any) => state.auth?.userInfo || null);
   const isAdmin = !!(userInfo?.isAdmin || userInfo?.role === "admin" || userInfo?.isSuperAdmin);
   const isCommentator = !!userInfo?.isCommentator;
@@ -412,7 +414,7 @@ export default function MoreIndexScreen() {
 
   const renderGroup = (title: string, items: any[]) =>
     items.length ? (
-      <View style={styles.section} key={title}>
+      <View style={[styles.section, duoWide && { width: "49%" }]} key={title}>
         <Text style={[styles.sectionTitle, { color: subText }]}>{title}</Text>
         <MoreGlassSurface
           effect="clear"
@@ -462,9 +464,11 @@ export default function MoreIndexScreen() {
           </Text>
         </MoreGlassSurface>
 
-        {SECTIONS.map((s) => renderGroup(s.title, s.keys.map((k) => byKey[k]).filter(Boolean)))}
-        {renderGroup("Khác", leftover)}
-        {renderGroup("Cài đặt", [langItem, byKey["notif-settings"]].filter(Boolean))}
+        <View style={duoWide ? { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", rowGap: 16 } : { gap: 16 }}>
+          {SECTIONS.map((s) => renderGroup(s.title, s.keys.map((k) => byKey[k]).filter(Boolean)))}
+          {renderGroup("Khác", leftover)}
+          {renderGroup("Cài đặt", [langItem, byKey["notif-settings"]].filter(Boolean))}
+        </View>
 
         <Text
           style={{

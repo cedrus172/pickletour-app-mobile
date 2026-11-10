@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useId, useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View, useWindowDimensions } from "react-native";
 import { SafeAreaInsetsContext, SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
@@ -7,6 +7,7 @@ import type { NativeStackHeaderItemProps } from "@react-navigation/native-stack"
 import { useNotifUnreadCountQuery } from "@/slices/notificationCenterApiSlice";
 import HomeNotificationButton from "@/components/home/HomeNotificationButton";
 import type { NotificationUpdate } from "@/components/home/HomeNotificationButton";
+import { DuoTopInsetContext, useDuoSideNavigationActive } from "@/hooks/useDuoSideNavigation";
 
 const NotificationContext = createContext<{
   visible: boolean;
@@ -22,20 +23,32 @@ const NotificationContext = createContext<{
 /** Places the shared action inside an existing page/native header. */
 export function NotificationHeaderActions({ children }: { children?: React.ReactNode }) {
   const { visible, unreadCount, register, update } = useContext(NotificationContext);
+  const sideNavigationActive = useDuoSideNavigationActive();
   const focused = useIsFocused();
   const id = useId();
   // Navigation blur cleans up even when freezeOnBlur suspends the old screen.
   useFocusEffect(useCallback(() => {
-    register(id, visible);
+    register(id, visible && !sideNavigationActive);
     return () => register(id, false);
-  }, [id, register, visible]));
-  if ((!visible || !focused) && !children) return null;
+  }, [id, register, visible, sideNavigationActive]));
+  if ((!visible || !focused || sideNavigationActive) && !children) return null;
   return (
     <View style={styles.headerActions} testID="notification-header-actions">
       {children}
-      {visible && focused ? <HomeNotificationButton unreadCount={unreadCount} update={update} /> : null}
+      {visible && focused && !sideNavigationActive ? <HomeNotificationButton unreadCount={unreadCount} update={update} /> : null}
     </View>
   );
+}
+
+/** The Duo rail owns the notification action while it is visible. */
+export function NotificationSidebarAction() {
+  const { visible, unreadCount, register, update } = useContext(NotificationContext);
+  const id = useId();
+  React.useEffect(() => {
+    register(id, visible);
+    return () => register(id, false);
+  }, [id, register, visible]);
+  return visible ? <HomeNotificationButton unreadCount={unreadCount} update={update} /> : null;
 }
 
 /** Keeps each page's existing header actions and appends the bell on the right. */
@@ -60,6 +73,8 @@ export default function GlobalNotificationShell({
   showButton?: boolean;
 }) {
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const duoTopInset = visible && showButton && Platform.OS === "ios" && width >= 640 && width < 720 && height > width && insets.top >= 60 ? insets.top : 0;
   const buttonVisible = visible && showButton;
   const [anchors, setAnchors] = useState<Set<string>>(() => new Set());
   const register = useCallback((id: string, active: boolean) => {
@@ -87,7 +102,8 @@ export default function GlobalNotificationShell({
 
   return (
     <NotificationContext.Provider value={context}>
-      <View style={[styles.shell, { backgroundColor, paddingTop: visible ? insets.top : 0 }]}>
+      <View style={[styles.shell, { backgroundColor, paddingTop: visible && !duoTopInset ? insets.top : 0 }]}>
+        <DuoTopInsetContext.Provider value={duoTopInset}>
         <SafeAreaProvider style={styles.content}>
           <SafeAreaInsetsContext.Provider value={contentInsets}>
             <View style={styles.content} testID="global-notification-content">
@@ -95,6 +111,7 @@ export default function GlobalNotificationShell({
             </View>
           </SafeAreaInsetsContext.Provider>
         </SafeAreaProvider>
+        </DuoTopInsetContext.Provider>
         {buttonVisible && anchors.size === 0 ? (
           <View
             pointerEvents="box-none"

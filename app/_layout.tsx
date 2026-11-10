@@ -60,11 +60,12 @@ import PhoneActivationGate from "@/components/auth/PhoneActivationGate";
 import AppBootSplash from "@/components/AppBootSplash";
 import { useLazyGetProfileQuery } from "@/slices/usersApiSlice";
 import Constants from "expo-constants";
+import * as Application from "expo-application";
 import Toast from "react-native-toast-message";
 import analytics from "@/utils/analytics";
 import { t, initLang } from "@/utils/i18n";
 import * as SecureStore from "expo-secure-store";
-import { AppV2NavTheme, PREF_UI_VERSION_KEY, type UiVersion } from "@/hooks/uiVersion";
+import { AppV2NavTheme } from "@/hooks/uiVersion";
 import {
   increaseLaunchCountAndGet,
   initInstallDateIfNeeded,
@@ -338,6 +339,9 @@ const sanitizeAppShellHeaderValue = (value: unknown, max = 160) =>
     .slice(0, max);
 
 const getAppShellBuildNumber = () => {
+  // Ưu tiên build THẬT của bản native (app.json có thể lệch với build Xcode/App Store).
+  const nativeBuild = parseInt(Application.nativeBuildVersion ?? "", 10);
+  if (Number.isFinite(nativeBuild) && nativeBuild > 0) return String(nativeBuild);
   const expoCfg = Constants.expoConfig ?? {};
   if (Platform.OS === "ios") {
     return String(expoCfg?.ios?.buildNumber || "");
@@ -690,6 +694,7 @@ function RootLayout() {
   otaRouteRef.current = buildOtaRoute(currentPathname, currentParams);
   const isMainNotificationScreen = isMainNotificationRoute(segments);
   const isRefereeScoringScreen = isRefereeScoringRoute(segments);
+  const isGameHotScreen = segments[0] === "game-hot";
   const isTabsRoute = segments[0] === "(tabs)";
   const isLiveHomeRoute = segments[0] === "live" && segments[1] === "home";
 
@@ -740,7 +745,7 @@ function RootLayout() {
   const nativeAuthBearerToken = String(nativeAuthUserInfo?.token || "").trim();
   const previousNativeAuthSnapshotRef = React.useRef(nativeAuthSnapshot);
   const rootSafeAreaEdges = React.useMemo(() => {
-    if (isWebViewShellActive) return EMPTY_SAFE_AREA_EDGES;
+    if (isWebViewShellActive || isGameHotScreen) return EMPTY_SAFE_AREA_EDGES;
     if (isLiveHomeRoute) return EMPTY_SAFE_AREA_EDGES;
     if (IOS_26_NATIVE_TABS_ENABLED) {
       return EMPTY_SAFE_AREA_EDGES;
@@ -753,7 +758,7 @@ function RootLayout() {
       return TABS_SAFE_AREA_EDGES;
     }
     return ROOT_SAFE_AREA_EDGES;
-  }, [isLiveHomeRoute, isTabsRoute, isWebViewShellActive]);
+  }, [isGameHotScreen, isLiveHomeRoute, isTabsRoute, isWebViewShellActive]);
 
   // Initialize analytics
   useEffect(() => {
@@ -1176,11 +1181,16 @@ function RootLayout() {
       const isForceUpdate =
         updateInfo.shouldForceUpdate === true || remoteForceUpdate;
       if (!isRollbackUpdate && pendingBundleId && pendingBundleId !== currentBundleId && !isForceUpdate && !pendingWasRecovered) {
-        otaIgnoredUpdateIdRef.current = updateId;
-        otaReadyPayloadRef.current = pendingUpdate;
-        scheduleHotUpdateReload();
-        otaCheckInFlightRef.current = false;
-        return;
+        // Chỉ reload vào bản đã tải khi đó vẫn là bản mới nhất server trả về.
+        // Bản chờ cũ (vd. gói lỗi đã bị tắt) mà reload lại sẽ lặp vô hạn → bỏ, tải bản mới.
+        if (pendingBundleId === updateId) {
+          otaIgnoredUpdateIdRef.current = updateId;
+          otaReadyPayloadRef.current = pendingUpdate;
+          scheduleHotUpdateReload();
+          otaCheckInFlightRef.current = false;
+          return;
+        }
+        await clearPendingHotUpdate();
       }
 
       if (
@@ -1341,70 +1351,22 @@ function RootLayout() {
     return () => sub.remove();
   }, []);
 
-  // 2b) Phiên bản giao diện V1 (hiện tại) / V2 Modern
-  const [uiVersion, setUiVersion] = React.useState<UiVersion>("v1");
-  const loadUiVersion = React.useCallback(async () => {
-    try {
-      const v = (await SecureStore.getItemAsync(PREF_UI_VERSION_KEY)) as
-        | UiVersion
-        | null;
-      // Mặc định V2 Modern; chỉ khi user chủ động chọn "v1" mới quay lại giao diện cũ.
-      setUiVersion(v === "v1" ? "v1" : "v2");
-    } catch {}
-  }, []);
-  React.useEffect(() => {
-    loadUiVersion();
-  }, [loadUiVersion]);
-  React.useEffect(() => {
-    const sub = AppState.addEventListener("change", (s) => {
-      if (s === "active") loadUiVersion();
-    });
-    return () => sub.remove();
-  }, [loadUiVersion]);
-  React.useEffect(() => {
-    const sub = DeviceEventEmitter.addListener(
-      "uiversion:changed",
-      (mode: UiVersion) => {
-        setThemeApplying(true);
-        setUiVersion(mode === "v2" ? "v2" : "v1");
-      },
-    );
-    return () => sub.remove();
-  }, []);
-
   // 3) Resolve theme
   const resolvedScheme =
     prefTheme === "system" ? systemScheme : (prefTheme as "light" | "dark");
   const isDark = resolvedScheme === "dark";
 
-  // 3b) ĐỒNG BỘ useColorScheme() HỆ THỐNG với theme HIỆU LỰC của app.
-  // Nhiều màn còn đọc useColorScheme() TRỰC TIẾP (cho kính Apple Liquid Glass / material /
-  // backdrop) trong khi nội dung lại tô theo isDark = (V2 || dark). Khi V2 (thiết kế TỐI)
-  // mà máy để SÁNG → kính render SÁNG còn chữ SÁNG ⇒ không đọc được. Ép useColorScheme()
-  // trả đúng theme hiệu lực: V2 → "dark"; V1 theo PREF_THEME (system → null = theo máy).
+  // V2 dùng nền tối; đồng bộ các thành phần đọc trực tiếp color scheme.
   React.useEffect(() => {
-    const forced: "light" | "dark" | null =
-      uiVersion === "v2"
-        ? "dark"
-        : prefTheme === "light"
-        ? "light"
-        : prefTheme === "dark"
-        ? "dark"
-        : null; // "system" → theo máy (không ép)
     try {
-      Appearance.setColorScheme(forced as any);
+      Appearance.setColorScheme("dark");
     } catch {}
-  }, [uiVersion, prefTheme]);
+  }, []);
 
-  // V2 Modern luôn dùng theme navy riêng (bỏ qua sáng/tối); V1 giữ nguyên.
+  // Luôn dùng theme V2, kể cả khi thiết bị còn lưu lựa chọn V1 trước đây.
   const navTheme = React.useMemo(
-    () =>
-      uiVersion === "v2"
-        ? { ...AppV2NavTheme, fonts: (isDark ? AppDarkTheme : AppLightTheme).fonts }
-        : isDark
-        ? AppDarkTheme
-        : AppLightTheme,
-    [isDark, uiVersion],
+    () => ({ ...AppV2NavTheme, fonts: (isDark ? AppDarkTheme : AppLightTheme).fonts }),
+    [isDark],
   );
   const bg = navTheme.colors.background;
 
@@ -1897,7 +1859,7 @@ function RootLayout() {
               <GlassAppearanceProvider>
                 <SafeAreaProvider>
                   <GlobalNotificationShell
-                    visible={fontsReady && mobileAppShellReady}
+                    visible={fontsReady && mobileAppShellReady && !isGameHotScreen}
                     showButton={isMainNotificationScreen}
                     backgroundColor={bg}
                     update={{ visible: hotUpdateVisible && !hotUpdateBlocking, progress: hotUpdateProgress, status: hotUpdateStatus }}
@@ -2466,6 +2428,7 @@ function RootLayout() {
                       ) : null}
 
                       <StatusBar
+                        hidden={isGameHotScreen}
                         style={isDark ? "light" : "dark"}
                         backgroundColor={bg}
                         animated
