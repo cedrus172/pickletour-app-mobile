@@ -103,6 +103,16 @@ const FALLBACK = {
 /* ---------- Features Data ---------- */
 const FEATURES = [
   {
+    id: 43,
+    icon: "game-controller",
+    iconLib: "Ionicons",
+    title: "Game Hot",
+    color: "#22c1d6",
+    link: "/game-hot",
+    isNew: true,
+    isHot: true,
+  },
+  {
     id: 21,
     icon: "tennisball",
     iconLib: "Ionicons",

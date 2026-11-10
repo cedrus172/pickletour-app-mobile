@@ -690,6 +690,7 @@ function RootLayout() {
   otaRouteRef.current = buildOtaRoute(currentPathname, currentParams);
   const isMainNotificationScreen = isMainNotificationRoute(segments);
   const isRefereeScoringScreen = isRefereeScoringRoute(segments);
+  const isGameHotScreen = segments[0] === "game-hot";
   const isTabsRoute = segments[0] === "(tabs)";
   const isLiveHomeRoute = segments[0] === "live" && segments[1] === "home";
 
@@ -740,7 +741,7 @@ function RootLayout() {
   const nativeAuthBearerToken = String(nativeAuthUserInfo?.token || "").trim();
   const previousNativeAuthSnapshotRef = React.useRef(nativeAuthSnapshot);
   const rootSafeAreaEdges = React.useMemo(() => {
-    if (isWebViewShellActive) return EMPTY_SAFE_AREA_EDGES;
+    if (isWebViewShellActive || isGameHotScreen) return EMPTY_SAFE_AREA_EDGES;
     if (isLiveHomeRoute) return EMPTY_SAFE_AREA_EDGES;
     if (IOS_26_NATIVE_TABS_ENABLED) {
       return EMPTY_SAFE_AREA_EDGES;
@@ -753,7 +754,7 @@ function RootLayout() {
       return TABS_SAFE_AREA_EDGES;
     }
     return ROOT_SAFE_AREA_EDGES;
-  }, [isLiveHomeRoute, isTabsRoute, isWebViewShellActive]);
+  }, [isGameHotScreen, isLiveHomeRoute, isTabsRoute, isWebViewShellActive]);
 
   // Initialize analytics
   useEffect(() => {
@@ -1897,7 +1898,7 @@ function RootLayout() {
               <GlassAppearanceProvider>
                 <SafeAreaProvider>
                   <GlobalNotificationShell
-                    visible={fontsReady && mobileAppShellReady}
+                    visible={fontsReady && mobileAppShellReady && !isGameHotScreen}
                     showButton={isMainNotificationScreen}
                     backgroundColor={bg}
                     update={{ visible: hotUpdateVisible && !hotUpdateBlocking, progress: hotUpdateProgress, status: hotUpdateStatus }}
@@ -2466,6 +2467,7 @@ function RootLayout() {
                       ) : null}
 
                       <StatusBar
+                        hidden={isGameHotScreen}
                         style={isDark ? "light" : "dark"}
                         backgroundColor={bg}
                         animated

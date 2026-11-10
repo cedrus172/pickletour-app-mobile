@@ -1,4 +1,4 @@
-import { apiSlice } from "./apiSlice";
+import { apiSlice, BASE_URL } from "./apiSlice";
 import { setCredentials } from "./authSlice";
 import {
   getBestRatingScore,
@@ -7,6 +7,7 @@ import {
 } from "@/utils/rankUtils";
 
 const USERS_URL = "/api/users";
+const arcadeApiOrigin = (BASE_URL || "https://pickletour.vn").replace(/\/api\/?$/, "").replace(/\/+$/, "");
 
 const normalizeUserScopedArg = (arg) => {
   if (typeof arg === "string") return { id: arg };
@@ -16,6 +17,9 @@ const normalizeUserScopedArg = (arg) => {
 
 export const userApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    startArcadeSession: builder.mutation({
+      query: () => ({ url: `${arcadeApiOrigin}/api/pickleball-arcade/session`, method: "POST" }),
+    }),
     login: builder.mutation({
       query: (data) => ({
         url: `${USERS_URL}/auth`,
@@ -320,6 +324,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
 });
 
 export const {
+  useStartArcadeSessionMutation,
   useLoginMutation,
   useLogoutMutation,
   useRegisterMutation,

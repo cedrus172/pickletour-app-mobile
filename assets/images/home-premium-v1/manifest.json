@@ -4,6 +4,11 @@
   "size": 256,
   "icons": [
     {
+      "id": 43,
+      "file": "game-hot.png",
+      "sha256": "405b6611eb4f2a2537ddf7e1e35247ce8391a1113c57ad68a73b61a77296a317"
+    },
+    {
       "id": 21,
       "file": "court.png",
       "sha256": "3bbaade1b094ee34c02fd55ee3e81bdb9182e368acfc0046dc438d44b5396a9a"

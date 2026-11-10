@@ -296,6 +296,44 @@ function PlayChatCardRN({ play, isMine }: { play: any; isMine: boolean }) {
   );
 }
 
+// Thẻ "Mời vào Game Hot": bấm "Vào phòng" → mở Game Hot và vào thẳng sân/phòng của người mời.
+function ArcadeInviteCardRN({ invite, isMine }: { invite: any; isMine: boolean }) {
+  const C = useThemeTokens();
+  if (!invite?.courtId) return null;
+  const expired = !!invite.expiresAt && new Date(invite.expiresAt).getTime() < Date.now();
+  const disabled = isMine || expired;
+  return (
+    <Pressable
+      disabled={disabled}
+      onPress={() => router.push({ pathname: "/game-hot", params: { invite: String(invite.courtId) } } as any)}
+      style={{
+        marginTop: 6,
+        width: 240,
+        maxWidth: "100%",
+        borderRadius: 12,
+        overflow: "hidden",
+        backgroundColor: isMine ? "rgba(255,255,255,0.15)" : C.card,
+        borderWidth: 1,
+        borderColor: isMine ? "rgba(255,255,255,0.35)" : C.border,
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: isMine ? "rgba(255,255,255,0.2)" : "#0e7490" }}>
+        <Text style={{ fontSize: 12 }}>🎮</Text>
+        <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>Mời vào Game Hot</Text>
+      </View>
+      <View style={{ padding: 10 }}>
+        <Text numberOfLines={1} style={{ fontWeight: "700", fontSize: 13.5, color: isMine ? "#fff" : C.text }}>{invite.label}</Text>
+        <Text style={{ fontSize: 12, color: isMine ? "rgba(255,255,255,0.85)" : C.sub }}>
+          {invite.mode === "doubles" ? "Đánh đôi" : "Đánh đơn"} · PickleTour Arcade 3D
+        </Text>
+        <View style={{ marginTop: 6, alignItems: "center", paddingVertical: 5, borderRadius: 8, backgroundColor: disabled ? "rgba(127,127,127,0.35)" : "#0e7490" }}>
+          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>{isMine ? "Đã gửi lời mời" : expired ? "Lời mời đã hết hạn" : "Vào phòng →"}</Text>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
 function TournamentBubbleCard({ tour, isMine }: { tour: any; isMine: boolean }) {
   const C = useThemeTokens();
   const styles = useMemo(() => mk_styles(C), [C]);
@@ -1165,6 +1203,9 @@ export default function ChatWindow() {
                   )}
                   {item.linkedPlay && (
                     <PlayChatCardRN play={item.linkedPlay} isMine={isMine} />
+                  )}
+                  {item.arcadeInvite && (
+                    <ArcadeInviteCardRN invite={item.arcadeInvite} isMine={isMine} />
                   )}
                 </View>
                 </Pressable>

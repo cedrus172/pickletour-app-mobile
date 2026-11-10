@@ -3,6 +3,7 @@ import { Image, type ImageSourcePropType } from "react-native";
 
 // Static requires keep every approved icon in both native OTA asset bundles.
 const ICONS: Record<number, ImageSourcePropType> = {
+  43: require("@/assets/images/home-premium-v1/game-hot.png"),
   21: require("@/assets/images/home-premium-v1/court.png"),
   42: require("@/assets/images/home-premium-v1/camera-cut.png"),
   1: require("@/assets/images/home-premium-v1/calendar.png"),
