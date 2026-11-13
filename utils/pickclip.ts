@@ -56,7 +56,17 @@ export function splitRange(
   return out;
 }
 
-const trimBase = (b: string) => (b || "").replace(/\/+$/, "");
+// Máy cắt clip dùng chung nhiều sân có địa chỉ dạng https://clip.pickletour.vn/san/<slug>:
+// API nằm ở gốc tên miền, danh sách camera lọc theo ?venue=<slug>.
+const SHARED_VENUE = /^(https?:\/\/[^/]+)\/san\/([^/?#]+)$/i;
+const trimBase = (b: string) => {
+  const s = (b || "").trim().replace(/\/+$/, "");
+  return s.match(SHARED_VENUE)?.[1] ?? s;
+};
+const venueQuery = (b: string) => {
+  const m = (b || "").trim().replace(/\/+$/, "").match(SHARED_VENUE);
+  return m ? `?venue=${encodeURIComponent(decodeURIComponent(m[2]))}` : "";
+};
 
 async function jfetch<T>(url: string, init?: RequestInit, timeoutMs = 15000): Promise<T> {
   const ctrl = new AbortController();
@@ -96,7 +106,7 @@ export function clipDownloadUrl(baseUrl: string, clipId: string): string {
 }
 
 export function fetchChannels(baseUrl: string): Promise<Channel[]> {
-  return jfetch<Channel[]>(`${trimBase(baseUrl)}/api/public/channels`);
+  return jfetch<Channel[]>(`${trimBase(baseUrl)}/api/public/channels${venueQuery(baseUrl)}`);
 }
 export function fetchRetention(baseUrl: string): Promise<Retention> {
   return jfetch<Retention>(`${trimBase(baseUrl)}/api/public/retention`);
