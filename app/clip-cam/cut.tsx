@@ -146,9 +146,10 @@ export default function ClipCutScreen() {
   const baseUrl = String(base || "");
   const channelId = Number(chId || 0);
   const channelName = String(chName || "Sân");
-  // Đầu thu Hikvision: chỉ ghi hình trực tiếp theo thời gian (không tua lại, không cắt theo phút).
+  // Đầu thu Hikvision: xem lại (tua) được nhưng cắt theo khoảng thời gian ra file hỏng →
+  // ẩn phần chọn khoảng cắt, ghi hình chỉ theo trực tiếp.
   const { venues: accessVenues } = useClipCameraAccess();
-  const liveOnly = accessVenues.find((v) => v.piBaseUrl.replace(/\/+$/, "") === baseUrl.replace(/\/+$/, ""))?.nvrVendor === "hikvision";
+  const noRangeCut = accessVenues.find((v) => v.piBaseUrl.replace(/\/+$/, "") === baseUrl.replace(/\/+$/, ""))?.nvrVendor === "hikvision";
 
   // ── Xem trước (live / phát lại đoạn cắt) ────────────────────────────────────
   const [manifest, setManifest] = useState<string>("");
@@ -404,7 +405,7 @@ export default function ClipCutScreen() {
       void onCut({ start: new Date(startMs), end: new Date(endMs) });
       return;
     }
-    if (!recId && previewMode === "playback" && manifest) {
+    if (!recId && !noRangeCut && previewMode === "playback" && manifest) {
       const pos = playerRef.current?.currentTimeMs();
       if (!pos) { Alert.alert("Chưa sẵn sàng", "Đợi video xem lại chạy rồi bấm ghi."); return; }
       recPlayStartRef.current = pos;
@@ -413,6 +414,8 @@ export default function ClipCutScreen() {
       recTimerRef.current = setInterval(() => setRecSec((s) => s + 1), 1000);
       return;
     }
+    // Hikvision đang xem lại: chuyển về trực tiếp rồi ghi (không cắt đoạn cũ).
+    if (!recId && noRangeCut && previewMode === "playback") void launchPreview("live", new Date());
     if (recId) {
       // Dừng ghi → nhận clip.
       setRecBusy(true);
@@ -447,7 +450,7 @@ export default function ClipCutScreen() {
         setRecBusy(false);
       }
     }
-  }, [recBusy, recId, recSec, baseUrl, channelId, previewMode, manifest, onCut]);
+  }, [recBusy, recId, recSec, baseUrl, channelId, previewMode, manifest, onCut, noRangeCut, launchPreview]);
 
   // Dọn timer + dừng bản ghi khi rời màn.
   useEffect(() => () => {
@@ -551,9 +554,9 @@ export default function ClipCutScreen() {
           </Pressable>
         )}
         <View testID="camera-playback-controls" style={styles.playbackControls}>
-          {!liveOnly && <Pressable accessibilityRole="button" accessibilityLabel="Lùi 30 giây" disabled={previewBusy} onPress={() => jumpPlayback(-30)} style={[styles.jumpControl, { opacity: previewBusy ? 0.45 : 1 }]}><View style={styles.jumpCircle}><Ionicons name="refresh-outline" size={36} color={C.text} style={{ transform: [{ scaleX: -1 }] }} /><Text style={styles.jumpNumber}>30</Text></View><Text style={styles.jumpLabel}>Lùi 30 giây</Text></Pressable>}
+          <Pressable accessibilityRole="button" accessibilityLabel="Lùi 30 giây" disabled={previewBusy} onPress={() => jumpPlayback(-30)} style={[styles.jumpControl, { opacity: previewBusy ? 0.45 : 1 }]}><View style={styles.jumpCircle}><Ionicons name="refresh-outline" size={36} color={C.text} style={{ transform: [{ scaleX: -1 }] }} /><Text style={styles.jumpNumber}>30</Text></View><Text style={styles.jumpLabel}>Lùi 30 giây</Text></Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel={manifest ? playing ? "Tạm dừng video" : "Tiếp tục phát video" : "Phát camera"} disabled={previewBusy} onPress={() => manifest ? playerRef.current?.toggle() : startPreview()} style={[styles.playControl, { opacity: previewBusy ? 0.5 : 1 }]}>{previewBusy ? <ActivityIndicator color={C.onPrimary} /> : <Ionicons name={manifest && playing ? "pause" : "play"} size={30} color={C.onPrimary} />}</Pressable>
-          {!liveOnly && <Pressable accessibilityRole="button" accessibilityLabel="Tiến 30 giây" disabled={previewBusy} onPress={() => jumpPlayback(30)} style={[styles.jumpControl, { opacity: previewBusy ? 0.45 : 1 }]}><View style={styles.jumpCircle}><Ionicons name="refresh-outline" size={36} color={C.text} /><Text style={styles.jumpNumber}>30</Text></View><Text style={styles.jumpLabel}>Tiến 30 giây</Text></Pressable>}
+          <Pressable accessibilityRole="button" accessibilityLabel="Tiến 30 giây" disabled={previewBusy} onPress={() => jumpPlayback(30)} style={[styles.jumpControl, { opacity: previewBusy ? 0.45 : 1 }]}><View style={styles.jumpCircle}><Ionicons name="refresh-outline" size={36} color={C.text} /><Text style={styles.jumpNumber}>30</Text></View><Text style={styles.jumpLabel}>Tiến 30 giây</Text></Pressable>
         </View>
         {(manifest || previewBusy) && <Pressable accessibilityRole="button" accessibilityLabel="Dừng xem" onPress={stopPreview} style={[styles.ghostBtn, { marginTop: 10 }]}><Ionicons name="stop-circle-outline" size={18} color={C.redText} /><Text style={{ color: C.redText, fontWeight: "700", marginLeft: 7 }}>Dừng xem</Text></Pressable>}
 
@@ -561,9 +564,7 @@ export default function ClipCutScreen() {
           {recBusy ? <ActivityIndicator color={recId ? C.redText : C.onPrimary} size="small" /> : <View style={[styles.recDot, { backgroundColor: recId ? C.redText : "#fff" }]} />}
           <Text style={{ color: recId ? C.redText : C.onPrimary, fontWeight: "800", marginLeft: 8 }}>{recId ? `Dừng ghi · ${pad2(Math.floor(recSec / 60))}:${pad2(recSec % 60)}` : "Ghi hình trực tiếp"}</Text>
         </Pressable>
-        <Text style={styles.hint}>{liveOnly ? "Camera sân này chỉ hỗ trợ ghi hình trực tiếp · " : ""}Bấm để ghi · Bấm lại để dừng và lưu</Text>
-
-        {!liveOnly && <>
+        <Text style={styles.hint}>{noRangeCut ? "Camera sân này ghi hình theo trực tiếp · " : ""}Bấm để ghi · Bấm lại để dừng và lưu</Text>
 
         <View style={styles.tlHeaderRow}><Text style={[styles.sectionTitle, { marginVertical: 0, fontSize: 15 }]}>Tua theo dòng thời gian</Text><View style={styles.timeTools}>
           <Pressable accessibilityRole="button" accessibilityLabel="Phóng to dòng thời gian" onPress={() => onZoom(winStart.getTime() + winMs / 2, winMs / 2)} style={styles.tlNav}><Ionicons name="add" size={20} color={C.text} /></Pressable>
@@ -575,6 +576,7 @@ export default function ClipCutScreen() {
         <Timeline C={C} winStart={winStart} winMs={winMs} scrubTime={scrubTime} rangeEnd={range.end} onScrub={setScrubTime} onCommit={startPlaybackAt} onZoom={onZoom} />
         <Text style={styles.hint}>Kéo để tua · Chụm 2 ngón để phóng to/thu nhỏ · {Math.round(winMs / 60000)} phút</Text>
 
+        {!noRangeCut && <>
         <Text style={styles.sectionTitle}>Chọn khoảng cắt</Text>
         <View style={styles.chipsRow}>{QUICK_SECONDS.map((seconds) => {
           const selected = !useCustom && quickSec === seconds;
