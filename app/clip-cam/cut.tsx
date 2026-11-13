@@ -149,7 +149,12 @@ export default function ClipCutScreen() {
   // Đầu thu Hikvision: xem lại (tua) được nhưng cắt theo khoảng thời gian ra file hỏng →
   // ẩn phần chọn khoảng cắt, ghi hình chỉ theo trực tiếp.
   const { venues: accessVenues } = useClipCameraAccess();
-  const noRangeCut = accessVenues.find((v) => v.piBaseUrl.replace(/\/+$/, "") === baseUrl.replace(/\/+$/, ""))?.nvrVendor === "hikvision";
+  const venueAccess = accessVenues.find((v) => v.piBaseUrl.replace(/\/+$/, "") === baseUrl.replace(/\/+$/, ""));
+  const noRangeCut = venueAccess?.nvrVendor === "hikvision";
+  // Quyền "chỉ xem lại": không xem/ghi trực tiếp; mọi mốc thời gian bị chặn ở (hiện tại − N phút).
+  const replayDelayMin = venueAccess?.replayOnly ? Math.max(1, venueAccess.replayDelayMin || 60) : 0;
+  const replayOnly = replayDelayMin > 0;
+  const nowCap = useCallback(() => Date.now() - replayDelayMin * 60000, [replayDelayMin]);
 
   // ── Xem trước (live / phát lại đoạn cắt) ────────────────────────────────────
   const [manifest, setManifest] = useState<string>("");
@@ -164,6 +169,7 @@ export default function ClipCutScreen() {
 
   // Chỉ kết quả yêu cầu mới nhất được mở player; session trả về muộn phải được dọn.
   const launchPreview = useCallback(async (mode: "live" | "playback", origin: Date, range?: { start: string; end: string }, play = true) => {
+    if (replayOnly && mode === "live") return;
     const request = ++previewRequest.current;
     const previous = streamRef.current; streamRef.current = null;
     setManifest(""); setPlaying(false); setPreviewBusy(true);
@@ -178,7 +184,7 @@ export default function ClipCutScreen() {
     } finally {
       if (request === previewRequest.current) setPreviewBusy(false);
     }
-  }, [baseUrl, channelId]);
+  }, [baseUrl, channelId, replayOnly]);
 
   const startPreview = useCallback(() => {
     if (!previewBusy) void launchPreview("live", new Date());
@@ -214,12 +220,15 @@ export default function ClipCutScreen() {
 
   const customMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
   const customParts = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (MAX_CLIP_MINUTES * 60000)));
-  const customValid = useCustom ? end > start && customMinutes <= MAX_RANGE_MINUTES : true;
+  const customAfterCap = replayOnly && end.getTime() > nowCap() + 1000;
+  const customValid = useCustom ? end > start && customMinutes <= MAX_RANGE_MINUTES && !customAfterCap : true;
   // Thông báo cụ thể lý do (tránh gộp chung gây khó hiểu).
   const customMsg = !useCustom
     ? ""
     : end <= start
       ? "Giờ kết thúc phải sau giờ bắt đầu."
+      : customAfterCap
+        ? `Bạn chỉ được xem lại video cũ hơn ${replayDelayMin} phút — chọn giờ kết thúc sớm hơn.`
       : customMinutes > MAX_RANGE_MINUTES
         ? `Khoảng cắt ${customMinutes} phút — tối đa ${MAX_RANGE_MINUTES} phút, hãy chọn ngắn lại.`
         : customParts > 1
@@ -227,7 +236,7 @@ export default function ClipCutScreen() {
           : `Độ dài: ${customMinutes} phút`;
 
   // Tóm tắt, xem trước và cắt luôn dùng chung mốc đã chọn trên timeline.
-  const selectedRange = useCallback(() => useCustom ? { start, end } : cameraCutRange(scrubTime, quickSec), [useCustom, start, end, scrubTime, quickSec]);
+  const selectedRange = useCallback(() => useCustom ? { start, end } : cameraCutRange(scrubTime, quickSec, nowCap()), [useCustom, start, end, scrubTime, quickSec, nowCap]);
   const startRangePreview = useCallback(() => {
     if (useCustom && !customValid) { Alert.alert("Thời gian không hợp lệ", customMsg); return; }
     if (previewBusy) return;
@@ -239,36 +248,54 @@ export default function ClipCutScreen() {
   // Zoom (pinch) → đổi độ rộng cửa sổ, giữ tâm.
   const onZoom = useCallback((centerMs: number, newMs: number) => {
     const ms = Math.max(TL_MIN_MS, Math.min(TL_MAX_MS, newMs));
-    const maxStart = Date.now() - ms * 0.5;
+    const maxStart = nowCap() - ms * 0.5;
     setWinMs(ms);
     setWinStart(new Date(Math.min(centerMs - ms / 2, maxStart)));
-  }, [TL_MIN_MS, TL_MAX_MS]);
+  }, [TL_MIN_MS, TL_MAX_MS, nowCap]);
 
   const startPlaybackAt = useCallback((time: Date, play = true) => {
-    const now = Date.now();
-    const target = new Date(cameraSeekTarget(time.getTime(), 0, now));
+    const now = nowCap();
+    let target = new Date(cameraSeekTarget(time.getTime(), 0, now));
+    if (!replayOnly && now - target.getTime() <= 1000) { setScrubTime(target); void launchPreview("live", new Date(now), undefined, play); return; }
+    // Chỉ xem lại: cần ít nhất 1 phút video trước mốc giới hạn.
+    if (replayOnly && now - target.getTime() < 60_000) target = new Date(now - 60_000);
     setScrubTime(target);
-    if (now - target.getTime() <= 1000) { void launchPreview("live", new Date(now), undefined, play); return; }
     const range = cameraCutRange(target, 30 * 60, now);
     void launchPreview("playback", target, { start: fmtClipTime(range.start), end: fmtClipTime(range.end) }, play);
-  }, [launchPreview]);
+  }, [launchPreview, nowCap, replayOnly]);
 
   const jumpPlayback = useCallback((seconds: number) => {
     if (previewBusy) return;
     const current = playerRef.current?.currentTimeMs() ?? scrubTime.getTime();
-    const target = cameraSeekTarget(current, seconds);
+    const target = cameraSeekTarget(current, seconds, nowCap());
     setScrubTime(new Date(target));
     setWinStart((left) => target < left.getTime() || target > left.getTime() + winMs ? new Date(target - winMs / 2) : left);
     if (!playerRef.current?.seekToTime(target)) startPlaybackAt(new Date(target), manifest ? playing : true);
-  }, [previewBusy, scrubTime, winMs, startPlaybackAt, manifest, playing]);
+  }, [previewBusy, scrubTime, winMs, startPlaybackAt, manifest, playing, nowCap]);
+
+  // Nút phát / ảnh xem trước: quyền chỉ xem lại thì phát lại tại mốc đang chọn thay vì trực tiếp.
+  const openPreview = useCallback(() => {
+    if (replayOnly) { if (!previewBusy) startPlaybackAt(scrubTime); } else startPreview();
+  }, [replayOnly, previewBusy, startPlaybackAt, scrubTime, startPreview]);
+
+  // Vừa biết là quyền chỉ xem lại: đưa mốc chọn, dòng thời gian và khoảng tuỳ chọn về trước giới hạn.
+  useEffect(() => {
+    if (!replayOnly) return;
+    const cap = nowCap();
+    setScrubTime((t) => (t.getTime() > cap - 60_000 ? new Date(cap - 5 * 60000) : t));
+    setWinStart((w) => (w.getTime() + winMs * 0.5 > cap ? new Date(cap - winMs * 0.75) : w));
+    setEnd((e) => (e.getTime() > cap ? new Date(cap) : e));
+    setStart((st) => (st.getTime() > cap - 60_000 ? new Date(cap - 5 * 60000) : st));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [replayOnly, replayDelayMin]);
 
   const shiftWin = useCallback((frac: number) => {
     setWinStart((w) => {
       const next = w.getTime() + winMs * frac;
-      const maxStart = Date.now() - winMs * 0.5; // không trôi quá tương lai
+      const maxStart = nowCap() - winMs * 0.5; // không trôi quá tương lai (hoặc quá giới hạn xem lại)
       return new Date(Math.min(next, maxStart));
     });
-  }, [winMs]);
+  }, [winMs, nowCap]);
 
   // ── Cắt + poll ───────────────────────────────────────────────────────────
   const [phase, setPhase] = useState<Phase>("idle");
@@ -332,6 +359,10 @@ export default function ClipCutScreen() {
       : useCustom
         ? { start: new Date(start), end: new Date(end) }
         : { start: new Date(now - quickSec * 1000), end: new Date(now) };
+    // Quyền chỉ xem lại: không cắt đoạn mới hơn (hiện tại − N phút).
+    if (replayOnly && range.end.getTime() > nowCap() + 1000) {
+      Alert.alert("Chưa xem được đoạn này", `Bạn chỉ được xem lại video cũ hơn ${replayDelayMin} phút.`); return;
+    }
     const totalMin = Math.round((range.end.getTime() - range.start.getTime()) / 60000);
     if (range.end <= range.start) {
       Alert.alert("Thời gian không hợp lệ", "Giờ kết thúc phải sau giờ bắt đầu.");
@@ -375,7 +406,7 @@ export default function ClipCutScreen() {
         setStatusText(e?.message || "Có lỗi, vui lòng thử lại.");
       }
     }
-  }, [phase, useCustom, start, end, quickSec, cutOneSegment]);
+  }, [phase, useCustom, start, end, quickSec, cutOneSegment, replayOnly, nowCap, replayDelayMin]);
 
   // Cắt từ vị trí đang tua trên dòng thời gian (quickSec giây kể từ đó).
   const cutFromScrub = useCallback(() => {
@@ -548,23 +579,25 @@ export default function ClipCutScreen() {
       }} />
       <ScrollView testID="camera-cut-scroll" contentContainerStyle={[styles.content, rsp.isWide && { maxWidth: rsp.contentMaxWidth }]}>
         {manifest ? <CameraPlayback key={manifest} ref={playerRef} uri={manifest} mode={previewMode} originMs={playbackOrigin} autoPlay={autoPlay} C={C} onPlayingChange={setPlaying} /> : (
-          <Pressable accessibilityRole="button" accessibilityLabel="Xem trực tiếp camera" onPress={startPreview} disabled={previewBusy} style={styles.thumbWrap}>
-            <Image source={{ uri: thumbnailUrl(baseUrl, channelId) }} style={styles.thumb} resizeMode="cover" />
-            <View style={styles.previewOverlay}>{previewBusy ? <ActivityIndicator color="#fff" /> : <><Ionicons name="play-circle" size={48} color="#fff" /><Text style={{ color: "#fff", marginTop: 6, fontWeight: "700" }}>Xem trực tiếp</Text></>}</View>
+          <Pressable accessibilityRole="button" accessibilityLabel={replayOnly ? "Xem lại camera" : "Xem trực tiếp camera"} onPress={openPreview} disabled={previewBusy} style={styles.thumbWrap}>
+            {!replayOnly && <Image source={{ uri: thumbnailUrl(baseUrl, channelId) }} style={styles.thumb} resizeMode="cover" />}
+            <View style={styles.previewOverlay}>{previewBusy ? <ActivityIndicator color="#fff" /> : <><Ionicons name={replayOnly ? "play-back-circle" : "play-circle"} size={48} color="#fff" /><Text style={{ color: "#fff", marginTop: 6, fontWeight: "700" }}>{replayOnly ? `Xem lại lúc ${hhmmss(scrubTime)}` : "Xem trực tiếp"}</Text>{replayOnly && <Text style={{ color: "#fff", marginTop: 4, fontSize: 12, opacity: 0.85 }}>{`Chỉ xem được video cũ hơn ${replayDelayMin} phút`}</Text>}</>}</View>
           </Pressable>
         )}
         <View testID="camera-playback-controls" style={styles.playbackControls}>
           <Pressable accessibilityRole="button" accessibilityLabel="Lùi 30 giây" disabled={previewBusy} onPress={() => jumpPlayback(-30)} style={[styles.jumpControl, { opacity: previewBusy ? 0.45 : 1 }]}><View style={styles.jumpCircle}><Ionicons name="refresh-outline" size={36} color={C.text} style={{ transform: [{ scaleX: -1 }] }} /><Text style={styles.jumpNumber}>30</Text></View><Text style={styles.jumpLabel}>Lùi 30 giây</Text></Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel={manifest ? playing ? "Tạm dừng video" : "Tiếp tục phát video" : "Phát camera"} disabled={previewBusy} onPress={() => manifest ? playerRef.current?.toggle() : startPreview()} style={[styles.playControl, { opacity: previewBusy ? 0.5 : 1 }]}>{previewBusy ? <ActivityIndicator color={C.onPrimary} /> : <Ionicons name={manifest && playing ? "pause" : "play"} size={30} color={C.onPrimary} />}</Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={manifest ? playing ? "Tạm dừng video" : "Tiếp tục phát video" : "Phát camera"} disabled={previewBusy} onPress={() => manifest ? playerRef.current?.toggle() : openPreview()} style={[styles.playControl, { opacity: previewBusy ? 0.5 : 1 }]}>{previewBusy ? <ActivityIndicator color={C.onPrimary} /> : <Ionicons name={manifest && playing ? "pause" : "play"} size={30} color={C.onPrimary} />}</Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel="Tiến 30 giây" disabled={previewBusy} onPress={() => jumpPlayback(30)} style={[styles.jumpControl, { opacity: previewBusy ? 0.45 : 1 }]}><View style={styles.jumpCircle}><Ionicons name="refresh-outline" size={36} color={C.text} /><Text style={styles.jumpNumber}>30</Text></View><Text style={styles.jumpLabel}>Tiến 30 giây</Text></Pressable>
         </View>
         {(manifest || previewBusy) && <Pressable accessibilityRole="button" accessibilityLabel="Dừng xem" onPress={stopPreview} style={[styles.ghostBtn, { marginTop: 10 }]}><Ionicons name="stop-circle-outline" size={18} color={C.redText} /><Text style={{ color: C.redText, fontWeight: "700", marginLeft: 7 }}>Dừng xem</Text></Pressable>}
 
+        {!replayOnly && <>
         <Pressable accessibilityRole="button" onPress={toggleRecord} disabled={recBusy} style={[styles.recBtn, { backgroundColor: recId ? C.redSoft : C.isV2 ? "#FF6C86" : C.redText, borderColor: C.redText, opacity: recBusy ? 0.6 : 1 }]}>
           {recBusy ? <ActivityIndicator color={recId ? C.redText : C.onPrimary} size="small" /> : <View style={[styles.recDot, { backgroundColor: recId ? C.redText : "#fff" }]} />}
           <Text style={{ color: recId ? C.redText : C.onPrimary, fontWeight: "800", marginLeft: 8 }}>{recId ? `Dừng ghi · ${pad2(Math.floor(recSec / 60))}:${pad2(recSec % 60)}` : "Ghi hình trực tiếp"}</Text>
         </Pressable>
         <Text style={styles.hint}>{noRangeCut ? "Camera sân này ghi hình theo trực tiếp · " : ""}Bấm để ghi · Bấm lại để dừng và lưu</Text>
+        </>}
 
         <View style={styles.tlHeaderRow}><Text style={[styles.sectionTitle, { marginVertical: 0, fontSize: 15 }]}>Tua theo dòng thời gian</Text><View style={styles.timeTools}>
           <Pressable accessibilityRole="button" accessibilityLabel="Phóng to dòng thời gian" onPress={() => onZoom(winStart.getTime() + winMs / 2, winMs / 2)} style={styles.tlNav}><Ionicons name="add" size={20} color={C.text} /></Pressable>
@@ -573,7 +606,7 @@ export default function ClipCutScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel="Dịch dòng thời gian về sau" onPress={() => shiftWin(0.5)} style={styles.tlNav}><Ionicons name="chevron-forward" size={20} color={C.text} /></Pressable>
         </View></View>
         <View style={styles.timeRow}><Text testID="camera-selected-time" style={{ color: C.primary, fontWeight: "800", fontSize: 23 }}>{hhmmss(scrubTime)}</Text><View style={styles.dateChip}><Ionicons name="calendar-outline" size={15} color={C.sub} /><Text style={{ color: C.sub, fontSize: 12 }}>{pad2(scrubTime.getDate())}/{pad2(scrubTime.getMonth() + 1)}</Text></View></View>
-        <Timeline C={C} winStart={winStart} winMs={winMs} scrubTime={scrubTime} rangeEnd={range.end} onScrub={setScrubTime} onCommit={startPlaybackAt} onZoom={onZoom} />
+        <Timeline C={C} winStart={winStart} winMs={winMs} scrubTime={scrubTime} rangeEnd={range.end} onScrub={(d: Date) => setScrubTime(new Date(Math.min(d.getTime(), nowCap())))} onCommit={startPlaybackAt} onZoom={onZoom} />
         <Text style={styles.hint}>Kéo để tua · Chụm 2 ngón để phóng to/thu nhỏ · {Math.round(winMs / 60000)} phút</Text>
 
         {!noRangeCut && <>
@@ -678,7 +711,7 @@ export default function ClipCutScreen() {
         isVisible={!!picker}
         mode="datetime"
         date={picker === "end" ? end : start}
-        maximumDate={new Date()}
+        maximumDate={new Date(nowCap())}
         is24Hour
         onConfirm={(d) => {
           if (picker === "start") { setStart(d); if (end <= d) setEnd(new Date(d.getTime() + 5 * 60000)); }

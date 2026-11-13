@@ -76,6 +76,9 @@ export default function ClipCamGrantsScreen() {
   const [note, setNote] = useState("");
   const [camMode, setCamMode] = useState<"all" | "pick">("all");
   const [picked, setPicked] = useState<number[]>([]);
+  // Chỉ xem lại: không xem/ghi trực tiếp, chỉ video cũ hơn replayDelay phút (an ninh sân).
+  const [replayOnly, setReplayOnly] = useState(false);
+  const [replayDelay, setReplayDelay] = useState("60");
   const cameras: { id: number; name: string }[] = camData?.cameras || [];
   const camName = (camId: number) => cameras.find((c) => c.id === camId)?.name || `Camera ${camId}`;
   const togglePick = (camId: number) =>
@@ -92,7 +95,7 @@ export default function ClipCamGrantsScreen() {
 
   const resetForm = () => {
     setEditingId(null); setEditingName(""); setPhone(""); setDays(30);
-    setNote(""); setCamMode("all"); setPicked([]);
+    setNote(""); setCamMode("all"); setPicked([]); setReplayOnly(false); setReplayDelay("60");
   };
 
   // Nạp quyền đã cấp vào form để sửa (phạm vi camera, ghi chú, hạn).
@@ -104,6 +107,8 @@ export default function ClipCamGrantsScreen() {
     const cams: number[] = Array.isArray(g.cameras) ? g.cameras : [];
     setCamMode(cams.length ? "pick" : "all");
     setPicked(cams);
+    setReplayOnly(Boolean(g.replayOnly));
+    setReplayDelay(String(g.replayDelayMin || 60));
     setDays(-1); // mặc định giữ nguyên hạn khi sửa
   };
 
@@ -112,12 +117,18 @@ export default function ClipCamGrantsScreen() {
       Alert.alert("Chưa chọn camera", "Chọn ít nhất một camera hoặc đổi sang Tất cả camera."); return;
     }
     const cameras = camMode === "pick" ? picked : [];
+    const delay = Math.round(Number(replayDelay));
+    if (replayOnly && !(delay >= 1 && delay <= 10080)) {
+      Alert.alert("Số phút chưa hợp lệ", "Nhập số phút từ 1 đến 10080 (7 ngày)."); return;
+    }
+    const replay = { replayOnly, replayDelayMin: replayOnly ? delay : 60 };
     try {
       if (editingId) {
         await updateGrant({
           id: editingId,
           venueId,
           cameras,
+          ...replay,
           note: note.trim(),
           // days === -1 → bỏ qua, giữ nguyên hạn; ngược lại đặt hạn mới.
           ...(days >= 0 ? { durationDays: days } : {}),
@@ -127,7 +138,7 @@ export default function ClipCamGrantsScreen() {
       } else {
         const p = phone.trim();
         if (!p) { Alert.alert("Thiếu số điện thoại", "Nhập số điện thoại người được cấp quyền."); return; }
-        await addGrant({ venueId, phone: p, durationDays: days, note: note.trim(), cameras }).unwrap();
+        await addGrant({ venueId, phone: p, durationDays: days, note: note.trim(), cameras, ...replay }).unwrap();
         resetForm();
         Alert.alert("Đã cấp quyền", "Người dùng đã được cấp quyền cắt cam.");
       }
@@ -257,6 +268,38 @@ export default function ClipCamGrantsScreen() {
                   )
                 )}
 
+                <Text style={[styles.label, { color: C.sub }]}>Quyền xem</Text>
+                <View style={styles.chipsRow}>
+                  {([false, true] as const).map((m) => {
+                    const on = replayOnly === m;
+                    const bg = on ? (m ? C.amberText : C.primary) : C.field;
+                    return (
+                      <Pressable key={String(m)} onPress={() => setReplayOnly(m)} style={[styles.chip, { backgroundColor: bg, borderColor: on ? bg : C.border }]}>
+                        <Text style={{ color: on ? (m ? "#fff" : C.onPrimary) : C.text, fontWeight: "700" }}>
+                          {m ? "Chỉ xem lại" : "Đầy đủ (xem trực tiếp)"}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {replayOnly && (
+                  <>
+                    <Text style={[styles.label, { color: C.sub }]}>Chỉ xem video cũ hơn (phút)</Text>
+                    <PtInput
+                      value={replayDelay}
+                      onChangeText={setReplayDelay}
+                      placeholder="60"
+                      placeholderTextColor={C.muted}
+                      keyboardType="number-pad"
+                      keypadLabel="Số phút"
+                      style={[styles.input, { backgroundColor: C.field, color: C.text, borderColor: C.border }]}
+                    />
+                    <Text style={{ color: C.sub, fontSize: 12, marginTop: 6, lineHeight: 17 }}>
+                      Không xem / ghi hình trực tiếp. Chỉ xem và cắt video từ {Number(replayDelay) >= 1 ? replayDelay : 60} phút trước trở về trước.
+                    </Text>
+                  </>
+                )}
+
                 <Text style={[styles.label, { color: C.sub }]}>Ghi chú (tuỳ chọn)</Text>
                 <I18nTextInput
                   value={note}
@@ -297,6 +340,11 @@ export default function ClipCamGrantsScreen() {
                       <Text numberOfLines={1} style={{ color: g.cameras?.length ? C.primary : C.sub, fontSize: 11.5, marginTop: 1 }}>
                         {g.cameras?.length ? `📷 ${g.cameras.map(camName).join(", ")}` : "📷 Tất cả camera"}
                       </Text>
+                      {g.replayOnly && (
+                        <Text numberOfLines={1} style={{ color: C.amberText, fontSize: 11.5, marginTop: 1, fontWeight: "700" }}>
+                          ⏪ Chỉ xem lại · trễ {g.replayDelayMin || 60} phút
+                        </Text>
+                      )}
                     </View>
                     <Text style={{ color: g.expired ? C.redText : C.greenText, fontSize: 12, fontWeight: "700", marginRight: 6 }}>
                       {expiryLabel(g.expiresAt, g.expired)}

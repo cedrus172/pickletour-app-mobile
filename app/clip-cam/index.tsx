@@ -20,7 +20,7 @@ import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
 import { useResponsive } from "@/hooks/useResponsive";
 import type { Channel } from "@/utils/pickclip";
 import { refreshCameraPreviews, type ClipCameraScope } from "@/utils/clipCameraCache";
-import { cameraAccessActive, useClipCameraAccess, useClipCameraPreviews, type CameraVenueAccess } from "@/hooks/useClipCameraPreviews";
+import { cameraAccessActive, cameraScopeFor, useClipCameraAccess, useClipCameraPreviews, type CameraVenueAccess } from "@/hooks/useClipCameraPreviews";
 import CameraPreviewGrid from "@/components/clipCam/CameraPreviewGrid";
 
 type Access = CameraVenueAccess;
@@ -38,7 +38,7 @@ function accessLabel(a: Access): string {
 }
 
 /** Khung camera của 1 venue (dùng ở pane phải khi màn lớn — two-pane master-detail). */
-function CamerasPane({ scope, venueName, C }: { scope: ClipCameraScope; venueName: string; C: ThemeTokens }) {
+function CamerasPane({ scope, venueName, C, replayDelayMin = 0 }: { scope: ClipCameraScope; venueName: string; C: ThemeTokens; replayDelayMin?: number }) {
   const state = useClipCameraPreviews(scope);
   const open = (ch: Channel) => router.push({ pathname: "/clip-cam/cut", params: { base: scope.base, venueName, chId: String(ch.id), chName: ch.name } } as any);
   return (
@@ -47,7 +47,7 @@ function CamerasPane({ scope, venueName, C }: { scope: ClipCameraScope; venueNam
         <Text style={{ color: C.text, fontWeight: "800", fontSize: 17, flex: 1 }}>{venueName}</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="Làm mới camera" onPress={state.refresh} style={{ padding: 10 }}><Ionicons name="refresh-outline" size={23} color={C.primary} /></Pressable>
       </View>
-      <CameraPreviewGrid state={state} C={C} onOpen={open} onRefresh={state.refresh} />
+      <CameraPreviewGrid state={state} C={C} onOpen={open} onRefresh={state.refresh} replayDelayMin={replayDelayMin} />
     </View>
   );
 }
@@ -166,7 +166,7 @@ export default function ClipCamScreen() {
           <View style={{ width: Math.min(360, rsp.width * 0.4), borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: C.border }}>{venueScroll}</View>
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 18 }}>
             {selectedVenue && cameraAccessActive(selectedVenue, now) ? (
-              <CamerasPane scope={{ userId, base: selectedVenue.piBaseUrl, cameras: selectedVenue.cameras }} venueName={selectedVenue.venueName} C={C} />
+              <CamerasPane scope={cameraScopeFor(userId, selectedVenue)} venueName={selectedVenue.venueName} C={C} replayDelayMin={selectedVenue.replayOnly ? selectedVenue.replayDelayMin || 60 : 0} />
             ) : (
               <View style={styles.center}>
                 <Ionicons name="videocam-outline" size={44} color={C.muted} />

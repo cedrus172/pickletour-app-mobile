@@ -4,7 +4,8 @@ import * as Crypto from "expo-crypto";
 import { Image } from "react-native";
 import { fetchChannels, thumbnailUrl, type Channel } from "./pickclip";
 
-export type ClipCameraScope = { userId: string; base: string; cameras?: number[] | null };
+// noPhotos: quyền "chỉ xem lại" — không tải ảnh chụp camera (gần như trực tiếp), chỉ danh sách camera.
+export type ClipCameraScope = { userId: string; base: string; cameras?: number[] | null; noPhotos?: boolean };
 export type CameraPreview = { uri: string; file: string; previousFile?: string; fetchedAt: number; capturedAt?: number; stale?: boolean };
 export type CameraPreviewState = { channels: Channel[]; previews: Record<number, CameraPreview>; errors: Record<number, string>; loading: boolean; refreshing: boolean; error: string };
 const PREFIX = "pickclip-camera-previews-v1:";
@@ -21,7 +22,7 @@ let pruning = false;
 
 export function cameraScopeKey(scope: ClipCameraScope | null): string {
   if (!scope?.userId || !scope.base) return "";
-  return JSON.stringify([scope.userId, scope.base.replace(/\/+$/, ""), [...new Set(scope.cameras || [])].sort((a, b) => a - b)]);
+  return JSON.stringify([scope.userId, scope.base.replace(/\/+$/, ""), [...new Set(scope.cameras || [])].sort((a, b) => a - b), ...(scope.noPhotos ? ["noPhotos"] : [])]);
 }
 export function filterPreviewChannels(channels: Channel[], cameras?: number[] | null) {
   return cameras?.length ? channels.filter((ch) => cameras.includes(ch.id)) : channels;
@@ -108,6 +109,7 @@ export function cameraCapturedAt(headers: Record<string, string>): number | unde
   return Number.isFinite(timestamp) && timestamp > 0 && timestamp <= Date.now() + 300_000 ? timestamp : undefined;
 }
 async function refreshPhoto(e: Entry, ch: Channel, force: boolean) {
+  if (e.scope.noPhotos) return;
   if (e.jobs.has(ch.id)) return e.jobs.get(ch.id);
   if (!force && Date.now() - (e.state.previews[ch.id]?.fetchedAt || 0) < FRESH_MS) return;
   const job = limited(async () => {

@@ -11,7 +11,14 @@ export type CameraVenueAccess = {
   expiresAt: string | null; cameras?: number[] | null;
   // Loại đầu thu của sân: "hikvision" = chỉ ghi hình trực tiếp; thiếu/"dahua" = đủ tính năng.
   nvrVendor?: "dahua" | "hikvision";
+  // Chỉ xem lại: không xem/ghi trực tiếp, chỉ video cũ hơn replayDelayMin phút.
+  replayOnly?: boolean; replayDelayMin?: number;
 };
+
+/** Phạm vi camera (đệm ảnh) của 1 sân: quyền "chỉ xem lại" không tải ảnh chụp camera. */
+export function cameraScopeFor(userId: string, venue: CameraVenueAccess): ClipCameraScope {
+  return { userId, base: venue.piBaseUrl, cameras: venue.cameras, ...(venue.replayOnly ? { noPhotos: true } : {}) };
+}
 
 export function cameraAccessActive(venue: CameraVenueAccess, now = Date.now()) {
   return !!venue.hasAccess && !!venue.piBaseUrl && (!venue.expiresAt || Date.parse(venue.expiresAt) > now);
@@ -34,7 +41,7 @@ export function useClipCameraAccess() {
   const query = useMyCamClipAccessQuery(undefined, { skip: !userId, refetchOnMountOrArgChange: true, pollingInterval: active ? 30_000 : 0 });
   const [now, setNow] = useState(Date.now);
   const venues = useMemo<CameraVenueAccess[]>(() => userId && Array.isArray(query.data) ? query.data : [], [userId, query.data]);
-  const scopes = useMemo(() => venues.filter((v) => cameraAccessActive(v, now)).map((v) => ({ userId, base: v.piBaseUrl, cameras: v.cameras })), [userId, venues, now]);
+  const scopes = useMemo(() => venues.filter((v) => cameraAccessActive(v, now)).map((v) => cameraScopeFor(userId, v)), [userId, venues, now]);
 
   useEffect(() => {
     const deadlines = venues.map((v) => Date.parse(v.expiresAt || "")).filter((t) => t > now);

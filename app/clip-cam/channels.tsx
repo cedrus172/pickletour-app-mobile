@@ -6,7 +6,7 @@ import { Stack, router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/i18nText";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
-import { cameraAccessActive, useClipCameraAccess, useClipCameraPreviews } from "@/hooks/useClipCameraPreviews";
+import { cameraAccessActive, cameraScopeFor, useClipCameraAccess, useClipCameraPreviews } from "@/hooks/useClipCameraPreviews";
 import CameraPreviewGrid, { cameraPreviewColors } from "@/components/clipCam/CameraPreviewGrid";
 import type { Channel } from "@/utils/pickclip";
 
@@ -17,7 +17,7 @@ export default function ClipCamChannelsScreen() {
   const access = useClipCameraAccess();
   const venue = access.venues.find((v) => venueId ? v.venueId === String(venueId) : v.piBaseUrl.replace(/\/+$/, "") === baseUrl.replace(/\/+$/, ""));
   const allowed = !!venue && cameraAccessActive(venue, access.now);
-  const scope = allowed ? { userId: access.userId, base: venue.piBaseUrl, cameras: venue.cameras } : null;
+  const scope = allowed ? cameraScopeFor(access.userId, venue) : null;
   const state = useClipCameraPreviews(scope);
   const { refetch, userId } = access;
   const { refresh: refreshImages } = state;
@@ -37,7 +37,7 @@ export default function ClipCamChannelsScreen() {
         headerRight: () => <Pressable accessibilityRole="button" accessibilityLabel="Làm mới camera" onPress={refresh} disabled={state.refreshing || access.isFetching || !access.userId} style={headerButton}>{state.refreshing ? <ActivityIndicator size="small" color={P.primary} /> : <Ionicons name="refresh-outline" size={23} color={P.text} />}</Pressable>,
       }} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 28, width: "100%", maxWidth: 1180, alignSelf: "center" }} refreshControl={<RefreshControl refreshing={state.refreshing} onRefresh={refresh} tintColor={P.primary} />}>
-        {allowed ? <CameraPreviewGrid C={C} state={state} onOpen={openCut} onRefresh={refresh} /> : (
+        {allowed ? <CameraPreviewGrid C={C} state={state} onOpen={openCut} onRefresh={refresh} replayDelayMin={venue?.replayOnly ? venue.replayDelayMin || 60 : 0} /> : (
           <View style={{ paddingVertical: 50, alignItems: "center", gap: 12 }}>
             {access.isLoading ? <ActivityIndicator color={P.primary} /> : <Ionicons name="lock-closed-outline" size={35} color={P.sub} />}
             <Text style={{ color: P.sub, textAlign: "center" }}>{access.isLoading ? "Đang kiểm tra quyền camera…" : !access.userId ? "Đăng nhập để xem camera được cấp quyền." : access.isError ? "Chưa kiểm tra được quyền camera. Kéo xuống để thử lại." : "Bạn chưa có quyền hoặc quyền camera đã hết hạn."}</Text>
