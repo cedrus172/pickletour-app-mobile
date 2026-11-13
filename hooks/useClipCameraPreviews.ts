@@ -9,6 +9,8 @@ export type CameraVenueAccess = {
   venueId: string; venueName: string; logo?: string; address?: string; province?: string; images?: string[];
   piBaseUrl: string; hasAccess: boolean; source: "admin" | "owner" | "manager" | "manual" | "booking" | null;
   expiresAt: string | null; cameras?: number[] | null;
+  // Loại đầu thu của sân: "hikvision" = chỉ ghi hình trực tiếp; thiếu/"dahua" = đủ tính năng.
+  nvrVendor?: "dahua" | "hikvision";
 };
 
 export function cameraAccessActive(venue: CameraVenueAccess, now = Date.now()) {

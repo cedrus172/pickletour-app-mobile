@@ -21,6 +21,7 @@ import { Text } from "@/components/ui/i18nText";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
 import { useResponsive } from "@/hooks/useResponsive";
 import CameraPlayback, { type CameraPlaybackHandle } from "@/components/clipCam/CameraPlayback";
+import { useClipCameraAccess } from "@/hooks/useClipCameraPreviews";
 import { cameraCutRange, cameraHistoryTitle, cameraSeekTarget } from "@/utils/clipPlayback";
 import {
   addHistory,
@@ -145,6 +146,9 @@ export default function ClipCutScreen() {
   const baseUrl = String(base || "");
   const channelId = Number(chId || 0);
   const channelName = String(chName || "Sân");
+  // Đầu thu Hikvision: chỉ ghi hình trực tiếp theo thời gian (không tua lại, không cắt theo phút).
+  const { venues: accessVenues } = useClipCameraAccess();
+  const liveOnly = accessVenues.find((v) => v.piBaseUrl.replace(/\/+$/, "") === baseUrl.replace(/\/+$/, ""))?.nvrVendor === "hikvision";
 
   // ── Xem trước (live / phát lại đoạn cắt) ────────────────────────────────────
   const [manifest, setManifest] = useState<string>("");
@@ -383,8 +387,32 @@ export default function ClipCutScreen() {
   const [recBusy, setRecBusy] = useState(false);
   const recTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Đang XEM LẠI → ghi theo mốc thời gian đang xem (không phải giờ hiện tại):
+  // bấm ghi lưu mốc đầu, bấm dừng lấy mốc cuối rồi cắt đoạn đó từ đầu ghi.
+  const recPlayStartRef = useRef<number | null>(null);
+
   const toggleRecord = useCallback(async () => {
     if (recBusy) return;
+    if (recId === "playback") {
+      if (recTimerRef.current) { clearInterval(recTimerRef.current); recTimerRef.current = null; }
+      const startMs = recPlayStartRef.current ?? Date.now();
+      const nowPos = playerRef.current?.currentTimeMs();
+      const endMs = nowPos && nowPos > startMs ? nowPos : startMs + Math.max(1, recSec) * 1000;
+      recPlayStartRef.current = null;
+      setRecId(null);
+      setRecSec(0);
+      void onCut({ start: new Date(startMs), end: new Date(endMs) });
+      return;
+    }
+    if (!recId && previewMode === "playback" && manifest) {
+      const pos = playerRef.current?.currentTimeMs();
+      if (!pos) { Alert.alert("Chưa sẵn sàng", "Đợi video xem lại chạy rồi bấm ghi."); return; }
+      recPlayStartRef.current = pos;
+      setRecId("playback");
+      setRecSec(0);
+      recTimerRef.current = setInterval(() => setRecSec((s) => s + 1), 1000);
+      return;
+    }
     if (recId) {
       // Dừng ghi → nhận clip.
       setRecBusy(true);
@@ -419,7 +447,7 @@ export default function ClipCutScreen() {
         setRecBusy(false);
       }
     }
-  }, [recBusy, recId, baseUrl, channelId]);
+  }, [recBusy, recId, recSec, baseUrl, channelId, previewMode, manifest, onCut]);
 
   // Dọn timer + dừng bản ghi khi rời màn.
   useEffect(() => () => {
@@ -471,11 +499,16 @@ export default function ClipCutScreen() {
     try {
       const dir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
       const safe = (name || `clip-${clipId}.mp4`).replace(/[^\w.\-]+/g, "_");
-      const dl = await FileSystem.downloadAsync(clipDownloadUrl(baseUrl, clipId), `${dir}${safe}`);
+      if (!dir) throw new Error("Không có bộ nhớ tạm để tải clip.");
+      const task = FileSystem.createDownloadResumable(clipDownloadUrl(baseUrl, clipId), `${dir}${safe}`, {}, (p) => {
+        if (p.totalBytesExpectedToWrite > 0) setDlPct(Math.min(100, Math.round(p.totalBytesWritten / p.totalBytesExpectedToWrite * 100)));
+      });
+      const dl = await task.downloadAsync();
+      if (!dl || dl.status < 200 || dl.status >= 300) throw new Error("Không tải được clip (có thể đã quá hạn).");
       // Thử lưu thẳng album; nếu module native thiếu/hỏng (bản app cũ) → fallback share.
       if (MediaLibrary?.saveToLibraryAsync) {
         try {
-          const perm = MediaLibrary.requestPermissionsAsync ? await MediaLibrary.requestPermissionsAsync() : { granted: true };
+          const perm = MediaLibrary.requestPermissionsAsync ? await MediaLibrary.requestPermissionsAsync(true) : { granted: true };
           if (!perm?.granted) { Alert.alert("Cần quyền", "Cho phép truy cập Ảnh để lưu clip vào máy."); return; }
           await MediaLibrary.saveToLibraryAsync(dl.uri);
           Alert.alert("Đã lưu", "Clip đã lưu vào thư viện ảnh.");
@@ -485,12 +518,13 @@ export default function ClipCutScreen() {
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(dl.uri, { mimeType: "video/mp4", UTI: "public.mpeg-4", dialogTitle: "Lưu / chia sẻ clip" });
       } else {
-        Alert.alert("Đã tải", "Clip đã được tải về máy.");
+        Alert.alert("Không thể lưu clip", "Phiên bản ứng dụng này chưa hỗ trợ lưu vào thư viện ảnh.");
       }
     } catch (e: any) {
       Alert.alert("Lỗi lưu clip", e?.message || "Không lưu được clip (có thể đã quá hạn).");
     } finally {
       setSharing(false);
+      setDlPct(0);
     }
   }, [baseUrl, sharing]);
 
@@ -517,9 +551,9 @@ export default function ClipCutScreen() {
           </Pressable>
         )}
         <View testID="camera-playback-controls" style={styles.playbackControls}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Lùi 30 giây" disabled={previewBusy} onPress={() => jumpPlayback(-30)} style={[styles.jumpControl, { opacity: previewBusy ? 0.45 : 1 }]}><View style={styles.jumpCircle}><Ionicons name="refresh-outline" size={36} color={C.text} style={{ transform: [{ scaleX: -1 }] }} /><Text style={styles.jumpNumber}>30</Text></View><Text style={styles.jumpLabel}>Lùi 30 giây</Text></Pressable>
+          {!liveOnly && <Pressable accessibilityRole="button" accessibilityLabel="Lùi 30 giây" disabled={previewBusy} onPress={() => jumpPlayback(-30)} style={[styles.jumpControl, { opacity: previewBusy ? 0.45 : 1 }]}><View style={styles.jumpCircle}><Ionicons name="refresh-outline" size={36} color={C.text} style={{ transform: [{ scaleX: -1 }] }} /><Text style={styles.jumpNumber}>30</Text></View><Text style={styles.jumpLabel}>Lùi 30 giây</Text></Pressable>}
           <Pressable accessibilityRole="button" accessibilityLabel={manifest ? playing ? "Tạm dừng video" : "Tiếp tục phát video" : "Phát camera"} disabled={previewBusy} onPress={() => manifest ? playerRef.current?.toggle() : startPreview()} style={[styles.playControl, { opacity: previewBusy ? 0.5 : 1 }]}>{previewBusy ? <ActivityIndicator color={C.onPrimary} /> : <Ionicons name={manifest && playing ? "pause" : "play"} size={30} color={C.onPrimary} />}</Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Tiến 30 giây" disabled={previewBusy} onPress={() => jumpPlayback(30)} style={[styles.jumpControl, { opacity: previewBusy ? 0.45 : 1 }]}><View style={styles.jumpCircle}><Ionicons name="refresh-outline" size={36} color={C.text} /><Text style={styles.jumpNumber}>30</Text></View><Text style={styles.jumpLabel}>Tiến 30 giây</Text></Pressable>
+          {!liveOnly && <Pressable accessibilityRole="button" accessibilityLabel="Tiến 30 giây" disabled={previewBusy} onPress={() => jumpPlayback(30)} style={[styles.jumpControl, { opacity: previewBusy ? 0.45 : 1 }]}><View style={styles.jumpCircle}><Ionicons name="refresh-outline" size={36} color={C.text} /><Text style={styles.jumpNumber}>30</Text></View><Text style={styles.jumpLabel}>Tiến 30 giây</Text></Pressable>}
         </View>
         {(manifest || previewBusy) && <Pressable accessibilityRole="button" accessibilityLabel="Dừng xem" onPress={stopPreview} style={[styles.ghostBtn, { marginTop: 10 }]}><Ionicons name="stop-circle-outline" size={18} color={C.redText} /><Text style={{ color: C.redText, fontWeight: "700", marginLeft: 7 }}>Dừng xem</Text></Pressable>}
 
@@ -527,7 +561,9 @@ export default function ClipCutScreen() {
           {recBusy ? <ActivityIndicator color={recId ? C.redText : C.onPrimary} size="small" /> : <View style={[styles.recDot, { backgroundColor: recId ? C.redText : "#fff" }]} />}
           <Text style={{ color: recId ? C.redText : C.onPrimary, fontWeight: "800", marginLeft: 8 }}>{recId ? `Dừng ghi · ${pad2(Math.floor(recSec / 60))}:${pad2(recSec % 60)}` : "Ghi hình trực tiếp"}</Text>
         </Pressable>
-        <Text style={styles.hint}>Bấm để ghi · Bấm lại để dừng và lưu</Text>
+        <Text style={styles.hint}>{liveOnly ? "Camera sân này chỉ hỗ trợ ghi hình trực tiếp · " : ""}Bấm để ghi · Bấm lại để dừng và lưu</Text>
+
+        {!liveOnly && <>
 
         <View style={styles.tlHeaderRow}><Text style={[styles.sectionTitle, { marginVertical: 0, fontSize: 15 }]}>Tua theo dòng thời gian</Text><View style={styles.timeTools}>
           <Pressable accessibilityRole="button" accessibilityLabel="Phóng to dòng thời gian" onPress={() => onZoom(winStart.getTime() + winMs / 2, winMs / 2)} style={styles.tlNav}><Ionicons name="add" size={20} color={C.text} /></Pressable>
@@ -548,6 +584,7 @@ export default function ClipCutScreen() {
         <View testID="camera-cut-range" style={styles.rangeSummary}><Ionicons name="time-outline" size={18} color={C.sub} /><Text style={{ color: C.text, fontSize: 13, fontWeight: "600", textAlign: "center", flexShrink: 1 }}>{hhmmss(range.start)} → {hhmmss(range.end)} <Text style={{ color: C.sub, fontWeight: "400" }}>({quickLabel(selectedSeconds)})</Text></Text></View>
         <Pressable accessibilityRole="button" accessibilityLabel="Xem trước đoạn cắt" onPress={startRangePreview} disabled={previewBusy || (useCustom && !customValid) || selectedSeconds <= 0} style={[styles.previewBtn, { opacity: previewBusy || (useCustom && !customValid) || selectedSeconds <= 0 ? 0.5 : 1 }]}>{previewBusy ? <ActivityIndicator color={C.primary} size="small" /> : <Ionicons name="eye-outline" size={21} color={C.primary} />}<Text style={{ color: C.primary, fontWeight: "700", marginLeft: 8 }}>Xem trước đoạn cắt</Text></Pressable>
         <Pressable testID="camera-cut-submit" accessibilityRole="button" onPress={cutFromScrub} disabled={busy || !customValid || selectedSeconds <= 0} style={[styles.cutBtn, { backgroundColor: C.primary, opacity: busy || !customValid || selectedSeconds <= 0 ? 0.5 : 1 }]}>{busy ? <ActivityIndicator color={C.onPrimary} /> : <Ionicons name="cut-outline" size={21} color={C.onPrimary} />}<Text style={{ color: C.onPrimary, fontWeight: "800", fontSize: 16, marginLeft: 8 }}>{busy ? "Đang cắt…" : useCustom ? "Cắt clip" : `Cắt clip ${quickLabel(quickSec)}`}</Text></Pressable>
+        </>}
         {!!retentionHuman && <Text style={styles.hint}>Clip tự xóa sau {retentionHuman} · Nhớ tải/chia sẻ sớm.</Text>}
 
         {/* Tiến trình */}
@@ -571,7 +608,10 @@ export default function ClipCutScreen() {
               </View>
             </View>
             <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
-              {/* Nút "Lưu vào máy" tạm ẩn — cần build native (expo-media-library) mới bật. */}
+              <Pressable accessibilityRole="button" onPress={() => saveToAlbum(results[0].clipId, results[0].name)} disabled={sharing} style={[styles.resBtn, { backgroundColor: C.primary }]}>
+                <Ionicons name="download-outline" size={16} color={C.onPrimary} />
+                <Text style={{ color: C.onPrimary, fontWeight: "700", marginLeft: 6 }}>Lưu vào Ảnh</Text>
+              </Pressable>
               <Pressable onPress={() => shareClip(results[0].clipId, results[0].name)} disabled={sharing} style={[styles.resBtn, { backgroundColor: C.primary }]}>
                 {sharing ? <ActivityIndicator color={C.onPrimary} size="small" /> : <Ionicons name="share-social" size={16} color={C.onPrimary} />}
                 <Text style={{ color: C.onPrimary, fontWeight: "700", marginLeft: 6 }}>Tải / Chia sẻ</Text>
@@ -591,6 +631,10 @@ export default function ClipCutScreen() {
                   <Text numberOfLines={1} style={{ color: C.text, fontWeight: "700", fontSize: 13 }}>{r.name}</Text>
                   {!!r.size && <Text style={{ color: C.sub, fontSize: 12 }}>{humanSize(r.size)}</Text>}
                 </View>
+                <Pressable accessibilityRole="button" accessibilityLabel={`Lưu ${r.name} vào Ảnh`} onPress={() => saveToAlbum(r.clipId, r.name)} disabled={sharing} style={[styles.shareBtn, { backgroundColor: C.primary, marginRight: 8 }]}>
+                  <Ionicons name="download-outline" size={15} color={C.onPrimary} />
+                  <Text style={{ color: C.onPrimary, fontWeight: "700", marginLeft: 5 }}>Lưu</Text>
+                </Pressable>
                 <Pressable onPress={() => shareClip(r.clipId, r.name)} disabled={sharing} style={[styles.shareBtn, { backgroundColor: C.primary }]}>
                   <Ionicons name="share-social" size={15} color={C.onPrimary} />
                   <Text style={{ color: C.onPrimary, fontWeight: "700", marginLeft: 5 }}>Tải</Text>
@@ -611,7 +655,7 @@ export default function ClipCutScreen() {
           <View style={{ marginTop: 24 }}>
             <Text style={styles.sectionTitle}>Clip gần đây</Text>
             {history.map((h) => (
-              <HistoryRow key={h.clipId} C={C} item={h} onShare={() => shareClip(h.clipId, h.name)} />
+              <HistoryRow key={h.clipId} C={C} item={h} onShare={() => shareClip(h.clipId, h.name)} onSave={() => saveToAlbum(h.clipId, h.name)} />
             ))}
           </View>
         )}
@@ -659,7 +703,7 @@ function DateBtn({ C, label, value, onPress }: { C: ThemeTokens; label: string; 
   );
 }
 
-function HistoryRow({ C, item, onShare }: { C: ThemeTokens; item: ClipHistoryItem; onShare: () => void }) {
+function HistoryRow({ C, item, onShare, onSave }: { C: ThemeTokens; item: ClipHistoryItem; onShare: () => void; onSave: () => void }) {
   const [alive, setAlive] = useState<boolean | null>(null);
   useEffect(() => { isClipAlive(item).then(setAlive); }, [item]);
   const mins = Math.max(0, Math.round((Date.now() - item.createdAt) / 60000));
@@ -673,9 +717,9 @@ function HistoryRow({ C, item, onShare }: { C: ThemeTokens; item: ClipHistoryIte
       {alive === false ? (
         <Text style={{ color: C.muted, fontSize: 12 }}>Đã hết hạn</Text>
       ) : (
-        <Pressable accessibilityRole="button" accessibilityLabel={`Tải / chia sẻ ${item.name}`} onPress={onShare} hitSlop={10} style={{ padding: 8 }}>
+        <><Pressable accessibilityRole="button" accessibilityLabel={`Lưu ${item.name} vào Ảnh`} onPress={onSave} hitSlop={10} style={{ padding: 8 }}><Ionicons name="download-outline" size={20} color={C.primary} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Tải / chia sẻ ${item.name}`} onPress={onShare} hitSlop={10} style={{ padding: 8 }}>
           <Ionicons name="share-social-outline" size={20} color={C.primary} />
-        </Pressable>
+        </Pressable></>
       )}
     </View>
   );
