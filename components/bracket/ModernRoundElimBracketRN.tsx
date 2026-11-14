@@ -67,6 +67,7 @@ function sourceRefsOf(seed: any) {
 type Node = {
   key: string;
   seed: any;
+  order: number;
   x: number;
   y: number;
   centerY: number;
@@ -127,6 +128,7 @@ function buildLayout(rounds: Round[]) {
       const node: Node = {
         key: key || `${roundIndex + 1}:${seedIndex}`,
         seed,
+        order: seedIndex,
         x,
         y,
         centerY: y + CARD_H / 2,
@@ -392,7 +394,7 @@ export default function ModernRoundElimBracketRN({
               }}
             >
               <ModernSeedCard
-                seed={node.seed}
+                seed={{ __round: col.roundIndex + 1, __order: node.order, ...node.seed }}
                 onOpenMatch={onOpenMatch}
                 championMatchId={championMatchId}
                 resolveSideLabel={resolveSideLabel}

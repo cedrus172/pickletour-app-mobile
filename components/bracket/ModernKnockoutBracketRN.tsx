@@ -278,7 +278,7 @@ export default function ModernKnockoutBracketRN({
                         style={{ alignItems: "center" }}
                       >
                         <ModernSeedCard
-                          seed={seed}
+                          seed={{ __round: ci + 1, __order: si, ...seed }}
                           onOpenMatch={onOpenMatch}
                           championMatchId={championMatchId}
                           resolveSideLabel={resolveSideLabel}

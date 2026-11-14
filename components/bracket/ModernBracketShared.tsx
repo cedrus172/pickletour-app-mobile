@@ -3,9 +3,10 @@
 // Shared card + palette + label humanizer cho bản sơ đồ v4 modern trên mobile.
 // KHÔNG đụng logic sinh label — chỉ post-process nhãn tham chiếu và render đẹp hơn.
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
+  ScrollView,
   Pressable,
   Animated,
   Easing,
@@ -13,10 +14,13 @@ import {
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image as ExpoImage } from "expo-image";
+import { getPlayerDisplayName } from "@/utils/matchDisplay";
+import { normalizeUrl } from "@/utils/normalizeUri";
 
 /* ================= constants ================= */
-export const MODERN_CARD_W = 260;
-export const MODERN_CARD_MIN_H = 132;
+export const MODERN_CARD_W = 296;
+export const MODERN_CARD_MIN_H = 170;
 
 /* ================= palettes ================= */
 // KO đếm ngược từ Chung kết (gold) ra ngoài
@@ -124,22 +128,20 @@ export function humanizeSeedRefLabel(raw: unknown): HumanizedLabel | null {
     };
   }
 
-  let m = s.match(/^([WL])-V(\d+)-T(\d+)$/i);
+  let m = s.match(/^([WL])-V(\d+)(?:-B([A-Za-z0-9]+))?-T(\d+)$/i);
   if (m) {
     const isW = m[1].toUpperCase() === "W";
     return {
-      text: isW ? `Chờ thắng T${m[3]}·V${m[2]}` : `Chờ thua T${m[3]}·V${m[2]}`,
+      text: s,
       kind: isW ? "winner-ref" : "loser-ref",
-      tooltip: isW
-        ? `Đội thắng Trận ${m[3]} - Vòng ${m[2]}`
-        : `Đội thua Trận ${m[3]} - Vòng ${m[2]}`,
+      tooltip: `Đội ${isW ? "thắng" : "thua"} Vòng ${m[2]}${m[3] ? ` – Bảng ${m[3]}` : ""} – Trận ${m[4]}`,
     };
   }
 
-  m = s.match(/^V(\d+)-B([A-Za-z0-9]+)-T(\d+)$/i);
+  m = s.match(/^V(\d+)-B([A-Za-z0-9]+)-T(\d+)(?:\s*·.+)?$/i);
   if (m) {
     return {
-      text: `Hạng ${m[3]} Bảng ${m[2]}`,
+      text: s,
       kind: "group-rank",
       tooltip: `Đội đứng hạng ${m[3]} của bảng ${m[2]} (Giai đoạn ${m[1]})`,
     };
@@ -148,13 +150,13 @@ export function humanizeSeedRefLabel(raw: unknown): HumanizedLabel | null {
   m = s.match(/^V(\d+)-T(\d+)$/i);
   if (m) {
     return {
-      text: `Chờ T${m[2]}·V${m[1]}`,
+      text: s,
       kind: "match-ref",
-      tooltip: `Chờ kết quả Trận ${m[2]} - Vòng ${m[1]}`,
+      tooltip: `Chờ kết quả Vòng ${m[1]} – Trận ${m[2]}`,
     };
   }
 
-  if (/^(TBD|Registration|Chưa có đội)$/i.test(s)) {
+  if (/^(TBD|Registration|Chưa có đội|—|–)$/i.test(s)) {
     return { text: "Chưa có đội", kind: "pending", tooltip: "Chưa xác định" };
   }
 
@@ -227,7 +229,6 @@ function initialsOf(name?: string): string {
   if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 }
-const isByeText = (s?: string) => /^\s*BYE\s*$/i.test(String(s || ""));
 function timeShort(ts?: any): string {
   if (!ts) return "";
   try {
@@ -395,154 +396,94 @@ export function ModernRoundChip({
 }
 
 /* ================= Team row ================= */
-function TeamRow({
-  label,
-  score,
-  isWinner,
-  isLive,
-  isFinished,
-  humanized,
-  isDark,
-}: {
-  label: string;
-  score: string | number;
-  isWinner: boolean;
-  isLive: boolean;
-  isFinished: boolean;
-  humanized: HumanizedLabel | null;
-  isDark: boolean;
-}) {
-  const isPending = humanized && humanized.kind !== "team";
-  const isBye = humanized?.kind === "bye";
-  const displayLabel = humanized ? humanized.text : label;
-  const teamColor = colorForName(displayLabel);
-  const won = isWinner && isFinished;
+type BracketPlayer = { name: string; avatar?: string };
 
-  const rowBg = won
-    ? rgba("#22c55e", 0.14)
-    : "transparent";
-  const borderLeft = won
-    ? "#22c55e"
-    : "transparent";
-
-  const scoreBg = won
-    ? "#22c55e"
-    : isLive
-      ? "#f59e0b"
-      : isDark
-        ? "rgba(255,255,255,0.08)"
-        : "rgba(15,23,42,0.06)";
-  const scoreFg = won || isLive ? "#fff" : isDark ? "#f8fafc" : "#0f172a";
-
+function PlayerAvatar({ player }: { player: BracketPlayer }) {
+  const [failedUri, setFailedUri] = useState<string>();
+  const uri = player.avatar ? normalizeUrl(player.avatar) : undefined;
   return (
-    <View
-      style={[
-        sharedStyles.row,
-        { backgroundColor: rowBg, borderLeftColor: borderLeft },
-      ]}
-    >
-      <View
-        style={[
-          sharedStyles.avatar,
-          {
-            backgroundColor: isBye
-              ? rgba(isDark ? "#94a3b8" : "#94a3b8", 0.2)
-              : isPending
-                ? rgba("#3b82f6", 0.15)
-                : teamColor,
-            borderColor: won
-              ? "#22c55e"
-              : isBye || isPending
-                ? "transparent"
-                : rgba(teamColor, 0.3),
-          },
-        ]}
-      >
-        <Text
-          style={{
-            color: isBye
-              ? isDark
-                ? "#94a3b8"
-                : "#94a3b8"
-              : isPending
-                ? "#3b82f6"
-                : "#fff",
-            fontWeight: "800",
-            fontSize: 11,
-          }}
-        >
-          {isBye ? "⊝" : isPending ? "⏳" : initialsOf(displayLabel)}
-        </Text>
-      </View>
-      <Text
-        numberOfLines={1}
-        style={{
-          flex: 1,
-          fontSize: 13,
-          fontWeight: won ? "800" : "500",
-          color: isBye || isPending
-            ? isDark
-              ? "#94a3b8"
-              : "#64748b"
-            : won
-              ? isDark
-                ? "#86efac"
-                : "#15803d"
-              : isDark
-                ? "#f8fafc"
-                : "#0f172a",
-          fontStyle: isBye || isPending ? "italic" : "normal",
-        }}
-      >
-        {displayLabel}
-      </Text>
-      <View
-        style={[
-          sharedStyles.scoreBox,
-          { backgroundColor: scoreBg },
-        ]}
-      >
-        <Text
-          style={{
-            color: scoreFg,
-            fontWeight: "800",
-            fontSize: 14,
-            fontVariant: ["tabular-nums"],
-          }}
-        >
-          {score !== "" && score != null ? String(score) : "–"}
-        </Text>
-      </View>
+    <View style={[sharedStyles.avatar, { backgroundColor: colorForName(player.name) }]}>
+      <Text style={{ color: "#fff", fontWeight: "800", fontSize: 8 }}>{initialsOf(player.name)}</Text>
+      {uri && uri !== failedUri ? (
+        <ExpoImage source={uri} contentFit="cover" cachePolicy="memory-disk"
+          style={StyleSheet.absoluteFill} onError={() => setFailedUri(uri)}
+        />
+      ) : null}
     </View>
   );
 }
 
-/* ================= VS divider ================= */
-function VsDivider({ accent, isDark }: { accent: string; isDark: boolean }) {
+function readTeam(seed: any, side: "A" | "B", resolveSideLabel?: ResolveSideLabel) {
+  let roster: BracketPlayer[] = [];
+  const label = resolveSideLabel?.(seed?.__match, side, (pair, eventType, source) => {
+    roster = [];
+    const players = pair?.players?.length
+      ? pair.players
+      : [pair?.player1 ?? pair?.p1, pair?.player2 ?? pair?.p2];
+    for (const player of players.filter(Boolean).slice(0, eventType === "single" ? 1 : 2)) {
+      const name = getPlayerDisplayName(player, source);
+      if (name) {
+        const avatar = player.avatar || player.user?.avatar;
+        roster.push({ name, avatar: typeof avatar === "string" ? avatar : undefined });
+      }
+    }
+  });
+  const seedLabel = seed?.teams?.[side === "A" ? 0 : 1]?.name;
+  const name = (roster.length && label) || seedLabel || label || "Chưa có đội";
+  const reference = humanizeSeedRefLabel(name);
+  return { name, reference, roster: reference ? [] : roster };
+}
+
+function TeamRow({ side, team, score, isWinner, isLive, isDark, compact }: {
+  side: "A" | "B";
+  team: ReturnType<typeof readTeam>;
+  score: string | number;
+  isWinner: boolean;
+  isLive: boolean;
+  isDark: boolean;
+  compact: boolean;
+}) {
+  const { name, reference, roster } = team;
+  const muted = isDark ? "#a7bdd5" : "#52647b";
+  const foreground = isDark ? "#eaf3ff" : "#0f172a";
+  const background = isDark ? "#182c44" : "#eef2f7";
+  const winColor = isDark ? "#86efac" : "#15803d";
+  const warningColor = isDark ? "#ffc56e" : "#92400e";
   return (
-    <View style={sharedStyles.vsWrap}>
-      <View
-        style={[
-          sharedStyles.vsLine,
-          { backgroundColor: rgba(accent, 0.3) },
-        ]}
-      />
-      <Text
-        style={{
-          fontSize: 9,
-          fontWeight: "900",
-          color: isDark ? lighten(accent, 0.4) : darken(accent, 0.1),
-          letterSpacing: 1.2,
-        }}
-      >
-        VS
-      </Text>
-      <View
-        style={[
-          sharedStyles.vsLine,
-          { backgroundColor: rgba(accent, 0.3) },
-        ]}
-      />
+    <View style={[sharedStyles.row, isWinner && { backgroundColor: rgba("#22c55e", 0.12) }]}>
+      <Text style={[sharedStyles.side, { color: muted, backgroundColor: background }]}>{side}</Text>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        {reference ? (
+          <>
+            <Text style={{ color: reference.kind === "loser-ref" ? warningColor : muted, fontSize: 12, fontWeight: "800" }}>
+              {reference.text}
+            </Text>
+            {/-T\d/i.test(reference.text) ? (
+              <Text style={{ color: muted, fontSize: 11, lineHeight: 15 }}>{reference.tooltip}</Text>
+            ) : null}
+          </>
+        ) : (
+          (roster.length ? roster : [{ name }]).map((player, index) => (
+            <View key={index} style={sharedStyles.playerRow}>
+              <PlayerAvatar player={player} />
+              <Text numberOfLines={compact ? 0 : 1} style={{
+                flex: 1, color: isWinner ? winColor : foreground, fontSize: 12,
+                lineHeight: 16, fontWeight: isWinner ? "800" : "600",
+              }}>
+                {player.name}
+              </Text>
+            </View>
+          ))
+        )}
+      </View>
+      <View style={[sharedStyles.scoreBox, { backgroundColor: background }]}>
+        <Text style={{
+          color: isWinner ? winColor : isLive ? warningColor : foreground,
+          fontWeight: "800", fontSize: 13, fontVariant: ["tabular-nums"],
+        }}>
+          {score !== "" && score != null ? String(score) : "–"}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -635,7 +576,8 @@ function ChampionBadge() {
 }
 
 /* ================= Modern seed card (main) ================= */
-export type ResolveSideLabel = (m: any, side: "A" | "B") => string;
+export type OnResolvedPair = (pair: any, eventType: string | undefined, source: any) => void;
+export type ResolveSideLabel = (m: any, side: "A" | "B", onResolvedPair?: OnResolvedPair) => string;
 
 export function ModernSeedCard({
   seed,
@@ -646,6 +588,7 @@ export function ModernSeedCard({
   accent = "#3b82f6",
   isDark,
   cardWidth = MODERN_CARD_W,
+  compact = false,
   nodeKey,
 }: {
   seed: any;
@@ -656,17 +599,15 @@ export function ModernSeedCard({
   accent?: string;
   isDark: boolean;
   cardWidth?: number;
+  compact?: boolean;
   nodeKey?: string;
 }) {
   const m = seed?.__match || null;
 
-  const rawA = resolveSideLabel?.(m, "A") ?? (m ? "—" : "Chưa có đội");
-  const rawB = resolveSideLabel?.(m, "B") ?? (m ? "—" : "Chưa có đội");
-  const humA = humanizeSeedRefLabel(rawA);
-  const humB = humanizeSeedRefLabel(rawB);
-
-  const isByeA = humA?.kind === "bye" || isByeText(rawA);
-  const isByeB = humB?.kind === "bye" || isByeText(rawB);
+  const teamA = readTeam(seed, "A", resolveSideLabel);
+  const teamB = readTeam(seed, "B", resolveSideLabel);
+  const isByeA = teamA.reference?.kind === "bye";
+  const isByeB = teamB.reference?.kind === "bye";
   const isByeMatch = isByeA || isByeB;
 
   const status = String(m?.status || "").toLowerCase();
@@ -685,13 +626,13 @@ export function ModernSeedCard({
     (winA || winB);
 
   const meta = statusMetaOf(m, isDark);
-  const code = matchCodeOf(m, baseRoundStart);
+  const code = m?.displayCode || m?.code || matchCodeOf(m || { round: seed.__round, order: seed.__order }, baseRoundStart);
   const timeStr = timeShort(m?.scheduledAt || m?.startedAt || m?.assignedAt);
   const courtStr = courtNameOf(m);
   const hasVid = hasVideoOf(m);
   const clickable = !!m && !m.__syntheticByeAdvance;
 
-  const cardBg = isDark ? "#16181c" : "#ffffff";
+  const cardBg = isDark ? "#0d1d31" : "#ffffff";
   const borderColor = isChampion
     ? rgba("#f59e0b", 0.85)
     : isLive
@@ -700,11 +641,14 @@ export function ModernSeedCard({
 
   return (
     <Pressable
-      onPress={() => clickable && onOpenMatch?.(m)}
+      accessibilityRole={clickable ? "button" : undefined}
+      onPress={clickable ? () => onOpenMatch?.(m) : undefined}
       style={({ pressed }) => [
         sharedStyles.card,
         {
-          width: cardWidth,
+          width: compact ? "100%" : cardWidth,
+          minHeight: compact ? undefined : MODERN_CARD_MIN_H,
+          marginVertical: compact ? 0 : 6,
           backgroundColor: cardBg,
           borderColor,
           borderTopColor: isChampion ? "#f59e0b" : accent,
@@ -803,24 +747,24 @@ export function ModernSeedCard({
       </LinearGradient>
 
       {/* Team rows */}
-      <View style={{ paddingHorizontal: 6, paddingVertical: 6, gap: 2 }}>
+      <View style={{ paddingHorizontal: 4, paddingVertical: 2 }}>
         <TeamRow
-          label={rawA}
+          side="A"
+          team={teamA}
+          compact={compact}
           score={sA}
           isWinner={winA}
           isLive={isLive}
-          isFinished={isFinished}
-          humanized={humA}
           isDark={isDark}
         />
-        <VsDivider accent={accent} isDark={isDark} />
+        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: rgba(accent, 0.25), marginHorizontal: 8 }} />
         <TeamRow
-          label={rawB}
+          side="B"
+          team={teamB}
+          compact={compact}
           score={sB}
           isWinner={winB}
           isLive={isLive}
-          isFinished={isFinished}
-          humanized={humB}
           isDark={isDark}
         />
       </View>
@@ -829,61 +773,105 @@ export function ModernSeedCard({
   );
 }
 
+export function CompactBracketRounds({ rounds, roundElim, ...cardProps }: {
+  rounds: { title?: string; seeds: any[] }[];
+  roundElim?: boolean;
+  onOpenMatch?: (m: any) => void;
+  championMatchId?: string | number | null;
+  resolveSideLabel?: ResolveSideLabel;
+  baseRoundStart?: number;
+  isDark: boolean;
+}) {
+  const [selectedRound, setSelectedRound] = useState(0);
+  if (!rounds.length) return null;
+  const index = Math.min(selectedRound, rounds.length - 1);
+  const round = rounds[index];
+  const { isDark } = cardProps;
+  const accent = roundElim ? accentForIndex(index) : accentForRound(index, rounds.length);
+  const muted = isDark ? "#a7bdd5" : "#52647b";
+  return (
+    <View style={{ gap: 10 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+        {rounds.map((item, i) => (
+          <Pressable key={i} accessibilityRole="tab" accessibilityState={{ selected: i === index }}
+            onPress={() => setSelectedRound(i)}
+            style={{
+              minHeight: 44, justifyContent: "center", paddingHorizontal: 12, borderRadius: 8,
+              borderWidth: 1, borderColor: rgba(accent, i === index ? 0.7 : 0.18),
+              backgroundColor: i === index ? rgba(accent, 0.16) : "transparent",
+            }}
+          >
+            <Text style={{ color: i === index ? (isDark ? "#d3efff" : "#102539") : muted, fontWeight: "700", fontSize: 12 }}>
+              {item.title || `Vòng ${i + 1}`}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+      <Text style={{ color: muted, fontSize: 11 }}>W · Đội thắng    L · Đội thua    BYE · Miễn đấu</Text>
+      {round.seeds.map((seed, order) => seed.__symmetricSpacer ? null : (
+        <ModernSeedCard key={seed.id || order} {...cardProps} accent={accent}
+          seed={{ __round: index + 1, __order: order, ...seed }} compact
+        />
+      ))}
+    </View>
+  );
+}
+
 /* ================= styles ================= */
 const sharedStyles = StyleSheet.create({
   card: {
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     overflow: "visible",
-    marginVertical: 8,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    borderBottomWidth: 1,
-    borderStyle: "dashed",
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    minHeight: 32,
+    borderTopLeftRadius: 9,
+    borderTopRightRadius: 9,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderLeftWidth: 3,
-    minHeight: 34,
+    gap: 7,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    minHeight: 55,
+  },
+  side: {
+    width: 24,
+    borderRadius: 4,
+    textAlign: "center",
+    paddingVertical: 3,
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  playerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 24,
+    gap: 6,
   },
   avatar: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
   },
   scoreBox: {
-    minWidth: 30,
-    height: 26,
-    paddingHorizontal: 6,
-    borderRadius: 6,
+    minWidth: 28,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    borderRadius: 5,
     alignItems: "center",
     justifyContent: "center",
-  },
-  vsWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    marginVertical: -1,
-  },
-  vsLine: {
-    flex: 1,
-    height: 1,
   },
   chip: {
     flexDirection: "row",

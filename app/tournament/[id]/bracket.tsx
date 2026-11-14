@@ -67,6 +67,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { formatKnockoutRoundLabelByMatchCount } from "@/utils/tournamentRoundLabels";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ModernKnockoutBracketRN from "@/components/bracket/ModernKnockoutBracketRN";
+import { CompactBracketRounds, type OnResolvedPair } from "@/components/bracket/ModernBracketShared";
 import ModernRoundElimBracketRN from "@/components/bracket/ModernRoundElimBracketRN";
 import ModernGroupStageRN from "@/components/bracket/ModernGroupStageRN";
 import TiebreakDrawSheetRN from "@/components/bracket/TiebreakDrawSheetRN";
@@ -3701,6 +3702,8 @@ const SymmetricKnockoutColumns = ({
 
 export default function TournamentBracketRN({ tourId: tourIdProp }) {
   const t = useTokens();
+  const { width } = useWindowDimensions();
+  const compactEliminationBracket = width < 600;
   const route = useRoute();
   const socket = useSocket();
   const userInfo = useSelector((s) => s.auth?.userInfo);
@@ -4567,9 +4570,13 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
   }, []);
 
   const resolveSideLabel = useCallback(
-    (m, side) => {
+    (m: any, side: "A" | "B", onResolvedPair?: OnResolvedPair): string => {
       const eventType = tour?.eventType;
       if (!m) return "Chưa có đội";
+      const labelForPair = (resolvedPair: Parameters<OnResolvedPair>[0], source: Parameters<OnResolvedPair>[2]) => {
+        onResolvedPair?.(resolvedPair, eventType, source);
+        return pairLabelNickOnly(resolvedPair, eventType, source);
+      };
 
       const rawSeed = side === "A" ? m.seedA : m.seedB;
       const pair = side === "A" ? m.pairA : m.pairB;
@@ -4587,7 +4594,7 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
           ? rawSeed
           : plannedSeed || rawSeed;
 
-      if (hasResolvedPair(pair)) return pairLabelNickOnly(pair, eventType, m);
+      if (hasResolvedPair(pair)) return labelForPair(pair, m);
 
       // ⛔ Seed của CHÍNH slot này là BYE → hiển thị "BYE", không tra previous
       // (PO lẻ đội: V2-T7 = L-V1-T13 vs BYE nhưng previousB vẫn trỏ V1-T14 —
@@ -4608,7 +4615,7 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
         const inferred =
           resolvePairFromGroupRankSeed(seed, brackets, byBracket, eventType) ||
           null;
-        if (inferred) return pairLabelNickOnly(inferred, eventType, tour);
+        if (inferred) return labelForPair(inferred, tour);
 
         return seedLabel(seed);
       }
@@ -4644,12 +4651,12 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
               !/^[WL]-/i.test(String(value)) &&
               !/^V\d/i.test(String(value));
 
-            const carried = resolveSideLabel(pm, winSide);
+            const carried = resolveSideLabel(pm, winSide, onResolvedPair);
             if (isRealTeamName(carried)) return carried;
 
             const winPair = pm[`pair${winSide}`];
             if (hasResolvedPair(winPair)) {
-              return pairLabelNickOnly(winPair, eventType, pm);
+              return labelForPair(winPair, pm);
             }
 
             const ownCode = getDisplayCodeForMatch(pm);
@@ -4679,9 +4686,9 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
               : "A"
             : winnerSide;
           const wp = carrySide === "A" ? pm.pairA : pm.pairB;
-          if (hasResolvedPair(wp)) return pairLabelNickOnly(wp, eventType, pm);
+          if (hasResolvedPair(wp)) return labelForPair(wp, pm);
 
-          const carried = resolveSideLabel(pm, carrySide);
+          const carried = resolveSideLabel(pm, carrySide, onResolvedPair);
           if (isUsefulSideLabel(carried)) return carried;
         }
 
@@ -4722,12 +4729,12 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
               !/^[WL]-/i.test(String(value)) &&
               !/^V\d/i.test(String(value));
 
-            const carried = resolveSideLabel(sourceMatch, winSide);
+            const carried = resolveSideLabel(sourceMatch, winSide, onResolvedPair);
             if (isRealTeamName(carried)) return carried;
 
             const carriedPair = sourceMatch[`pair${winSide}`];
             if (hasResolvedPair(carriedPair)) {
-              return pairLabelNickOnly(carriedPair, eventType, sourceMatch);
+              return labelForPair(carriedPair, sourceMatch);
             }
 
             const ownCode = getDisplayCodeForMatch(sourceMatch);
@@ -4755,10 +4762,10 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
             sourceSide === "A" ? sourceMatch.pairA : sourceMatch.pairB;
 
           if (hasResolvedPair(sourcePair)) {
-            return pairLabelNickOnly(sourcePair, eventType, sourceMatch);
+            return labelForPair(sourcePair, sourceMatch);
           }
 
-          const carried = resolveSideLabel(sourceMatch, sourceSide);
+          const carried = resolveSideLabel(sourceMatch, sourceSide, onResolvedPair);
           if (isUsefulSideLabel(carried)) return carried;
         }
 
@@ -5471,12 +5478,23 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
     );
   };
 
-  const renderRE = () => {
+  const renderRE = (full = false) => {
     const reRounds = buildRoundElimRounds(
       current,
       currentMatches,
       resolveSideLabel
     );
+    const modernProps = {
+      rounds: reRounds,
+      onOpenMatch: openMatch,
+      resolveSideLabel,
+      isDark: t.dark,
+    };
+    if (full) {
+      return isBracketV4
+        ? <ModernRoundElimBracketRN {...modernProps} zoom={modernZoom} />
+        : renderREBracketOnly();
+    }
     return (
       <View>
         <ModernBracketToggle
@@ -5485,15 +5503,11 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
           t={t}
         />
         {isBracketV4 ? (
-          <ModernRoundElimBracketRN
-            rounds={reRounds}
-            onOpenMatch={openMatch}
-            championMatchId={null}
-            resolveSideLabel={resolveSideLabel}
-            baseRoundStart={1}
-            isDark={t.dark}
-            zoom={modernZoom}
-          />
+          compactEliminationBracket ? (
+            <CompactBracketRounds key={current?._id} {...modernProps} roundElim />
+          ) : (
+            <ModernRoundElimBracketRN {...modernProps} zoom={modernZoom} />
+          )
         ) : (
           <BracketColumns
             rounds={reRounds}
@@ -5509,7 +5523,7 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
     );
   };
 
-  const renderKO = () => {
+  const renderKO = (full = false) => {
     const finalMatchId = currentChampionGate.allowed
       ? currentChampionGate.matchId
       : null;
@@ -5545,6 +5559,18 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
         ? buildEmptyRoundsByScale(2 ** current.drawRounds)
         : buildEmptyRoundsByScale(scaleForCurrent || 4);
 
+    const modernProps = {
+      rounds: roundsToRender,
+      onOpenMatch: openMatch,
+      championMatchId: finalMatchId,
+      resolveSideLabel,
+      isDark: t.dark,
+    };
+    if (full) {
+      return isBracketV4
+        ? <ModernKnockoutBracketRN {...modernProps} zoom={modernZoom} />
+        : renderKOBracketOnly();
+    }
     return (
       <View>
         <View style={styles.koMeta}>
@@ -5573,15 +5599,11 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
         />
 
         {isBracketV4 ? (
-          <ModernKnockoutBracketRN
-            rounds={roundsToRender}
-            onOpenMatch={openMatch}
-            championMatchId={finalMatchId}
-            resolveSideLabel={resolveSideLabel}
-            baseRoundStart={1}
-            isDark={t.dark}
-            zoom={modernZoom}
-          />
+          compactEliminationBracket ? (
+            <CompactBracketRounds key={current?._id} {...modernProps} />
+          ) : (
+            <ModernKnockoutBracketRN {...modernProps} zoom={modernZoom} />
+          )
         ) : (
           <SymmetricKnockoutColumns
             rounds={roundsToRender}
@@ -5834,7 +5856,7 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
             t={t}
           />
 
-          {isBracketV4 && (
+          {isBracketV4 && (!compactEliminationBracket || current?.type === "group") && (
             <View
               style={{
                 alignItems: "flex-end",
@@ -5933,9 +5955,16 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
               directionalLockEnabled
               showsVerticalScrollIndicator
             >
-              {current.type === "roundElim"
-                ? renderREBracketOnly()
-                : renderKOBracketOnly()}
+              {isBracketV4 ? (
+                <ZoomControlsRN
+                  zoom={modernZoom}
+                  onZoomIn={modernZoomIn}
+                  onZoomOut={modernZoomOut}
+                  onReset={modernZoomReset}
+                  t={t}
+                />
+              ) : null}
+              {current.type === "roundElim" ? renderRE(true) : renderKO(true)}
             </ScrollView>
           </View>
         )}
