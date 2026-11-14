@@ -94,7 +94,7 @@ function GradLightCard({ children, style, pad = 12, colors }) {
     >
       {/* Giữ gradient overlay nhẹ để tạo hiệu ứng kính/bóng */}
       <LinearGradient
-        colors={["rgba(102,126,234,0.08)", "rgba(118,75,162,0.08)"]}
+        colors={["rgba(8,188,215,0.08)", "rgba(7,141,180,0.08)"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -114,7 +114,7 @@ function SmallGradBtn({ title, onPress, style, disabled, icon }) {
       style={[styles.smallBtn, style, disabled && { opacity: 0.6 }]}
     >
       <LinearGradient
-        colors={["#667eea", "#764ba2"]}
+        colors={["#08bcd7", "#078db4"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -280,7 +280,7 @@ export default function ClubMembersManagerRN({ club, canManage }) {
     if (isLoading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#667eea" />
+          <ActivityIndicator size="large" color="#08bcd7" />
           <Text style={[styles.loadingText, { color: colors.subText }]}>
             Đang tải danh sách...
           </Text>
@@ -496,7 +496,7 @@ export default function ClubMembersManagerRN({ club, canManage }) {
           {isFetching && (
             <ActivityIndicator
               size="small"
-              color="#667eea"
+              color="#08bcd7"
               style={{ marginRight: 6 }}
             />
           )}
@@ -507,7 +507,7 @@ export default function ClubMembersManagerRN({ club, canManage }) {
             <Ionicons
               name="refresh"
               size={14}
-              color="#667eea"
+              color="#08bcd7"
               style={{ marginLeft: 4 }}
             />
           )}
@@ -613,7 +613,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   refreshBtn: { flexDirection: "row", alignItems: "center" },
-  refreshText: { color: "#667eea", fontWeight: "600", fontSize: 13 },
+  refreshText: { color: "#08bcd7", fontWeight: "600", fontSize: 13 },
 
   name: { fontWeight: "700", marginTop: 8, maxWidth: 140 },
   pill: {

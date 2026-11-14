@@ -14,7 +14,6 @@ import {
   Alert as RNAlert,
   FlatList,
   Linking,
-  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -52,6 +51,7 @@ import {
 } from "@/utils/matchDisplay";
 import { buildRefereeMatchRoute } from "@/utils/refereeMatchRoute";
 
+import AppModal, { ModalTopInset } from "@/components/ui/AppModal";
 /* ---------------- THEME ---------------- */
 function useThemeTokens() {
   const scheme = useColorScheme() ?? "light";
@@ -1571,11 +1571,12 @@ export default function RefereeCenterScreen() {
           matchId={viewer.matchId}
           onClose={closeMatch}
         />
-        <Modal
+        <AppModal
           visible={searchModalOpen}
           animationType="slide"
           onRequestClose={() => setSearchModalOpen(false)}
         >
+<ModalTopInset>{(modalTop) => (<>
           <View
             style={[
               styles.filterModalWrap,
@@ -1588,7 +1589,7 @@ export default function RefereeCenterScreen() {
                 {
                   borderBottomColor: T.border,
                   backgroundColor: T.cardBg,
-                  paddingTop: Math.max(insets.top, 12) + 8,
+                  paddingTop: Math.max(modalTop, 12) + 8,
                 },
               ]}
             >
@@ -1698,7 +1699,8 @@ export default function RefereeCenterScreen() {
               </View>
             </View>
           </View>
-        </Modal>
+        </>)}</ModalTopInset>
+</AppModal>
       </View>
 
       {/* Header dropdown (anchored) */}

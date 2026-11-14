@@ -393,7 +393,7 @@ export const PlayerScore = memo(function PlayerScore({
     <View style={styles.playerScore}>
       <Text style={styles.playerScoreLabel}>{label}</Text>
       <View style={styles.playerScoreValueRow}>
-        <Text style={[styles.playerScoreValue, { color }]} adjustsFontSizeToFit>
+        <Text style={[styles.playerScoreValue, { color }]} numberOfLines={1}>
           {value}
         </Text>
         {hasDelta ? (

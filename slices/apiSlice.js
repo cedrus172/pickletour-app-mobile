@@ -163,28 +163,30 @@ const rawBaseQuery = fetchBaseQuery({
     const appVersion =
       expoCfg?.version ?? Application.nativeApplicationVersion ?? "0.0.0";
 
-    // Build number theo platform
+    // Build number theo platform: ưu tiên số build THẬT của bản native
+    // (CFBundleVersion / versionCode). expoConfig chỉ là giá trị app.json lúc build
+    // → lệch khi Xcode/App Store tăng build (vd. app.json 50 nhưng bản thật 53)
+    // → bị versionGate chặn "phiên bản quá cũ" oan.
+    const nativeBuild = parseInt(Application.nativeBuildVersion ?? "", 10);
     let buildNumber = 0;
-    if (Platform.OS === "ios") {
+    if (Number.isFinite(nativeBuild) && nativeBuild > 0) {
+      buildNumber = nativeBuild;
+    } else if (Platform.OS === "ios") {
       const fromConfig = parseInt(expoCfg?.ios?.buildNumber ?? "", 10);
-      if (Number.isFinite(fromConfig)) {
-        buildNumber = fromConfig;
-      } else {
-        const envBuild = Number(process.env.EXPO_PUBLIC_APP_BUILD ?? NaN);
-        buildNumber = Number.isFinite(envBuild)
+      const envBuild = Number(process.env.EXPO_PUBLIC_APP_BUILD ?? NaN);
+      buildNumber = Number.isFinite(fromConfig)
+        ? fromConfig
+        : Number.isFinite(envBuild)
           ? envBuild
-          : parseInt(Application.nativeBuildVersion ?? "0", 10) || 0;
-      }
+          : 0;
     } else {
       const fromConfig = expoCfg?.android?.versionCode;
-      if (Number.isFinite(fromConfig)) {
-        buildNumber = Number(fromConfig);
-      } else {
-        const envBuild = Number(process.env.EXPO_PUBLIC_APP_BUILD ?? NaN);
-        buildNumber = Number.isFinite(envBuild)
+      const envBuild = Number(process.env.EXPO_PUBLIC_APP_BUILD ?? NaN);
+      buildNumber = Number.isFinite(fromConfig)
+        ? Number(fromConfig)
+        : Number.isFinite(envBuild)
           ? envBuild
-          : parseInt(Application.nativeBuildVersion ?? "0", 10) || 0;
-      }
+          : 0;
     }
 
     headers.set("X-Platform", Platform.OS); // ios | android

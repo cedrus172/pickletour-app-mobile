@@ -7,7 +7,6 @@ import {
   ViewStyle,
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
-import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native"; // Import useTheme
@@ -94,14 +93,6 @@ export default function ClubHeaderRN({ club }: { club: any }) {
       )}
 
       {/* Overlay Gradient: Giữ nguyên vì nó tạo nền cho Text trắng */}
-      <LinearGradient
-        colors={["#667eea", "#764ba2"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
-
       <View style={styles.info}>
         {/* --- LOGO / AVATAR --- */}
         <View
@@ -141,6 +132,15 @@ export default function ClubHeaderRN({ club }: { club: any }) {
           {club?.name}
         </Text>
 
+        {!!(club?.city || club?.province) && (
+          <Text style={styles.location} numberOfLines={2}>
+            {[club?.city, club?.province].filter(Boolean).join(", ")}
+          </Text>
+        )}
+        {typeof club?.stats?.memberCount === "number" && (
+          <Text style={styles.location}>{club.stats.memberCount} thành viên</Text>
+        )}
+
         <View style={styles.badges}>
           {club?.shortCode ? (
             <SoftPill
@@ -169,7 +169,7 @@ export default function ClubHeaderRN({ club }: { club: any }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { borderRadius: 20, overflow: "hidden", margin: 16 },
+  wrap: { borderRadius: 20, overflow: "hidden", margin: 16, backgroundColor: "#061a30" },
 
   cover: { width: "100%", height: 220 },
   coverPlaceholder: {
@@ -179,16 +179,15 @@ const styles = StyleSheet.create({
   },
 
   info: {
-    position: "absolute",
-    left: 12,
-    right: 12,
-    bottom: 10,
-    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    alignItems: "flex-start",
   },
 
   avatarWrap: {
     width: 92,
     height: 92,
+    marginTop: -40,
     borderRadius: 46,
     overflow: "hidden",
     borderWidth: 2,
@@ -208,17 +207,18 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 20,
     fontWeight: "800",
-    textAlign: "center",
+    textAlign: "left",
     textShadowColor: "rgba(0, 0, 0, 0.1)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
+  location: { color: "#b0c5dc", marginTop: 6, fontSize: 13 },
 
   badges: {
     flexDirection: "row",
     gap: 8,
     flexWrap: "wrap",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     marginTop: 6,
   },
 
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   desc: {
     color: "#f1f6ff",
     marginTop: 6,
-    textAlign: "center",
+    textAlign: "left",
     opacity: 0.9,
   },
 });

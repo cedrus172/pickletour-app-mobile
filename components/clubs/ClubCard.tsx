@@ -1,10 +1,5 @@
-import React, { useMemo } from "react";
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-} from "react-native";
+import React from "react";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -14,10 +9,6 @@ import type { Club } from "@/types/club.types";
 import { Image as ExpoImage } from "expo-image";
 import { normalizeUrl } from "@/utils/normalizeUri";
 // 1. Import Theme Hook
-import { useTheme } from "@react-navigation/native";
-
-const { width } = Dimensions.get("window");
-const CARD_WIDTH = width - 32;
 
 interface ClubCardProps {
   club: Club;
@@ -25,19 +16,14 @@ interface ClubCardProps {
 }
 
 export default function ClubCard({ club, onPress }: ClubCardProps) {
-  // 2. Lấy trạng thái theme
-  const theme = useTheme();
-  const isDark = theme.dark;
-
-  // 3. Định nghĩa màu động
-  const colors = useMemo(() => ({
-    cardBg: isDark ? "#1E1E1E" : "#fff",
-    textPrimary: isDark ? "#FFF" : "#333",
-    textSecondary: isDark ? "#AAA" : "#999",
-    textTertiary: isDark ? "#CCC" : "#666",
-    badgeBg: isDark ? "#333" : "#f0f0f0",
-    avatarBorder: isDark ? "#1E1E1E" : "#fff", // Viền avatar trùng màu nền card
-  }), [isDark]);
+  const colors = {
+    cardBg: "#0b2842",
+    textPrimary: "#fff",
+    textSecondary: "#b0c5dc",
+    textTertiary: "#d2e6f7",
+    badgeBg: "#123b57",
+    avatarBorder: "#0b2842",
+  };
 
   const cover =
     club.coverUrl || club.logoUrl || "https://via.placeholder.com/400x200";
@@ -166,7 +152,7 @@ export default function ClubCard({ club, onPress }: ClubCardProps) {
                 <MaterialCommunityIcons
                   name="account-group"
                   size={16}
-                  color="#667eea" // Giữ màu brand hoặc đổi nếu cần
+                  color="#0bd2ec"
                 />
                 <Text style={[styles.statText, { color: colors.textTertiary }]}>
                   {memberCount} thành viên
@@ -199,7 +185,7 @@ export default function ClubCard({ club, onPress }: ClubCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    width: CARD_WIDTH,
+    width: "100%",
     // backgroundColor: handle inline
     borderRadius: 20,
     marginBottom: 16,

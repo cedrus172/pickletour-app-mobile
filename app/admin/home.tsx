@@ -14,7 +14,9 @@ import {
   StyleSheet,
   View,
   useColorScheme,
+  useWindowDimensions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TextInput } from "@/components/ui/i18nTextInput";
 import { Text } from "@/components/ui/i18nText";
 import * as SecureStore from "expo-secure-store";
@@ -220,6 +222,9 @@ const IconBtn = ({
 
 /* ================== Main ================== */
 export default function AdminUsersScreen() {
+  const windowSize = useWindowDimensions();
+  const safeInsets = useSafeAreaInsets();
+  const duoWide = Platform.OS === "ios" && safeInsets.right >= 70 && windowSize.width >= 800 && windowSize.width > windowSize.height;
   /* Theme từ react-navigation: tự re-render khi ThemeProvider đổi */
   const navTheme = useTheme();
   const themeKey = navTheme?.dark ? "dark" : "light";
@@ -640,9 +645,14 @@ export default function AdminUsersScreen() {
 
         {/* List */}
         <FlatList
+          key={duoWide ? "duo-two-columns" : "single-column"}
           data={users}
+          numColumns={duoWide ? 2 : 1}
+          columnWrapperStyle={duoWide ? { gap: 12 } : undefined}
           keyExtractor={(item) => String(item._id)}
-          renderItem={({ item }) => <UserRow u={item} />}
+          renderItem={({ item }) => duoWide ? (
+            <View style={{ flex: 1, maxWidth: "50%" }}><UserRow u={item} /></View>
+          ) : <UserRow u={item} />}
           extraData={themeKey}
           contentContainerStyle={{
             paddingHorizontal: 12,

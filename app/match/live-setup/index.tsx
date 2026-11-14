@@ -10,7 +10,6 @@ import {
   Platform,
   Pressable,
   useColorScheme,
-  Modal,
   FlatList,
   ActivityIndicator,
 } from "react-native";
@@ -32,6 +31,7 @@ import { useGetFacebookPagesQuery } from "@/slices/facebookApiSlice";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import { useGetMyUserMatchesQuery } from "@/slices/userMatchesApiSlice";
 
+import AppModal from "@/components/ui/AppModal";
 // ==========================================
 // CẤU HÌNH & HELPER
 // ==========================================
@@ -788,7 +788,7 @@ export default function UserMatchLiveSetupScreen() {
       {/* =========================================================
        * FULL SCREEN MODAL: CHỌN GIẢI
        * =======================================================*/}
-      <Modal
+      <AppModal
         visible={tournamentModalOpen}
         animationType="slide"
         presentationStyle="fullScreen"
@@ -801,7 +801,7 @@ export default function UserMatchLiveSetupScreen() {
           <View
             style={{
               flex: 1,
-              paddingTop: insets.top,
+              // SafeAreaView (react-native) đã đệm top trong cửa sổ modal.
               paddingBottom: insets.bottom,
             }}
           >
@@ -994,7 +994,7 @@ export default function UserMatchLiveSetupScreen() {
             </View>
           </View>
         </SafeAreaView>
-      </Modal>
+      </AppModal>
     </>
   );
 }

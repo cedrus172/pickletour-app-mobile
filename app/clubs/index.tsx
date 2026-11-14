@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   StatusBar,
   ScrollView,
+  TextInput as RNTextInput,
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { useResponsive } from "@/hooks/useResponsive";
@@ -29,7 +30,6 @@ import { Stack, useRouter } from "expo-router";
 import { useListClubsQuery } from "@/slices/clubsApiSlice";
 import ClubCard from "@/components/clubs/ClubCard";
 import EmptyState from "@/components/clubs/EmptyState";
-import TextInput from "@/components/ui/TextInput";
 import { Chip } from "@/components/ui/Chip";
 import { Ionicons } from "@expo/vector-icons";
 import ClubCreateModal from "@/components/clubs/ClubCreateModal";
@@ -138,7 +138,7 @@ export default function ClubsListScreen() {
   const renderHeader = () => (
     <Animated.View style={[styles.headerContainer, headerStyle]}>
       <LinearGradient
-        colors={["#667eea", "#764ba2"]}
+        colors={["#06182d", "#082b49"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
@@ -163,21 +163,16 @@ export default function ClubsListScreen() {
         </View>
 
         <View style={styles.searchContainer}>
-          <TextInput
+          <View style={styles.searchInput}>
+          <MaterialCommunityIcons name="magnify" size={20} color="#9ab2cc" />
+          <RNTextInput
             placeholder="Tìm kiếm câu lạc bộ..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            leftIcon={
-              <MaterialCommunityIcons name="magnify" size={20} color="#999" />
-            }
-            containerStyle={{
-              marginBottom: 0,
-              // Giữ nền trắng mờ để nổi bật trên gradient, hoặc dùng màu theme
-              borderWidth: 0,
-            }}
-            style={{ color: dark ? "#fff" : "#333" }}
-            placeholderTextColor={dark ? "#ccc" : "#999"}
+            style={{ color: "#fff", flex: 1, paddingVertical: 12, fontSize: 15 }}
+            placeholderTextColor="#9ab2cc"
           />
+          </View>
         </View>
 
         <View style={styles.tabsContainer}>
@@ -188,7 +183,7 @@ export default function ClubsListScreen() {
             <Text
               style={[
                 styles.tabText,
-                tab === "all" && { color: "#667eea" }, // Active text color
+                tab === "all" && { color: "#031829" },
               ]}
             >
               Tất cả
@@ -201,7 +196,7 @@ export default function ClubsListScreen() {
             <Text
               style={[
                 styles.tabText,
-                tab === "mine" && { color: "#667eea" }, // Active text color
+                tab === "mine" && { color: "#031829" },
               ]}
             >
               CLB của tôi
@@ -291,7 +286,7 @@ export default function ClubsListScreen() {
   };
 
   // Màu nền chính của màn hình
-  const mainBackgroundColor = dark ? "#121212" : "#f5f5f5";
+  const mainBackgroundColor = "#031225";
 
   return (
     <>
@@ -331,10 +326,10 @@ export default function ClubsListScreen() {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={["#667eea", "#764ba2"]}
+            colors={["#c5f436", "#a8eb1b"]}
             style={styles.fabGradient}
           >
-            <MaterialCommunityIcons name="plus" size={28} color="#fff" />
+            <MaterialCommunityIcons name="plus" size={28} color="#06182d" />
           </LinearGradient>
         </TouchableOpacity>
 
@@ -366,8 +361,8 @@ const styles = StyleSheet.create({
   gradient: {
     paddingTop: 50,
     paddingBottom: 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
   },
   headerContent: {
     paddingHorizontal: 20,
@@ -387,6 +382,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 15,
   },
+  searchInput: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#315a79",
+    backgroundColor: "#071d34",
+  },
   tabsContainer: {
     flexDirection: "row",
     paddingHorizontal: 20,
@@ -397,11 +402,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "#173a59",
     alignItems: "center",
   },
   tabActive: {
-    backgroundColor: "#fff",
+    backgroundColor: "#0ed0e9",
   },
   tabText: {
     color: "#fff",

@@ -1,17 +1,6 @@
 // hooks/uiVersion.ts
-// Hệ thống chuyển đổi giao diện V1 (hiện tại) ↔ V2 Modern (luxury thể thao,
-// tone xanh cyan · navy · volt theo logo PickleTour mới).
-//
-// Nguồn sự thật là state ở app/_layout.tsx (giống PREF_THEME). Khi V2 bật,
-// _layout dùng AppV2NavTheme cho <ThemeProvider>, nên MỌI màn đọc useTheme()
-// hoặc useThemeTokens() sẽ tự đổi màu. Version được "gắn" vào chính object theme
-// (field `version`) để không cần thêm Context — mọi nơi chỉ cần useUiVersion().
-import { useTheme } from "@react-navigation/native";
-import { DeviceEventEmitter } from "react-native";
-import * as SecureStore from "expo-secure-store";
-
-export const PREF_UI_VERSION_KEY = "PREF_UI_VERSION"; // "v1" | "v2"
-export type UiVersion = "v1" | "v2";
+// Toàn bộ ứng dụng dùng giao diện V2.
+export type UiVersion = "v2";
 
 /** Bảng màu V2 Modern — lấy trực tiếp từ logo PickleTour (cyan/navy/volt). */
 export const V2 = {
@@ -55,16 +44,7 @@ export const AppV2NavTheme: any = {
   fonts: undefined, // sẽ được _layout gán từ DarkTheme.fonts để tương thích RN Navigation
 };
 
-/** Đọc version hiện tại từ theme đang áp dụng. Mặc định "v1". */
+/** Giữ API hiện có cho các màn hình dùng giao diện V2. */
 export function useUiVersion(): UiVersion {
-  const th = useTheme() as any;
-  return th?.version === "v2" ? "v2" : "v1";
-}
-
-/** Áp dụng version + lưu + phát sự kiện để _layout đổi ThemeProvider. */
-export async function applyUiVersion(mode: UiVersion) {
-  try {
-    await SecureStore.setItemAsync(PREF_UI_VERSION_KEY, mode);
-  } catch {}
-  DeviceEventEmitter.emit("uiversion:changed", mode);
+  return "v2";
 }

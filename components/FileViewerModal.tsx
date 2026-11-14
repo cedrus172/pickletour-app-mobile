@@ -1,7 +1,6 @@
 // components/FileViewerModal.jsx
 import React, { useState, useCallback, useEffect, memo } from "react";
 import {
-  Modal,
   View,
   Pressable,
   StyleSheet,
@@ -17,6 +16,7 @@ import { WebView } from "react-native-webview";
 import * as Sharing from "expo-sharing";
 import * as LegacyFS from "expo-file-system/legacy";
 
+import AppModal, { ModalTopInset } from "@/components/ui/AppModal";
 /**
  * FileViewerModal - Xem PDF/Word trực tiếp trong app
  *
@@ -273,12 +273,13 @@ const FileViewerModal = memo(
     if (!visible) return null;
 
     return (
-      <Modal
+      <AppModal
         visible={visible}
         animationType="slide"
         presentationStyle="fullScreen"
         onRequestClose={onClose}
       >
+<ModalTopInset>{(modalTop) => (<>
         <View
           style={[
             styles.container,
@@ -292,7 +293,7 @@ const FileViewerModal = memo(
             style={[
               styles.header,
               {
-                paddingTop: insets.top + 8,
+                paddingTop: modalTop + 8,
                 backgroundColor: dark ? "#1a1a1a" : "#fff",
                 borderBottomColor: dark ? "#333" : "#e5e5e5",
               },
@@ -430,7 +431,8 @@ const FileViewerModal = memo(
             ]}
           />
         </View>
-      </Modal>
+      </>)}</ModalTopInset>
+</AppModal>
     );
   }
 );

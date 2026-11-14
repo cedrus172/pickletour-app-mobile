@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   DeviceEventEmitter,
   FlatList,
-  Modal,
   Pressable,
   StyleSheet,
   View,
@@ -43,6 +42,7 @@ import {
   TOURNAMENT_CONSOLE_PREF_EVENT,
 } from "@/utils/tournamentConsolePreference";
 
+import AppModal, { ModalTopInset } from "@/components/ui/AppModal";
 /* ======================== Helpers ======================== */
 const TYPE_LABEL = (t) => {
   const key = String(t || "").toLowerCase();
@@ -349,9 +349,10 @@ export default function OverviewScreen() {
 
   const MatchViewerModal = ({ visible, match, onClose }) => {
     return (
-      <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <AppModal visible={visible} animationType="slide" onRequestClose={onClose}>
+<ModalTopInset>{(modalTop) => (<>
         <View
-          style={[styles.modalRoot, { backgroundColor: t.colors.background }]}
+          style={[styles.modalRoot, { backgroundColor: t.colors.background, paddingTop: 16 + modalTop }]}
         >
           <View
             style={{
@@ -413,7 +414,8 @@ export default function OverviewScreen() {
             </View>
           )}
         </View>
-      </Modal>
+      </>)}</ModalTopInset>
+</AppModal>
     );
   };
 

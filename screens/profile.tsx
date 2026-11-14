@@ -54,6 +54,7 @@ import ImageView from "react-native-image-viewing";
 import { Feather } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useResponsive } from "@/hooks/useResponsive";
 import * as Haptics from "expo-haptics";
 
 import { logout as logoutAction } from "@/slices/authSlice";
@@ -84,7 +85,6 @@ import { DEVICE_ID_KEY } from "@/services/deviceIdentity";
 import { triggerCrashFeedbackTestCrash } from "@/services/crashFeedbackService";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
 import { useLiquidGlassPreference } from "@/context/GlassAppearanceContext";
-import { useUiVersion, applyUiVersion } from "@/hooks/uiVersion";
 import { IOS_26_LIQUID_GLASS_ENABLED } from "@/utils/nativeTabs";
 import {
   getTournamentConsoleEnabled,
@@ -424,6 +424,8 @@ function ProfileGlassSurface({
 
 /* ==================== MAIN COMPONENT ==================== */
 export default function ProfileScreen({ isBack = false }) {
+  const { width: screenWidth, height: screenHeight } = useResponsive();
+  const twoPane = screenWidth >= 640 && screenHeight >= 500;
   const insets = useSafeAreaInsets();
   const t = useTokens();
   const scheme = t.dark ? "dark" : "light";
@@ -813,19 +815,6 @@ export default function ProfileScreen({ isBack = false }) {
   const [tournamentConsoleEnabled, setTournamentConsoleEnabled] =
     useState(false);
   const [themeBusy, setThemeBusy] = useState(false);
-  const uiVersion = useUiVersion();
-  const onToggleUiVersion = async (v: boolean) => {
-    setThemeBusy(true);
-    const sub = DeviceEventEmitter.addListener("theme:applied", () => {
-      setThemeBusy(false);
-      sub.remove();
-    });
-    setTimeout(() => {
-      setThemeBusy(false);
-      sub.remove();
-    }, 900);
-    await applyUiVersion(v ? "v2" : "v1");
-  };
   const { data: notifPrefs } = useGetNotificationPrefsQuery();
   const [patchNotifPrefs, { isLoading: patchingNotif }] =
     usePatchNotificationPrefsMutation();
@@ -1397,6 +1386,8 @@ export default function ProfileScreen({ isBack = false }) {
           >
             {activeTab === "home" && (
               <>
+                <View testID="profile-responsive-overview" style={twoPane ? { flexDirection: "row", alignItems: "flex-start", gap: 16 } : { gap: 16 }}>
+                <View style={twoPane ? { flex: 1, minWidth: 0 } : undefined}>
                 <View style={{ backgroundColor: t.surface, borderColor: t.border, borderWidth: 1, borderRadius: 20, padding: 16, gap: 12 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                     <View style={{ width: 4, height: 32, borderRadius: 2, backgroundColor: "#A3E635" }} />
@@ -1426,6 +1417,8 @@ export default function ProfileScreen({ isBack = false }) {
                     ))}
                   </View>
                 </View>
+                </View>
+                <View style={twoPane ? { flex: 1, minWidth: 0 } : undefined}>
                 <Card title="Thông tin" t={t}>
                   <InfoRow icon="mail" label="Email" value={user.email} t={t} />
                   <InfoRow
@@ -1454,6 +1447,8 @@ export default function ProfileScreen({ isBack = false }) {
                     last
                   />
                 </Card>
+                </View>
+                </View>
                 {isAdmin && (
                   <Card title="Quản trị viên" t={t}>
                     <Text style={{ color: t.textSecondary, marginBottom: 12 }}>
@@ -1770,81 +1765,6 @@ export default function ProfileScreen({ isBack = false }) {
                       style={{ marginBottom: 12 }}
                     />
                   )}
-                  {/* ==== Chuyển đổi V1 ↔ V2 Modern (luxury thể thao) ==== */}
-                  <View
-                    style={[
-                      styles.switchRow,
-                      {
-                        borderBottomWidth: 1,
-                        borderBottomColor: t.border,
-                        marginBottom: 12,
-                        paddingBottom: 12,
-                      },
-                    ]}
-                  >
-                    <View style={styles.switchLeft}>
-                      <View
-                        style={[
-                          styles.switchIcon,
-                          {
-                            backgroundColor: "rgba(18,182,243,0.16)",
-                            borderWidth: 1,
-                            borderColor: "rgba(18,182,243,0.4)",
-                          },
-                        ]}
-                      >
-                        <Feather name="layers" size={16} color="#12B6F3" />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            gap: 6,
-                          }}
-                        >
-                          <Text style={[styles.switchLabel, { color: t.text }]}>
-                            V2 Modern
-                          </Text>
-                          <View
-                            style={{
-                              backgroundColor: "#CDE818",
-                              borderRadius: 999,
-                              paddingHorizontal: 6,
-                              paddingVertical: 1,
-                            }}
-                          >
-                            <Text
-                              style={{
-                                fontSize: 9,
-                                fontWeight: "900",
-                                color: "#0A1B34",
-                                letterSpacing: 0.5,
-                              }}
-                            >
-                              MỚI
-                            </Text>
-                          </View>
-                        </View>
-                        <Text
-                          style={[
-                            styles.switchHint,
-                            { color: t.textSecondary },
-                          ]}
-                        >
-                          {uiVersion === "v2"
-                            ? "Đang dùng giao diện thể thao cao cấp (cyan · navy). Tắt để quay về V1."
-                            : "Bật giao diện luxury thể thao mới theo logo PickleTour."}
-                        </Text>
-                      </View>
-                    </View>
-                    <Switch
-                      value={uiVersion === "v2"}
-                      onValueChange={onToggleUiVersion}
-                      trackColor={{ false: t.border, true: "#12B6F3" }}
-                      thumbColor="#fff"
-                    />
-                  </View>
                   <View
                     style={[
                       styles.switchRow,

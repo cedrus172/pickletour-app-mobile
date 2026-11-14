@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { ActivityIndicator, Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { Image } from "expo-image";
@@ -12,6 +12,7 @@ import {
   useGetTournamentRuleFilesQuery, useUploadTournamentRuleFileMutation, useDeleteTournamentRuleFileMutation,
 } from "@/slices/tournamentRuleFilesApiSlice";
 
+import AppModal from "@/components/ui/AppModal";
 type RuleFile = { _id: string; name: string; mimeType: string; size: number; url: string };
 
 export default function TournamentRuleFiles({ tournamentId, canManage = false }: { tournamentId: string; canManage?: boolean }) {
@@ -91,7 +92,7 @@ export default function TournamentRuleFiles({ tournamentId, canManage = false }:
           <Ionicons name="trash-outline" size={19} color="#FB7185" />
         </Pressable>}
       </View>)}
-      <Modal visible={picking} animationType="slide" onRequestClose={() => setPicking(false)}>
+      <AppModal visible={picking} animationType="slide" onRequestClose={() => setPicking(false)}>
         <SafeAreaView style={[styles.modal, { backgroundColor: C.bg }]}>
           <View style={styles.modalHeading}>
             <Text style={[styles.title, { color: C.text }]}>Chọn tệp điều lệ</Text>
@@ -102,8 +103,8 @@ export default function TournamentRuleFiles({ tournamentId, canManage = false }:
             onShouldStartLoadWithRequest={(request) => request.url === "about:blank"}
             onMessage={(event) => receiveFile(event.nativeEvent.data)} />
         </SafeAreaView>
-      </Modal>
-      <Modal visible={!!preview} animationType="fade" onRequestClose={() => setPreview(null)}>
+      </AppModal>
+      <AppModal visible={!!preview} animationType="fade" onRequestClose={() => setPreview(null)}>
         <SafeAreaView style={[styles.modal, { backgroundColor: C.bg }]}>
           <View style={styles.modalHeading}>
             <Text style={[styles.title, { color: C.text, flex: 1 }]}>{preview?.name}</Text>
@@ -113,7 +114,7 @@ export default function TournamentRuleFiles({ tournamentId, canManage = false }:
             {preview && <Image source={{ uri: preview.url }} style={{ flex: 1, minHeight: 500, width: "100%" }} contentFit="contain" />}
           </ScrollView>
         </SafeAreaView>
-      </Modal>
+      </AppModal>
     </View>
   );
 }

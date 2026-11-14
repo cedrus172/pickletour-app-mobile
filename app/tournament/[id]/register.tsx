@@ -77,12 +77,13 @@ import {
   FontAwesome5,
   MaterialCommunityIcons,
 } from "@expo/vector-icons";
-import ImageView from "react-native-image-viewing";
+import ImageView from "@/components/ui/ResponsiveImageViewer";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { OpenMessageButton } from "@/components/social/OpenMessageButton";
 import PlayerNameText from "@/components/PlayerNameText";
 
+import AppModal, { ModalTopInset } from "@/components/ui/AppModal";
 const PLACE = "https://dummyimage.com/800x600/cccccc/ffffff&text=?";
 
 /* =============== THEME & UTILS =============== */
@@ -777,17 +778,18 @@ const HtmlPreviewBlock = memo(
           )}
         </RegisterGlassSurface>
 
-        <Modal
+        <AppModal
           visible={open}
           animationType="slide"
           presentationStyle="fullScreen"
           onRequestClose={() => setOpen(false)}
         >
+<ModalTopInset>{(modalTop) => (<>
           <View
             style={{
               flex: 1,
               backgroundColor: C.pageBg,
-              paddingTop: insets.top,
+              paddingTop: modalTop,
             }}
           >
             <View
@@ -835,7 +837,8 @@ const HtmlPreviewBlock = memo(
               <RenderHTML source={{ html }} {...(common as any)} />
             </ScrollView>
           </View>
-        </Modal>
+        </>)}</ModalTopInset>
+</AppModal>
       </>
     );
   }
@@ -1642,6 +1645,9 @@ export default function TournamentRegistrationScreen() {
   const authUserInfo = useSelector((state: any) => state.auth?.userInfo);
   const authToken = String(authUserInfo?.token || "").trim();
   const insets = useSafeAreaInsets();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const shortSide = Math.min(screenWidth, screenHeight);
+  const registrationColumns = Platform.OS === "ios" && shortSide >= 640 && shortSide < 720 ? 2 : 1;
   const listRef = useRef<FlashList<any>>(null);
 
   // Data Fetching
@@ -3350,6 +3356,8 @@ export default function TournamentRegistrationScreen() {
           )}
         </RegisterGlassSurface>
         <FlashList
+          key={`registration-search-${registrationColumns}`}
+          numColumns={registrationColumns}
           data={displayRegs}
           estimatedItemSize={150}
           keyboardShouldPersistTaps="handled"
@@ -3448,6 +3456,8 @@ export default function TournamentRegistrationScreen() {
         {!C.v2 && <RegisterLiquidBackdrop C={C} />}
         {/* Main List */}
         <FlashList
+          key={`registration-list-${registrationColumns}`}
+          numColumns={registrationColumns}
           testID="registration-main-list"
           automaticallyAdjustKeyboardInsets
           ref={listRef}

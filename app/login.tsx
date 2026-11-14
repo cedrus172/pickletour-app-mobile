@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { useUiVersion } from "@/hooks/uiVersion";
 import {
   View,
@@ -10,12 +10,13 @@ import {
   ScrollView,
   Alert,
   useColorScheme,
-  Keyboard,
   // ⬅️ THÊM,
 } from "react-native";
 import { TextInput } from "@/components/ui/i18nTextInput";
 import { Text } from "@/components/ui/i18nText";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router, Stack, Redirect, useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -32,6 +33,8 @@ import {
 } from "@/utils/nativeTabs";
 import { SHOULD_RENDER_NATIVE_LOTTIE } from "@/utils/runtimeSafety";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
+import { AuthBrand, useAuthWide } from "@/components/auth/AuthBrand";
+import LoginCourtBackground from "@/components/auth/LoginCourtBackground";
 
 /* ---------- Helpers ---------- */
 const normEmail = (v) => (typeof v === "string" ? v.trim().toLowerCase() : v);
@@ -71,8 +74,6 @@ const LOGO_SRC = require("@/assets/images/icon.png");
 const LOGO_V2_BADGE = require("@/assets/images/logo-v2-badge.png");
 const BG_LOTTIE = require("@/assets/lottie/animated-bg.json");
 
-const BOTTOM_ACTIONS_H = 132;
-
 function rgbaFromHex(color, alpha) {
   const hex = String(color || "").replace("#", "");
   if (!/^[0-9a-fA-F]{6}$/.test(hex)) return color;
@@ -109,6 +110,7 @@ function AuthGlassSurface({
 }
 
 export default function LoginScreen() {
+  const authWide = useAuthWide();
   const params = useLocalSearchParams<{
     returnTo?: string | string[];
     redirectTo?: string | string[];
@@ -118,7 +120,6 @@ export default function LoginScreen() {
   const v2 = useUiVersion() === "v2";
   const isDark = v2 || scheme === "dark";
   const tint = v2 ? "#12B6F3" : isDark ? "#7cc0ff" : "#0a84ff";
-  const cardBg = v2 ? "#0A1B34" : isDark ? "#16181c" : "#ffffff";
   const textPrimary = v2 ? "#EAF3FF" : isDark ? "#fff" : "#111";
   const textSecondary = v2 ? "#8CA6C8" : isDark ? "#c9c9c9" : "#444";
   const border = v2 ? "rgba(92,180,255,0.16)" : isDark ? "#2e2f33" : "#dfe3ea";
@@ -143,23 +144,9 @@ export default function LoginScreen() {
   // State
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
-  const [keyboardVisible, setKeyboardVisible] = useState(false); // ⬅️ THÊM
+  const [showPassword, setShowPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState<"login" | "password" | null>(null);
   const passwordInputRef = React.useRef<TextInput>(null);
-
-  // ⬅️ THÊM: Lắng nghe keyboard
-  useEffect(() => {
-    const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
-      setKeyboardVisible(true);
-    });
-    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
-      setKeyboardVisible(false);
-    });
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
 
   const kind = useMemo(() => {
     const v = (loginId || "").trim();
@@ -237,8 +224,9 @@ export default function LoginScreen() {
   ) : (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={{ flex: 1 }}>
-        {SHOULD_RENDER_NATIVE_LOTTIE ? (
+      <View style={{ flex: 1, backgroundColor: "#031429" }}>
+        <LoginCourtBackground />
+        {false && SHOULD_RENDER_NATIVE_LOTTIE ? (
           <LottieView
             source={BG_LOTTIE}
             autoPlay
@@ -253,9 +241,7 @@ export default function LoginScreen() {
           style={[
             StyleSheet.absoluteFillObject,
             {
-              backgroundColor: isDark
-                ? "rgba(0,0,0,0.28)"
-                : "rgba(255,255,255,0.58)",
+              backgroundColor: "transparent",
             },
           ]}
         />
@@ -269,17 +255,16 @@ export default function LoginScreen() {
               contentContainerStyle={[
                 styles.scroll,
                 {
-                  // ⬅️ SỬA: Chỉ padding khi keyboard KHÔNG hiện
-                  paddingBottom:
-                    Platform.OS === "ios"
-                      ? 0
-                      : keyboardVisible
-                      ? 16
-                      : BOTTOM_ACTIONS_H + insets.bottom + 16,
+                  flexDirection: authWide ? "row" : "column",
+                  alignItems: authWide ? "stretch" : "center",
+                  justifyContent: authWide ? "center" : "flex-start",
+                  paddingTop: authWide ? 16 : 84,
+                  paddingBottom: insets.bottom + 24,
                 },
               ]}
               keyboardShouldPersistTaps="handled"
             >
+              <AuthBrand wide={authWide} login />
               <AuthGlassSurface
                 isDark={isDark}
                 effect="regular"
@@ -289,10 +274,12 @@ export default function LoginScreen() {
                 style={[
                   styles.card,
                   IOS_26_LIQUID_GLASS_ENABLED && styles.glassPanel,
-                  { backgroundColor: cardBg, borderColor: border },
+                  { backgroundColor: "#08223c", borderColor: "#215477", borderWidth: 1, shadowColor: "#000", shadowOpacity: 0.4, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 8, overflow: "hidden", width: authWide ? "54%" : "100%", maxWidth: authWide ? 520 : 460, alignSelf: "center" },
                 ]}
               >
-                <AuthGlassSurface
+                <LinearGradient pointerEvents="none" colors={["#103c5b", "#071d35", "#06172d"]} style={StyleSheet.absoluteFillObject} />
+                <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 24, right: 24, height: 2, backgroundColor: "#24c8ee", opacity: 0.8 }} />
+                {false && <AuthGlassSurface
                   isDark={isDark}
                   tintColor={
                     isDark ? "rgba(32,35,41,0.7)" : "rgba(243,245,249,0.86)"
@@ -319,7 +306,7 @@ export default function LoginScreen() {
                     transition={150}
                     cachePolicy="memory-disk"
                   />
-                </AuthGlassSurface>
+                </AuthGlassSurface>}
 
                 <Text style={[styles.title, { color: textPrimary }]}>
                   Đăng nhập
@@ -340,12 +327,14 @@ export default function LoginScreen() {
                     style={[
                       styles.inputShell,
                       IOS_26_LIQUID_GLASS_ENABLED && styles.glassInput,
-                      { borderColor: border },
+                      { borderColor: focusedField === "login" ? "#16c5ed" : "#285475", backgroundColor: "#061a30" },
                     ]}
                   >
                     <TextInput
                       value={loginId}
                       onChangeText={setLoginId}
+                      onFocus={() => setFocusedField("login")}
+                      onBlur={() => setFocusedField(null)}
                       placeholder="Email / Số điện thoại"
                       placeholderTextColor="#9aa0a6"
                       style={[styles.inputInside, { color: textPrimary }]}
@@ -379,29 +368,32 @@ export default function LoginScreen() {
                     style={[
                       styles.inputShell,
                       IOS_26_LIQUID_GLASS_ENABLED && styles.glassInput,
-                      { borderColor: border },
+                      { borderColor: focusedField === "password" ? "#16c5ed" : "#285475", backgroundColor: "#061a30" },
                     ]}
                   >
                     <TextInput
                       ref={passwordInputRef}
                       value={password}
                       onChangeText={setPassword}
+                      onFocus={() => setFocusedField("password")}
+                      onBlur={() => setFocusedField(null)}
                       placeholder="••••••••"
                       placeholderTextColor="#9aa0a6"
-                      style={[styles.inputInside, { color: textPrimary }]}
-                      secureTextEntry
+                      style={[styles.inputInside, { color: textPrimary, paddingRight: 48 }]}
+                      secureTextEntry={!showPassword}
                       textContentType="password"
                       autoComplete="password"
                       returnKeyType="done"
                       onSubmitEditing={onSubmit}
                     />
+                    <Pressable accessibilityRole="button" accessibilityLabel={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"} onPress={() => setShowPassword((value) => !value)} style={{ position: "absolute", right: 12, top: 0, bottom: 0, justifyContent: "center", paddingHorizontal: 6 }}><Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color={textSecondary} /></Pressable>
                   </AuthGlassSurface>
 
                   <Pressable
                     onPress={onSubmit}
                     disabled={isLoading}
                     style={({ pressed }) => [
-                      { opacity: isLoading ? 0.7 : pressed ? 0.9 : 1 },
+                      { opacity: isLoading ? 0.7 : 1, transform: [{ translateY: pressed ? 3 : 0 }, { scale: pressed ? 0.985 : 1 }] },
                     ]}
                   >
                     <AuthGlassSurface
@@ -411,7 +403,7 @@ export default function LoginScreen() {
                       style={[
                         styles.btnSolid,
                         IOS_26_LIQUID_GLASS_ENABLED && styles.glassPrimaryBtn,
-                        { backgroundColor: tint },
+                        { backgroundColor: tint, borderBottomWidth: 4, borderBottomColor: "#087da6", shadowColor: "#00c8ff", shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
                       ]}
                     >
                       {isLoading ? (
@@ -436,29 +428,7 @@ export default function LoginScreen() {
                     </Text>
                   </Pressable>
                 </View>
-              </AuthGlassSurface>
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-
-        {/* ⬅️ SỬA: Chỉ hiện 2 nút khi keyboard KHÔNG hiện */}
-        {((!keyboardVisible && Platform.OS === "android") ||
-          Platform.OS === "ios") && (
-          <AuthGlassSurface
-            isDark={isDark}
-            tintColor={
-              isDark ? "rgba(22,24,29,0.72)" : "rgba(255,255,255,0.86)"
-            }
-            style={[
-              styles.bottomActions,
-              IOS_26_LIQUID_GLASS_ENABLED && styles.bottomActionsGlass,
-              {
-                backgroundColor: cardBg,
-                borderTopColor: border,
-                paddingBottom: insets.bottom + 10,
-              },
-            ]}
-          >
+          <View style={{ marginTop: 24, gap: 10 }}>
             <Pressable
               onPress={() => router.replace("/")}
               style={({ pressed }) => [
@@ -466,10 +436,13 @@ export default function LoginScreen() {
                 {
                   borderColor: border,
                   opacity: pressed ? 0.92 : 1,
+                  backgroundColor: "#0a2944",
+                  borderBottomWidth: pressed ? 1 : 3,
+                  transform: [{ translateY: pressed ? 2 : 0 }],
                 },
               ]}
             >
-              <Text style={[styles.btnOutlineText, { color: "#555" }]}>
+              <Text style={[styles.btnOutlineText, { color: textPrimary }]}>
                 Trang chủ
               </Text>
             </Pressable>
@@ -481,7 +454,10 @@ export default function LoginScreen() {
                 {
                   borderColor: tint,
                   opacity: pressed ? 0.92 : 1,
-                  marginTop: 10,
+                  marginTop: 0,
+                  backgroundColor: "#083249",
+                  borderBottomWidth: pressed ? 1 : 3,
+                  transform: [{ translateY: pressed ? 2 : 0 }],
                 },
               ]}
             >
@@ -489,8 +465,13 @@ export default function LoginScreen() {
                 Đăng ký
               </Text>
             </Pressable>
-          </AuthGlassSurface>
-        )}
+          </View>
+              </AuthGlassSurface>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+
+
       </View>
     </>
   );

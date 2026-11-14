@@ -13,6 +13,8 @@ import { buildLoginHref } from "@/services/authSession";
 import { BottomNavigation } from "@/components/tabbar/FacebookTabBar";
 import { useNotifUnreadCountQuery } from "@/slices/notificationCenterApiSlice";
 import { SHOULD_RENDER_NATIVE_LOTTIE } from "@/utils/runtimeSafety";
+import { DuoSideNavigationContext, useDuoSideNavigation } from "@/hooks/useDuoSideNavigation";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 const HOME_LOTTIE = SHOULD_RENDER_NATIVE_LOTTIE
   ? require("@/assets/lottie/home-lt-icon.json")
@@ -127,6 +129,7 @@ const HomeTabIcon = React.memo(function HomeTabIcon({
 });
 
 export default function TabLayout() {
+  const sideNavigation = useDuoSideNavigation();
   const colorScheme = useColorScheme();
   const pathname = usePathname();
   const userInfo = useSelector((state: any) => state.auth?.userInfo || null);
@@ -147,11 +150,20 @@ export default function TabLayout() {
     (props: any) => <BottomNavigation {...props} isDark={isDark} v2={v2} />,
     [isDark, v2],
   );
+  // Each tab is already laid out beside the Duo rail. Measure its own frame so
+  // native SafeAreaViews do not apply the system's trailing inset a second time.
+  const renderScreenLayout = React.useCallback(
+    ({ children }: { children: React.ReactNode }) => <SafeAreaProvider style={{ flex: 1 }}>{children}</SafeAreaProvider>,
+    [],
+  );
 
   return (
+    <DuoSideNavigationContext.Provider value={v2 && sideNavigation.enabled}>
     <Tabs
       tabBar={renderTabBar}
+      screenLayout={renderScreenLayout}
       screenOptions={{
+        tabBarPosition: v2 && sideNavigation.enabled ? "right" : v2 && sideNavigation.topEnabled ? "top" : "bottom",
         tabBarActiveTintColor: activeTabTint,
         headerShown: false,
         tabBarHideOnKeyboard: true,
@@ -281,5 +293,6 @@ export default function TabLayout() {
       />
       <Tabs.Screen name="admin" options={{ href: null }} />
     </Tabs>
+    </DuoSideNavigationContext.Provider>
   );
 }

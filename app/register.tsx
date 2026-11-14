@@ -38,6 +38,7 @@ import { normalizeUrl } from "@/utils/normalizeUri";
 import { saveUserInfo } from "@/utils/authStorage";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
 import { IOS_26_LIQUID_GLASS_ENABLED } from "@/utils/nativeTabs";
+import { AuthBrand, useAuthWide } from "@/components/auth/AuthBrand";
 
 /* ==================== Consts & Helpers ==================== */
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -321,10 +322,11 @@ function validateAll(form, avatarUrl, accepted, requireOptional, emailOptional) 
 
 /* ==================== Screen ==================== */
 export default function RegisterScreen() {
+  const authWide = useAuthWide();
   const scheme = useColorScheme() ?? "light";
-  const isDark = scheme === "dark";
-  const tint = isDark ? "#7cc0ff" : "#0a84ff";
-  const cardBg = isDark ? "#16181c" : "#ffffff";
+  const isDark = useUiVersion() === "v2" || scheme === "dark";
+  const tint = isDark ? "#12B6F3" : "#0a84ff";
+  const cardBg = isDark ? "#061d33" : "#ffffff";
   const textPrimary = isDark ? "#fff" : "#111";
   const textSecondary = isDark ? "#c9c9c9" : "#444";
   const border = isDark ? "#2e2f33" : "#dfe3ea";
@@ -503,14 +505,15 @@ export default function RegisterScreen() {
       />
       <KeyboardAvoidingView
         behavior={Platform.select({ ios: "padding", android: undefined })}
-        style={{ flex: 1 }}
+        style={{ flex: 1, backgroundColor: "#031429" }}
       >
         {/* QUAN TRỌNG: keyboardShouldPersistTaps="handled" để bấm được nút khi phím đang hiện */}
         <ScrollView
           ref={scrollRef}
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[styles.scroll, { flexDirection: authWide ? "row" : "column", justifyContent: "center", alignItems: authWide ? "stretch" : "center" }]}
           keyboardShouldPersistTaps="handled"
         >
+          <AuthBrand wide={authWide} />
           <RegisterGlassSurface
             effect="regular"
             tintColor={
@@ -519,7 +522,7 @@ export default function RegisterScreen() {
             style={[
               styles.card,
               IOS_26_LIQUID_GLASS_ENABLED && styles.glassPanel,
-              { backgroundColor: cardBg, borderColor: border },
+              { backgroundColor: cardBg, borderColor: border, width: authWide ? "54%" : "100%", maxWidth: authWide ? 520 : 460, alignSelf: authWide ? "stretch" : "center" },
             ]}
           >
             {/* ... Phần Avatar giữ nguyên ... */}

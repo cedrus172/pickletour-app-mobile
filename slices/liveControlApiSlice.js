@@ -34,6 +34,18 @@ export const liveControlApiSlice = apiSlice.injectEndpoints({
         body: { token, sdp, type },
       }),
     }),
+    // Độ trễ giọng BLV trên máy live (token-gated): trạng thái auto/manual + ms đang áp.
+    getCommentaryDelay: builder.query({
+      query: ({ token }) => ({ url: `/api/commentary/delay`, params: { token } }),
+      keepUnusedDataFor: 0,
+    }),
+    setCommentaryDelay: builder.mutation({
+      query: ({ token, mode, ms }) => ({
+        url: `/api/commentary/delay`,
+        method: "POST",
+        body: { token, mode, ms },
+      }),
+    }),
     // RTSP nguồn (admin) để xem trực tiếp mượt khi cùng Tailscale. direct=false nếu
     // nguồn local (Dahua P2P)/Imou/không RTSP → dùng WebRTC.
     getSessionRtsp: builder.query({
@@ -87,6 +99,8 @@ export const {
   useLiveControlCallMutation,
   useCreateCommentaryTokenMutation,
   useCommentaryOfferMutation,
+  useGetCommentaryDelayQuery,
+  useSetCommentaryDelayMutation,
   useGetSessionRtspQuery,
   useSetScoreboardScaleMutation,
   useSetOverlayDelayMutation,

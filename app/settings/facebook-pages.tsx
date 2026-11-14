@@ -9,7 +9,6 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Modal,
   SafeAreaView,
   useColorScheme,
   // 🔹 Import hook,
@@ -27,6 +26,7 @@ import {
 import { Stack, useRouter } from "expo-router";
 import { normalizeUrl } from "@/utils/normalizeUri";
 
+import AppModal from "@/components/ui/AppModal";
 // 🔹 CẤU HÌNH MÀU SẮC
 const THEME_COLORS = {
   light: {
@@ -346,7 +346,7 @@ const FacebookLiveSettingsScreen = () => {
       )}
 
       {/* WebView Modal */}
-      <Modal
+      <AppModal
         visible={showWebView}
         animationType="slide"
         onRequestClose={handleCloseWebView}
@@ -386,7 +386,7 @@ const FacebookLiveSettingsScreen = () => {
             />
           ) : null}
         </SafeAreaView>
-      </Modal>
+      </AppModal>
     </View>
   );
 };

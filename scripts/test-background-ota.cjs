@@ -55,7 +55,10 @@ test('hung telemetry does not delay download completion', async () => {
   const f = fixture({ hungTelemetry: true }); await f.checkForHotUpdate(); assert.equal(f.state.status, 'done'); assert.equal(f.state.pending.bundleId, '0003');
 });
 test('a queued update prevents repeated downloads and replacements in the current session', async () => {
-  const f = fixture({ pending: { bundleId: '0002' } }); await f.checkForHotUpdate(); assert.equal(f.state.downloads, 0); assert.equal(f.state.pending.bundleId, '0002');
+  const f = fixture({ pending: { bundleId: '0003' } }); await f.checkForHotUpdate(); assert.equal(f.state.downloads, 0); assert.equal(f.state.pending.bundleId, '0003');
+});
+test('a stale queued update is dropped and the newer server update is downloaded (no reload loop)', async () => {
+  const f = fixture({ pending: { bundleId: '0002' } }); await f.checkForHotUpdate(); assert.equal(f.state.downloads, 1); assert.equal(f.state.pending.bundleId, '0003');
 });
 test('failed background download remains non-blocking, releases flight guard, and preserves telemetry', async () => {
   const f = fixture({ update: { updateBundle: async () => false } }); await f.checkForHotUpdate();
