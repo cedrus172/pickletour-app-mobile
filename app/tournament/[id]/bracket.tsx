@@ -67,12 +67,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { formatKnockoutRoundLabelByMatchCount } from "@/utils/tournamentRoundLabels";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ModernKnockoutBracketRN from "@/components/bracket/ModernKnockoutBracketRN";
-import { CompactBracketRounds, type OnResolvedPair } from "@/components/bracket/ModernBracketShared";
+import { CompactBracketRounds, readBracketRoster, type OnResolvedPair } from "@/components/bracket/ModernBracketShared";
 import ModernRoundElimBracketRN from "@/components/bracket/ModernRoundElimBracketRN";
 import ModernGroupStageRN from "@/components/bracket/ModernGroupStageRN";
 import TiebreakDrawSheetRN from "@/components/bracket/TiebreakDrawSheetRN";
 import { ModernBracketToggle } from "@/components/bracket/ModernBracketShared";
 import CourtStatusBar from "@/components/bracket/CourtStatusBar";
+import KnockoutPodium, { type PodiumTeam } from "@/components/bracket/KnockoutPodium";
+import { getKnockoutPodium } from "@/utils/knockoutPodium";
 
 const BRACKET_UI_VERSION_KEY = "pickletour:tournament-bracket:uiVersion";
 
@@ -5571,6 +5573,21 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
         ? <ModernKnockoutBracketRN {...modernProps} zoom={modernZoom} />
         : renderKOBracketOnly();
     }
+    const showPodium = current?.type === "knockout";
+    const podium = showPodium ? getKnockoutPodium({
+      final: finalMatchId ? currentMainMatches.find((match: { _id?: string }) => match._id === finalMatchId) : null,
+      mainMatches: currentMainMatches,
+      thirdPlaceMatches: currentMatches.filter(isThirdPlaceMatch),
+      thirdPlaceEnabled: current?.config?.blueprint?.thirdPlaceEnabled === true,
+      getTeam(match: any, side: "A" | "B"): PodiumTeam | null {
+        let players: PodiumTeam["players"] | undefined;
+        const name = resolveSideLabel(match, side, (pair, eventType, source) => {
+          players = readBracketRoster(pair, eventType, source);
+        });
+        return players && isUsefulSideLabel(name) ? { name, players } : null;
+      },
+    }) : [];
+
     return (
       <View>
         <View style={styles.koMeta}>
@@ -5588,7 +5605,9 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
           )}
         </View>
 
-        {!!championPair && (
+        {showPodium ? (
+          <KnockoutPodium placements={podium} />
+        ) : !!championPair && (
           <ChampionCelebrationBanner championName={currentChampionName} t={t} />
         )}
 

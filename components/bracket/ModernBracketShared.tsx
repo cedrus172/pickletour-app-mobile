@@ -396,14 +396,23 @@ export function ModernRoundChip({
 }
 
 /* ================= Team row ================= */
-type BracketPlayer = { name: string; avatar?: string };
+export type BracketPlayer = { name: string; avatar?: string };
 
-function PlayerAvatar({ player }: { player: BracketPlayer }) {
+export function PlayerAvatar({ player, size = 22, borderColor }: {
+  player: BracketPlayer;
+  size?: number;
+  borderColor?: string;
+}) {
   const [failedUri, setFailedUri] = useState<string>();
   const uri = player.avatar ? normalizeUrl(player.avatar) : undefined;
   return (
-    <View style={[sharedStyles.avatar, { backgroundColor: colorForName(player.name) }]}>
-      <Text style={{ color: "#fff", fontWeight: "800", fontSize: 8 }}>{initialsOf(player.name)}</Text>
+    <View style={[sharedStyles.avatar, {
+      width: size, height: size, borderRadius: size / 2, backgroundColor: colorForName(player.name),
+      borderWidth: borderColor ? 2 : 0, borderColor,
+    }]}>
+      <Text style={{ color: "#fff", fontWeight: "800", fontSize: size > 22 ? 16 : 8 }}>
+        {initialsOf(player.name)}
+      </Text>
       {uri && uri !== failedUri ? (
         <ExpoImage source={uri} contentFit="cover" cachePolicy="memory-disk"
           style={StyleSheet.absoluteFill} onError={() => setFailedUri(uri)}
@@ -413,20 +422,21 @@ function PlayerAvatar({ player }: { player: BracketPlayer }) {
   );
 }
 
+export function readBracketRoster(pair: Parameters<OnResolvedPair>[0], eventType: string | undefined, source: Parameters<OnResolvedPair>[2]): BracketPlayer[] {
+  const players = pair?.players?.length
+    ? pair.players
+    : [pair?.player1 ?? pair?.p1, pair?.player2 ?? pair?.p2];
+  return players.filter(Boolean).slice(0, eventType === "single" ? 1 : 2).flatMap((player: any) => {
+    const name = getPlayerDisplayName(player, source);
+    const avatar = player.avatar || player.user?.avatar;
+    return name ? [{ name, avatar: typeof avatar === "string" ? avatar : undefined }] : [];
+  });
+}
+
 function readTeam(seed: any, side: "A" | "B", resolveSideLabel?: ResolveSideLabel) {
   let roster: BracketPlayer[] = [];
   const label = resolveSideLabel?.(seed?.__match, side, (pair, eventType, source) => {
-    roster = [];
-    const players = pair?.players?.length
-      ? pair.players
-      : [pair?.player1 ?? pair?.p1, pair?.player2 ?? pair?.p2];
-    for (const player of players.filter(Boolean).slice(0, eventType === "single" ? 1 : 2)) {
-      const name = getPlayerDisplayName(player, source);
-      if (name) {
-        const avatar = player.avatar || player.user?.avatar;
-        roster.push({ name, avatar: typeof avatar === "string" ? avatar : undefined });
-      }
-    }
+    roster = readBracketRoster(pair, eventType, source);
   });
   const seedLabel = seed?.teams?.[side === "A" ? 0 : 1]?.name;
   const name = (roster.length && label) || seedLabel || label || "Chưa có đội";
