@@ -45,7 +45,11 @@ function resolveChatStreamUrl(baseUrl?: string | null) {
 }
 
 export class PikoraStreamError extends Error {
-  constructor(message: string, readonly canUseJsonFallback = false) {
+  constructor(
+    message: string,
+    readonly canUseJsonFallback = false,
+    readonly status?: number,
+  ) {
     super(message);
     this.name = "PikoraStreamError";
   }
@@ -187,6 +191,7 @@ export async function sendPikoraMessageStream(
           ? "Bạn đã đạt giới hạn tin nhắn. Vui lòng thử lại sau."
           : "Pikora đang bận. Bạn thử lại nhé."),
       response.status === 404 || response.status === 405 || response.status === 501,
+      response.status,
     );
   }
 

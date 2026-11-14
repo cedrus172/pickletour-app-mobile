@@ -21,6 +21,8 @@ import {
   useSendChatTelemetryEventMutation,
   useSendMessageMutation,
 } from "@/slices/chatApiSlice";
+import { useLazyListTournamentsQuery } from "@/slices/tournamentsApiSlice";
+import { useLazyGetMeScoreQuery } from "@/slices/usersApiSlice";
 import { runPikoraAction } from "./pikoraNavigation";
 import {
   applyLocalMutationFallback,
@@ -34,6 +36,11 @@ import {
   PIKORA_VERIFICATION_MODE_KEY,
 } from "./pikoraStorage";
 import { PikoraStreamError, sendPikoraMessageStream } from "./pikoraStream";
+import {
+  formatPikoraRatingReply,
+  formatPikoraTournamentReply,
+  getPikoraReadIntent,
+} from "./pikoraReadFallback";
 import type {
   PikoraAction,
   PikoraAssistantMode,
@@ -231,6 +238,8 @@ export function PikoraProvider({ children }: { children: React.ReactNode }) {
     useChatBotPageContext();
   const userInfo = useSelector((state: any) => state.auth?.userInfo || null);
   const [sendMessageRequest] = useSendMessageMutation();
+  const [lookupTournaments] = useLazyListTournamentsQuery();
+  const [lookupScore] = useLazyGetMeScoreQuery();
   const [triggerHistory] = useLazyGetChatHistoryQuery();
   const [clearChatHistoryRequest] = useClearChatHistoryMutation();
   const [clearLearningRequest] = useClearLearningMemoryMutation();
@@ -1114,6 +1123,39 @@ export function PikoraProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (abortControllerRef.current !== controller) return;
+        const intent = getPikoraReadIntent(text);
+        const status = error instanceof PikoraStreamError ? error.status : (error as { status?: unknown })?.status;
+        if (
+          intent && !controller.signal.aborted && !liveDraftRef.current?.text.trim() &&
+          !(typeof status === "number" && status >= 400 && status < 500 && status !== 404 && status !== 405)
+        ) {
+          const request = intent === "rating"
+            ? userInfo?.token ? lookupScore(undefined) : null
+            : lookupTournaments({ status: intent, limit: 6, sort: "startDate" });
+          const abortRequest = () => request?.abort();
+          controller.signal.addEventListener("abort", abortRequest, { once: true });
+          const lookupTimeout = setTimeout(abortRequest, 8000);
+          try {
+            const value = await request?.unwrap();
+            const reply = intent === "rating"
+              ? request ? formatPikoraRatingReply(value) : "Bạn hãy đăng nhập PickleTour để xem điểm trình của mình nhé."
+              : Array.isArray(value) ? formatPikoraTournamentReply(value, intent) : null;
+            if (reply && abortControllerRef.current === controller && !controller.signal.aborted) {
+              discardOrKeepPartial();
+              setMessages((previous) => mergeMessages(previous, [
+                buildBotMessageFromPayload({ reply, meta: { localReadFallback: true } }),
+              ]));
+              return;
+            }
+          } catch {
+            // Giữ thông báo của Pikora nếu dữ liệu dự phòng cũng không lấy được.
+          } finally {
+            clearTimeout(lookupTimeout);
+            controller.signal.removeEventListener("abort", abortRequest);
+            request?.unsubscribe();
+          }
+        }
+        if (abortControllerRef.current !== controller) return;
         discardOrKeepPartial();
         if (!controller.signal.aborted || timedOut) {
           setSendError({
@@ -1140,6 +1182,8 @@ export function PikoraProvider({ children }: { children: React.ReactNode }) {
       finalizeDraft,
       input,
       logClientEvent,
+      lookupScore,
+      lookupTournaments,
       reasoningMode,
       routePageSnapshot,
       sendMessageRequest,

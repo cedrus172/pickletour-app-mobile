@@ -343,6 +343,7 @@ export const {
   useVerifyResetOtpMutation,
   useGetMeQuery,
   useGetMeScoreQuery,
+  useLazyGetMeScoreQuery,
   useDeleteRatingHistoryMutation,
   useUpdateRatingHistoryMutation,
   useGetUserAchievementsQuery,

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -911,6 +911,9 @@ export function PikoraSurface({
   const [feedbackReason, setFeedbackReason] = useState("");
   const [feedbackNote, setFeedbackNote] = useState("");
   const scrollRef = useRef<ScrollView | null>(null);
+  const paneRef = useRef<View>(null);
+  const [keyboardTop, setKeyboardTop] = useState<number | null>(null);
+  const [paneBottom, setPaneBottom] = useState(0);
   const {
     closeOverlay,
     openChatScreen,
@@ -966,13 +969,48 @@ export function PikoraSurface({
   const allMessages = liveDraft ? [...messages, liveDraft] : messages;
   const showWelcome = allMessages.length === 0;
   const topInset = presentation === "overlay" ? 6 : 0;
+  const keyboardOverlap = Platform.OS === "ios" && keyboardTop !== null
+    ? Math.max(0, paneBottom - keyboardTop)
+    : 0;
+  const keyboardOpen = Platform.OS === "ios" ? keyboardOverlap > 0 : keyboardTop !== null;
+
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    const sync = () => setKeyboardTop(Keyboard.metrics?.()?.screenY ?? null);
+    const show = Keyboard.addListener("keyboardDidShow", (event) => {
+      setKeyboardTop(event.endCoordinates.screenY);
+    });
+    const hide = () => setKeyboardTop(null);
+    const didHide = Keyboard.addListener("keyboardDidHide", hide);
+    const willHide = Platform.OS === "ios" ? Keyboard.addListener("keyboardWillHide", hide) : null;
+    const willChange = Platform.OS === "ios"
+      ? Keyboard.addListener("keyboardWillChangeFrame", (event) => {
+        Keyboard.scheduleLayoutAnimation(event);
+        setKeyboardTop(event.endCoordinates.screenY);
+      })
+      : null;
+    sync();
+    return () => {
+      show.remove();
+      didHide.remove();
+      willHide?.remove();
+      willChange?.remove();
+    };
+  }, []);
+
+  const measurePane = () => {
+    if (Platform.OS !== "ios") return;
+    paneRef.current?.measureInWindow((_x, y, _width, height) => {
+      if (height > 0) setPaneBottom(y + height);
+    });
+  };
 
   useEffect(() => {
     const timeout = setTimeout(() => {
       scrollRef.current?.scrollToEnd({ animated: true });
     }, 40);
     return () => clearTimeout(timeout);
-  }, [allMessages.length, liveDraft?.text, liveDraft?.rawThinking]);
+  }, [allMessages.length, keyboardOpen, keyboardOverlap, liveDraft?.text, liveDraft?.rawThinking]);
 
   useEffect(() => {
     if (!feedbackDialog) {
@@ -983,21 +1021,28 @@ export function PikoraSurface({
 
   return (
     <SafeAreaView
-      edges={presentation === "overlay" ? ["top", "bottom", "left", "right"] : ["top", "left", "right"]}
+      edges={["top", "left", "right"]}
       style={[
         styles.safeArea,
         {
           backgroundColor: presentation === "overlay" ? "transparent" : colors.page,
-          paddingBottom:
-            presentation === "overlay"
-              ? 0
-              : Math.max(insets.bottom, 8) + bottomPaddingOffset,
         },
       ]}
     >
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      <View
+        ref={paneRef}
+        collapsable={false}
+        onLayout={measurePane}
+        style={[
+          styles.flex,
+          {
+            paddingBottom: keyboardOpen
+              ? keyboardOverlap
+              : presentation === "overlay"
+                ? insets.bottom
+                : Math.max(insets.bottom, 8) + bottomPaddingOffset,
+          },
+        ]}
       >
         <PikoraGlassSurface
           colors={colors}
@@ -1225,7 +1270,7 @@ export function PikoraSurface({
                 onMutation={(mutationPreview) => void requestMutation(mutationPreview, message)}
                 onSource={(source) => void openSource(source, presentation)}
                 onFeedback={(value) => void requestFeedback(message, value)}
-                feedbackEnabled={feedbackEnabled}
+                feedbackEnabled={feedbackEnabled && !message.meta?.localReadFallback}
                 feedbackSubmitting={feedbackSubmittingId === message.id}
               />
             ))}
@@ -1241,7 +1286,7 @@ export function PikoraSurface({
                 <ChipButton label="Thử lại" icon="refresh" tone="accent" colors={colors}
                   onPress={() => retryMessage(presentation)} />
               </View>
-            ) : !showWelcome && !isTyping && suggestions.length ? (
+            ) : !showWelcome && !isTyping && !keyboardOpen && suggestions.length ? (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -1377,7 +1422,7 @@ export function PikoraSurface({
             ]}
           />
         </OverlayDialog>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }

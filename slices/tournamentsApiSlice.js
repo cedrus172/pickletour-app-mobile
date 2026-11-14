@@ -9,9 +9,9 @@ export const tournamentsApiSlice = apiSlice.injectEndpoints({
     /* ========= DANH SÁCH GIẢI (mới) ========= */
     listTournaments: builder.query({
       // ví dụ: /api/tournaments?limit=50&sort=-updatedAt
-      query: ({ limit = 50, sort = "-updatedAt" } = {}) => ({
+      query: ({ limit = 50, sort = "-updatedAt", status } = {}) => ({
         url: `/api/tournaments`,
-        params: { limit, sort },
+        params: { limit, sort, status },
       }),
       // Chuẩn hoá về mảng mà KHÔNG dùng toArray
       transformResponse: (res) => {
@@ -989,6 +989,7 @@ export const tournamentsApiSlice = apiSlice.injectEndpoints({
 export const {
   // mới thêm
   useListTournamentsQuery,
+  useLazyListTournamentsQuery,
   useSearchTournamentsQuery,
   useLazySearchTournamentsQuery,
   useUpdateOverlayMutation,
