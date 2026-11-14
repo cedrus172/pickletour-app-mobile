@@ -1,3 +1,4 @@
+import { fetch as expoFetch } from "expo/fetch";
 import { Platform } from "react-native";
 
 import { BASE_URL, getDeviceId, getDeviceName } from "@/slices/apiSlice";
@@ -36,11 +37,18 @@ function normalizeBaseUrl(value?: string | null) {
     .replace(/\/+$/, "");
 }
 
-function resolveChatStreamUrl(baseUrl: string) {
+function resolveChatStreamUrl(baseUrl?: string | null) {
   const normalized = normalizeBaseUrl(baseUrl);
   return /\/api$/i.test(normalized)
     ? `${normalized}/chat/stream`
     : `${normalized}/api/chat/stream`;
+}
+
+export class PikoraStreamError extends Error {
+  constructor(message: string, readonly canUseJsonFallback = false) {
+    super(message);
+    this.name = "PikoraStreamError";
+  }
 }
 
 function consumeSseChunk(
@@ -77,174 +85,16 @@ function consumeSseChunk(
       return;
     }
 
+    let payload;
     try {
-      onEvent?.(eventName, JSON.parse(rawData));
+      payload = JSON.parse(rawData);
     } catch {
-      // Ignore malformed event payloads and continue streaming.
+      return;
     }
+    if (payload && typeof payload === "object") onEvent?.(eventName, payload);
   });
 
   return remainder;
-}
-
-/**
- * Stream SSE via fetch + ReadableStream (works on RN 0.83+ / Hermes).
- * Falls back to XHR if ReadableStream is unavailable.
- */
-async function streamViaFetch({
-  url,
-  headers,
-  body,
-  signal,
-  onEvent,
-}: {
-  url: string;
-  headers: Record<string, string>;
-  body: string;
-  signal?: AbortSignal | null;
-  onEvent?: StreamEventHandler;
-}) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers,
-    body,
-    signal: signal ?? undefined,
-    // @ts-ignore — RN-specific hint to enable streaming
-    reactNative: { textStreaming: true },
-  });
-
-  if (!response.ok) {
-    let detail = "";
-    try {
-      const errorBody = await response.text();
-      const parsed = JSON.parse(errorBody);
-      detail = parsed?.message || parsed?.error || errorBody;
-    } catch {
-      detail = `Stream request failed (${response.status})`;
-    }
-    throw new Error(detail);
-  }
-
-  const reader = response.body?.getReader();
-  if (!reader) {
-    // Fallback: read entire body at once (no streaming)
-    const text = await response.text();
-    consumeSseChunk("", text, onEvent);
-    return;
-  }
-
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    const chunk = decoder.decode(value, { stream: true });
-    buffer = consumeSseChunk(buffer, chunk, onEvent);
-  }
-
-  // Flush any remaining buffer
-  if (buffer.trim()) {
-    consumeSseChunk("", buffer + "\n\n", onEvent);
-  }
-}
-
-function streamViaXhr({
-  url,
-  headers,
-  body,
-  signal,
-  onEvent,
-}: {
-  url: string;
-  headers: Record<string, string>;
-  body: string;
-  signal?: AbortSignal | null;
-  onEvent?: StreamEventHandler;
-}) {
-  return new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    let buffer = "";
-    let lastIndex = 0;
-    let settled = false;
-
-    const flush = () => {
-      const chunk = xhr.responseText?.slice(lastIndex) || "";
-      lastIndex = xhr.responseText?.length || 0;
-      if (!chunk) return;
-      buffer = consumeSseChunk(buffer, chunk, onEvent);
-    };
-
-    const finish = (handler: () => void) => {
-      if (settled) return;
-      settled = true;
-      if (signal) {
-        signal.removeEventListener("abort", abortHandler);
-      }
-      handler();
-    };
-
-    const abortHandler = () => {
-      try {
-        xhr.abort();
-      } catch {
-        // ignore
-      }
-      const error = new Error("Aborted");
-      error.name = "AbortError";
-      finish(() => reject(error));
-    };
-
-    if (signal?.aborted) {
-      abortHandler();
-      return;
-    }
-
-    if (signal) {
-      signal.addEventListener("abort", abortHandler, { once: true });
-    }
-
-    xhr.open("POST", url, true);
-    Object.entries(headers).forEach(([key, value]) => {
-      if (!value) return;
-      xhr.setRequestHeader(key, value);
-    });
-
-    xhr.onreadystatechange = () => {
-      if (xhr.readyState === 3 || xhr.readyState === 4) {
-        try {
-          flush();
-        } catch (error) {
-          finish(() => reject(error));
-          return;
-        }
-      }
-
-      if (xhr.readyState === 4) {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          finish(resolve);
-          return;
-        }
-
-        let detail = xhr.responseText || "";
-        try {
-          const parsed = JSON.parse(xhr.responseText || "{}");
-          detail = parsed?.message || parsed?.error || detail;
-        } catch {
-          // ignore
-        }
-        finish(() =>
-          reject(new Error(detail || `Stream request failed (${xhr.status})`)),
-        );
-      }
-    };
-
-    xhr.onerror = () => {
-      finish(() => reject(new Error("Không thể kết nối luồng trả lời.")));
-    };
-
-    xhr.send(body);
-  });
 }
 
 export async function sendPikoraMessageStream(
@@ -260,7 +110,7 @@ export async function sendPikoraMessageStream(
     "Content-Type": "application/json",
     "X-Platform": Platform.OS,
     "X-Device-Id": deviceId,
-    "X-Device-Name": String(deviceName || ""),
+    "X-Device-Name": String(deviceName || "").replace(/[^\x20-\x7e]/g, " "),
     "x-pkt-surface": "mobile",
   };
 
@@ -268,37 +118,37 @@ export async function sendPikoraMessageStream(
     headers.Authorization = `Bearer ${options.token}`;
   }
   if (options.currentPath) {
-    headers["x-pkt-current-path"] = String(options.currentPath);
+    headers["x-pkt-current-path"] = encodeURIComponent(options.currentPath);
   }
   if (options.currentUrl) {
-    headers["x-pkt-current-url"] = String(options.currentUrl);
+    headers["x-pkt-current-url"] = encodeURIComponent(options.currentUrl);
   }
   if (options.pageTitle) {
-    headers["x-pkt-page-title"] = String(options.pageTitle);
+    headers["x-pkt-page-title"] = encodeURIComponent(options.pageTitle);
   }
   if (options.pageType) {
-    headers["x-pkt-page-type"] = String(options.pageType);
+    headers["x-pkt-page-type"] = encodeURIComponent(options.pageType);
   }
   if (options.pageSection) {
-    headers["x-pkt-page-section"] = String(options.pageSection);
+    headers["x-pkt-page-section"] = encodeURIComponent(options.pageSection);
   }
   if (options.pageView) {
-    headers["x-pkt-page-view"] = String(options.pageView);
+    headers["x-pkt-page-view"] = encodeURIComponent(options.pageView);
   }
   if (options.clubId) {
-    headers["x-pkt-club-id"] = String(options.clubId);
+    headers["x-pkt-club-id"] = encodeURIComponent(options.clubId);
   }
   if (options.newsSlug) {
-    headers["x-pkt-news-slug"] = String(options.newsSlug);
+    headers["x-pkt-news-slug"] = encodeURIComponent(options.newsSlug);
   }
   if (options.profileUserId) {
-    headers["x-pkt-profile-user-id"] = String(options.profileUserId);
+    headers["x-pkt-profile-user-id"] = encodeURIComponent(options.profileUserId);
   }
   if (options.courtId) {
-    headers["x-pkt-court-id"] = String(options.courtId);
+    headers["x-pkt-court-id"] = encodeURIComponent(options.courtId);
   }
   if (options.cohortId) {
-    headers["x-pkt-cohort-id"] = String(options.cohortId);
+    headers["x-pkt-cohort-id"] = encodeURIComponent(options.cohortId);
   }
 
   const body = JSON.stringify({
@@ -316,22 +166,68 @@ export async function sendPikoraMessageStream(
     surface: "mobile",
   });
 
-  const streamArgs = {
-    url: resolveChatStreamUrl(BASE_URL),
-    headers,
-    body,
-    signal: options.signal,
-    onEvent: options.onEvent,
+  let response;
+  try {
+    response = await expoFetch(resolveChatStreamUrl(BASE_URL), {
+      method: "POST",
+      headers,
+      body,
+      signal: options.signal ?? undefined,
+    });
+  } catch (error) {
+    if (options.signal?.aborted) throw error;
+    throw new PikoraStreamError("Không thể kết nối với Pikora.");
+  }
+
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new PikoraStreamError(
+      detail?.message ||
+        (response.status === 429
+          ? "Bạn đã đạt giới hạn tin nhắn. Vui lòng thử lại sau."
+          : "Pikora đang bận. Bạn thử lại nhé."),
+      response.status === 404 || response.status === 405 || response.status === 501,
+    );
+  }
+
+  if (!response.body || !response.headers.get("content-type")?.includes("text/event-stream")) {
+    throw new PikoraStreamError("Pikora chưa trả về luồng hội thoại.");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let receivedResult = false;
+  let finished = false;
+  const handleEvent: StreamEventHandler = (event, data) => {
+    if (event === "error") {
+      throw new PikoraStreamError("Pikora chưa thể trả lời lúc này. Bạn thử lại nhé.");
+    }
+    if (event === "reply" || event === "message_done") {
+      receivedResult ||= Boolean(
+        String(data.text || data.reply || "").trim() ||
+          data.answerCards?.length || data.actions?.length || data.workflow || data.mutationPreview,
+      );
+    }
+    if (event === "done") finished = true;
+    options.onEvent?.(event, data);
   };
 
   try {
-    await streamViaFetch(streamArgs);
-  } catch (fetchError: any) {
-    // If the error is from abort or HTTP status, propagate it
-    if (fetchError?.name === "AbortError" || fetchError?.message?.includes("Stream request failed")) {
-      throw fetchError;
+    let next = await reader.read();
+    while (!next.done) {
+      buffer = consumeSseChunk(buffer, decoder.decode(next.value, { stream: true }), handleEvent);
+      next = await reader.read();
     }
-    // Otherwise fallback to XHR (ReadableStream may not be available)
-    await streamViaXhr(streamArgs);
+    consumeSseChunk(buffer, decoder.decode() + "\n\n", handleEvent);
+    if (!finished || !receivedResult) {
+      throw new PikoraStreamError("Pikora chưa gửi được câu trả lời đầy đủ. Bạn thử lại nhé.");
+    }
+  } catch (error) {
+    void reader.cancel().catch(() => {});
+    if (options.signal?.aborted || error instanceof PikoraStreamError) throw error;
+    throw new PikoraStreamError("Kết nối với Pikora bị gián đoạn. Bạn thử lại nhé.");
+  } finally {
+    reader.releaseLock();
   }
 }

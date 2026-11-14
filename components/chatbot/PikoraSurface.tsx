@@ -47,22 +47,23 @@ type ChipButtonProps = {
 function getColors(isDark: boolean) {
   return {
     isDark,
-    page: isDark ? "#08090c" : "#f6f7f9",
-    shell: isDark ? "rgba(13,14,18,0.92)" : "rgba(255,255,255,0.92)",
-    shellRaised: isDark ? "rgba(31,33,39,0.68)" : "rgba(255,255,255,0.72)",
-    shellElevated: isDark ? "rgba(46,49,58,0.72)" : "rgba(244,246,250,0.78)",
-    assistantBubble: isDark ? "rgba(20,22,28,0.62)" : "rgba(255,255,255,0.7)",
-    userBubble: isDark ? "rgba(48,51,60,0.82)" : "rgba(232,235,241,0.86)",
-    composer: isDark ? "rgba(18,20,26,0.74)" : "rgba(255,255,255,0.78)",
-    composerInput: isDark ? "rgba(35,38,47,0.76)" : "rgba(246,247,250,0.84)",
-    text: isDark ? "#f6f7fb" : "#15161a",
-    muted: isDark ? "#9ea3ad" : "#69707d",
-    subtle: isDark ? "#7f8794" : "#8f96a3",
-    border: isDark ? "rgba(255,255,255,0.13)" : "rgba(15,23,42,0.1)",
-    glassBorder: isDark ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.62)",
-    accent: "#10a37f",
-    accentSoft: isDark ? "rgba(16,163,127,0.2)" : "rgba(16,163,127,0.14)",
-    accentGlass: isDark ? "rgba(16,163,127,0.26)" : "rgba(16,163,127,0.2)",
+    page: isDark ? "#061120" : "#eff6fc",
+    shell: isDark ? "#0b1a2c" : "#ffffff",
+    shellRaised: isDark ? "#10243b" : "#f3f8fd",
+    shellElevated: isDark ? "#18334d" : "#dcecf9",
+    assistantBubble: isDark ? "#0d2035" : "#ffffff",
+    userBubble: isDark ? "#113452" : "#d9effb",
+    composer: isDark ? "#0b1a2c" : "#ffffff",
+    composerInput: isDark ? "#10243a" : "#eef5fb",
+    text: isDark ? "#eaf4ff" : "#0d263f",
+    muted: isDark ? "#a5bdd5" : "#3e607e",
+    subtle: isDark ? "#8fa9c3" : "#546f89",
+    border: isDark ? "#203c57" : "#cbddeb",
+    glassBorder: isDark ? "#25435e" : "#cbddeb",
+    accent: isDark ? "#29d3f1" : "#006888",
+    accentInk: isDark ? "#052235" : "#ffffff",
+    accentSoft: isDark ? "#103049" : "#dbf2fa",
+    accentGlass: isDark ? "#17405c" : "#cde9f8",
     success: "#10a37f",
     warning: "#f59e0b",
     danger: "#ef4444",
@@ -75,7 +76,7 @@ function getToneColors(colors: ColorPalette, tone: ChipButtonProps["tone"], acti
     return {
       backgroundColor: active ? colors.accent : colors.accentSoft,
       borderColor: active ? colors.accent : "transparent",
-      textColor: active ? "#ffffff" : colors.accent,
+      textColor: active ? colors.accentInk : colors.accent,
     };
   }
 
@@ -182,16 +183,19 @@ function ChipButton({
 
 function HeaderButton({
   icon,
+  label,
   onPress,
   colors,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
+  label: string;
   onPress: () => void;
   colors: ColorPalette;
 }) {
   return (
     <TouchableOpacity
       accessibilityRole="button"
+      accessibilityLabel={label}
       onPress={onPress}
       activeOpacity={0.82}
     >
@@ -760,7 +764,7 @@ function MessageCard({
   feedbackEnabled: boolean;
   feedbackSubmitting: boolean;
 }) {
-  const [showReasoning, setShowReasoning] = useState(true);
+  const [showReasoning, setShowReasoning] = useState(false);
   const isUser = message.role === "user";
 
   return (
@@ -798,11 +802,18 @@ function MessageCard({
           isUser ? styles.userBubble : styles.assistantBubble,
           {
             backgroundColor: isUser ? colors.userBubble : colors.assistantBubble,
-            borderColor: isUser ? "rgba(255,255,255,0.16)" : colors.glassBorder,
+            borderColor: colors.border,
           },
         ]}
       >
-        <Text style={[styles.messageText, { color: colors.text }]}>{message.text || "..."}</Text>
+        {message.text ? (
+          <Text style={[styles.messageText, { color: colors.text }]} selectable>{message.text}</Text>
+        ) : message.isStreaming ? (
+          <View style={styles.pendingReply}>
+            <ActivityIndicator size="small" color={colors.accent} />
+            <Text accessibilityLiveRegion="polite" style={{ color: colors.muted }}>Đang soạn câu trả lời…</Text>
+          </View>
+        ) : null}
 
         {isUser ? (
           <Text style={[styles.messageTimestamp, { color: colors.subtle }]}>
@@ -830,9 +841,9 @@ function MessageCard({
           onCommit={onMutation}
         />
 
-        {!isUser && message.sessionFocusState?.mode ? (
+        {!isUser && message.sessionFocusState?.mode && message.sessionFocusState.mode !== "auto" ? (
           <View style={styles.contentBlock}>
-            <SectionLabel colors={colors}>Session focus</SectionLabel>
+            <SectionLabel colors={colors}>Ngữ cảnh hội thoại</SectionLabel>
             <ChipButton
               label={formatSessionFocusLabel(String(message.sessionFocusState.mode))}
               tone={message.sessionFocusState.mode === "off" ? "warning" : "success"}
@@ -856,14 +867,10 @@ function MessageCard({
 }
 
 function WelcomeHero({
-  currentPageTitle,
-  routeEntityTitle,
   suggestions,
   onSuggestion,
   colors,
 }: {
-  currentPageTitle: string;
-  routeEntityTitle?: string;
   suggestions: string[];
   onSuggestion: (suggestion: string) => void;
   colors: ColorPalette;
@@ -888,31 +895,6 @@ function WelcomeHero({
       <Text style={[styles.heroSubtitle, { color: colors.muted }]}>
         Hỏi nhanh về giải đấu, lịch, hồ sơ hoặc thao tác đang làm trong PickleTour.
       </Text>
-      <View style={styles.heroMeta}>
-        <ChipButton label="Streaming" tone="accent" compact colors={colors} />
-        <ChipButton label="Nguồn" compact colors={colors} />
-        <ChipButton label="Workflow" compact colors={colors} />
-      </View>
-      <PikoraGlassSurface
-        colors={colors}
-        effect="clear"
-        tintColor={colors.shellRaised}
-        style={[
-          styles.heroContextCard,
-          {
-            backgroundColor: colors.shellRaised,
-            borderColor: colors.glassBorder,
-          },
-        ]}
-      >
-        <SectionLabel colors={colors}>Ngữ cảnh hiện tại</SectionLabel>
-        <Text style={[styles.heroContextTitle, { color: colors.text }]}>
-          {currentPageTitle || routeEntityTitle || "PickleTour"}
-        </Text>
-        <Text style={[styles.heroContextText, { color: colors.muted }]}>
-          Pikora đang sẵn sàng hỗ trợ theo ngữ cảnh màn hình này.
-        </Text>
-      </PikoraGlassSurface>
       <SuggestionsGrid suggestions={suggestions} onPress={onSuggestion} colors={colors} />
     </View>
   );
@@ -937,6 +919,8 @@ export function PikoraSurface({
     messages,
     liveDraft,
     isTyping,
+    sendError,
+    retryMessage,
     historyLoading,
     hasMoreHistory,
     loadOlderHistory,
@@ -955,8 +939,6 @@ export function PikoraSurface({
     setSessionFocusAuto,
     setSessionFocusOff,
     pinSessionFocus,
-    routePageSnapshot,
-    currentPageTitle,
     suggestions,
     latestSessionFocus,
     requestAction,
@@ -1001,7 +983,7 @@ export function PikoraSurface({
 
   return (
     <SafeAreaView
-      edges={presentation === "overlay" ? ["top", "bottom", "left", "right"] : ["left", "right"]}
+      edges={presentation === "overlay" ? ["top", "bottom", "left", "right"] : ["top", "left", "right"]}
       style={[
         styles.safeArea,
         {
@@ -1037,77 +1019,42 @@ export function PikoraSurface({
             </View>
           ) : null}
 
-          <PikoraGlassSurface
-            colors={colors}
-            effect="regular"
-            tintColor={colors.shell}
-            style={[
-              styles.header,
-              {
-                borderColor: colors.glassBorder,
-                minHeight: presentation === "overlay" ? 72 : 72 + insets.top,
-                paddingTop: presentation === "overlay" ? 0 : insets.top + 6,
-              },
-            ]}
-          >
-            <View style={styles.headerSide}>
-              {presentation !== "overlay" && onBack ? (
-                <HeaderButton
-                  icon="chevron-back-outline"
-                  onPress={onBack}
-                  colors={colors}
-                />
-              ) : (
-                <HeaderButton
-                  icon="sparkles-outline"
-                  onPress={() => setShowSettings((value) => !value)}
-                  colors={colors}
-                />
-              )}
-            </View>
-
-            <View style={styles.headerCenter}>
-              <PikoraGlassSurface
+          <View style={[styles.header, { backgroundColor: colors.shell, borderColor: colors.border }]}>
+            {presentation === "screen" && onBack ? (
+              <HeaderButton
+                icon="chevron-back-outline"
+                label="Quay lại"
+                onPress={onBack}
                 colors={colors}
-                effect="regular"
-                tintColor={colors.shellRaised}
-                style={[
-                  styles.headerTitlePill,
-                  {
-                    backgroundColor: colors.shellRaised,
-                    borderColor: colors.glassBorder,
-                  },
-                ]}
-              >
-                <Text style={[styles.headerTitle, { color: colors.text }]}>Pikora</Text>
-                <Ionicons name="chevron-down-outline" size={14} color={colors.muted} />
-              </PikoraGlassSurface>
-              <Text style={[styles.headerSubtitle, { color: colors.muted }]}>
-                {currentPageTitle || routePageSnapshot?.entityTitle || "PickleTour"}
+              />
+            ) : null}
+
+            <View style={[styles.headerAvatar, { backgroundColor: colors.accentSoft }]}>
+              <Ionicons name="sparkles" size={20} color={colors.accent} />
+            </View>
+            <View style={styles.headerCenter}>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>Pikora</Text>
+              <Text style={[styles.headerSubtitle, { color: colors.muted }]} numberOfLines={1}>
+                Trợ lý PickleTour
               </Text>
             </View>
-
             <View style={styles.headerSideRight}>
+              <HeaderButton
+                icon="options-outline"
+                label={showSettings ? "Đóng cài đặt Pikora" : "Cài đặt Pikora"}
+                onPress={() => setShowSettings((value) => !value)}
+                colors={colors}
+              />
               {presentation === "overlay" ? (
-                <HeaderButton icon="expand-outline" onPress={openChatScreen} colors={colors} />
+                <HeaderButton icon="close-outline" label="Đóng Pikora" onPress={closeOverlay} colors={colors} />
               ) : null}
-              {presentation === "overlay" ? (
-                <HeaderButton icon="close-outline" onPress={closeOverlay} colors={colors} />
-              ) : (
-                <HeaderButton
-                  icon="options-outline"
-                  onPress={() => setShowSettings((value) => !value)}
-                  colors={colors}
-                />
-              )}
             </View>
-          </PikoraGlassSurface>
+          </View>
 
           {showSettings ? (
-            <PikoraGlassSurface
-              colors={colors}
-              effect="regular"
-              tintColor={colors.shellRaised}
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.settingsContent}
               style={[
                 styles.settingsPanel,
                 {
@@ -1117,16 +1064,16 @@ export function PikoraSurface({
               ]}
             >
               <View style={styles.settingsSection}>
-                <SectionLabel colors={colors}>Reasoning</SectionLabel>
+                <SectionLabel colors={colors}>Suy luận</SectionLabel>
                 <View style={styles.inlineRow}>
                   <ChipButton
-                    label="Auto"
+                    label="Tự động"
                     active={reasoningMode === "auto"}
                     onPress={() => void setReasoningMode("auto")}
                     colors={colors}
                   />
                   <ChipButton
-                    label="Reasoner"
+                    label="Kỹ hơn"
                     tone="accent"
                     active={reasoningMode === "force_reasoner"}
                     onPress={() => void setReasoningMode("force_reasoner")}
@@ -1136,23 +1083,23 @@ export function PikoraSurface({
               </View>
 
               <View style={styles.settingsSection}>
-                <SectionLabel colors={colors}>Assistant</SectionLabel>
+                <SectionLabel colors={colors}>Cách hỗ trợ</SectionLabel>
                 <View style={styles.inlineRow}>
                   <ChipButton
-                    label="Balanced"
+                    label="Cân bằng"
                     active={assistantMode === "balanced"}
                     onPress={() => void setAssistantMode("balanced")}
                     colors={colors}
                   />
                   <ChipButton
-                    label="Operator"
+                    label="Thao tác"
                     tone="accent"
                     active={assistantMode === "operator"}
                     onPress={() => void setAssistantMode("operator")}
                     colors={colors}
                   />
                   <ChipButton
-                    label="Analyst"
+                    label="Phân tích"
                     active={assistantMode === "analyst"}
                     onPress={() => void setAssistantMode("analyst")}
                     colors={colors}
@@ -1161,16 +1108,16 @@ export function PikoraSurface({
               </View>
 
               <View style={styles.settingsSection}>
-                <SectionLabel colors={colors}>Verification</SectionLabel>
+                <SectionLabel colors={colors}>Xác minh nguồn</SectionLabel>
                 <View style={styles.inlineRow}>
                   <ChipButton
-                    label="Balanced"
+                    label="Cân bằng"
                     active={verificationMode === "balanced"}
                     onPress={() => void setVerificationMode("balanced")}
                     colors={colors}
                   />
                   <ChipButton
-                    label="Strict"
+                    label="Chặt chẽ"
                     tone="warning"
                     active={verificationMode === "strict"}
                     onPress={() => void setVerificationMode("strict")}
@@ -1180,9 +1127,9 @@ export function PikoraSurface({
               </View>
 
               <View style={styles.settingsSection}>
-                <SectionLabel colors={colors}>Session focus</SectionLabel>
+                <SectionLabel colors={colors}>Ngữ cảnh hội thoại</SectionLabel>
                 <View style={styles.inlineRow}>
-                  <ChipButton label="Auto" onPress={() => void setSessionFocusAuto()} colors={colors} />
+                  <ChipButton label="Tự động" onPress={() => void setSessionFocusAuto()} colors={colors} />
                   <ChipButton
                     label="Tắt"
                     tone="warning"
@@ -1190,7 +1137,7 @@ export function PikoraSurface({
                     colors={colors}
                   />
                   <ChipButton
-                    label={latestSessionFocus ? "Ghim focus hiện tại" : "Chưa có focus"}
+                    label={latestSessionFocus ? "Ghim ngữ cảnh hiện tại" : "Chưa có ngữ cảnh"}
                     tone="success"
                     onPress={() => void pinSessionFocus()}
                     colors={colors}
@@ -1215,7 +1162,7 @@ export function PikoraSurface({
                   />
                 </View>
               </View>
-            </PikoraGlassSurface>
+            </ScrollView>
           ) : null}
 
           {sessionFocusOverride.mode !== "auto" ? (
@@ -1262,8 +1209,6 @@ export function PikoraSurface({
 
             {showWelcome ? (
               <WelcomeHero
-                currentPageTitle={currentPageTitle}
-                routeEntityTitle={routePageSnapshot?.entityTitle}
                 suggestions={suggestions}
                 onSuggestion={(suggestion) => void sendSuggestion(suggestion, presentation)}
                 colors={colors}
@@ -1286,25 +1231,24 @@ export function PikoraSurface({
             ))}
           </ScrollView>
 
-          <PikoraGlassSurface
-            colors={colors}
-            effect="regular"
-            tintColor={colors.composer}
-            style={[
-              styles.composerDock,
-              {
-                borderColor: colors.glassBorder,
-                backgroundColor: colors.shell,
-              },
-            ]}
-          >
-            {!showWelcome && suggestions.length ? (
+          <View style={[styles.composerDock, { borderColor: colors.border, backgroundColor: colors.shell }]}>
+            {sendError ? (
+              <View style={[styles.retryRow, { backgroundColor: colors.composerInput, borderColor: colors.border }]}>
+                <Ionicons name="alert-circle-outline" size={20} color={colors.warning} />
+                <Text accessibilityLiveRegion="polite" style={[styles.retryText, { color: colors.text }]}>
+                  {sendError.message}
+                </Text>
+                <ChipButton label="Thử lại" icon="refresh" tone="accent" colors={colors}
+                  onPress={() => retryMessage(presentation)} />
+              </View>
+            ) : !showWelcome && !isTyping && suggestions.length ? (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
                 contentContainerStyle={styles.suggestionRail}
               >
-                {suggestions.slice(0, 6).map((suggestion) => (
+                {suggestions.slice(0, 4).map((suggestion) => (
                   <ChipButton
                     key={suggestion}
                     label={suggestion}
@@ -1317,86 +1261,38 @@ export function PikoraSurface({
               </ScrollView>
             ) : null}
 
-            <PikoraGlassSurface
-              colors={colors}
-              effect="regular"
-              tintColor={colors.composer}
-              style={[
-                styles.composerBox,
-                {
-                  backgroundColor: colors.composer,
-                  borderColor: colors.glassBorder,
-                },
-              ]}
-            >
-              <PikoraGlassSurface
-                colors={colors}
-                effect="clear"
-                tintColor={colors.composerInput}
+            <View style={[styles.inputShell, { backgroundColor: colors.composerInput, borderColor: colors.border }]}>
+              <TextInput
+                value={input}
+                onChangeText={setInput}
+                accessibilityLabel="Nhập câu hỏi cho Pikora"
+                placeholder="Hỏi Pikora…"
+                placeholderTextColor={colors.subtle}
+                multiline
+                maxLength={2000}
+                style={[styles.input, { color: colors.text }]}
+              />
+              {presentation === "overlay" && !input.trim() && !isTyping ? (
+                <HeaderButton icon="expand-outline" label="Mở toàn màn hình" onPress={openChatScreen} colors={colors} />
+              ) : null}
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={isTyping ? "Dừng trả lời" : "Gửi câu hỏi"}
+                disabled={!isTyping && !input.trim()}
+                onPress={() => isTyping ? stopStreaming() : void sendMessage(presentation)}
                 style={[
-                  styles.inputShell,
-                  {
-                    backgroundColor: colors.composerInput,
-                  },
+                  styles.sendButton,
+                  { backgroundColor: isTyping ? colors.danger : input.trim() ? colors.accent : colors.shellElevated },
                 ]}
               >
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  onPress={() => setShowSettings((value) => !value)}
-                  style={styles.composerSideButton}
-                >
-                  <Ionicons name="add-circle-outline" size={21} color={colors.muted} />
-                </TouchableOpacity>
-
-                <TextInput
-                  value={input}
-                  onChangeText={setInput}
-                  placeholder="Hỏi Pikora"
-                  placeholderTextColor={colors.subtle}
-                  multiline
-                  maxLength={2000}
-                  style={[styles.input, { color: colors.text }]}
+                <Ionicons
+                  name={isTyping ? "stop" : "arrow-up"}
+                  size={20}
+                  color={isTyping ? "#ffffff" : input.trim() ? colors.accentInk : colors.muted}
                 />
-
-                {input.trim().length ? (
-                  <TouchableOpacity
-                    accessibilityRole="button"
-                    onPress={() =>
-                      void (isTyping ? Promise.resolve(stopStreaming()) : sendMessage(presentation))
-                    }
-                    style={[
-                      styles.sendButton,
-                      {
-                        backgroundColor: isTyping ? colors.danger : colors.accent,
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name={isTyping ? "stop-outline" : "arrow-up-outline"}
-                      size={18}
-                      color="#ffffff"
-                    />
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    accessibilityRole="button"
-                    onPress={() =>
-                      presentation === "overlay"
-                        ? void openChatScreen()
-                        : setShowSettings((value) => !value)
-                    }
-                    style={styles.composerSideButton}
-                  >
-                    <Ionicons
-                      name={presentation === "overlay" ? "expand-outline" : "options-outline"}
-                      size={20}
-                      color={colors.muted}
-                    />
-                  </TouchableOpacity>
-                )}
-              </PikoraGlassSurface>
-            </PikoraGlassSurface>
-          </PikoraGlassSurface>
+              </TouchableOpacity>
+            </View>
+          </View>
         </PikoraGlassSurface>
 
         <OverlayDialog
@@ -1514,54 +1410,37 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   header: {
-    minHeight: 72,
-    marginHorizontal: 10,
-    marginTop: 6,
-    paddingHorizontal: 10,
-    paddingBottom: 10,
-    borderWidth: 1,
-    borderRadius: 28,
+    minHeight: 64,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-  },
-  headerSide: {
-    width: 42,
-    alignItems: "flex-start",
+    gap: 10,
   },
   headerSideRight: {
-    minWidth: 42,
     flexDirection: "row",
-    justifyContent: "flex-end",
     gap: 8,
   },
   headerCenter: {
     flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  headerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 10,
-    gap: 6,
   },
   headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-  },
-  headerTitlePill: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
   },
   headerTitle: {
     fontSize: 16,
@@ -1572,17 +1451,16 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   settingsPanel: {
-    marginHorizontal: 12,
+    marginHorizontal: 14,
     marginTop: 8,
+    maxHeight: "45%",
+    flexGrow: 0,
     borderWidth: 1,
-    borderRadius: 26,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 14,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
+    borderRadius: 18,
+  },
+  settingsContent: {
+    padding: 12,
+    gap: 12,
   },
   settingsSection: {
     gap: 8,
@@ -1625,44 +1503,23 @@ const styles = StyleSheet.create({
     gap: 18,
   },
   heroOrb: {
-    width: 82,
-    height: 82,
-    borderRadius: 41,
+    width: 64,
+    height: 64,
+    borderRadius: 20,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
   heroTitle: {
-    fontSize: 34,
+    fontSize: 26,
     fontWeight: "800",
-    letterSpacing: 0,
+    textAlign: "center",
   },
   heroSubtitle: {
     maxWidth: 280,
     fontSize: 15,
     lineHeight: 22,
     textAlign: "center",
-  },
-  heroMeta: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: 8,
-  },
-  heroContextCard: {
-    width: "100%",
-    borderWidth: 1,
-    borderRadius: 26,
-    padding: 18,
-    gap: 8,
-  },
-  heroContextTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  heroContextText: {
-    fontSize: 14,
-    lineHeight: 21,
   },
   suggestionGrid: {
     width: "100%",
@@ -1724,11 +1581,13 @@ const styles = StyleSheet.create({
   },
   assistantBubble: {
     width: "100%",
-    borderRadius: 26,
+    borderRadius: 18,
+    borderTopLeftRadius: 6,
   },
   userBubble: {
     maxWidth: "84%",
-    borderRadius: 24,
+    borderRadius: 18,
+    borderBottomRightRadius: 6,
   },
   messageText: {
     fontSize: 16,
@@ -1893,63 +1752,53 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   composerDock: {
-    marginHorizontal: 10,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderRadius: 30,
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 12,
-    gap: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.16,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-  },
-  suggestionRail: {
+    borderTopWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     gap: 8,
-    paddingRight: 8,
   },
+  suggestionRail: { gap: 8, paddingRight: 8 },
   modeRail: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
   },
-  composerBox: {
+  pendingReply: { flexDirection: "row", alignItems: "center", gap: 8 },
+  retryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
     borderWidth: 1,
-    borderRadius: 26,
-    padding: 6,
+    borderRadius: 12,
+    padding: 8,
   },
+  retryText: { flex: 1, minWidth: 120, fontSize: 13, lineHeight: 18 },
   inputShell: {
     minHeight: 54,
-    borderRadius: 22,
-    paddingLeft: 8,
-    paddingRight: 8,
-    paddingVertical: 8,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingLeft: 12,
+    paddingRight: 5,
+    paddingVertical: 5,
     flexDirection: "row",
     alignItems: "flex-end",
-    gap: 8,
-  },
-  composerSideButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
+    gap: 6,
   },
   input: {
     flex: 1,
-    minHeight: 36,
+    minWidth: 0,
+    minHeight: 44,
     maxHeight: 110,
     fontSize: 16,
     lineHeight: 22,
-    paddingVertical: 0,
+    paddingVertical: 10,
     textAlignVertical: "center",
   },
   sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -146,9 +146,10 @@ export default function TabLayout() {
   const unreadCount = Number(unreadData?.count || 0);
 
   const v2 = useUiVersion() === "v2";
+  const isPikoraChat = pathname === "/more/chat" || pathname === "/chat";
   const renderTabBar = React.useCallback(
-    (props: any) => <BottomNavigation {...props} isDark={isDark} v2={v2} />,
-    [isDark, v2],
+    (props: any) => isPikoraChat ? null : <BottomNavigation {...props} isDark={isDark} v2={v2} />,
+    [isDark, isPikoraChat, v2],
   );
   // Each tab is already laid out beside the Duo rail. Measure its own frame so
   // native SafeAreaViews do not apply the system's trailing inset a second time.

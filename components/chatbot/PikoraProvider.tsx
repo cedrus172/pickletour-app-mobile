@@ -33,7 +33,7 @@ import {
   PIKORA_REASONING_MODE_KEY,
   PIKORA_VERIFICATION_MODE_KEY,
 } from "./pikoraStorage";
-import { sendPikoraMessageStream } from "./pikoraStream";
+import { PikoraStreamError, sendPikoraMessageStream } from "./pikoraStream";
 import type {
   PikoraAction,
   PikoraAssistantMode,
@@ -94,6 +94,8 @@ type PikoraContextValue = {
   messages: PikoraMessage[];
   liveDraft: PikoraMessage | null;
   isTyping: boolean;
+  sendError: { message: string; text: string } | null;
+  retryMessage: (presentation: PikoraUiSurface) => void;
   historyLoading: boolean;
   hasMoreHistory: boolean;
   loadOlderHistory: () => Promise<void>;
@@ -241,6 +243,7 @@ export function PikoraProvider({ children }: { children: React.ReactNode }) {
   const [messages, setMessages] = useState<PikoraMessage[]>([]);
   const [liveDraft, setLiveDraft] = useState<PikoraMessage | null>(null);
   const [isTyping, setIsTyping] = useState(false);
+  const [sendError, setSendError] = useState<PikoraContextValue["sendError"]>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [hasMoreHistory, setHasMoreHistory] = useState(false);
   const [historyCursor, setHistoryCursor] = useState<string | null>(null);
@@ -264,10 +267,6 @@ export function PikoraProvider({ children }: { children: React.ReactNode }) {
   const liveDraftRef = useRef<PikoraMessage | null>(null);
   const historyHydratedUserIdRef = useRef("");
   const abortControllerRef = useRef<AbortController | null>(null);
-
-  useEffect(() => {
-    liveDraftRef.current = liveDraft;
-  }, [liveDraft]);
 
   useEffect(() => {
     let mounted = true;
@@ -434,8 +433,9 @@ export function PikoraProvider({ children }: { children: React.ReactNode }) {
   );
 
   const finalizeDraft = useCallback(
-    (overrides: Partial<PikoraMessage> = {}, options?: { dropIfEmpty?: boolean }) => {
+    (overrides: Partial<PikoraMessage> = {}) => {
       const currentDraft = liveDraftRef.current;
+      liveDraftRef.current = null;
       abortControllerRef.current = null;
       setIsTyping(false);
 
@@ -452,20 +452,6 @@ export function PikoraProvider({ children }: { children: React.ReactNode }) {
       };
 
       setLiveDraft(null);
-
-      const hasRenderableContent = Boolean(
-        finalized.text.trim() ||
-          finalized.rawThinking ||
-          finalized.answerCards?.length ||
-          finalized.actions?.length ||
-          finalized.sources?.length ||
-          finalized.workflow ||
-          finalized.mutationPreview,
-      );
-
-      if (options?.dropIfEmpty && !hasRenderableContent) {
-        return;
-      }
 
       setMessages((previous) => mergeMessages(previous, [finalized]));
     },
@@ -693,9 +679,11 @@ export function PikoraProvider({ children }: { children: React.ReactNode }) {
           item.id === messageId ? { ...item, feedback } : item,
         ),
       );
-      setLiveDraft((previous) =>
-        previous?.id === messageId ? { ...previous, feedback } : previous,
-      );
+      const draft = liveDraftRef.current;
+      if (draft?.id === messageId) {
+        liveDraftRef.current = { ...draft, feedback };
+        setLiveDraft(liveDraftRef.current);
+      }
     },
     [],
   );
@@ -876,16 +864,20 @@ export function PikoraProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const sendMessage = useCallback(
-    async (presentation: PikoraUiSurface, presetText?: string) => {
+    async (_presentation: PikoraUiSurface, presetText?: string, retry = false) => {
       const text = String(presetText ?? input).trim();
-      if (!text || isTyping) return;
+      if (!text || abortControllerRef.current) return;
 
       const optimisticUserMessage = buildOptimisticUserMessage(text);
       const initialDraft = buildStreamingDraft();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      liveDraftRef.current = initialDraft;
 
-      setMessages((previous) => mergeMessages(previous, [optimisticUserMessage]));
+      if (!retry) setMessages((previous) => mergeMessages(previous, [optimisticUserMessage]));
       setLiveDraft(initialDraft);
-      setInput("");
+      setSendError(null);
+      if (!retry) setInput("");
       setIsTyping(true);
 
       const requestPayload = {
@@ -901,11 +893,8 @@ export function PikoraProvider({ children }: { children: React.ReactNode }) {
         surface: "mobile",
       };
 
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-
-      if (presetText) {
-        await logClientEvent({
+      if (presetText && !retry) {
+        void logClientEvent({
           messageId: optimisticUserMessage.id,
           type: "suggestion_clicked",
           label: text,
@@ -916,13 +905,25 @@ export function PikoraProvider({ children }: { children: React.ReactNode }) {
       }
 
       const updateDraft = (updater: (draft: PikoraMessage) => PikoraMessage) => {
-        setLiveDraft((previous) => {
-          const base = previous || buildStreamingDraft();
-          const nextDraft = updater(base);
-          liveDraftRef.current = nextDraft;
-          return nextDraft;
-        });
+        const draft = liveDraftRef.current;
+        if (!draft || abortControllerRef.current !== controller || controller.signal.aborted) return;
+        const next = updater(draft);
+        liveDraftRef.current = next;
+        setLiveDraft(next);
       };
+      const discardOrKeepPartial = () => {
+        if (liveDraftRef.current?.text.trim()) {
+          finalizeDraft({ interrupted: true });
+        } else {
+          liveDraftRef.current = null;
+          finalizeDraft();
+        }
+      };
+      let timedOut = false;
+      const timeout = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, 150_000);
 
       try {
         await sendPikoraMessageStream({
@@ -1077,60 +1078,55 @@ export function PikoraProvider({ children }: { children: React.ReactNode }) {
               return;
             }
 
-            if (event === "error") {
-              updateDraft((draft) => ({
-                ...draft,
-                text: draft.text || String(data?.message || "Pikora đang bận, vui lòng thử lại."),
-                interrupted: true,
-              }));
-            }
           },
         });
 
-        finalizeDraft({}, { dropIfEmpty: true });
-      } catch (error: any) {
-        const hasPartialOutput = Boolean(
-          liveDraftRef.current?.text ||
-            liveDraftRef.current?.rawThinking ||
-            liveDraftRef.current?.actions?.length ||
-            liveDraftRef.current?.answerCards?.length,
-        );
-
-        if (error?.name === "AbortError") {
-          finalizeDraft({ interrupted: true }, { dropIfEmpty: true });
+        if (abortControllerRef.current === controller) {
+          finalizeDraft();
+        }
+      } catch (error: unknown) {
+        if (abortControllerRef.current !== controller) return;
+        if (controller.signal.aborted && !timedOut) {
+          discardOrKeepPartial();
           return;
         }
 
-        if (!hasPartialOutput) {
+        if (error instanceof PikoraStreamError && error.canUseJsonFallback) {
+          const request = sendMessageRequest(requestPayload);
+          const abortRequest = () => request.abort();
+          controller.signal.addEventListener("abort", abortRequest, { once: true });
           try {
-            const response = await sendMessageRequest(requestPayload).unwrap();
-            finalizeDraft({}, { dropIfEmpty: true });
-            setMessages((previous) =>
-              mergeMessages(previous, [buildBotMessageFromPayload(response)]),
-            );
+            const response = await request.unwrap();
+            if (abortControllerRef.current !== controller) return;
+            if (controller.signal.aborted) throw error;
+            const reply = buildBotMessageFromPayload(response);
+            if (!reply.text.trim() && !reply.answerCards?.length && !reply.actions?.length) {
+              throw new PikoraStreamError("Pikora chưa gửi được câu trả lời. Bạn thử lại nhé.");
+            }
+            discardOrKeepPartial();
+            setMessages((previous) => mergeMessages(previous, [reply]));
             return;
           } catch (fallbackError) {
-            finalizeDraft(
-              {
-                text: getErrorMessage(fallbackError),
-                interrupted: true,
-                reasoningAvailable: false,
-              },
-              { dropIfEmpty: false },
-            );
-            return;
+            error = fallbackError;
+          } finally {
+            controller.signal.removeEventListener("abort", abortRequest);
           }
         }
 
-        finalizeDraft(
-          {
-            interrupted: true,
-            text:
-              liveDraftRef.current?.text ||
-              "Pikora đã dừng giữa chừng vì kết nối bị gián đoạn.",
-          },
-          { dropIfEmpty: false },
-        );
+        if (abortControllerRef.current !== controller) return;
+        discardOrKeepPartial();
+        if (!controller.signal.aborted || timedOut) {
+          setSendError({
+            text,
+            message: timedOut
+              ? "Pikora phản hồi quá lâu. Bạn thử lại nhé."
+              : error instanceof PikoraStreamError
+                ? error.message
+                : "Pikora chưa thể trả lời lúc này. Bạn thử lại nhé.",
+          });
+        }
+      } finally {
+        clearTimeout(timeout);
       }
     },
     [
@@ -1140,9 +1136,9 @@ export function PikoraProvider({ children }: { children: React.ReactNode }) {
       currentPageTitle,
       currentPath,
       currentUrl,
+      fallbackRouteContext.params,
       finalizeDraft,
       input,
-      isTyping,
       logClientEvent,
       reasoningMode,
       routePageSnapshot,
@@ -1160,8 +1156,16 @@ export function PikoraProvider({ children }: { children: React.ReactNode }) {
     [sendMessage],
   );
 
+  const retryMessage = useCallback((presentation: PikoraUiSurface) => {
+    if (sendError) void sendMessage(presentation, sendError.text, true);
+  }, [sendError, sendMessage]);
+
   const clearHistory = useCallback(async () => {
     abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    liveDraftRef.current = null;
+    setIsTyping(false);
+    setSendError(null);
     setLiveDraft(null);
     setMessages([]);
     setHasMoreHistory(false);
@@ -1308,6 +1312,8 @@ export function PikoraProvider({ children }: { children: React.ReactNode }) {
       messages,
       liveDraft,
       isTyping,
+      sendError,
+      retryMessage,
       historyLoading,
       hasMoreHistory,
       loadOlderHistory,
@@ -1362,6 +1368,8 @@ export function PikoraProvider({ children }: { children: React.ReactNode }) {
       messages,
       liveDraft,
       isTyping,
+      sendError,
+      retryMessage,
       historyLoading,
       hasMoreHistory,
       loadOlderHistory,

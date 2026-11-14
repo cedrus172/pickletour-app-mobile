@@ -1,6 +1,5 @@
 import React from "react";
 
-import { TAB_BAR_HEIGHT } from "@/components/tabbar/Customtabbar";
 import { PikoraSurface } from "./PikoraSurface";
 
 type PikoraScreenProps = {
@@ -9,7 +8,7 @@ type PikoraScreenProps = {
 };
 
 export default function PikoraScreen({
-  bottomPaddingOffset = TAB_BAR_HEIGHT,
+  bottomPaddingOffset = 0,
   onBack = null,
 }: PikoraScreenProps) {
   return (
