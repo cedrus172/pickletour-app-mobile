@@ -24,6 +24,7 @@ import { Text } from "@/components/ui/i18nText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 
+import { useChatKeyboard } from "@/hooks/useChatKeyboard";
 import { useSocket } from "@/context/SocketContext";
 import { useGameAutoReconnect } from "@/hook/useGameAutoReconnect";
 import { InviteFriendModal } from "@/components/games/InviteFriendModal";
@@ -71,6 +72,7 @@ export default function XiangqiRoomScreen() {
     subscribeEvent: "xiangqi:room:subscribe",
   });
   const [chatOpen, setChatOpen] = useState(false);
+  const { paneRef, measurePane, keyboardOverlap } = useChatKeyboard(chatOpen);
   const [chatText, setChatText] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [selected, setSelected] = useState<[number, number] | null>(null);
@@ -400,10 +402,16 @@ export default function XiangqiRoomScreen() {
         onRequestClose={() => setChatOpen(false)}
         supportedOrientations={["portrait", "landscape", "landscape-left", "landscape-right"]}
       >
-        <Pressable style={styles.modalBackdrop} onPress={() => setChatOpen(false)}>
-          <Pressable style={styles.chatBox} onPress={() => {}}>
+        <Pressable
+          ref={paneRef}
+          collapsable={false}
+          onLayout={measurePane}
+          style={[styles.modalBackdrop, { paddingBottom: keyboardOverlap }]}
+          onPress={() => setChatOpen(false)}
+        >
+          <Pressable style={[styles.chatBox, { flexShrink: 1 }]} onPress={() => {}}>
             <Text style={styles.chatTitle}>💬 Chat</Text>
-            <ScrollView style={{ maxHeight: 220 }}>
+            <ScrollView style={{ maxHeight: 220, flexShrink: 1 }} keyboardShouldPersistTaps="handled">
               {(room.messages || []).slice(-30).map((m: any) => (
                 <View key={String(m._id || m.at)} style={{ flexDirection: "row", gap: 6, marginBottom: 4 }}>
                   <Text style={{ fontWeight: "800", color: C.text }}>{m.name}:</Text>

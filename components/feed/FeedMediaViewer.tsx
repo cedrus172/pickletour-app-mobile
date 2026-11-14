@@ -8,11 +8,9 @@ import {
   Alert,
   Dimensions,
   Image,
-  KeyboardAvoidingView,
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -42,6 +40,7 @@ import {
   useReactFeedPostMutation,
 } from "@/slices/feedApiSlice";
 import { AuthorAvatar } from "@/components/social/AuthorAvatar";
+import { useChatKeyboard } from "@/hooks/useChatKeyboard";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
 
 type Media = {
@@ -163,6 +162,7 @@ function CommentsSheet({
 }) {
   const C = useThemeTokens();
   const styles = useMemo(() => mk_styles(C), [C]);
+  const { paneRef, measurePane, keyboardOpen, keyboardOverlap } = useChatKeyboard(visible);
   const [replyTarget, setReplyTarget] = useState<string | null>(null);
   const [text, setText] = useState("");
   const { data, isFetching } = useListFeedCommentsQuery(
@@ -212,16 +212,18 @@ function CommentsSheet({
       transparent
       onRequestClose={onClose}
     >
-      <View style={styles.sheetBackdrop}>
+      <View
+        ref={paneRef}
+        collapsable={false}
+        onLayout={measurePane}
+        style={[styles.sheetBackdrop, { paddingBottom: keyboardOverlap }]}
+      >
         <Pressable style={{ flex: 1 }} onPress={onClose} />
         <SafeAreaView
-          edges={["bottom"]}
-          style={styles.sheetContainer}
+          edges={keyboardOpen ? [] : ["bottom"]}
+          style={[styles.sheetContainer, keyboardOpen && { maxHeight: "100%" }]}
         >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-            style={{ flex: 1 }}
-          >
+          <View style={{ flex: 1 }}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>Bình luận</Text>
@@ -232,6 +234,7 @@ function CommentsSheet({
             <ScrollView
               style={{ flex: 1 }}
               contentContainerStyle={{ padding: 12, paddingBottom: 20 }}
+              keyboardShouldPersistTaps="handled"
             >
               {isFetching && !data && <ActivityIndicator color={C.primary} />}
               {(data?.items || []).length === 0 && !isFetching && (
@@ -286,7 +289,7 @@ function CommentsSheet({
                 </Pressable>
               </View>
             </View>
-          </KeyboardAvoidingView>
+          </View>
         </SafeAreaView>
       </View>
     </Modal>

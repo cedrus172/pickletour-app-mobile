@@ -31,6 +31,7 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 }
 import { useSelector } from "react-redux";
 
+import { useChatKeyboard } from "@/hooks/useChatKeyboard";
 import { useSocket } from "@/context/SocketContext";
 import { useGameAutoReconnect } from "@/hook/useGameAutoReconnect";
 import { InviteFriendModal } from "@/components/games/InviteFriendModal";
@@ -91,6 +92,7 @@ export default function PhomRoomScreen() {
     subscribeEvent: "phom:room:subscribe",
   });
   const [chatOpen, setChatOpen] = useState(false);
+  const { paneRef, measurePane, keyboardOverlap } = useChatKeyboard(chatOpen);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [chatText, setChatText] = useState("");
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
@@ -671,12 +673,15 @@ export default function PhomRoomScreen() {
         supportedOrientations={["portrait", "landscape", "landscape-left", "landscape-right"]}
       >
         <Pressable
-          style={styles.modalBackdrop}
+          ref={paneRef}
+          collapsable={false}
+          onLayout={measurePane}
+          style={[styles.modalBackdrop, { paddingBottom: keyboardOverlap }]}
           onPress={() => setChatOpen(false)}
         >
-          <Pressable style={styles.chatBox} onPress={() => {}}>
+          <Pressable style={[styles.chatBox, { flexShrink: 1 }]} onPress={() => {}}>
             <Text style={styles.chatTitle}>💬 Chat trong bàn</Text>
-            <ScrollView style={{ maxHeight: 220 }}>
+            <ScrollView style={{ maxHeight: 220, flexShrink: 1 }} keyboardShouldPersistTaps="handled">
               {(room.messages || []).slice(-30).map((m: any) => (
                 <View
                   key={String(m._id || m.at)}

@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
@@ -19,7 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import dayjs from "dayjs";
 import * as ImagePicker from "expo-image-picker";
 import { Image as ExpoImage } from "expo-image";
-import { useHeaderHeight } from "@react-navigation/elements";
+import { useChatKeyboard } from "@/hooks/useChatKeyboard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   useGetTicketDetailQuery,
@@ -117,7 +116,7 @@ function MetaPill({
 }
 
 export default function SupportThreadScreen() {
-  const headerHeight = useHeaderHeight();
+  const { paneRef, measurePane, keyboardOpen, keyboardOverlap } = useChatKeyboard();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ ticketId?: string | string[] }>();
   const id = Array.isArray(params.ticketId)
@@ -365,7 +364,12 @@ export default function SupportThreadScreen() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+    <View
+      ref={paneRef}
+      collapsable={false}
+      onLayout={measurePane}
+      style={{ flex: 1, backgroundColor: colors.bg, paddingBottom: keyboardOverlap }}
+    >
       <Stack.Screen
         options={{
           title: t("Chi tiết hỗ trợ"),
@@ -432,6 +436,7 @@ export default function SupportThreadScreen() {
             contentContainerStyle={{ padding: 16, paddingBottom: 20 }}
             onRefresh={refetch}
             refreshing={isFetching}
+            keyboardShouldPersistTaps="handled"
             onContentSizeChange={() => scrollToEnd(false)}
             ListEmptyComponent={
               <View style={{ padding: 40, alignItems: "center" }}>
@@ -513,94 +518,89 @@ export default function SupportThreadScreen() {
             </View>
           ) : null}
 
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-            keyboardVerticalOffset={headerHeight}
+          <View
+            style={[
+              styles.composer,
+              {
+                backgroundColor: colors.inputBg,
+                borderTopColor: colors.border,
+                paddingBottom: (keyboardOpen ? 0 : insets.bottom) + 10,
+              },
+            ]}
           >
-            <View
-              style={[
-                styles.composer,
-                {
-                  backgroundColor: colors.inputBg,
-                  borderTopColor: colors.border,
-                  paddingBottom: insets.bottom + 10,
-                },
-              ]}
-            >
-              {images.length > 0 ? (
-                <ScrollView
-                  horizontal
-                  style={styles.previewBar}
-                  contentContainerStyle={{ gap: 12 }}
-                >
-                  {images.map((img) => (
-                    <View key={img.uri}>
-                      <ExpoImage
-                        source={{ uri: img.uri }}
-                        style={{ width: 60, height: 60, borderRadius: 8 }}
-                      />
-                      <TouchableOpacity
-                        onPress={() => removeImage(img.uri)}
-                        style={styles.removeBtn}
-                      >
-                        <Ionicons name="close" size={14} color="#FFFFFF" />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </ScrollView>
-              ) : null}
+            {images.length > 0 ? (
+              <ScrollView
+                horizontal
+                style={styles.previewBar}
+                contentContainerStyle={{ gap: 12 }}
+              >
+                {images.map((img) => (
+                  <View key={img.uri}>
+                    <ExpoImage
+                      source={{ uri: img.uri }}
+                      style={{ width: 60, height: 60, borderRadius: 8 }}
+                    />
+                    <TouchableOpacity
+                      onPress={() => removeImage(img.uri)}
+                      style={styles.removeBtn}
+                    >
+                      <Ionicons name="close" size={14} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : null}
 
-              <View style={styles.inputRow}>
-                <TouchableOpacity
-                  onPress={pickImages}
-                  style={styles.iconBtn}
-                  disabled={busy}
-                >
-                  <Ionicons name="attach" size={26} color={colors.sub} />
-                </TouchableOpacity>
+            <View style={styles.inputRow}>
+              <TouchableOpacity
+                onPress={pickImages}
+                style={styles.iconBtn}
+                disabled={busy}
+              >
+                <Ionicons name="attach" size={26} color={colors.sub} />
+              </TouchableOpacity>
 
-                <View
-                  style={[
-                    styles.inputContainer,
-                    { backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7" },
-                  ]}
-                >
-                  <TextInput
-                    ref={inputRef}
-                    value={text}
-                    onChangeText={setText}
-                    placeholder={
-                      ticket?.status === "closed"
-                        ? "Gửi phản hồi để mở lại case..."
-                        : "Nhập nội dung phản hồi..."
-                    }
-                    placeholderTextColor={colors.sub}
-                    style={[styles.input, { color: colors.text }]}
-                    multiline
-                  />
-                </View>
-
-                <TouchableOpacity
-                  onPress={onSend}
-                  disabled={busy || (!text.trim() && !images.length)}
-                  style={[
-                    styles.sendBtn,
-                    {
-                      backgroundColor:
-                        text.trim() || images.length ? colors.primary : colors.sub,
-                    },
-                    busy && { opacity: 0.7 },
-                  ]}
-                >
-                  {busy ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Ionicons name="arrow-up" size={20} color="#FFFFFF" />
-                  )}
-                </TouchableOpacity>
+              <View
+                style={[
+                  styles.inputContainer,
+                  { backgroundColor: isDark ? "#1C1C1E" : "#F2F2F7" },
+                ]}
+              >
+                <TextInput
+                  ref={inputRef}
+                  value={text}
+                  onChangeText={setText}
+                  placeholder={
+                    ticket?.status === "closed"
+                      ? "Gửi phản hồi để mở lại case..."
+                      : "Nhập nội dung phản hồi..."
+                  }
+                  placeholderTextColor={colors.sub}
+                  style={[styles.input, { color: colors.text }]}
+                  multiline
+                />
               </View>
+
+              <TouchableOpacity
+                onPress={onSend}
+                disabled={busy || (!text.trim() && !images.length)}
+                style={[
+                  styles.sendBtn,
+                  {
+                    backgroundColor:
+                      text.trim() || images.length ? colors.primary : colors.sub,
+                  },
+                  busy && { opacity: 0.7 },
+                ]}
+              >
+                {busy ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Ionicons name="arrow-up" size={20} color="#FFFFFF" />
+                )}
+              </TouchableOpacity>
             </View>
-          </KeyboardAvoidingView>
+          </View>
         </>
       )}
     </View>

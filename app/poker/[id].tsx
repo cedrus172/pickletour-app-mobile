@@ -46,6 +46,7 @@ import {
   useInvitePokerRoomMutation,
 } from "@/slices/pokerApiSlice";
 import { useLazySearchUserQuery } from "@/slices/usersApiSlice";
+import { useChatKeyboard } from "@/hooks/useChatKeyboard";
 import { useSocket } from "@/context/SocketContext";
 import { playFx } from "./pokerFx";
 import { warmupSounds } from "./pokerSounds";
@@ -1821,16 +1822,18 @@ function ChatModal({
   chatText: string;
   setChatText: (s: string) => void;
 }) {
+  const { paneRef, measurePane, keyboardOpen, keyboardOverlap } = useChatKeyboard(open);
   const listRef = useRef<FlatList<any>>(null);
   useEffect(() => {
     if (open && messages.length > 0) {
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         try {
           listRef.current?.scrollToEnd({ animated: true });
         } catch {}
       }, 100);
+      return () => clearTimeout(timeout);
     }
-  }, [open, messages.length]);
+  }, [open, messages.length, keyboardOverlap, keyboardOpen]);
 
   return (
     <Modal
@@ -1839,85 +1842,87 @@ function ChatModal({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.chatBackdrop}>
+      <View
+        ref={paneRef}
+        collapsable={false}
+        onLayout={measurePane}
+        style={[styles.chatBackdrop, { paddingBottom: keyboardOverlap }]}
+      >
         <Pressable style={{ flex: 1 }} onPress={onClose} />
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          <View style={styles.chatSheet}>
-            <View style={styles.chatHandle} />
-            <View style={styles.chatHeaderRow}>
-              <Text style={styles.chatTitle}>💬 Chat trong bàn</Text>
-              <Pressable onPress={onClose} hitSlop={10}>
-                <Ionicons name="close" size={22} color="#94A3B8" />
-              </Pressable>
-            </View>
-            <FlatList
-              ref={listRef}
-              data={messages}
-              keyExtractor={(m: any, i: number) =>
-                m._id ? String(m._id) : `m-${i}`
-              }
-              contentContainerStyle={{ padding: 12, paddingBottom: 4 }}
-              ListEmptyComponent={
-                <View style={{ padding: 20, alignItems: "center" }}>
-                  <Text style={{ color: "#94A3B8" }}>
-                    Chưa có tin nhắn. Nói gì đó với đối thủ đi!
-                  </Text>
-                </View>
-              }
-              renderItem={({ item }) => {
-                const isMe = String(item.user) === String(me?._id);
-                return (
+        <View style={[styles.chatSheet, keyboardOpen && { flexShrink: 1, minHeight: 0 }]}>
+          <View style={styles.chatHandle} />
+          <View style={styles.chatHeaderRow}>
+            <Text style={styles.chatTitle}>💬 Chat trong bàn</Text>
+            <Pressable onPress={onClose} hitSlop={10}>
+              <Ionicons name="close" size={22} color="#94A3B8" />
+            </Pressable>
+          </View>
+          <FlatList
+            ref={listRef}
+            keyboardShouldPersistTaps="handled"
+            data={messages}
+            keyExtractor={(m: any, i: number) =>
+              m._id ? String(m._id) : `m-${i}`
+            }
+            contentContainerStyle={{ padding: 12, paddingBottom: 4 }}
+            ListEmptyComponent={
+              <View style={{ padding: 20, alignItems: "center" }}>
+                <Text style={{ color: "#94A3B8" }}>
+                  Chưa có tin nhắn. Nói gì đó với đối thủ đi!
+                </Text>
+              </View>
+            }
+            renderItem={({ item }) => {
+              const isMe = String(item.user) === String(me?._id);
+              return (
+                <View
+                  style={[
+                    styles.msgRow,
+                    isMe && { flexDirection: "row-reverse" },
+                  ]}
+                >
+                  <Avatar uri={item.avatar} fallback={item.name} size={26} />
                   <View
                     style={[
-                      styles.msgRow,
-                      isMe && { flexDirection: "row-reverse" },
+                      styles.msgBubble,
+                      isMe && {
+                        backgroundColor: "#0066FF",
+                        marginLeft: 0,
+                        marginRight: 8,
+                      },
                     ]}
                   >
-                    <Avatar uri={item.avatar} fallback={item.name} size={26} />
-                    <View
-                      style={[
-                        styles.msgBubble,
-                        isMe && {
-                          backgroundColor: "#0066FF",
-                          marginLeft: 0,
-                          marginRight: 8,
-                        },
-                      ]}
-                    >
-                      {!isMe && <Text style={styles.msgName}>{item.name}</Text>}
-                      <Text style={[styles.msgText, isMe && { color: "#fff" }]}>
-                        {item.text}
-                      </Text>
-                    </View>
+                    {!isMe && <Text style={styles.msgName}>{item.name}</Text>}
+                    <Text style={[styles.msgText, isMe && { color: "#fff" }]}>
+                      {item.text}
+                    </Text>
                   </View>
-                );
-              }}
+                </View>
+              );
+            }}
+          />
+          <View style={styles.chatInputRow}>
+            <TextInput
+              value={chatText}
+              onChangeText={setChatText}
+              placeholder="Nhập tin nhắn…"
+              placeholderTextColor="#94A3B8"
+              style={styles.chatInput}
+              maxLength={300}
+              onSubmitEditing={() => onSend(chatText)}
             />
-            <View style={styles.chatInputRow}>
-              <TextInput
-                value={chatText}
-                onChangeText={setChatText}
-                placeholder="Nhập tin nhắn…"
-                placeholderTextColor="#94A3B8"
-                style={styles.chatInput}
-                maxLength={300}
-                onSubmitEditing={() => onSend(chatText)}
-              />
-              <Pressable
-                onPress={() => onSend(chatText)}
-                disabled={!chatText.trim()}
-                style={[
-                  styles.chatSendBtn,
-                  !chatText.trim() && { opacity: 0.4 },
-                ]}
-              >
-                <Ionicons name="send" size={18} color="#fff" />
-              </Pressable>
-            </View>
+            <Pressable
+              onPress={() => onSend(chatText)}
+              disabled={!chatText.trim()}
+              style={[
+                styles.chatSendBtn,
+                !chatText.trim() && { opacity: 0.4 },
+              ]}
+            >
+              <Ionicons name="send" size={18} color="#fff" />
+            </Pressable>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </View>
     </Modal>
   );

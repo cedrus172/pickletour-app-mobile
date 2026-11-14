@@ -33,17 +33,15 @@ import {
   Dimensions,
   FlatList,
   Image,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   View,
 } from "react-native";
 import { TextInput } from "@/components/ui/i18nTextInput";
 import { Text } from "@/components/ui/i18nText";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useChatKeyboard } from "@/hooks/useChatKeyboard";
 import { useDispatch, useSelector } from "react-redux";
 
 import { AuthorAvatar } from "@/components/social/AuthorAvatar";
@@ -417,7 +415,8 @@ function extractErr(err: any): string {
 export default function ChatWindow() {
   const C = useThemeTokens();
   const styles = useMemo(() => mk_styles(C), [C]);
-  const headerHeight = useHeaderHeight();
+  const insets = useSafeAreaInsets();
+  const { paneRef, measurePane, keyboardOpen, keyboardOverlap } = useChatKeyboard();
   const { cid } = useLocalSearchParams<{ cid: string }>();
   const me = useSelector((s: any) => s.auth?.userInfo);
   const dispatch = useDispatch();
@@ -882,7 +881,7 @@ export default function ChatWindow() {
     conv?.type === "dm" ? conv?.otherParticipants?.[0] : null;
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <View style={styles.container}>
       <Stack.Screen
         options={{
           title,
@@ -933,10 +932,11 @@ export default function ChatWindow() {
             : undefined),
         }}
       />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
-        style={{ flex: 1 }}
+      <View
+        ref={paneRef}
+        collapsable={false}
+        onLayout={measurePane}
+        style={{ flex: 1, paddingBottom: keyboardOpen ? keyboardOverlap : insets.bottom }}
       >
         {isFetching && !items.length && (
           <ActivityIndicator style={{ marginTop: 20 }} />
@@ -978,6 +978,8 @@ export default function ChatWindow() {
           data={items}
           keyExtractor={(m: any) => String(m._id)}
           inverted
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           contentContainerStyle={{ padding: 12, paddingBottom: 8 }}
           renderItem={({ item, index }) => {
             const isMine =
@@ -1457,7 +1459,7 @@ export default function ChatWindow() {
             </View>
           )}
         </View>
-      </KeyboardAvoidingView>
+      </View>
 
       <ChatTournamentPickerModal
         visible={tournamentPickerOpen}
@@ -1633,7 +1635,7 @@ export default function ChatWindow() {
           </Pressable>
         </Pressable>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 

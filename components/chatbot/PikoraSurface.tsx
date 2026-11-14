@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Keyboard,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,6 +13,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons";
 
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
+import { useChatKeyboard } from "@/hooks/useChatKeyboard";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import type {
   PikoraAction,
@@ -911,9 +910,7 @@ export function PikoraSurface({
   const [feedbackReason, setFeedbackReason] = useState("");
   const [feedbackNote, setFeedbackNote] = useState("");
   const scrollRef = useRef<ScrollView | null>(null);
-  const paneRef = useRef<View>(null);
-  const [keyboardTop, setKeyboardTop] = useState<number | null>(null);
-  const [paneBottom, setPaneBottom] = useState(0);
+  const { paneRef, measurePane, keyboardOpen, keyboardOverlap } = useChatKeyboard();
   const {
     closeOverlay,
     openChatScreen,
@@ -969,41 +966,6 @@ export function PikoraSurface({
   const allMessages = liveDraft ? [...messages, liveDraft] : messages;
   const showWelcome = allMessages.length === 0;
   const topInset = presentation === "overlay" ? 6 : 0;
-  const keyboardOverlap = Platform.OS === "ios" && keyboardTop !== null
-    ? Math.max(0, paneBottom - keyboardTop)
-    : 0;
-  const keyboardOpen = Platform.OS === "ios" ? keyboardOverlap > 0 : keyboardTop !== null;
-
-  useEffect(() => {
-    if (Platform.OS === "web") return;
-    const sync = () => setKeyboardTop(Keyboard.metrics?.()?.screenY ?? null);
-    const show = Keyboard.addListener("keyboardDidShow", (event) => {
-      setKeyboardTop(event.endCoordinates.screenY);
-    });
-    const hide = () => setKeyboardTop(null);
-    const didHide = Keyboard.addListener("keyboardDidHide", hide);
-    const willHide = Platform.OS === "ios" ? Keyboard.addListener("keyboardWillHide", hide) : null;
-    const willChange = Platform.OS === "ios"
-      ? Keyboard.addListener("keyboardWillChangeFrame", (event) => {
-        Keyboard.scheduleLayoutAnimation(event);
-        setKeyboardTop(event.endCoordinates.screenY);
-      })
-      : null;
-    sync();
-    return () => {
-      show.remove();
-      didHide.remove();
-      willHide?.remove();
-      willChange?.remove();
-    };
-  }, []);
-
-  const measurePane = () => {
-    if (Platform.OS !== "ios") return;
-    paneRef.current?.measureInWindow((_x, y, _width, height) => {
-      if (height > 0) setPaneBottom(y + height);
-    });
-  };
 
   useEffect(() => {
     const timeout = setTimeout(() => {

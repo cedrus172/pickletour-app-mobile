@@ -14,8 +14,6 @@ import React,
 import {
   ActivityIndicator,
   Image,
-  Keyboard,
-  KeyboardAvoidingView,
   Linking,
   Platform,
   Pressable,
@@ -37,6 +35,7 @@ import {
   useTrackEventLiveViewMutation,
   usePingEventLiveViewerMutation,
 } from "@/slices/eventLiveApiSlice";
+import { useChatKeyboard } from "@/hooks/useChatKeyboard";
 import EventLiveChat from "@/components/EventLiveChat";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
 
@@ -293,23 +292,21 @@ export default function EventLiveScreen() {
     if (!live.length && replays.length) setTab("replay");
   }, [live.length, replays.length]);
 
-  const [kbVisible, setKbVisible] = useState(false);
-  useEffect(() => {
-    const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvt = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-    const s1 = Keyboard.addListener(showEvt, () => setKbVisible(true));
-    const s2 = Keyboard.addListener(hideEvt, () => setKbVisible(false));
-    return () => { s1.remove(); s2.remove(); };
-  }, []);
-
-  const hidePlayer = tab === "chat" && kbVisible;
+  const { paneRef, measurePane, keyboardOpen, keyboardOverlap } = useChatKeyboard();
+  const hidePlayer = tab === "chat" && keyboardOpen;
 
   const eventName = data?.eventName || "Giải đấu trực tiếp";
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.root, { paddingTop: insets.top }]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <View
+      ref={paneRef}
+      collapsable={false}
+      onLayout={measurePane}
+      style={[
+        styles.root,
+        { paddingTop: insets.top },
+        tab === "chat" && { paddingBottom: keyboardOpen ? keyboardOverlap : insets.bottom },
+      ]}
     >
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar style={C.statusBar} />
@@ -562,7 +559,7 @@ export default function EventLiveScreen() {
           )}
         </ScrollView>
       )}
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

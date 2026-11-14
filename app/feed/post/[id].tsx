@@ -19,8 +19,6 @@ import {
   Alert,
   Dimensions,
   Image,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -28,8 +26,8 @@ import {
 } from "react-native";
 import { TextInput } from "@/components/ui/i18nTextInput";
 import { Text } from "@/components/ui/i18nText";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useChatKeyboard } from "@/hooks/useChatKeyboard";
 import { useSelector } from "react-redux";
 
 import {
@@ -507,7 +505,8 @@ export default function FeedPostDetail() {
   const styles = useMemo(() => mk_styles(C), [C]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const me = useSelector((s: any) => s.auth?.userInfo);
-  const headerHeight = useHeaderHeight();
+  const insets = useSafeAreaInsets();
+  const { paneRef, measurePane, keyboardOpen, keyboardOverlap } = useChatKeyboard();
   const dispatch = useDispatch();
   const socket = useSocket();
   const {
@@ -872,12 +871,13 @@ export default function FeedPostDetail() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <View style={styles.container}>
       <Stack.Screen options={{ title: t("Chi tiết bài viết") }} />
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
+      <View
+        ref={paneRef}
+        collapsable={false}
+        onLayout={measurePane}
+        style={{ flex: 1, paddingBottom: keyboardOpen ? keyboardOverlap : insets.bottom }}
       >
         <ScrollView
           style={{ flex: 1 }}
@@ -1203,14 +1203,14 @@ export default function FeedPostDetail() {
             </Pressable>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
       <ReactorsModal
         visible={!!reactorsOpen}
         onClose={() => setReactorsOpen(null)}
         postId={reactorsOpen?.kind === "post" ? reactorsOpen.id : null}
         commentId={reactorsOpen?.kind === "comment" ? reactorsOpen.id : null}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -1278,7 +1278,6 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     backgroundColor: C.card,
     paddingHorizontal: 12,
     paddingTop: 10,
-    // SafeAreaView edges=["bottom"] đã trừ home indicator, thêm 12 để thoáng.
     paddingBottom: 12,
   },
   replyIndicator: {
