@@ -23,6 +23,7 @@ import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/d
 import { useLiveControlCallMutation, useSetScoreboardScaleMutation, useLazyGetAutoLiveSessionQuery, useSetLiveTitleMutation, useCreateRtspSourceMutation } from "@/slices/liveControlApiSlice";
 import { WebView } from "react-native-webview";
 import { BASE_URL } from "@/slices/apiSlice";
+import { groupRtspByVenue } from "@/utils/rtspVenue";
 
 const SB_SCALE_PRESETS = [0.7, 0.85, 1, 1.2, 1.4, 1.6];
 const OV_CORNERS: [string, string][] = [
@@ -124,7 +125,7 @@ export default function LiveAddScreen() {
   }, [overlayStyle, ovLayout, browserOverlayUrl, sbScale]);
 
   // Modal picker
-  const [picker, setPicker] = useState<{ title: string; items: { label: string; value: any }[]; onPick: (v: any) => void } | null>(null);
+  const [picker, setPicker] = useState<{ title: string; items: { label: string; value?: any; header?: boolean }[]; onPick: (v: any) => void } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -497,7 +498,7 @@ export default function LiveAddScreen() {
           <Row label="Nguồn">
             <Seg options={[{ v: "rtsp", l: "RTSP lưu" }, { v: "url", l: "Link" }, { v: "imou", l: "Imou" }]} value={srcType} onChange={setSrcType} />
             <View style={{ height: 8 }} />
-            {srcType === "rtsp" && <SelectBtn text={opt.rtspSources[rtspIdx]?.label} onPress={() => setPicker({ title: "Nguồn RTSP", items: opt.rtspSources.map((s: any, i: number) => ({ label: s.label, value: i })), onPick: setRtspIdx })} />}
+            {srcType === "rtsp" && <SelectBtn text={opt.rtspSources[rtspIdx]?.label} onPress={() => setPicker({ title: "Nguồn RTSP", items: groupRtspByVenue<any>(opt.rtspSources).flatMap((g) => [{ label: g.venue, header: true }, ...g.items.map(({ source: s, index: i }) => ({ label: s.label, value: i }))]), onPick: setRtspIdx })} />}
             {srcType === "rtsp" && !addRtspOpen && (
               <Pressable onPress={openAddRtsp} style={{ marginTop: 8, alignSelf: "flex-start" }}>
                 <Text style={{ color: C.primary, fontWeight: "700", fontSize: 13 }}>➕ Thêm nguồn RTSP mới</Text>
@@ -734,6 +735,9 @@ export default function LiveAddScreen() {
               <ScrollView>
                 {(picker.items || []).length === 0 && <Text style={{ color: C.sub }}>(trống)</Text>}
                 {(picker.items || []).map((it, i) => {
+                  if (it.header) {
+                    return <Text key={i} style={{ color: C.sub, fontWeight: "800", marginTop: i ? 12 : 0, marginBottom: 4 }}>{it.label}</Text>;
+                  }
                   const multi = (picker as any).multi;
                   const sel = multi ? ((picker as any).selected || []).includes(it.value) : false;
                   return (
