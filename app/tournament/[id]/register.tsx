@@ -2837,11 +2837,12 @@ export default function TournamentRegistrationScreen() {
             </RegisterGlassSurface>
           )}
 
-          {/* HTML Columns (Content/Contact) */}
-          <HtmlCols tour={tour} />
           <TournamentSponsors id={String(tour?._id || "")} colors={{
             card: C.cardBg, border: C.border, title: C.textPrimary, muted: C.textSecondary, accent: C.tint,
           }} />
+
+          {/* HTML Columns (Content/Contact) */}
+          <HtmlCols tour={tour} />
           <TournamentRuleFiles tournamentId={String(id)} canManage={canManage} />
 
           {/* Registration Form */}
