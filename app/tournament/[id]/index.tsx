@@ -1,3 +1,4 @@
+import TournamentSponsors from "@/components/tournament/TournamentSponsors";
 import { t } from "@/utils/i18n";
 import { useUiVersion } from "@/hooks/uiVersion";
 /* eslint-disable react/prop-types */
@@ -1036,7 +1037,11 @@ export default function TournamentOverviewScreen() {
               </View>
             </View>
 
-            {/* progress bar */}
+            <TournamentSponsors id={typeof id === "string" ? id : ""} colors={{
+            card: T.card, border: T.border, title: T.text, muted: T.sub, accent: T.tint,
+          }} />
+
+          {/* progress bar */}
             <View
               style={[
                 S.progressWrap,

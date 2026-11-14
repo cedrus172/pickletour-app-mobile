@@ -1,3 +1,7 @@
+import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
+import { useSubmitTournamentPaymentProofMutation } from "@/slices/tournamentPaymentProofApi";
+import TournamentSponsors from "@/components/tournament/TournamentSponsors";
 import OverviewHeroArt from "@/components/tournament/OverviewHeroArt";
 import TournamentRuleFiles from "@/components/tournament/TournamentRuleFiles";
 import { t } from "@/utils/i18n";
@@ -1795,6 +1799,31 @@ export default function TournamentRegistrationScreen() {
     reg: null as any,
   });
 
+  const [submitPaymentProof, { isLoading: sendingProof }] = useSubmitTournamentPaymentProofMutation();
+  const pickingProof = useRef(false);
+  async function uploadPaymentProof() {
+    const reg = paymentDlg.reg;
+    if (!reg || sendingProof || pickingProof.current) return;
+    pickingProof.current = true;
+    try {
+      const selection = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
+      if (selection.canceled) return;
+      const asset = selection.assets[0];
+      const longest = Math.max(asset.width, asset.height);
+      const edits = longest > 2400 ? [{ resize: asset.width >= asset.height ? { width: 2400 } : { height: 2400 } }] : [];
+      const image = await ImageManipulator.manipulateAsync(asset.uri, edits, { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG });
+      const body = new FormData();
+      body.append("receipt", { uri: image.uri, type: "image/jpeg", name: "bien-lai.jpg" } as unknown as Blob);
+      const result = await submitPaymentProof({ id: reg._id, body }).unwrap();
+      Alert.alert(result.status === "approved" ? "Lệ phí đã được duyệt" : "Đã gửi biên lai",
+        result.status === "pending" ? "Chờ ban tổ chức duyệt." : undefined);
+    } catch (error: any) {
+      Alert.alert("Chưa gửi được biên lai", error?.data?.message || "Vui lòng thử lại.");
+    } finally {
+      pickingProof.current = false;
+    }
+  }
+
   // Computed & Handlers
   const evType = normType(tour?.eventType);
   const isSingles = evType === "single";
@@ -2810,6 +2839,9 @@ export default function TournamentRegistrationScreen() {
 
           {/* HTML Columns (Content/Contact) */}
           <HtmlCols tour={tour} />
+          <TournamentSponsors id={String(tour?._id || "")} colors={{
+            card: C.cardBg, border: C.border, title: C.textPrimary, muted: C.textSecondary, accent: C.tint,
+          }} />
           <TournamentRuleFiles tournamentId={String(id)} canManage={canManage} />
 
           {/* Registration Form */}
@@ -4015,6 +4047,14 @@ export default function TournamentRegistrationScreen() {
                   </Text>
                 </View>
               )}
+              {me?._id && paymentDlg.reg?.payment?.status !== "Paid" &&
+                [paymentDlg.reg?.createdBy, paymentDlg.reg?.player1?.user, paymentDlg.reg?.player2?.user]
+                  .some((user) => String(user?._id || user) === String(me._id)) && (
+                  <TouchableOpacity onPress={uploadPaymentProof} disabled={sendingProof}
+                    accessibilityRole="button" style={[styles.btnPrimary, { marginTop: 12, backgroundColor: C.tint }]}>
+                    <Text style={{ color: "#fff", fontWeight: "800" }}>{sendingProof ? "Đang gửi…" : "Gửi ảnh biên lai"}</Text>
+                  </TouchableOpacity>
+                )}
               <TouchableOpacity onPress={closePayment}>
                 <RegisterGlassSurface
                   C={C}

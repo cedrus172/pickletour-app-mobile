@@ -2010,6 +2010,15 @@ export default function HomeScreen() {
           </View>
               <View>
                 {v2 ? <QuickActions /> : null}
+                <TouchableOpacity activeOpacity={0.85} accessibilityRole="button" onPress={() => router.push("/game-hot")}
+                  style={styles.arcadeHome}>
+                  <HomeFeatureIcon id={43} size={62} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ color: HOME_COLORS.text, fontSize: 18, fontWeight: "900" }}>PickleTour Arcade</Text>
+                    <Text style={{ color: HOME_COLORS.primary, fontSize: 13, fontWeight: "700", marginTop: 3 }}>Chơi pickleball 3D trực tuyến</Text>
+                  </View>
+                  <Ionicons name="play-circle" size={28} color={HOME_COLORS.primary} />
+                </TouchableOpacity>
                 <EventLiveBanner />
                 <CourtBookingBanner />
                 <View style={{ height: compact ? 8 : 12 }} />
@@ -2037,6 +2046,18 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  arcadeHome: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+    padding: 12,
+    gap: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: HOME_COLORS.primary,
+    backgroundColor: HOME_COLORS.surfaceStrong,
+    borderRadius: 18,
+  },
   /* ============ V2 MODERN ============ */
   v2HeaderLogo: { flexDirection: "row", alignItems: "center", gap: 8 },
   v2HeaderEmblem: { width: 30, height: 30 },

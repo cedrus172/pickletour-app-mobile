@@ -1,3 +1,4 @@
+import TournamentPaymentProofCard from "@/components/tournament/TournamentPaymentProofCard";
 import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // app/messages/[cid].tsx — Chat window (Messenger-like)
 import {
@@ -1204,6 +1205,7 @@ export default function ChatWindow() {
                   {item.linkedPlay && (
                     <PlayChatCardRN play={item.linkedPlay} isMine={isMine} />
                   )}
+                  {!item.deletedAt && item.tournamentPaymentProof && <TournamentPaymentProofCard id={item.tournamentPaymentProof} />}
                   {item.arcadeInvite && (
                     <ArcadeInviteCardRN invite={item.arcadeInvite} isMine={isMine} />
                   )}
