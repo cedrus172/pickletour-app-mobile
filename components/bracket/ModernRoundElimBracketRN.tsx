@@ -96,20 +96,34 @@ function buildLayout(rounds: Round[]) {
   (rounds || []).forEach((round, roundIndex) => {
     const x = roundIndex * (CARD_W + COL_GAP);
     const seeds = Array.isArray(round?.seeds) ? round.seeds : [];
+    let prevBottom = -Infinity;
     const nodes: Node[] = seeds.map((seed: any, seedIndex: number) => {
       const key = seedKeyOf(seed, roundIndex + 1, seedIndex);
       let centerY = HEADER_H + seedIndex * (CARD_H + ROW_GAP) + CARD_H / 2;
 
       if (roundIndex > 0) {
-        const centers = sourceRefsOf(seed)
+        let centers = sourceRefsOf(seed)
           .map((ref) => positionsByKey.get(`${ref.round}:${ref.order}`)?.centerY)
           .filter((v) => Number.isFinite(v)) as number[];
+        // Trận BYE–BYE (không có trận nguồn): căn theo 2 trận vòng trước 2n, 2n+1
+        if (!centers.length) {
+          const order = Number(seed?.__match?.order ?? seedIndex);
+          const prevRound =
+            Number(seed?.__match?.round ?? seed?.__round ?? roundIndex + 1) - 1;
+          if (Number.isFinite(order) && Number.isFinite(prevRound)) {
+            centers = [order * 2, order * 2 + 1]
+              .map((o) => positionsByKey.get(`${prevRound}:${o}`)?.centerY)
+              .filter((v) => Number.isFinite(v)) as number[];
+          }
+        }
         if (centers.length) {
           centerY = centers.reduce((s, v) => s + v, 0) / centers.length;
         }
       }
 
-      const y = Math.max(HEADER_H, centerY - CARD_H / 2);
+      // Không cho thẻ chồng lên thẻ phía trên cùng cột
+      const y = Math.max(HEADER_H, centerY - CARD_H / 2, prevBottom + ROW_GAP);
+      prevBottom = y + CARD_H;
       const node: Node = {
         key: key || `${roundIndex + 1}:${seedIndex}`,
         seed,
