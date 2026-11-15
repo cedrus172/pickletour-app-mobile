@@ -240,11 +240,41 @@ function timeShort(ts?: any): string {
     return "";
   }
 }
+// Trận gán theo cụm sân lưu tên ở courtStationLabel (m.court = null) → đọc đủ các trường.
+function courtTextOf(value: any): string {
+  if (value == null) return "";
+  if (typeof value === "string" || typeof value === "number") {
+    const text = String(value).trim();
+    return !text || /^[a-f0-9]{24}$/i.test(text) ? "" : text;
+  }
+  if (typeof value === "object") {
+    return (
+      courtTextOf(value.name) ||
+      courtTextOf(value.label) ||
+      courtTextOf(value.title) ||
+      courtTextOf(value.code) ||
+      courtTextOf(value.displayName) ||
+      (Number.isFinite(value.number) ? `Sân ${value.number}` : "") ||
+      (Number.isFinite(value.no) ? `Sân ${value.no}` : "")
+    );
+  }
+  return "";
+}
 function courtNameOf(m: any): string {
-  const c = m?.court;
-  if (!c) return "";
-  if (typeof c === "string") return c;
-  return c?.name || c?.title || c?.label || "";
+  if (!m) return "";
+  return (
+    courtTextOf(m.courtStationLabel) ||
+    courtTextOf(m.courtStationName) ||
+    courtTextOf(m.courtLabel) ||
+    courtTextOf(m.courtName) ||
+    courtTextOf(m.courtStation) ||
+    courtTextOf(m.courtAssigned) ||
+    courtTextOf(m.assignedCourt) ||
+    courtTextOf(m.court) ||
+    courtTextOf(m.courtCode) ||
+    courtTextOf(m.courtTitle) ||
+    ""
+  );
 }
 function hasVideoOf(m: any): boolean {
   return !!(
@@ -736,7 +766,7 @@ export function ModernSeedCard({
               style={{
                 fontSize: 10,
                 color: isDark ? "#cbd5e1" : "#64748b",
-                maxWidth: 50,
+                maxWidth: 80,
               }}
               numberOfLines={1}
             >
