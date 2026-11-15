@@ -13,6 +13,11 @@
 
 # Add any project specific keep options here:
 
+# hot-updater: MainApplication.resolveHotUpdaterBundleFile() tìm com.hotupdater.HotUpdater
+# bằng reflection. Bản 1.1.21 bị R8 xoá lớp này → app luôn chạy gói nhúng, OTA tải về
+# không bao giờ được nạp → vòng "tải → reload → khôi phục". Giữ nguyên cả package.
+-keep class com.hotupdater.** { *; }
+
 # expo-camera still ships bytecode for CameraView.launchScanner in the
 # Expo prebuilt AAR. The app uses inline CameraView barcode scanning instead,
 # and play-services-code-scanner is excluded to avoid Google Play Services
