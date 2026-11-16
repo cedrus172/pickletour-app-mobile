@@ -1,7 +1,7 @@
 // components/home/HomeV3Features.tsx
 // Khối "Tính năng PickleTour" của giao diện V3 Fresh: ô tìm kiếm + các nhóm theo mục đích
 // (Thi đấu / Sân & Live / Cộng đồng / Tiện ích), dùng một bộ biểu tượng hai tông đồng nhất.
-// Game Hot và Đặt sân không nằm ở đây vì đã có banner riêng ở phần trên trang chủ.
+// Game Hot, Đặt sân (đã có banner ở phần trên trang chủ) và Bảng tin (đã có tab) không nằm ở đây.
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { Linking, Pressable, StyleSheet, View, type ImageSourcePropType } from "react-native";
 import { Image } from "expo-image";
@@ -27,7 +27,6 @@ const ICONS: Record<number, ImageSourcePropType> = {
   10: require("@/assets/images/v3/features/10.png"),
   11: require("@/assets/images/v3/features/11.png"),
   12: require("@/assets/images/v3/features/12.png"),
-  13: require("@/assets/images/v3/features/13.png"),
   14: require("@/assets/images/v3/features/14.png"),
   15: require("@/assets/images/v3/features/15.png"),
   16: require("@/assets/images/v3/features/16.png"),
@@ -41,7 +40,8 @@ const ICONS: Record<number, ImageSourcePropType> = {
 const GROUPS: { key: string; title: string; icon: keyof typeof Ionicons.glyphMap; ids: number[] }[] = [
   { key: "compete", title: "Thi đấu", icon: "trophy-outline", ids: [1, 2, 9, 12, 3] },
   { key: "courts", title: "Sân & Live", icon: "tv-outline", ids: [42, 6, 11] },
-  { key: "community", title: "Cộng đồng", icon: "people-outline", ids: [13, 8, 14, 15, 20, 17] },
+  // Bảng tin không nằm ở đây vì đã có tab riêng trên thanh điều hướng.
+  { key: "community", title: "Cộng đồng", icon: "people-outline", ids: [8, 14, 15, 20, 17] },
   { key: "utils", title: "Tiện ích", icon: "grid-outline", ids: [19, 5, 4, 16, 10] },
 ];
 
