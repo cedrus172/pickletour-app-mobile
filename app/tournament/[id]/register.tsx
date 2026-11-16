@@ -1677,7 +1677,7 @@ function MlpRegistrationRedirect({
 
 export default function TournamentRegistrationScreen() {
   const C = useThemeColors();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, aiPoster: aiPosterParam } = useLocalSearchParams<{ id: string; aiPoster?: string }>();
   const router = useRouter();
   const authUserInfo = useSelector((state: any) => state.auth?.userInfo);
   const authToken = String(authUserInfo?.token || "").trim();
@@ -1817,6 +1817,14 @@ export default function TournamentRegistrationScreen() {
   const [posterBusyId, setPosterBusyId] = useState("");
   const [aiPosterReg, setAiPosterReg] = useState<any>(null);
   const [aiPosterTemplateOpen, setAiPosterTemplateOpen] = useState(false);
+  // Mở AI Poster từ thông báo (?aiPoster=<regId>) khi danh sách đăng ký đã tải.
+  useEffect(() => {
+    const target = String(aiPosterParam || "");
+    if (!target || !Array.isArray(regs) || !regs.length) return;
+    const reg = regs.find((r: any) => String(r?._id || r?.id) === target);
+    if (reg) setAiPosterReg(reg);
+    router.setParams({ aiPoster: undefined } as any);
+  }, [aiPosterParam, regs, router]);
 
   const [replaceDlg, setReplaceDlg] = useState({
     open: false,

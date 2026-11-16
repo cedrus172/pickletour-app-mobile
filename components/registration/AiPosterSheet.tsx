@@ -75,6 +75,7 @@ function Body({ onClose, tournamentId, registration, templateUrl, onTemplateChan
   const [mode, setMode] = useState<"single" | "pair">("single");
   const [slot, setSlot] = useState<"p1" | "p2">("p1");
   const [photos, setPhotos] = useState<Record<string, string>>({});
+  const [useAvatar, setUseAvatar] = useState<Record<string, boolean>>({});
   const [polling, setPolling] = useState(false);
   const { data, isFetching, error, refetch } = useGetRegistrationAiPosterQuery(
     { tournamentId, regId },
@@ -94,13 +95,19 @@ function Body({ onClose, tournamentId, registration, templateUrl, onTemplateChan
   const quota = data?.quota;
   const noQuota = quota && quota.remaining !== null && quota.remaining <= 0;
   const neededSlots = mode === "pair" ? players.map((p) => p.slot) : [slot];
-  const ready = neededSlots.length > 0 && neededSlots.every((s) => photos[s]);
+  const avatarOf = (sl: string) => String(players.find((p) => p.slot === sl)?.avatarUrl || "");
+  const usesAvatar = (sl: string) => Boolean(useAvatar[sl] && avatarOf(sl));
+  const ready =
+    neededSlots.length > 0 && neededSlots.every((sl) => photos[sl] || usesAvatar(sl));
   const latestDone = jobs.find((j) => j.status === "done");
 
   const choosePhoto = async (s: string) => {
     try {
       const uri = await pickImage();
-      if (uri) setPhotos((prev) => ({ ...prev, [s]: uri }));
+      if (uri) {
+        setPhotos((prev) => ({ ...prev, [s]: uri }));
+        setUseAvatar((prev) => ({ ...prev, [s]: false }));
+      }
     } catch {
       Alert.alert("Không chọn được ảnh");
     }
@@ -111,8 +118,12 @@ function Body({ onClose, tournamentId, registration, templateUrl, onTemplateChan
       const body = new FormData();
       body.append("mode", mode);
       if (mode === "single") body.append("slot", slot);
-      neededSlots.forEach((s) => {
-        body.append(`photo_${s}`, { uri: photos[s], type: "image/jpeg", name: `${s}.jpg` } as unknown as Blob);
+      neededSlots.forEach((sl) => {
+        if (usesAvatar(sl)) {
+          body.append(`useAvatar_${sl}`, "1");
+        } else {
+          body.append(`photo_${sl}`, { uri: photos[sl], type: "image/jpeg", name: `${sl}.jpg` } as unknown as Blob);
+        }
       });
       await createPoster({ tournamentId, regId, body }).unwrap();
       Alert.alert("Đã gửi yêu cầu", "AI đang tạo poster, thường mất 1–2 phút.");
@@ -266,15 +277,16 @@ function Body({ onClose, tournamentId, registration, templateUrl, onTemplateChan
             <View style={{ flexDirection: "row", gap: 10 }}>
               {neededSlots.map((sl) => {
                 const p = players.find((x) => x.slot === sl);
+                const shown = usesAvatar(sl) ? avatarOf(sl) : photos[sl];
                 return (
+                  <View key={sl} style={{ flex: 1, gap: 6 }}>
                   <TouchableOpacity
-                    key={sl}
                     onPress={() => choosePhoto(sl)}
                     disabled={submitting}
-                    style={[s.photoBox, { borderColor: photos[sl] ? C.primary : C.border, backgroundColor: C.card }]}
+                    style={[s.photoBox, { borderColor: shown ? C.primary : C.border, backgroundColor: C.card }]}
                   >
-                    {photos[sl] ? (
-                      <Image source={{ uri: photos[sl] }} style={s.photo} />
+                    {shown ? (
+                      <Image source={{ uri: shown }} style={s.photo} />
                     ) : (
                       <View style={[s.photo, { alignItems: "center", justifyContent: "center" }]}>
                         <Ionicons name="image-outline" size={36} color={C.sub} />
@@ -284,14 +296,29 @@ function Body({ onClose, tournamentId, registration, templateUrl, onTemplateChan
                       Ảnh {p?.name || sl}
                     </Text>
                     <Text style={{ color: C.sub, fontSize: 11 }}>
-                      {photos[sl] ? "Chạm để đổi ảnh" : "Chạm để chọn ảnh"}
+                      {usesAvatar(sl) ? "Đang dùng ảnh avatar" : photos[sl] ? "Chạm để đổi ảnh" : "Chạm để chọn ảnh"}
                     </Text>
                   </TouchableOpacity>
+                  {avatarOf(sl) ? (
+                    <TouchableOpacity
+                      onPress={() => setUseAvatar((prev) => ({ ...prev, [sl]: !usesAvatar(sl) }))}
+                      disabled={submitting}
+                      style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+                    >
+                      <Ionicons
+                        name={usesAvatar(sl) ? "checkbox" : "square-outline"}
+                        size={18}
+                        color={usesAvatar(sl) ? C.primary : C.sub}
+                      />
+                      <Text style={{ color: C.text, fontSize: 12, fontWeight: "700" }}>Dùng ảnh avatar</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  </View>
                 );
               })}
             </View>
             <Text style={{ color: C.sub, fontSize: 12 }}>
-              Nên dùng ảnh rõ mặt, thấy dáng người (toàn thân hoặc nửa người), ít người khác trong khung.
+              Có thể dùng ảnh avatar của VĐV hoặc chọn ảnh khác. Nên dùng ảnh rõ mặt, thấy dáng người (toàn thân hoặc nửa người), ít người khác trong khung.
             </Text>
 
             <TouchableOpacity
@@ -416,7 +443,7 @@ const s = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
-  photoBox: { flex: 1, borderWidth: 1.5, borderStyle: "dashed", borderRadius: 14, padding: 8, gap: 4 },
+  photoBox: { borderWidth: 1.5, borderStyle: "dashed", borderRadius: 14, padding: 8, gap: 4 },
   photo: { width: "100%", height: 160, borderRadius: 10 },
   btn: {
     flexDirection: "row",
