@@ -29,7 +29,6 @@ const ICONS: Record<number, ImageSourcePropType> = {
   12: require("@/assets/images/v3/features/12.png"),
   14: require("@/assets/images/v3/features/14.png"),
   15: require("@/assets/images/v3/features/15.png"),
-  16: require("@/assets/images/v3/features/16.png"),
   17: require("@/assets/images/v3/features/17.png"),
   19: require("@/assets/images/v3/features/19.png"),
   20: require("@/assets/images/v3/features/20.png"),
@@ -42,7 +41,8 @@ const GROUPS: { key: string; title: string; icon: keyof typeof Ionicons.glyphMap
   { key: "courts", title: "Sân & Live", icon: "tv-outline", ids: [42, 6, 11] },
   // Bảng tin không nằm ở đây vì đã có tab riêng trên thanh điều hướng.
   { key: "community", title: "Cộng đồng", icon: "people-outline", ids: [8, 14, 15, 20, 17] },
-  { key: "utils", title: "Tiện ích", icon: "grid-outline", ids: [19, 5, 4, 16, 10] },
+  // Thông báo không nằm ở đây vì đã có nút chuông ở đầu trang.
+  { key: "utils", title: "Tiện ích", icon: "grid-outline", ids: [19, 5, 4, 10] },
 ];
 
 const TINTS = ["#E8F1FF", "#ECF8E1", "#EFEBFF"];
