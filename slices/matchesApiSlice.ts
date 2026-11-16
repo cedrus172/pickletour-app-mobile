@@ -34,6 +34,11 @@ export const matchesApiSlice = apiSlice.injectEndpoints({
         { type: "Match", id: targetMatchId },
       ],
     }),
+    // Lịch sử điểm từng pha (replay matchliveevents) — dùng cho biểu đồ diễn biến điểm
+    getMatchScoreTimeline: builder.query({
+      query: (id) => `/api/matches/${id}/score-timeline`,
+      providesTags: (res, err, id) => [{ type: "Match", id }],
+    }),
   }),
 });
 
@@ -41,4 +46,5 @@ export const {
   useAdminPatchMatchMutation,
   useUpdateMatchSettingsMutation,
   useAdminSwapMatchTeamsMutation,
+  useGetMatchScoreTimelineQuery,
 } = matchesApiSlice;

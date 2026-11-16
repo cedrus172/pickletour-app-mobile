@@ -35,7 +35,14 @@ import { setLiveWatchPayload } from "@/components/live_list/liveWatchHandoff";
 import * as Clipboard from "expo-clipboard";
 import Toast from "react-native-toast-message";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useAdminPatchMatchMutation } from "@/slices/matchesApiSlice";
+import {
+  useAdminPatchMatchMutation,
+  useGetMatchScoreTimelineQuery,
+} from "@/slices/matchesApiSlice";
+import MatchScoreChart, {
+  TEAM_A_COLOR,
+  TEAM_B_COLOR,
+} from "@/components/match/MatchScoreChart";
 import { useLazyGetMatchPublicQuery } from "@/slices/tournamentsApiSlice";
 import { useShareToFeed } from "@/components/feed/ShareToFeedModal";
 import AdminMatchTools from "@/components/match/AdminMatchTools";
@@ -663,7 +670,7 @@ function formatStatus(status) {
   }
 }
 
-const PlayerLink = memo(({ person, align = "left", serving = false }) => {
+const PlayerLink = memo(({ person, align = "left", serving = false, color = "" }) => {
   const T = useThemeTokens();
 
   const uid =
@@ -695,6 +702,23 @@ const PlayerLink = memo(({ person, align = "left", serving = false }) => {
         align === "right" && { flexDirection: "row-reverse" },
       ]}
     >
+      <View
+        style={[
+          styles.playerAvatar,
+          { borderColor: color || T.softBorder, backgroundColor: T.softBg2 },
+        ]}
+      >
+        {person?.avatar || person?.user?.avatar ? (
+          <Image
+            source={{ uri: String(person?.avatar || person?.user?.avatar) }}
+            style={styles.playerAvatarImg}
+          />
+        ) : (
+          <Text style={{ color: T.textSecondary, fontWeight: "700", fontSize: 13 }}>
+            {String(nameWithNick(person) || "?").trim().charAt(0).toUpperCase()}
+          </Text>
+        )}
+      </View>
       {serving && (
         <MaterialIcons name="sports-tennis" size={16} color={T.tint} />
       )}
@@ -3536,6 +3560,14 @@ function MatchContent({ m, isLoading, liveLoading, onSaved }) {
   const isRefereeHere = isUserRefereeOfMatch(userInfo, merged);
 
   const status = merged?.status || "scheduled";
+  // Lịch sử điểm từng pha — chỉ tải khi trận đã/đang diễn ra.
+  const { data: scoreTimelineData } = useGetMatchScoreTimelineQuery(
+    lockedId ? String(lockedId) : skipToken,
+    { skip: !lockedId || status === "scheduled" },
+  );
+  const scoreTimeline = Array.isArray(scoreTimelineData?.timeline)
+    ? scoreTimelineData.timeline
+    : [];
   const shownGameScores = merged?.gameScores ?? [];
 
   // Tay giao 1/2 (chỉ hiển thị — KHÔNG đụng backend). serve.side="A"|"B",
@@ -4209,21 +4241,29 @@ function MatchContent({ m, isLoading, liveLoading, onSaved }) {
             </View>
           </View>
 
-          <View style={styles.matchupContainer}>
+          <View style={styles.matchupStack}>
             {/* TEAM A */}
-            <View style={styles.teamColumn}>
+            <View style={[styles.teamBlock, { borderLeftColor: TEAM_A_COLOR }]}>
+              <View style={styles.teamLabelRow}>
+                {merged?.winner === "A" && status === "finished" && (
+                  <MaterialIcons name="emoji-events" size={16} color="#FACC15" />
+                )}
+                <Text style={[styles.teamLabel, { color: TEAM_A_COLOR }]}>Đội A</Text>
+              </View>
               {hasResolvedPair(merged?.pairA) && !blockA ? (
                 <View style={styles.avatarsColumn}>
                   <PlayerLink
                     person={pairPlayerAt(merged.pairA, 0)}
                     onOpen={openProfile}
                     serving={!!serveFlags.a1}
+                    color={TEAM_A_COLOR}
                   />
                   {!isSingle && (
                     <PlayerLink
                       person={pairPlayerAt(merged.pairA, 1)}
                       onOpen={openProfile}
                       serving={!!serveFlags.a2}
+                      color={TEAM_A_COLOR}
                     />
                   )}
                 </View>
@@ -4246,33 +4286,42 @@ function MatchContent({ m, isLoading, liveLoading, onSaved }) {
 
             {/* BIG SCORE */}
             <View style={styles.scoreColumn}>
-              <Text style={[styles.bigScore, { color: T.textPrimary }]}>
-                {lastGameScore(shownGameScores).a ?? 0} -{" "}
-                {lastGameScore(shownGameScores).b ?? 0}
+              <Text style={styles.bigScore}>
+                <Text style={{ color: TEAM_A_COLOR }}>
+                  {lastGameScore(shownGameScores).a ?? 0}
+                </Text>
+                <Text style={{ color: T.textSecondary }}> – </Text>
+                <Text style={{ color: TEAM_B_COLOR }}>
+                  {lastGameScore(shownGameScores).b ?? 0}
+                </Text>
               </Text>
               <Text style={[styles.setScore, { color: T.textSecondary }]}>
-                Sets: {setsA} - {setsB}
+                Sets {setsA} – {setsB}
               </Text>
             </View>
 
             {/* TEAM B */}
-            <View style={styles.teamColumn}>
+            <View style={[styles.teamBlock, { borderLeftColor: TEAM_B_COLOR }]}>
+              <View style={styles.teamLabelRow}>
+                {merged?.winner === "B" && status === "finished" && (
+                  <MaterialIcons name="emoji-events" size={16} color="#FACC15" />
+                )}
+                <Text style={[styles.teamLabel, { color: TEAM_B_COLOR }]}>Đội B</Text>
+              </View>
               {hasResolvedPair(merged?.pairB) && !blockB ? (
-                <View
-                  style={[styles.avatarsColumn, { alignItems: "flex-end" }]}
-                >
+                <View style={styles.avatarsColumn}>
                   <PlayerLink
                     person={pairPlayerAt(merged.pairB, 0)}
                     onOpen={openProfile}
-                    align="right"
                     serving={!!serveFlags.b1}
+                    color={TEAM_B_COLOR}
                   />
                   {!isSingle && (
                     <PlayerLink
                       person={pairPlayerAt(merged.pairB, 1)}
                       onOpen={openProfile}
-                      align="right"
                       serving={!!serveFlags.b2}
+                      color={TEAM_B_COLOR}
                     />
                   )}
                 </View>
@@ -4284,14 +4333,13 @@ function MatchContent({ m, isLoading, liveLoading, onSaved }) {
                       color: isPendingTeamLabel(teamBName)
                         ? T.textSecondary
                         : T.textPrimary,
-                      textAlign: "right",
                     },
                   ]}
                 >
                   {visibleTeamLabel(teamBName)}
                 </Text>
               )}
-              {renderServeBadgeRN("B", true)}
+              {renderServeBadgeRN("B")}
             </View>
           </View>
 
@@ -4443,6 +4491,25 @@ function MatchContent({ m, isLoading, liveLoading, onSaved }) {
             )}
           </View>
         </View>
+
+        {/* DIỄN BIẾN ĐIỂM (biểu đồ từ lịch sử điểm) */}
+        {scoreTimeline.length > 0 && (
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: T.cardBg, borderColor: T.cardBorder, ...T.shadow },
+            ]}
+          >
+            <MatchScoreChart
+              timeline={scoreTimeline}
+              dark={!!T.isDark}
+              textPrimary={T.textPrimary}
+              textSecondary={T.textSecondary}
+              cardBg={T.cardBg}
+              tint={T.tint}
+            />
+          </View>
+        )}
 
         {/* ADMIN TOOLBAR */}
         {canManage && (
@@ -4603,6 +4670,14 @@ const styles = StyleSheet.create({
   avatarsColumn: {
     gap: 8,
   },
+  matchupStack: {
+    gap: 12,
+  },
+  teamBlock: {
+    gap: 8,
+    borderLeftWidth: 3,
+    paddingLeft: 10,
+  },
   scoreColumn: {
     alignItems: "center",
     paddingHorizontal: 10,
@@ -4627,8 +4702,20 @@ const styles = StyleSheet.create({
   playerLinkContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
   },
+  playerAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  playerAvatarImg: { width: "100%", height: "100%" },
+  teamLabelRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  teamLabel: { fontSize: 13, fontWeight: "800" },
   linkText: {
     fontSize: 14,
     fontWeight: "600",
