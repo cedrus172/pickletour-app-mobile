@@ -25,11 +25,12 @@ import {
   isValidRankNo,
 } from "@/utils/rankUtils";
 
-const LOGO_LOCKUP = require("@/assets/images/v3/logo-lockup.png");
+// Giữ logo PickleTour gốc (huy hiệu) — V3 chỉ đổi phong cách giao diện, không đổi logo.
+const LOGO_BADGE = require("@/assets/images/logo-v2-badge.png");
 const HERO_COURT = require("@/assets/images/v3/hero-court.jpg");
 const ARCADE_BANNER = require("@/assets/images/v3/arcade-banner.jpg");
 
-const LOGO_ASPECT = 900 / 191;
+const LOGO_ASPECT = 1237 / 1088; // tỉ lệ file badge đã trim
 
 /* ------------------------------------------------------------------ */
 /* Nền trang                                                           */
@@ -49,7 +50,7 @@ export const HomeV3Hero = memo(function HomeV3Hero({ width }: { width: number })
   const insets = useSafeAreaInsets();
   const sideNavigation = useDuoSideNavigation();
   const heroHeight = Math.round(Math.min(Math.max(width * 0.5, 180), 300));
-  const logoWidth = Math.round(Math.min(Math.max(width * 0.46, 170), 250));
+  const logoWidth = Math.round(Math.min(Math.max(width * 0.24, 88), 124));
   return (
     <View style={{ height: heroHeight }}>
       <Image source={HERO_COURT} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="right center" transition={200} />
@@ -57,9 +58,9 @@ export const HomeV3Hero = memo(function HomeV3Hero({ width }: { width: number })
       <LinearGradient pointerEvents="none" colors={[V3.gradPage[0], "rgba(247,250,255,0)"]} style={styles.heroFadeTop} />
       <LinearGradient pointerEvents="none" colors={["rgba(247,250,255,0)", V3.gradPage[0]]} style={styles.heroFadeBottom} />
       <Image
-        source={LOGO_LOCKUP}
+        source={LOGO_BADGE}
         accessibilityLabel="PickleTour"
-        style={{ position: "absolute", left: 16, top: 12, width: logoWidth, height: logoWidth / LOGO_ASPECT }}
+        style={{ position: "absolute", left: 14, top: 8, width: logoWidth, height: logoWidth / LOGO_ASPECT }}
         contentFit="contain"
       />
       <View

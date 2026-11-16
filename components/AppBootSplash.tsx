@@ -32,10 +32,9 @@ export default function AppBootSplash({ isAppReady }: AppBootSplashProps) {
   const loadingMotion = useRef(new Animated.Value(0)).current;
   const { width, height } = frame;
   const landscape = width > height;
-  const logoWidth = IS_V3
-    ? Math.min(width * 0.7, 420)
-    : Math.min(width * 0.79, height * (landscape ? 0.5 : 0.4));
-  const logoHeight = IS_V3 ? logoWidth * (191 / 900) : logoWidth * (1080 / 1238);
+  // V3 giữ logo PickleTour gốc, chỉ thu nhỏ hơn một chút cho hợp nền sáng.
+  const logoWidth = Math.min(width * (IS_V3 ? 0.6 : 0.79), height * (landscape ? 0.5 : 0.4));
+  const logoHeight = logoWidth * (1080 / 1238);
   const brandTop = height * (landscape ? 0.38 : 0.396) - logoHeight / 2;
   const loaderWidth = Math.min(width * 0.3, 160);
 
@@ -128,9 +127,7 @@ export default function AppBootSplash({ isAppReady }: AppBootSplashProps) {
       )}
       <View style={[s.content, { top: brandTop }]} testID="boot-splash-brand">
         <Image
-          source={IS_V3
-            ? require("../assets/images/v3/logo-lockup.png")
-            : require("../assets/images/logo-v2-badge.png")}
+          source={require("../assets/images/logo-v2-badge.png")}
           style={{ width: logoWidth, height: logoHeight }}
           contentFit="contain"
           accessibilityLabel="PickleTour"
