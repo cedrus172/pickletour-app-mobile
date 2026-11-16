@@ -998,7 +998,7 @@ const RegItem = memo(function RegItem({
     [r?.player1?.user, r?.player2?.user].some((u) => uidOf(u) === String(myUserId));
   // Admin / quản lý giải: mọi cặp (kể cả chưa thanh toán, chưa có ảnh mẫu → tải trong màn AI Poster).
   const canAiPoster =
-    Boolean(onOpenAiPoster) && (canManage || (aiPosterEnabled && isPaid && isMember));
+    Boolean(onOpenAiPoster) && (canManage || (aiPosterEnabled && isMember));
   const { state } = decideTotalState(total, cap, delta);
   const totalColor =
     state === "error"

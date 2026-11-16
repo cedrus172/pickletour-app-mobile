@@ -235,10 +235,18 @@ function Body({ onClose, tournamentId, registration, templateUrl, onTemplateChan
           </View>
         ) : !data?.canUse ? (
           <Text style={{ color: C.sub }}>
-            Chỉ VĐV trong cặp đã được xác nhận đăng ký mới tạo được AI Poster.
+            Chỉ VĐV trong cặp đăng ký mới tạo được AI Poster.
           </Text>
         ) : (
           <>
+            {data?.needsPayment && (
+              <View style={[s.note, { backgroundColor: "rgba(245,158,11,0.12)", borderColor: C.tint }]}>
+                <Ionicons name="card-outline" size={20} color={C.tint} />
+                <Text style={{ color: C.text, flex: 1, fontWeight: "700" }}>
+                  Đăng ký của bạn chưa thanh toán lệ phí. Vui lòng thanh toán trước để tạo AI Poster.
+                </Text>
+              </View>
+            )}
             <View style={s.rowBetween}>
               {!isSingleEvent ? (
                 <View style={{ flexDirection: "row", gap: 8 }}>
@@ -323,11 +331,17 @@ function Body({ onClose, tournamentId, registration, templateUrl, onTemplateChan
 
             <TouchableOpacity
               onPress={submit}
-              disabled={!ready || submitting || pending || !!noQuota}
-              style={[s.btn, { backgroundColor: C.tint, opacity: !ready || submitting || pending || noQuota ? 0.5 : 1 }]}
+              disabled={!ready || submitting || pending || !!noQuota || !!data?.needsPayment}
+              style={[
+                s.btn,
+                {
+                  backgroundColor: C.tint,
+                  opacity: !ready || submitting || pending || noQuota || data?.needsPayment ? 0.5 : 1,
+                },
+              ]}
             >
               {submitting ? <ActivityIndicator color="#111827" /> : <Ionicons name="sparkles" size={18} color="#111827" />}
-              <Text style={s.btnText}>Tạo poster</Text>
+              <Text style={s.btnText}>{data?.needsPayment ? "Cần thanh toán trước" : "Tạo poster"}</Text>
             </TouchableOpacity>
 
             {pending && (
