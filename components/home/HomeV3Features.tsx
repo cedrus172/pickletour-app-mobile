@@ -17,7 +17,6 @@ export type HomeFeature = { id: number; title: string; link?: string };
 // Static require để mọi icon đều nằm trong bundle (kể cả bản OTA).
 const ICONS: Record<number, ImageSourcePropType> = {
   1: require("@/assets/images/v3/features/1.png"),
-  2: require("@/assets/images/v3/features/2.png"),
   3: require("@/assets/images/v3/features/3.png"),
   4: require("@/assets/images/v3/features/4.png"),
   5: require("@/assets/images/v3/features/5.png"),
@@ -37,7 +36,8 @@ const ICONS: Record<number, ImageSourcePropType> = {
 
 // Nhóm theo id trong FEATURES của trang chủ (thứ tự = thứ tự hiển thị).
 const GROUPS: { key: string; title: string; icon: keyof typeof Ionicons.glyphMap; ids: number[] }[] = [
-  { key: "compete", title: "Thi đấu", icon: "trophy-outline", ids: [1, 2, 9, 12, 3] },
+  // Bảng xếp hạng không nằm ở đây vì đã có tab riêng trên thanh điều hướng.
+  { key: "compete", title: "Thi đấu", icon: "trophy-outline", ids: [1, 9, 12, 3] },
   { key: "courts", title: "Sân & Live", icon: "tv-outline", ids: [42, 6, 11] },
   // Bảng tin không nằm ở đây vì đã có tab riêng trên thanh điều hướng.
   { key: "community", title: "Cộng đồng", icon: "people-outline", ids: [8, 14, 15, 20, 17] },
