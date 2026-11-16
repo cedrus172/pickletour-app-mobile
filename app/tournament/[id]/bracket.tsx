@@ -5997,6 +5997,28 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
               <Text style={[styles.subTitle, { color: t.colors.text }]}>
                 Sơ đồ thi đấu: Playoff + Knockout
               </Text>
+              {(() => {
+                // Bục trao giải / thành tích lấy từ nhánh Knockout của sơ đồ gộp.
+                const koBracket = brackets?.[mergedBracket!.knockoutIndex];
+                const koMatches = (byBracket as any)[koBracket?._id] || [];
+                const mainMatches = koMatches.filter((m: any) => !isThirdPlaceMatch(m));
+                const gate = computeChampionGate(mainMatches);
+                const finalId = gate.allowed ? gate.matchId : null;
+                const podium = getKnockoutPodium({
+                  final: finalId ? mainMatches.find((match: any) => match._id === finalId) : null,
+                  mainMatches,
+                  thirdPlaceMatches: koMatches.filter(isThirdPlaceMatch),
+                  thirdPlaceEnabled: koBracket?.config?.blueprint?.thirdPlaceEnabled === true,
+                  getTeam(match: any, side: "A" | "B"): PodiumTeam | null {
+                    let players: PodiumTeam["players"] | undefined;
+                    const name = resolveSideLabel(match, side, (pair, eventType, source) => {
+                      players = readBracketRoster(pair, eventType, source);
+                    });
+                    return players && isUsefulSideLabel(name) ? { name, players } : null;
+                  },
+                });
+                return <KnockoutPodium placements={podium} />;
+              })()}
               <ModernMergedBracketRN
                 sections={mergedBracket!.sections}
                 onOpenMatch={openMatch}
