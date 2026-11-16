@@ -10,6 +10,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   TouchableOpacity,
   View,
   useColorScheme,
@@ -27,6 +28,7 @@ import {
   useCreateRegistrationAiPosterMutation,
   useGetRegistrationAiPosterQuery,
   useUploadAiPosterTemplateMutation,
+  useSetLegacyPosterEnabledMutation,
 } from "@/slices/aiPosterApi";
 
 type Props = {
@@ -36,6 +38,7 @@ type Props = {
   // null = chế độ BTC chỉ quản lý ảnh mẫu AI Poster của giải.
   registration: any;
   templateUrl?: string;
+  legacyPosterEnabled?: boolean;
   onTemplateChanged?: () => void;
 };
 
@@ -82,7 +85,14 @@ async function pickImage() {
   return image.uri;
 }
 
-function Body({ onClose, tournamentId, registration, templateUrl, onTemplateChanged }: Omit<Props, "open">) {
+function Body({
+  onClose,
+  tournamentId,
+  registration,
+  templateUrl,
+  legacyPosterEnabled,
+  onTemplateChanged,
+}: Omit<Props, "open">) {
   const dark = useColorScheme() === "dark";
   const C = {
     bg: dark ? "#071226" : "#f8fafc",
@@ -108,6 +118,19 @@ function Body({ onClose, tournamentId, registration, templateUrl, onTemplateChan
   useEffect(() => setLocalTemplate(templateUrl || ""), [templateUrl]);
   const [createPoster, { isLoading: submitting }] = useCreateRegistrationAiPosterMutation();
   const [uploadTemplate, { isLoading: uploadingTemplate }] = useUploadAiPosterTemplateMutation();
+  const [setLegacyPoster, { isLoading: savingLegacy }] = useSetLegacyPosterEnabledMutation();
+  const [legacyOn, setLegacyOn] = useState(Boolean(legacyPosterEnabled));
+  useEffect(() => setLegacyOn(Boolean(legacyPosterEnabled)), [legacyPosterEnabled]);
+  const toggleLegacy = async (value: boolean) => {
+    setLegacyOn(value);
+    try {
+      await setLegacyPoster({ tournamentId, enabled: value }).unwrap();
+      onTemplateChanged?.();
+    } catch (e: any) {
+      setLegacyOn(!value);
+      Alert.alert("Không lưu được cài đặt", e?.data?.message || "Vui lòng thử lại.");
+    }
+  };
 
   const jobs: any[] = data?.jobs || [];
   const pending = jobs.some((j) => j.status === "queued" || j.status === "processing");
@@ -259,6 +282,16 @@ function Body({ onClose, tournamentId, registration, templateUrl, onTemplateChan
               )}
               <Text style={s.btnText}>{localTemplate ? "Đổi ảnh mẫu" : "Tải ảnh mẫu"}</Text>
             </TouchableOpacity>
+
+            <View style={[s.note, { backgroundColor: C.card, borderColor: C.border }]}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={{ color: C.text, fontWeight: "800" }}>Hiện nút &quot;Poster&quot; kiểu cũ</Text>
+                <Text style={{ color: C.sub, fontSize: 12 }}>
+                  Mặc định tắt: VĐV chỉ thấy nút AI Poster ở danh sách đăng ký.
+                </Text>
+              </View>
+              <Switch value={legacyOn} onValueChange={toggleLegacy} disabled={savingLegacy} />
+            </View>
           </View>
         ) : isFetching && !data ? (
           <ActivityIndicator style={{ marginTop: 40 }} />
@@ -516,6 +549,7 @@ export default function AiPosterSheet({
   tournamentId,
   registration,
   templateUrl,
+  legacyPosterEnabled,
   onTemplateChanged,
 }: Props) {
   return (
@@ -526,6 +560,7 @@ export default function AiPosterSheet({
           tournamentId={tournamentId}
           registration={registration}
           templateUrl={templateUrl}
+          legacyPosterEnabled={legacyPosterEnabled}
           onTemplateChanged={onTemplateChanged}
         />
       ) : null}

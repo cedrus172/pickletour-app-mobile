@@ -978,6 +978,7 @@ const RegItem = memo(function RegItem({
   isLoggedIn,
   myUserId,
   aiPosterEnabled,
+  legacyPosterEnabled,
   onOpenAiPoster,
   onJoinPartner,
   joinBusy,
@@ -991,7 +992,8 @@ const RegItem = memo(function RegItem({
   const code = regCodeOf(r);
   const posterRegId = String(r?._id || r?.id || code);
   const isPaid = r.payment?.status === "Paid";
-  const canOpenPoster = isPaid || canManage;
+  // Nút Poster kiểu cũ chỉ hiện khi BTC bật (mặc định tắt, dùng AI Poster).
+  const canOpenPoster = Boolean(legacyPosterEnabled) && (isPaid || canManage);
   const posterBusy = Boolean(posterRegId && posterBusyId === posterRegId);
   const uidOf = (u: any) => String(u?._id || u?.id || u || "");
   const isMember =
@@ -3512,6 +3514,7 @@ export default function TournamentRegistrationScreen() {
               busy={{ settingPayment, deletingId: cancelingId, demotingId }}
               posterBusyId={posterBusyId}
               aiPosterEnabled={Boolean((tour as any)?.aiPosterTemplateUrl)}
+              legacyPosterEnabled={(tour as any)?.legacyPosterEnabled === true}
               onOpenAiPoster={setAiPosterReg}
             />
           )}
@@ -3617,6 +3620,7 @@ export default function TournamentRegistrationScreen() {
               busy={{ settingPayment, deletingId: cancelingId, demotingId }}
               posterBusyId={posterBusyId}
               aiPosterEnabled={Boolean((tour as any)?.aiPosterTemplateUrl)}
+              legacyPosterEnabled={(tour as any)?.legacyPosterEnabled === true}
               onOpenAiPoster={setAiPosterReg}
             />
           )}
@@ -3912,6 +3916,7 @@ export default function TournamentRegistrationScreen() {
           tournamentId={String(id || "")}
           registration={aiPosterReg}
           templateUrl={String((tour as any)?.aiPosterTemplateUrl || "")}
+          legacyPosterEnabled={(tour as any)?.legacyPosterEnabled === true}
           onTemplateChanged={() => refetchTour()}
         />
         <ImageView
@@ -5286,7 +5291,8 @@ const R = StyleSheet.create({
   inputWrap: { minHeight: 48, backgroundColor: "#061D33", borderColor: "#23789D", shadowOpacity: 0, elevation: 0 },
   actionTouch: { flexBasis: "30%", minWidth: 0, flexGrow: 1, minHeight: 48 },
   actionTile: { flexBasis: "auto", minWidth: 0, width: "100%", minHeight: 58, borderWidth: 1, borderColor: "#23789D", shadowOpacity: 0, elevation: 0 },
-  iconAction: { width: "100%", minHeight: 46, borderWidth: 1, borderColor: "#174A6C", flexDirection: "row", gap: 6, paddingHorizontal: 5, flexWrap: "wrap", paddingVertical: 8 },
+  // Cùng kiểu với actionTile (biểu tượng trên, chữ dưới, cao 58) để Thu phí / Chờ / Xóa không lệch hàng.
+  iconAction: { width: "100%", minHeight: 58, borderWidth: 1, borderColor: "#174A6C", flexDirection: "column", gap: 4, paddingHorizontal: 8, paddingVertical: 8 },
   actionLabel: { fontSize: 12, fontWeight: "700", textAlign: "center" },
   primary: { minHeight: 48, borderColor: "#12C8EC", shadowOpacity: 0, elevation: 0 },
   softButton: { minHeight: 46, borderWidth: 1, borderColor: "#23789D", backgroundColor: "#082138" },

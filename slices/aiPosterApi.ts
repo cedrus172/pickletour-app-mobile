@@ -22,6 +22,13 @@ const aiPosterApi = apiSlice.injectEndpoints({
         body,
       }),
     }),
+    setLegacyPosterEnabled: builder.mutation<any, { tournamentId: string; enabled: boolean }>({
+      query: ({ tournamentId, enabled }) => ({
+        url: `/api/tournaments/${tournamentId}/legacy-poster`,
+        method: "PUT",
+        body: { enabled },
+      }),
+    }),
   }),
 });
 
@@ -29,4 +36,5 @@ export const {
   useGetRegistrationAiPosterQuery,
   useCreateRegistrationAiPosterMutation,
   useUploadAiPosterTemplateMutation,
+  useSetLegacyPosterEnabledMutation,
 } = aiPosterApi;
