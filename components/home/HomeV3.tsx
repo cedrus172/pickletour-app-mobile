@@ -142,7 +142,7 @@ export const HomeV3UserCard = memo(function HomeV3UserCard() {
             <View style={styles.roleBadge}>
               <Ionicons name="star" size={9} color="#FFFFFF" />
             </View>
-            <Text style={styles.roleText} numberOfLines={1}>
+            <Text style={styles.roleText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
               {userInfo ? roleLabel(userInfo?.role) : "Cùng PickleTour"}
             </Text>
           </View>
