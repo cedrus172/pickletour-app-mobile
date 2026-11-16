@@ -2372,7 +2372,9 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
     sync: liveSync,
   } = useLiveMatch(matchId, null, {
     offlineSync: true,
-    optimisticUpdates: false,
+    // "server" = theo công tắc admin "Chấm điểm trên máy trước" (referee.optimisticScoringEnabled):
+    // bật → bấm là điểm nhảy ngay, đồng bộ ở nền; tắt → bản cũ, chờ server trả kết quả.
+    optimisticUpdates: "server",
     persistCache: false,
   });
   const match = useMemo(
@@ -4525,6 +4527,32 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
           paddingBottom: pageBottomInset,
         }}
       >
+        {/* Trạng thái đồng bộ khi chấm "trên máy trước": chỉ hiện lúc còn thao tác chưa lên server */}
+        {liveSync?.optimistic && (Number(liveSync?.pendingCount || 0) > 0 || liveSync?.online === false) ? (
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              bottom: pageBottomInset + 6,
+              alignSelf: "center",
+              zIndex: 60,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              paddingHorizontal: 12,
+              paddingVertical: 5,
+              borderRadius: 999,
+              backgroundColor: liveSync?.online === false ? "rgba(185,28,28,0.92)" : "rgba(180,83,9,0.92)",
+            }}
+          >
+            <MaterialIcons name={liveSync?.online === false ? "cloud-off" : "cloud-upload"} size={14} color="#fff" />
+            <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>
+              {liveSync?.online === false
+                ? `Mất mạng · ${Number(liveSync?.pendingCount || 0)} thao tác chờ gửi`
+                : `Đang đồng bộ ${Number(liveSync?.pendingCount || 0)} thao tác…`}
+            </Text>
+          </View>
+        ) : null}
         {/* ===== TOP MENU ===== */}
         <View
           style={[

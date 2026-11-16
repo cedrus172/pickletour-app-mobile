@@ -14,6 +14,7 @@ function isFinitePos(value) {
 
 function buildNormalizedRules(snapshot) {
   return {
+    bestOf: toNum(snapshot?.rules?.bestOf, 3),
     pointsToWin: toNum(snapshot?.rules?.pointsToWin, 11),
     winByTwo:
       snapshot?.rules?.winByTwo === undefined
@@ -54,6 +55,41 @@ function evaluateGameFinish(aRaw, bRaw, rules) {
   }
 
   return { finished: false, winner: null };
+}
+
+// Các hàm dưới đây PHẢI khớp backend/services/matchLiveSync.service.js: khi bật
+// "chấm trên máy trước" thì máy chỉ được đổi điểm ở những thao tác server sẽ chấp nhận.
+function resolveFinishedWinnerByScore(snapshot) {
+  const rules = buildNormalizedRules(snapshot);
+  let aWins = 0;
+  let bWins = 0;
+  for (const game of Array.isArray(snapshot?.gameScores) ? snapshot.gameScores : []) {
+    const result = evaluateGameFinish(toNum(game?.a, 0), toNum(game?.b, 0), rules);
+    if (!result.finished) continue;
+    if (result.winner === "A") aWins += 1;
+    if (result.winner === "B") bWins += 1;
+  }
+  const needWins = Math.floor(Number(rules.bestOf) / 2) + 1;
+  if (aWins >= needWins) return "A";
+  if (bWins >= needWins) return "B";
+  return "";
+}
+
+function isBreakActive(snapshot) {
+  const rawBreak = snapshot?.isBreak;
+  return Boolean(
+    rawBreak && typeof rawBreak === "object" && !Array.isArray(rawBreak) && rawBreak.active === true
+  );
+}
+
+function normalizeServeInput(inputServe = {}) {
+  const sideInput = String(inputServe?.side || "").trim().toUpperCase();
+  return {
+    side: sideInput === "B" ? "B" : "A",
+    server: Number(inputServe?.server) === 1 ? 1 : 2,
+    serverId: String(inputServe?.serverId || "").trim() || null,
+    opening: Boolean(inputServe?.opening),
+  };
 }
 
 function validSide(side) {
@@ -163,8 +199,13 @@ export function applyLiveSyncEventLocally(snapshot, input) {
   if (!["start", "point", "undo", "finish", "forfeit", "serve", "slots"].includes(type)) {
     return next;
   }
+  // Đang nghỉ giữa ván: server chặn cộng điểm / hoàn tác / đổi giao / đổi ô.
+  if (isBreakActive(next) && ["point", "undo", "serve", "slots"].includes(type)) {
+    return next;
+  }
 
   if (type === "start") {
+    if (next.status === "finished") return next;
     const opening = isDoublesSnapshot(next);
     next.status = "live";
     if (!next.startedAt) next.startedAt = new Date().toISOString();
@@ -219,7 +260,7 @@ export function applyLiveSyncEventLocally(snapshot, input) {
     };
     if (team !== prevServe.side) {
       next.serve = onLostRallyNextServe(prevServe);
-      const base = next?.meta?.slots?.base || next?.slots?.base;
+      const base = next?.slots?.base || next?.meta?.slots?.base;
       if (base && base[next.serve.side]) {
         const entry = Object.entries(base[next.serve.side]).find(
           ([, slot]) => Number(slot) === Number(next.serve.server)
@@ -242,13 +283,14 @@ export function applyLiveSyncEventLocally(snapshot, input) {
   }
 
   if (type === "serve") {
+    if (next.status === "finished") return next;
     const prevServe = {
       side: validSide(next.serve?.side),
       server: validServer(next.serve?.server),
       serverId: next.serve?.serverId || null,
       opening: Boolean(next.serve?.opening),
     };
-    applyServeState(next, payload);
+    applyServeState(next, normalizeServeInput(payload));
     ensureLiveLog(next);
     next.liveLog.push({
       type: "serve",
@@ -264,6 +306,7 @@ export function applyLiveSyncEventLocally(snapshot, input) {
   }
 
   if (type === "slots") {
+    if (next.status === "finished") return next;
     const prevBase = cloneSnapshot(next?.slots?.base || { A: {}, B: {} });
     const prevLayout = normalizeRefereeLayout(next?.meta?.refereeLayout);
     const prevServe = {
@@ -281,7 +324,7 @@ export function applyLiveSyncEventLocally(snapshot, input) {
       next.meta.refereeLayout = normalizeRefereeLayout(payload.layout);
     }
     if (payload.serve) {
-      applyServeState(next, payload.serve);
+      applyServeState(next, normalizeServeInput(payload.serve));
     }
     ensureLiveLog(next);
     next.liveLog.push({
@@ -336,9 +379,8 @@ export function applyLiveSyncEventLocally(snapshot, input) {
         applyServeState(next, entry.payload.prevServe);
       }
     } else if (undoType === "serve") {
-      if (entry?.payload?.prevServe) {
-        applyServeState(next, entry.payload.prevServe);
-      }
+      if (!entry?.payload?.prevServe) return next;
+      applyServeState(next, entry.payload.prevServe);
     } else if (undoType === "slots") {
       if (!next.slots || typeof next.slots !== "object") {
         next.slots = {};
@@ -360,7 +402,11 @@ export function applyLiveSyncEventLocally(snapshot, input) {
   }
 
   if (type === "finish" || type === "forfeit") {
-    if (!payload?.winner) return next;
+    if (!["A", "B"].includes(payload?.winner)) return next;
+    if (next.status === "finished") return next;
+    if (type === "finish" && resolveFinishedWinnerByScore(next) !== payload.winner) {
+      return next;
+    }
     next.status = "finished";
     next.winner = payload.winner;
     next.finishedAt = new Date().toISOString();

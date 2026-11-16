@@ -90,6 +90,18 @@ function shouldApplyLiveSyncRuntime(nextRuntime = {}, currentRuntime = {}) {
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 10000;
 
+// Công tắc admin "chấm trên máy trước" (referee.optimisticScoringEnabled). Server gửi kèm mọi
+// phản hồi live-sync + socket system-settings:update → đổi được mà KHÔNG cần cập nhật app.
+// Chưa biết (chưa nối server lần nào) = tắt, tức hành vi cũ.
+let lastKnownServerOptimistic = null;
+function readServerOptimisticFlag(payload) {
+  if (typeof payload?.optimisticScoring === "boolean") return payload.optimisticScoring;
+  if (typeof payload?.referee?.optimisticScoringEnabled === "boolean") {
+    return payload.referee.optimisticScoringEnabled;
+  }
+  return null;
+}
+
 export function useRefereeLiveSyncMatch(
   matchId,
   tokenFromArg,
@@ -97,7 +109,19 @@ export function useRefereeLiveSyncMatch(
 ) {
   const enabled = options?.enabled !== false;
   const persistCache = options?.persistCache === true;
-  const optimisticUpdates = options?.optimisticUpdates === true;
+  // optimisticUpdates: true = luôn bật; "server" = theo công tắc admin; khác = tắt.
+  const optimisticMode = options?.optimisticUpdates;
+  const [serverOptimistic, setServerOptimistic] = useState(
+    lastKnownServerOptimistic === true
+  );
+  const optimisticUpdates =
+    optimisticMode === true || (optimisticMode === "server" && serverOptimistic);
+  const noteServerOptimistic = useCallback((payload) => {
+    const flag = readServerOptimisticFlag(payload);
+    if (flag === null) return;
+    lastKnownServerOptimistic = flag;
+    setServerOptimistic((prev) => (prev === flag ? prev : flag));
+  }, []);
   const socket = useSocket();
   const mountedRef = useRef(false);
   const activeMatchIdRef = useRef(String(matchId || ""));
@@ -211,6 +235,7 @@ export function useRefereeLiveSyncMatch(
 
   const buildRuntimeState = useCallback(
     (payload = {}, options = {}) => {
+      noteServerOptimistic(payload);
       const runtime = resolveRuntimeFromPayload(payload);
       const ownerSource = Object.prototype.hasOwnProperty.call(options, "owner")
         ? options.owner
@@ -229,7 +254,7 @@ export function useRefereeLiveSyncMatch(
         lastRejectedBatch: nextRejectedBatch,
       };
     },
-    [ownerForRuntime, resolveRuntimeFromPayload]
+    [noteServerOptimistic, ownerForRuntime, resolveRuntimeFromPayload]
   );
 
   const httpRequest = useCallback(
@@ -951,17 +976,25 @@ export function useRefereeLiveSyncMatch(
             : null;
           if (optimistic) {
             dataRef.current = optimistic;
+            // Hiện điểm NGAY, không chờ ghi hàng chờ xuống bộ nhớ máy.
+            setDerivedState((prev) => ({
+              ...prev,
+              data: optimistic,
+              pendingCount: nextQueue.length,
+              error: null,
+            }));
           }
           await persistState({
             queue: nextQueue,
             snapshot: normalizeMatchDisplay(persistRef.current.snapshot),
           });
-          setDerivedState((prev) => ({
-            ...prev,
-            data: optimistic || prev.data,
-            pendingCount: nextQueue.length,
-            error: null,
-          }));
+          if (!optimistic) {
+            setDerivedState((prev) => ({
+              ...prev,
+              pendingCount: nextQueue.length,
+              error: null,
+            }));
+          }
           const onlineNow = state.online;
           const owner = persistRef.current.owner;
           if (onlineNow && (!owner || owner.isSelf)) {
@@ -1252,6 +1285,7 @@ export function useRefereeLiveSyncMatch(
       setDerivedState((prev) => ({ ...prev, owner }));
     };
     const onSystemSettingsUpdate = async (payload = {}) => {
+      noteServerOptimistic(payload);
       if (typeof payload?.referee?.matchControlLockEnabled !== "boolean") return;
 
       const runtimeState = buildRuntimeState(payload, {
@@ -1438,6 +1472,8 @@ export function useRefereeLiveSyncMatch(
       pendingCount: state.pendingCount,
       online: state.online,
       syncing: state.syncing,
+      // true = đang chấm "trên máy trước" (theo công tắc admin).
+      optimistic: optimisticUpdates,
       claiming: state.claiming,
       lastRejectedBatch: state.lastRejectedBatch,
       hasConflict:
@@ -1458,6 +1494,7 @@ export function useRefereeLiveSyncMatch(
       state.pendingCount,
       state.online,
       state.syncing,
+      optimisticUpdates,
       state.claiming,
       state.lastRejectedBatch,
       claim,
