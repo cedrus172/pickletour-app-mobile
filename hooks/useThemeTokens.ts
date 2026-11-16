@@ -8,7 +8,7 @@
 // và trong component: `const styles = useMemo(() => mkStyles(C), [C]);`
 import { useMemo } from "react";
 import { pal } from "@/utils/courtFormat";
-import { V2 } from "@/hooks/uiVersion";
+import { IS_V3, V2, V3 } from "@/hooks/uiVersion";
 
 /** Token cho giao diện V2 Modern (navy/cyan/volt theo logo). */
 const themeTokensV2 = () => {
@@ -45,12 +45,51 @@ const themeTokensV2 = () => {
     brandCyanBright: V2.cyanBright,
     volt: V2.volt,
     isV2: true,
+    isV3: false,
   };
 };
 
-export const themeTokens = themeTokensV2;
+export type ThemeTokens = ReturnType<typeof themeTokensV2>;
 
-export type ThemeTokens = ReturnType<typeof themeTokens>;
+/** Token cho giao diện V3 Fresh (nền sáng, xanh dương + xanh chanh). */
+const themeTokensV3 = (): ThemeTokens => {
+  const p = pal(false);
+  return {
+    ...p,
+    bg: V3.bg,
+    card: V3.card,
+    field: V3.field,
+    cardAlt: V3.cardAlt,
+    pressed: "rgba(20,102,242,0.08)",
+    border: V3.border,
+    line: V3.line,
+    text: V3.ink,
+    text2: V3.ink2,
+    text3: V3.sub,
+    sub: V3.sub,
+    muted: V3.muted,
+    overlay: "rgba(11,27,58,0.45)",
+    primary: V3.blue,
+    primarySoft: "rgba(20,102,242,0.10)",
+    unreadBg: "rgba(20,102,242,0.07)",
+    amberSoft: "rgba(245,158,11,0.14)",
+    amberText: "#B45309",
+    greenSoft: "rgba(22,163,74,0.12)",
+    greenText: "#15803D",
+    redSoft: "rgba(239,68,68,0.10)",
+    redText: "#DC2626",
+    purpleSoft: "rgba(124,58,237,0.10)",
+    onPrimary: "#FFFFFF",
+    statusBar: "dark" as "light" | "dark",
+    brandCyan: V3.blue,
+    brandCyanBright: V3.blueBright,
+    volt: V3.limeDeep,
+    isV2: false,
+    isV3: true,
+  };
+};
+
+export const themeTokens: () => ThemeTokens = IS_V3 ? themeTokensV3 : themeTokensV2;
 
 export function useThemeTokens(): ThemeTokens {
   return useMemo(themeTokens, []);

@@ -50,7 +50,15 @@ import {
   HOME_COLORS,
 } from "@/components/home/HomeDesign";
 import { SHOULD_RENDER_NATIVE_LOTTIE } from "@/utils/runtimeSafety";
-import { useUiVersion, V2 } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion, V2 } from "@/hooks/uiVersion";
+import {
+  HomeV3ArcadeBanner,
+  HomeV3Hero,
+  HomeV3Page,
+  HomeV3QuickTiles,
+  HomeV3Shortcuts,
+  HomeV3UserCard,
+} from "@/components/home/HomeV3";
 import { useResponsive } from "@/hooks/useResponsive";
 import PlayerNameText from "@/components/PlayerNameText";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
@@ -1000,8 +1008,8 @@ function FeatureItem({ item, theme, colWidth }) {
     { Ionicons, MaterialIcons, FontAwesome, FontAwesome5 }[item.iconLib] ||
     Ionicons;
 
-  // V2: dùng chung bộ biểu tượng cho các tính năng trên trang chủ.
-  if (v2) {
+  // V2/V3: dùng chung bộ biểu tượng cho các tính năng trên trang chủ.
+  if (v2 || IS_V3) {
     return (
       <TouchableOpacity
         activeOpacity={1}
@@ -1921,6 +1929,52 @@ export default function HomeScreen() {
     }
   }, [isFocused]);
 
+  // ===== V3 Fresh: trang chủ nền sáng theo thiết kế mới =====
+  if (IS_V3) {
+    return (
+      <HomeV3Page>
+        <View
+          style={[styles.homeRoot, { backgroundColor: "transparent" }]}
+          onLayout={(event) => setHomeWidth(event.nativeEvent.layout.width)}
+        >
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.homeScroll}
+            contentInsetAdjustmentBehavior="never"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ width: "100%", paddingBottom: bottomPadding }}
+          >
+            <View testID="home-responsive-layout" style={twoPane ? { width: homeWidth, flexDirection: "row", alignItems: "flex-start", gap: 16 } : undefined}>
+              <View testID="home-primary-pane" style={twoPane ? { width: paneWidth + 24 } : undefined}>
+                <HomeV3Hero width={twoPane ? paneWidth + 24 : homeWidth} />
+                <HomeV3UserCard />
+                <HomeV3QuickTiles />
+                <HomeV3ArcadeBanner />
+                <EventLiveBanner />
+                <CourtBookingBanner />
+                <HomeV3Shortcuts />
+                <View style={{ height: 22 }} />
+                <YoutubeClipsHome />
+                <View style={{ height: compact ? 4 : 8 }} />
+                <FeaturesGrid compactColumns={twoPane} />
+              </View>
+              <View testID="home-secondary-pane" style={twoPane ? { width: paneWidth - 8, paddingTop: 12, paddingRight: 16 } : undefined}>
+                <View style={{ height: gap }} />
+                <TournamentsSection />
+                <View style={{ height: gap }} />
+                <NewsSection />
+                <View style={{ height: gap }} />
+                <LeaderboardSection />
+                <View style={{ height: compact ? 10 : 16 }} />
+                <View style={{ paddingHorizontal: 16 }}><ContactCard /></View>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      </HomeV3Page>
+    );
+  }
+
   return (
     <>
       <Stack.Screen
@@ -2129,8 +2183,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderRadius: 19,
     borderWidth: 1,
-    borderColor: "rgba(18,201,238,0.18)",
-    backgroundColor: "#061B33",
+    borderColor: sk("rgba(18,201,238,0.18)", "rgba(16,42,92,0.06)"),
+    backgroundColor: sk("#061B33", "#FFFFFF"),
   },
   featureV2IconWrap: { position: "relative", marginBottom: 8 },
   newBadgeV2: { top: -6, right: -8 },

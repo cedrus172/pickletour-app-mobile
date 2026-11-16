@@ -10,7 +10,7 @@ export function useFloatingTabBarPadding(fallback: number): number {
   const tabBarHeight = useContext(BottomTabBarHeightContext);
   const theme = useTheme() as ReturnTypeTheme;
   const { bottom } = useSafeAreaInsets();
-  return theme.version === "v2" && tabBarHeight !== undefined
+  return (theme.version === "v2" || theme.version === "v3") && tabBarHeight !== undefined
     ? Math.max(fallback, FLOATING_TAB_BAR_HEIGHT + Math.max(bottom, 8) + 12)
     : fallback;
 }

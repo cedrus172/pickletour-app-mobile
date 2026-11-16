@@ -1,4 +1,5 @@
 // utils/courtFormat.ts — helper hiển thị cho đặt sân (mobile)
+import { IS_V3, V3 } from "@/hooks/uiVersion";
 const tz = { timeZone: "Asia/Ho_Chi_Minh" as const };
 
 export const fmtVND = (n: any) => `${(Number(n) || 0).toLocaleString("vi-VN")}đ`;
@@ -39,7 +40,7 @@ export const BOOKING_STATUS: Record<string, { label: string; color: string }> = 
   no_show: { label: "Không đến", color: "#ef4444" },
 };
 
-export const pal = (dark: boolean) => ({
+const palBase = (dark: boolean) => ({
   dark,
   bg: dark ? "#0b1020" : "#f4f6fb",
   card: dark ? "#141b2d" : "#ffffff",
@@ -61,6 +62,29 @@ export const pal = (dark: boolean) => ({
   heroGrad: ["#0f172a", "#134e5e"] as [string, string],
   heroGradAlt: ["#0f172a", "#1e3a8a"] as [string, string],
 });
+
+// Giao diện V3 Fresh: bảng sáng đổi sang xanh dương thương hiệu (thay teal của V1/V2).
+export const pal = (dark: boolean) => {
+  const base = palBase(dark);
+  if (!IS_V3 || dark) return base;
+  return {
+    ...base,
+    bg: V3.bg,
+    card: V3.card,
+    cardAlt: V3.cardAlt,
+    border: V3.border,
+    text: V3.ink,
+    sub: V3.sub,
+    muted: V3.muted,
+    field: V3.field,
+    accent: V3.blue,
+    accentSoft: "rgba(20,102,242,0.10)",
+    info: V3.blueBright,
+    onAccent: "#ffffff",
+    heroGrad: V3.gradDeep,
+    heroGradAlt: ["#0B2A6B", "#2F8BFF"] as [string, string],
+  };
+};
 
 // Nhãn + icon thời tiết theo WMO weather_code (open-meteo). Trả { icon (Ionicons), label }.
 export function weatherLabel(code?: number): { icon: string; label: string } {

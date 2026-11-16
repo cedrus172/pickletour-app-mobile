@@ -8,7 +8,7 @@ import { useSelector } from "react-redux";
 
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, useUiVersion } from "@/hooks/uiVersion";
 import { buildLoginHref } from "@/services/authSession";
 import { BottomNavigation } from "@/components/tabbar/FacebookTabBar";
 import { useNotifUnreadCountQuery } from "@/slices/notificationCenterApiSlice";
@@ -145,7 +145,8 @@ export default function TabLayout() {
   });
   const unreadCount = Number(unreadData?.count || 0);
 
-  const v2 = useUiVersion() === "v2";
+  // V3 Fresh dùng chung khung điều hướng hiện đại của V2 (dock nổi, 5 tab, thanh bên máy gập).
+  const v2 = useUiVersion() === "v2" || IS_V3;
   const isPikoraChat = pathname === "/more/chat" || pathname === "/chat";
   const renderTabBar = React.useCallback(
     (props: any) => isPikoraChat ? null : <BottomNavigation {...props} isDark={isDark} v2={v2} />,
@@ -174,7 +175,8 @@ export default function TabLayout() {
         lazy: false,
         freezeOnBlur: FREEZE_INACTIVE,
         detachInactiveScreens: false,
-        animation: "none",
+        // V3: chuyển tab có hiệu ứng trượt nhẹ + mờ dần.
+        animation: IS_V3 ? "shift" : "none",
       }}
     >
       <Tabs.Screen

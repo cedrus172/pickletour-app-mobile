@@ -8,8 +8,9 @@ import { NotificationHeaderActions } from "@/components/GlobalNotificationShell"
 import { useDuoSideNavigation } from "@/hooks/useDuoSideNavigation";
 
 import { Text } from "@/components/ui/i18nText";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 
-export const HOME_COLORS = {
+const HOME_COLORS_V2 = {
   background: "#020B1C",
   backgroundAlt: "#06152B",
   surface: "rgba(7,27,52,0.9)",
@@ -22,7 +23,25 @@ export const HOME_COLORS = {
   textSoft: "#DCEBFA",
   textMuted: "#8FAAC8",
   border: "rgba(90,180,230,0.25)",
-} as const;
+};
+
+// V3 Fresh: cùng bộ khoá màu nhưng trên nền sáng.
+const HOME_COLORS_V3: typeof HOME_COLORS_V2 = {
+  background: "#F7FAFF",
+  backgroundAlt: "#EEF4FC",
+  surface: "#FFFFFF",
+  surfaceStrong: "#FFFFFF",
+  primary: "#1466F2",
+  secondary: "#2F8BFF",
+  success: "#16A34A",
+  warning: "#E08A00",
+  text: "#0B1B3A",
+  textSoft: "#243450",
+  textMuted: "#5F6F8A",
+  border: "rgba(16,42,92,0.10)",
+};
+
+export const HOME_COLORS = IS_V3 ? HOME_COLORS_V3 : HOME_COLORS_V2;
 
 export const HomePage = memo(function HomePage({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
@@ -219,6 +238,6 @@ const styles = StyleSheet.create({
   sectionAccent: { width: 4, height: 19, borderRadius: 2, backgroundColor: HOME_COLORS.primary },
   sectionTitle: { color: HOME_COLORS.text, fontSize: 20, lineHeight: 25, fontWeight: "900", letterSpacing: -0.35 },
   sectionSubtitle: { color: HOME_COLORS.textMuted, fontSize: 12, lineHeight: 17, marginTop: 4, marginLeft: 12 },
-  sectionCount: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 9, paddingVertical: 6, borderRadius: 14, backgroundColor: "rgba(8,189,245,0.11)", borderWidth: 1, borderColor: "rgba(8,189,245,0.22)" },
+  sectionCount: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 9, paddingVertical: 6, borderRadius: 14, backgroundColor: sk("rgba(8,189,245,0.11)", "rgba(20,102,242,0.08)"), borderWidth: 1, borderColor: sk("rgba(8,189,245,0.22)", "rgba(20,102,242,0.16)") },
   sectionCountText: { color: HOME_COLORS.primary, fontSize: 12, fontWeight: "800" },
 });

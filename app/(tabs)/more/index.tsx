@@ -8,6 +8,7 @@ import { router,
 import React from "react";
 import { useSelector } from "react-redux";
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -45,6 +46,7 @@ import { useNotifUnreadCountQuery } from "@/slices/notificationCenterApiSlice";
 import { useMyLiveGrantsQuery } from "@/slices/liveGrantsApiSlice";
 import { useResponsive } from "@/hooks/useResponsive";
 import { useDuoSideNavigationActive } from "@/hooks/useDuoSideNavigation";
+import { applyUiVersion, IS_V3, UI_VERSION, V3 } from "@/hooks/uiVersion";
 
 const MORE_ITEMS = [
   {
@@ -326,7 +328,7 @@ export default function MoreIndexScreen() {
     const t = setInterval(() => setOtaDiagLine(readOtaDiag()), 2000);
     return () => clearInterval(t);
   }, []);
-  const pageBg = isDark ? theme.colors.background : "#F8FAFC";
+  const pageBg = isDark ? theme.colors.background : IS_V3 ? V3.bg : "#F8FAFC";
   const cardBg = isDark ? theme.colors.card : "rgba(255,255,255,0.9)";
   const borderColor = isDark ? "rgba(255,255,255,0.08)" : "#E2E8F0";
   const subText = isDark ? "#A1A1AA" : "#64748B";
@@ -345,10 +347,26 @@ export default function MoreIndexScreen() {
   const leftover = moreItems.filter((it) => !usedKeys.has(it.key));
   // Mục ngôn ngữ (đặc biệt: bên phải là nút gạt VI/EN thay cho chevron).
   const langItem = { key: "language", title: "Ngôn ngữ / Language", icon: "language" as const, accent: "#2563EB" };
+  // Mục chuyển phiên bản giao diện V2 (tối) ↔ V3 (sáng). Đổi xong app tự nạp lại.
+  const uiItem = { key: "ui-version", title: "Giao diện", icon: "color-palette" as const, accent: "#16A34A" };
+  const switchUiVersion = () => {
+    const next = UI_VERSION === "v3" ? "v2" : "v3";
+    Alert.alert(
+      t("Đổi giao diện"),
+      next === "v3"
+        ? t("Chuyển sang giao diện V3 (nền sáng, phong cách mới)? Ứng dụng sẽ tự nạp lại.")
+        : t("Chuyển về giao diện V2 (nền tối)? Ứng dụng sẽ tự nạp lại."),
+      [
+        { text: t("Huỷ"), style: "cancel" },
+        { text: t("Đổi ngay"), onPress: () => void applyUiVersion(next) },
+      ],
+    );
+  };
 
   // Một hàng trong nhóm. Dùng hàm (không phải component) để tránh remount thừa.
   const renderRow = (item: any, isLast: boolean) => {
     const isLang = item.key === "language";
+    const isUi = item.key === "ui-version";
     const badge =
       item.key === "friends"
         ? friendCounts?.incoming ?? 0
@@ -362,6 +380,8 @@ export default function MoreIndexScreen() {
           onPress={
             isLang
               ? () => setLang(lang === "vi" ? "en" : "vi")
+              : isUi
+              ? switchUiVersion
               : () =>
                   router.push(
                     (!isAuthed && item.key === "profile"
@@ -400,6 +420,25 @@ export default function MoreIndexScreen() {
                   ]}
                 >
                   EN
+                </Text>
+              </View>
+            ) : isUi ? (
+              <View style={[styles.langPill, { borderColor }]}>
+                <Text
+                  style={[
+                    styles.langSeg,
+                    { color: !IS_V3 ? "#fff" : theme.colors.text, backgroundColor: !IS_V3 ? "#16A34A" : "transparent" },
+                  ]}
+                >
+                  V2
+                </Text>
+                <Text
+                  style={[
+                    styles.langSeg,
+                    { color: IS_V3 ? "#fff" : theme.colors.text, backgroundColor: IS_V3 ? "#16A34A" : "transparent" },
+                  ]}
+                >
+                  V3
                 </Text>
               </View>
             ) : (
@@ -467,7 +506,7 @@ export default function MoreIndexScreen() {
         <View style={duoWide ? { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", rowGap: 16 } : { gap: 16 }}>
           {SECTIONS.map((s) => renderGroup(s.title, s.keys.map((k) => byKey[k]).filter(Boolean)))}
           {renderGroup("Khác", leftover)}
-          {renderGroup("Cài đặt", [langItem, byKey["notif-settings"]].filter(Boolean))}
+          {renderGroup("Cài đặt", [uiItem, langItem, byKey["notif-settings"]].filter(Boolean))}
         </View>
 
         <Text

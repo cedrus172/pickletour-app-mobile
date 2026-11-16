@@ -13,6 +13,8 @@ import React,
   { useEffect } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   View,
   AppState,
   Appearance,
@@ -65,7 +67,7 @@ import Toast from "react-native-toast-message";
 import analytics from "@/utils/analytics";
 import { t, initLang } from "@/utils/i18n";
 import * as SecureStore from "expo-secure-store";
-import { AppV2NavTheme } from "@/hooks/uiVersion";
+import { AppNavTheme, IS_V3 } from "@/hooks/uiVersion";
 import {
   increaseLaunchCountAndGet,
   initInstallDateIfNeeded,
@@ -134,6 +136,49 @@ TextInput.defaultProps.maxFontSizeMultiplier = 1;
 console.log("Is Fabric Enabled:", global.nativeFabricUIManager ? "YES" : "NO");
 
 const SPLASH_GLOBAL_FAILSAFE_MS = 5000;
+// Chỉ khi phát triển: ẩn thanh cảnh báo LogBox (che mất thanh tab trên simulator)
+//   EXPO_PUBLIC_HIDE_LOGBOX=1 npx expo start
+if (__DEV__ && process.env.EXPO_PUBLIC_HIDE_LOGBOX === "1") {
+  try {
+    require("react-native").LogBox.ignoreAllLogs(true);
+  } catch {}
+}
+
+// ===== V3 Fresh: hiệu ứng chuyển trang =====
+// Trang mới trượt vào (kiểu iOS) + nội dung mờ dần và nhích lên nhẹ khi xuất hiện.
+const V3_STACK_TRANSITION = {
+  animation: Platform.OS === "android" ? ("slide_from_right" as const) : ("default" as const),
+  animationDuration: 320,
+  gestureEnabled: true,
+};
+
+function V3ScreenEnter({ children }: { children: React.ReactNode }) {
+  const anim = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 340,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [anim]);
+  return (
+    <Animated.View
+      style={{
+        flex: 1,
+        opacity: anim,
+        transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
+      }}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
+const renderV3ScreenLayout = ({ children }: { children: React.ReactNode }) => (
+  <V3ScreenEnter>{children}</V3ScreenEnter>
+);
+
 const PREF_THEME_KEY = "PREF_THEME"; // "system" | "light" | "dark"
 const HOT_UPDATE_NOTIFY_EVENT = "hotupdater:notify";
 const HOT_UPDATE_NOTIFY_KEY = "__PICKLETOUR_HOTUPDATE_NOTIFY__";
@@ -1354,18 +1399,19 @@ function RootLayout() {
   // 3) Resolve theme
   const resolvedScheme =
     prefTheme === "system" ? systemScheme : (prefTheme as "light" | "dark");
-  const isDark = resolvedScheme === "dark";
+  // V3 Fresh luôn nền sáng; V2 giữ nguyên cách xác định cũ.
+  const isDark = IS_V3 ? false : resolvedScheme === "dark";
 
-  // V2 dùng nền tối; đồng bộ các thành phần đọc trực tiếp color scheme.
+  // V2 dùng nền tối, V3 dùng nền sáng; đồng bộ các thành phần đọc trực tiếp color scheme.
   React.useEffect(() => {
     try {
-      Appearance.setColorScheme("dark");
+      Appearance.setColorScheme(IS_V3 ? "light" : "dark");
     } catch {}
   }, []);
 
-  // Luôn dùng theme V2, kể cả khi thiết bị còn lưu lựa chọn V1 trước đây.
+  // Theme điều hướng theo phiên bản giao diện đã chọn lúc khởi động.
   const navTheme = React.useMemo(
-    () => ({ ...AppV2NavTheme, fonts: (isDark ? AppDarkTheme : AppLightTheme).fonts }),
+    () => ({ ...AppNavTheme, fonts: (isDark ? AppDarkTheme : AppLightTheme).fonts }),
     [isDark],
   );
   const bg = navTheme.colors.background;
@@ -2085,7 +2131,9 @@ function RootLayout() {
                         <ChatBotPageContextProvider>
                         <PikoraProvider>
                           <Stack
+                            screenLayout={IS_V3 ? renderV3ScreenLayout : undefined}
                             screenOptions={{
+        ...(IS_V3 ? V3_STACK_TRANSITION : null),
         headerRight: withNotificationHeader(),
                               headerStyle: {
                                 backgroundColor: navTheme.colors.card,

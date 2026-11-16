@@ -5,6 +5,10 @@ import { router } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "@/components/ui/i18nText";
+import { Image } from "expo-image";
+import { IS_V3, V3 } from "@/hooks/uiVersion";
+
+const BOOKING_COURT_V3 = require("@/assets/images/v3/booking-court.jpg");
 
 const PERKS = [
   { icon: "time-outline", label: "Giờ trống realtime" },
@@ -37,6 +41,38 @@ export default function CourtBookingBanner() {
   }, [shine, pulse]);
 
   const translateX = shine.interpolate({ inputRange: [-1, 1.6], outputRange: [-220, 520] });
+
+  if (IS_V3) {
+    return (
+      <View style={v3.wrap}>
+        <Pressable onPress={() => router.push("/courts")} style={v3.press}>
+          <View style={v3.card}>
+            <Image source={BOOKING_COURT_V3} style={v3.art} contentFit="cover" contentPosition="right bottom" />
+            <LinearGradient pointerEvents="none" colors={["#FFFFFF", "rgba(255,255,255,0.9)", "rgba(255,255,255,0)"]} locations={[0, 0.35, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={v3.artFade} />
+            <View style={v3.copy}>
+              <Text style={v3.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+                Đặt sân Pickleball
+              </Text>
+              <Text style={v3.sub} numberOfLines={3}>
+                Tìm sân gần bạn, chọn khung giờ trống, thanh toán online và nhận vé QR ngay.
+              </Text>
+              <View style={v3.ctaRow}>
+                <LinearGradient colors={V3.gradBlue} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={v3.cta}>
+                  <Ionicons name="calendar-clear-outline" size={16} color="#fff" />
+                  <Text style={v3.ctaText}>Đặt sân ngay</Text>
+                  <Ionicons name="chevron-forward" size={15} color="#fff" />
+                </LinearGradient>
+                <Pressable hitSlop={6} onPress={() => router.push("/courts/my-bookings")} style={v3.ghost}>
+                  <Ionicons name="ticket-outline" size={15} color={V3.blue} />
+                  <Text style={v3.ghostText}>Vé của tôi</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.wrap}>
@@ -98,6 +134,39 @@ export default function CourtBookingBanner() {
     </View>
   );
 }
+
+const v3 = StyleSheet.create({
+  wrap: { paddingHorizontal: 16, marginTop: 14 },
+  press: {
+    borderRadius: 22,
+    shadowColor: V3.shadow,
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+  card: { borderRadius: 22, overflow: "hidden", backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "rgba(16,42,92,0.05)" },
+  art: { position: "absolute", right: 0, top: 0, bottom: 0, width: "58%" },
+  artFade: { position: "absolute", left: "42%", top: 0, bottom: 0, width: "30%" },
+  copy: { width: "62%", paddingLeft: 16, paddingVertical: 16 },
+  title: { color: V3.ink, fontSize: 19, lineHeight: 25, fontWeight: "900" },
+  sub: { color: V3.ink2, fontSize: 12.5, lineHeight: 18, marginTop: 5 },
+  ctaRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12 },
+  cta: { flexDirection: "row", alignItems: "center", gap: 7, height: 36, paddingHorizontal: 14, borderRadius: 18 },
+  ctaText: { color: "#fff", fontSize: 13.5, fontWeight: "800" },
+  ghost: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    height: 36,
+    paddingHorizontal: 11,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderWidth: 1,
+    borderColor: "rgba(20,102,242,0.22)",
+  },
+  ghostText: { color: V3.blue, fontSize: 12.5, fontWeight: "800" },
+});
 
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: 16, marginTop: 12, marginBottom: 4 },

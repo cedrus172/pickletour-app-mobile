@@ -11,6 +11,8 @@ import { useDuoSideNavigation } from "@/hooks/useDuoSideNavigation";
 import { NotificationSidebarAction } from "@/components/GlobalNotificationShell";
 import { useSelector } from "react-redux";
 import { router } from "expo-router";
+import { IS_V3, sk } from "@/hooks/uiVersion";
+import FreshBottomBar from "./FreshBottomBar";
 
 type Props = BottomTabBarProps & { visibleRoutes: BottomTabBarProps["state"]["routes"] };
 
@@ -39,8 +41,8 @@ export default function SportBottomBar({ state, descriptors, navigation, visible
           <Pressable accessibilityRole="button" accessibilityLabel="Quản trị" testID="sport-side-admin" onPress={() => router.push("/admin/home")} style={({ pressed }) => [styles.sideTab, pressed && styles.pressed]}>
             <View style={styles.sideIcon}>
               <Svg width={24} height={24} viewBox="0 0 24 24" accessible={false}>
-                <Path d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5L12 2Z" fill="none" stroke="#B4C9E5" strokeWidth={1.8} strokeLinejoin="round" />
-                <Path d="M9 12l2 2 4-4" fill="none" stroke="#13D5EE" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+                <Path d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5L12 2Z" fill="none" stroke={SIDE_IDLE} strokeWidth={1.8} strokeLinejoin="round" />
+                <Path d="M9 12l2 2 4-4" fill="none" stroke={SIDE_ACTIVE} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
               </Svg>
             </View>
             <Text numberOfLines={1} maxFontSizeMultiplier={1.2} style={styles.sideLabel}>Quản trị</Text>
@@ -67,9 +69,9 @@ export default function SportBottomBar({ state, descriptors, navigation, visible
               style={({ pressed }) => [styles.sideTab, pressed && styles.pressed]}
             >
               <View style={[styles.sideIcon, focused && styles.sideIconActive, tournament && styles.sideTournament]}>
-                <SportTabIcon name={route.name} color={tournament ? "#042139" : focused ? "#13D5EE" : "#B4C9E5"} size={23} />
+                <SportTabIcon name={route.name} color={tournament ? "#042139" : focused ? SIDE_ACTIVE : SIDE_IDLE} size={23} />
               </View>
-              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} maxFontSizeMultiplier={1.2} style={[styles.sideLabel, focused && { color: "#13D5EE" }]}>{label}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} maxFontSizeMultiplier={1.2} style={[styles.sideLabel, focused && { color: SIDE_ACTIVE }]}>{label}</Text>
             </Pressable>
           );
         })}
@@ -94,14 +96,17 @@ export default function SportBottomBar({ state, descriptors, navigation, visible
               onLongPress={() => navigation.emit({ type: "tabLongPress", target: route.key })}
               style={({ pressed }) => [styles.topTab, pressed && styles.pressed]}>
               <View style={[styles.topIcon, tournament && styles.sideTournament, focused && !tournament && styles.sideIconActive]}>
-                <SportTabIcon name={route.name} color={tournament ? "#042139" : focused ? "#13D5EE" : "#B4C9E5"} size={21} />
+                <SportTabIcon name={route.name} color={tournament ? "#042139" : focused ? SIDE_ACTIVE : SIDE_IDLE} size={21} />
               </View>
-              <Text numberOfLines={1} maxFontSizeMultiplier={1.2} style={[styles.topLabel, focused && { color: "#13D5EE" }]}>{label}</Text>
+              <Text numberOfLines={1} maxFontSizeMultiplier={1.2} style={[styles.topLabel, focused && { color: SIDE_ACTIVE }]}>{label}</Text>
             </Pressable>
           );
         })}
       </View>
     );
+  }
+  if (IS_V3) {
+    return <FreshBottomBar state={state} descriptors={descriptors} navigation={navigation} visibleRoutes={visibleRoutes} insets={insets} />;
   }
   return (
     <View pointerEvents="box-none" testID="raised-sport-navigation" style={[styles.bar, {
@@ -176,17 +181,20 @@ export default function SportBottomBar({ state, descriptors, navigation, visible
   );
 }
 
+const SIDE_ACTIVE = sk("#13D5EE", "#1466F2");
+const SIDE_IDLE = sk("#B4C9E5", "#51607B");
+
 const styles = StyleSheet.create({
-  topBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, backgroundColor: "#041529" },
+  topBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, backgroundColor: sk("#041529", "#FFFFFF") },
   topTab: { flex: 1, minWidth: 0, height: 60, alignItems: "center", justifyContent: "center", gap: 2 },
   topIcon: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
-  topLabel: { width: "100%", textAlign: "center", color: "#B4C9E5", fontSize: 10, lineHeight: 13, fontWeight: "600" },
-  sideBar: { height: "100%", alignItems: "center", justifyContent: "center", backgroundColor: "#041529" },
+  topLabel: { width: "100%", textAlign: "center", color: SIDE_IDLE, fontSize: 10, lineHeight: 13, fontWeight: "600" },
+  sideBar: { height: "100%", alignItems: "center", justifyContent: "center", backgroundColor: sk("#041529", "#FFFFFF") },
   sideTab: { width: "100%", flex: 1, maxHeight: 72, minHeight: 44, alignItems: "center", justifyContent: "center", gap: 3, paddingHorizontal: 4 },
   sideIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  sideIconActive: { backgroundColor: "#0B3554" },
-  sideTournament: { backgroundColor: "#00C8EB", borderWidth: 1, borderColor: "#73EEFA" },
-  sideLabel: { width: "100%", textAlign: "center", color: "#B4C9E5", fontSize: 9, lineHeight: 12, fontWeight: "600" },
+  sideIconActive: { backgroundColor: sk("#0B3554", "rgba(20,102,242,0.12)") },
+  sideTournament: { backgroundColor: sk("#00C8EB", "#C5F433"), borderWidth: 1, borderColor: sk("#73EEFA", "#FFFFFF") },
+  sideLabel: { width: "100%", textAlign: "center", color: SIDE_IDLE, fontSize: 9, lineHeight: 12, fontWeight: "600" },
   bar: { position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 1, backgroundColor: "transparent" },
   dock: { position: "absolute", top: 24, left: 0 },
   items: { flexDirection: "row", height: FLOATING_TAB_BAR_HEIGHT },
