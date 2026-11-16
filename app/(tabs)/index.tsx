@@ -59,6 +59,7 @@ import {
   HomeV3Shortcuts,
   HomeV3UserCard,
 } from "@/components/home/HomeV3";
+import HomeV3Features from "@/components/home/HomeV3Features";
 import { useResponsive } from "@/hooks/useResponsive";
 import PlayerNameText from "@/components/PlayerNameText";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
@@ -1125,6 +1126,9 @@ function FeaturesGrid({ compactColumns = false }: { compactColumns?: boolean }) 
   const remainder = FEATURES.length % NUM_COLUMNS;
   const emptySlots = remainder === 0 ? 0 : NUM_COLUMNS - remainder;
 
+  // V3 Fresh: khối tính năng chia nhóm theo mục đích với bộ biểu tượng mới.
+  if (IS_V3) return <HomeV3Features features={FEATURES} />;
+
   return (
     <View style={styles.featuresContainer}>
       <HomeSectionHeader
@@ -1942,6 +1946,9 @@ export default function HomeScreen() {
             style={styles.homeScroll}
             contentInsetAdjustmentBehavior="never"
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            automaticallyAdjustKeyboardInsets
             contentContainerStyle={{ width: "100%", paddingBottom: bottomPadding }}
           >
             <View testID="home-responsive-layout" style={twoPane ? { width: homeWidth, flexDirection: "row", alignItems: "flex-start", gap: 16 } : undefined}>
