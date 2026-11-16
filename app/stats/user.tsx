@@ -58,7 +58,7 @@ if (
 const tz = "Asia/Bangkok";
 const W = Dimensions.get("window").width;
 const PADX = 16;
-const ACCENT = "#6366f1";
+const ACCENT = sk("#6366f1", "#1466F2");
 
 const fmt = (n?: number) =>
   typeof n === "number" ? n.toLocaleString("vi-VN") : "0";
@@ -101,7 +101,7 @@ const statsGlassSurfaceTint = (theme: any, light = 0.58, dark = 0.54) =>
     ? `rgba(24,26,32,${dark})`
     : `rgba(255,255,255,${light})`;
 const statsGlassAccentTint = (alpha = 0.26) =>
-  `rgba(99,102,241,${alpha})`;
+  `rgba(${sk("99,102,241", "20,102,242")},${alpha})`;
 
 function StatsLiquidBackdrop({ theme }: any) {
   const anim = useRef(new Animated.Value(0)).current;
@@ -149,7 +149,7 @@ function StatsLiquidBackdrop({ theme }: any) {
           {
             backgroundColor: theme.isDark
               ? "rgba(59,130,246,0.18)"
-              : "rgba(37,99,235,0.14)",
+              : sk("rgba(37,99,235,0.14)", "rgba(20,102,242,0.12)"),
             opacity,
             transform: [{ translateY }, { rotate: "-8deg" }],
           },
@@ -334,7 +334,7 @@ const SimpleLineChart = ({ data, theme }: any) => {
           endFillColor1={
             theme.isDark
               ? "rgba(99, 102, 241, 0.05)"
-              : "rgba(99, 102, 241, 0.1)"
+              : sk("rgba(99, 102, 241, 0.1)", "rgba(20,102,242,0.10)")
           }
           startOpacity1={0.5}
           endOpacity1={0.1}
@@ -753,7 +753,10 @@ export default function UserStatsScreen() {
     .map((x: any, i) => ({
       value: x.value || x.count || 0,
       text: x.label || x.name || "Giải đấu",
-      color: ["#a855f7", "#ec4899", "#8b5cf6", "#6366f1", "#3b82f6"][i % 5],
+      color: sk(
+        ["#a855f7", "#ec4899", "#8b5cf6", "#6366f1", "#3b82f6"],
+        ["#1466F2", "#8FCB10", "#F59E0B", "#0B2A6B", "#7DB8FF"]
+      )[i % 5],
       id: x.id || x._id,
     }));
 
@@ -843,7 +846,7 @@ export default function UserStatsScreen() {
                     glassEffectStyle="clear"
                     glassTintColor={
                       isActive
-                        ? statsGlassAccentTint(0.34)
+                        ? sk(statsGlassAccentTint(0.34), "rgba(255,255,255,0.92)")
                         : "rgba(255,255,255,0)"
                     }
                     isInteractive={isActive}
@@ -1001,7 +1004,7 @@ export default function UserStatsScreen() {
                           <Text
                             style={[
                               styles.boldVal,
-                              { color: "#3b82f6", fontSize: 15 },
+                              { color: sk("#3b82f6", "#1466F2"), fontSize: 15 },
                             ]}
                           >
                             {winrate || 0}%
@@ -1100,7 +1103,7 @@ export default function UserStatsScreen() {
               <KPI
                 label="Tỉ lệ thắng"
                 value={`${ov?.kpis?.winrate ?? 0}%`}
-                color="#3b82f6"
+                color={sk("#3b82f6", "#1466F2")}
                 theme={T}
               />
               <KPI
@@ -1321,7 +1324,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: "rgba(99, 102, 241, 0.15)",
+    backgroundColor: sk("rgba(99, 102, 241, 0.15)", "rgba(20,102,242,0.10)"),
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1346,7 +1349,7 @@ const styles = StyleSheet.create({
   },
   segmentText: { fontWeight: "600", fontSize: 13 },
   shadowSm: {
-    shadowColor: "#000",
+    shadowColor: sk("#000", "#1B3A7A"),
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -1380,12 +1383,12 @@ const styles = StyleSheet.create({
   rankTop: { backgroundColor: "#fbbf24" },
   oppName: { fontWeight: "600", fontSize: 14, width: 140 },
   oppTag: {
-    backgroundColor: "rgba(99, 102, 241, 0.1)",
+    backgroundColor: sk("rgba(99, 102, 241, 0.1)", "rgba(20,102,242,0.10)"),
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
-  oppVal: { color: sk("#818cf8", "#6366f1"), fontSize: 11, fontWeight: "700" },
+  oppVal: { color: sk("#818cf8", "#1466F2"), fontSize: 11, fontWeight: "700" },
   radarTooltip: {
     position: "absolute",
     top: "40%",

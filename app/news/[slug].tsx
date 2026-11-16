@@ -19,6 +19,7 @@ import { Image } from "expo-image";
 import RenderHTML from "react-native-render-html";
 import { useGetNewsDetailQuery } from "@/slices/newsApiSlice";
 import { openInApp } from "@/utils/openInApp"; // ⬅️ dùng in-app browser
+import { IS_V3, sk } from "@/hooks/uiVersion";
 
 const FALLBACK_IMG =
   "https://dummyimage.com/800x450/A29BFE/ffffff&text=Pickleball+News";
@@ -58,8 +59,8 @@ export default function NewsDetailScreen() {
   const isDark = !!theme?.dark;
   const bg = theme?.colors?.background ?? (isDark ? "#0b0f14" : "#f5f7fb");
   const text = theme?.colors?.text ?? (isDark ? "#ffffff" : "#111111");
-  const sub = isDark ? "#b0b0b0" : "#666666";
-  const link = isDark ? "#7cc7ff" : "#1976d2";
+  const sub = isDark ? "#b0b0b0" : sk("#666666", "#5F6F8A");
+  const link = isDark ? "#7cc7ff" : sk("#1976d2", "#1466F2");
 
   const {
     data: article,
@@ -113,11 +114,10 @@ export default function NewsDetailScreen() {
           headerStyle: { backgroundColor: "transparent" },
           headerBackground: () => (
             <LinearGradient
-              colors={[
-                "rgba(0,0,0,0.98)",
-                "rgba(0,0,0,0.6)",
-                "rgba(0,0,0,0.0)",
-              ]}
+              colors={sk<[string, string, string]>(
+                ["rgba(0,0,0,0.98)", "rgba(0,0,0,0.6)", "rgba(0,0,0,0.0)"],
+                ["#0B3FB8", "#1466F2", "#2F8BFF"]
+              )}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={{ flex: 1 }}
@@ -164,7 +164,7 @@ export default function NewsDetailScreen() {
       <View style={[styles.container, { backgroundColor: bg }]}>
         {isLoading && (
           <View style={styles.center}>
-            <ActivityIndicator />
+            <ActivityIndicator color={sk(undefined, "#1466F2")} />
             <Text style={[styles.loadingText, { color: sub }]}>
               Đang tải bài viết…
             </Text>
@@ -197,17 +197,27 @@ export default function NewsDetailScreen() {
           >
             {/* Hero */}
             <View style={styles.heroWrap}>
-              <Image
-                source={{
-                  uri:
-                    article.heroImageUrl ||
-                    article.thumbImageUrl ||
-                    FALLBACK_IMG,
-                }}
-                style={styles.heroImage}
-                contentFit="cover"
-                transition={250}
-              />
+              {IS_V3 && !(article.heroImageUrl || article.thumbImageUrl) ? (
+                // V3: bài không có ảnh → bìa dự phòng gradient xanh dương
+                <LinearGradient
+                  colors={["#2F8BFF", "#1466F2"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.heroImage}
+                />
+              ) : (
+                <Image
+                  source={{
+                    uri:
+                      article.heroImageUrl ||
+                      article.thumbImageUrl ||
+                      FALLBACK_IMG,
+                  }}
+                  style={styles.heroImage}
+                  contentFit="cover"
+                  transition={250}
+                />
+              )}
               <LinearGradient
                 colors={["transparent", "rgba(0,0,0,0.8)"]}
                 style={styles.heroOverlay}
@@ -285,7 +295,9 @@ export default function NewsDetailScreen() {
                     li: { marginBottom: 6 },
                     blockquote: {
                       borderLeftWidth: 3,
-                      borderLeftColor: isDark ? "#4a5568" : "#cbd5e0",
+                      borderLeftColor: isDark
+                        ? "#4a5568"
+                        : sk("#cbd5e0", "rgba(20,102,242,0.35)"),
                       paddingLeft: 10,
                       marginBottom: 12,
                       opacity: 0.9,
@@ -328,7 +340,10 @@ export default function NewsDetailScreen() {
                 style={styles.originBtnWrapper}
               >
                 <LinearGradient
-                  colors={["#4ECDC4", "#45B7D1"]}
+                  colors={sk<[string, string]>(
+                    ["#4ECDC4", "#45B7D1"],
+                    ["#2F8BFF", "#1466F2"]
+                  )}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.originBtn}
@@ -388,9 +403,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: "rgba(162,155,254,0.18)",
+    backgroundColor: sk("rgba(162,155,254,0.18)", "rgba(20,102,242,0.10)"),
   },
-  tagText: { fontSize: 11, color: "#A29BFE", fontWeight: "600" },
+  tagText: {
+    fontSize: 11,
+    color: sk("#A29BFE", "#1466F2"),
+    fontWeight: "600",
+  },
   contentWrap: { paddingHorizontal: 16, paddingTop: 4 },
   contentText: { fontSize: 14, lineHeight: 22 },
   originBtnWrapper: { marginTop: 16, paddingHorizontal: 16 },
@@ -411,13 +430,17 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   loadingText: { fontSize: 13 },
-  errorText: { fontSize: 14, color: "#ff4d4f", textAlign: "center" },
+  errorText: {
+    fontSize: 14,
+    color: sk("#ff4d4f", "#DC2626"),
+    textAlign: "center",
+  },
   retryBtn: {
     marginTop: 4,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: "#A29BFE",
+    backgroundColor: sk("#A29BFE", "#1466F2"),
   },
   retryText: { color: "#fff", fontWeight: "600" },
 

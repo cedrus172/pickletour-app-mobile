@@ -21,7 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useGetNewsQuery } from "@/slices/newsApiSlice";
 import { normalizeUrl } from "@/utils/normalizeUri";
-import { sk } from "@/hooks/uiVersion";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 
 const FALLBACK_IMG =
   "https://dummyimage.com/600x400/A29BFE/ffffff&text=Pickleball+News";
@@ -89,8 +89,8 @@ function Shimmer({
 function NewsCardSkeleton({ theme }) {
   const isDark = !!theme?.dark;
   const card = theme?.colors?.card ?? (isDark ? "#14171c" : "#ffffff");
-  const base = isDark ? "#1f2430" : "#eef1f6";
-  const chip = isDark ? "#242a36" : "#e9ecf2";
+  const base = isDark ? "#1f2430" : sk("#eef1f6", "#E9F0FA");
+  const chip = isDark ? "#242a36" : sk("#e9ecf2", "#E3EAF5");
 
   return (
     <View
@@ -99,7 +99,11 @@ function NewsCardSkeleton({ theme }) {
         { backgroundColor: card, borderColor: "transparent" },
       ]}
     >
-      <Shimmer style={{ height: 170 }} base={base} radius={0} />
+      <Shimmer
+        style={[{ height: 170 }, IS_V3 && styles.coverRoundV3]}
+        base={base}
+        radius={0}
+      />
       <View style={{ padding: 12, gap: 8 }}>
         <Shimmer style={{ height: 16, width: "86%" }} base={base} />
         <Shimmer style={{ height: 12, width: "70%" }} base={base} />
@@ -162,8 +166,10 @@ function NewsListItem({ item, theme }) {
   const isDark = !!theme?.dark;
   const bg = theme?.colors?.card ?? (isDark ? "#14171c" : "#ffffff");
   const text = theme?.colors?.text ?? (isDark ? "#ffffff" : "#111111");
-  const sub = isDark ? "#b0b0b0" : "#666666";
+  const sub = isDark ? "#b0b0b0" : sk("#666666", "#5F6F8A");
   const border = theme?.colors?.border ?? (isDark ? "#2a2e35" : "#e0e0e0");
+  // V3: bài không có ảnh → bìa dự phòng gradient xanh dương (thay ảnh tím của V2)
+  const useV3Cover = IS_V3 && !(item.thumbImageUrl || item.heroImageUrl);
 
   return (
     <TouchableOpacity
@@ -172,14 +178,25 @@ function NewsListItem({ item, theme }) {
       style={[styles.card, { backgroundColor: bg, borderColor: border }]}
     >
       <View style={styles.imageWrap}>
-        <Image
-          source={{
-            uri: normalizeUrl(item.thumbImageUrl || item.heroImageUrl || FALLBACK_IMG),
-          }}
-          style={styles.image}
-          contentFit="cover"
-          transition={200}
-        />
+        {useV3Cover ? (
+          <LinearGradient
+            colors={["#2F8BFF", "#1466F2"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.image, styles.fallbackCover]}
+          >
+            <Text style={styles.fallbackCoverText}>Pickleball News</Text>
+          </LinearGradient>
+        ) : (
+          <Image
+            source={{
+              uri: normalizeUrl(item.thumbImageUrl || item.heroImageUrl || FALLBACK_IMG),
+            }}
+            style={styles.image}
+            contentFit="cover"
+            transition={200}
+          />
+        )}
         <LinearGradient
           colors={["transparent", "rgba(0,0,0,0.7)"]}
           style={styles.imageOverlay}
@@ -227,7 +244,10 @@ function NewsListItem({ item, theme }) {
           style={styles.detailBtnWrapper}
         >
           <LinearGradient
-            colors={["#A29BFE", "#FD79A8"]}
+            colors={sk<[string, string]>(
+              ["#A29BFE", "#FD79A8"],
+              ["#2F8BFF", "#1466F2"]
+            )}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.detailBtn}
@@ -307,11 +327,7 @@ export default function NewsListScreen() {
                   "rgba(79,70,229,0.98)",
                   "rgba(9,9,20,0.0)",
                 ],
-                [
-                  "rgba(11,42,107,0.98)",
-                  "rgba(20,102,242,0.98)",
-                  "rgba(20,102,242,0.0)",
-                ]
+                ["#0B3FB8", "#1466F2", "#2F8BFF"]
               )}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
@@ -361,7 +377,7 @@ export default function NewsListScreen() {
             <Ionicons
               name="search"
               size={18}
-              color="#A29BFE"
+              color={sk("#A29BFE", "#1466F2")}
               style={{ marginRight: 6 }}
             />
             <TextInput
@@ -379,7 +395,11 @@ export default function NewsListScreen() {
                 onPress={() => setSearchText("")}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons name="close-circle" size={18} color="#9aa0b1" />
+                <Ionicons
+                  name="close-circle"
+                  size={18}
+                  color={sk("#9aa0b1", "#97A3B8")}
+                />
               </TouchableOpacity>
             )}
           </View>
@@ -394,7 +414,7 @@ export default function NewsListScreen() {
                   : "arrow-down-circle-outline"
               }
               size={14}
-              color="#9aa0b1"
+              color={sk("#9aa0b1", "#5F6F8A")}
             />
             <Text style={styles.sortText}>
               {sortMode === "latest" ? "Sắp xếp: Mới nhất" : "Sắp xếp: Cũ nhất"}
@@ -430,9 +450,11 @@ export default function NewsListScreen() {
               <RefreshControl
                 refreshing={isFetching}
                 onRefresh={refetch}
-                tintColor="#A29BFE"
-                colors={["#A29BFE", "#FD79A8"]}
-                progressBackgroundColor={isDark ? "#020817" : "#f5f7fb"}
+                tintColor={sk("#A29BFE", "#1466F2")}
+                colors={sk(["#A29BFE", "#FD79A8"], ["#1466F2", "#2F8BFF"])}
+                progressBackgroundColor={
+                  isDark ? "#020817" : sk("#f5f7fb", "#FFFFFF")
+                }
               />
             }
           />
@@ -447,15 +469,38 @@ const styles = StyleSheet.create({
   listContent: { padding: 16, paddingBottom: 32, gap: 16 },
   card: {
     borderWidth: 1,
-    borderRadius: 18,
-    overflow: "hidden",
-    shadowColor: "#000",
+    borderRadius: sk(18, 20),
+    // V3: bỏ cắt ở thẻ để bóng mềm hiện được trên iOS; phần ảnh tự bo góc trên (coverRoundV3)
+    overflow: sk<"hidden" | "visible">("hidden", "visible"),
+    shadowColor: sk("#000", "#1B3A7A"),
     shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    shadowRadius: sk(10, 14),
+    shadowOffset: { width: 0, height: sk(4, 5) },
+    elevation: sk(4, 3),
   },
-  imageWrap: { position: "relative", height: 170 },
+  coverRoundV3: {
+    borderTopLeftRadius: 19,
+    borderTopRightRadius: 19,
+    overflow: "hidden",
+  },
+  imageWrap: {
+    position: "relative",
+    height: 170,
+    ...(IS_V3
+      ? {
+          borderTopLeftRadius: 19,
+          borderTopRightRadius: 19,
+          overflow: "hidden" as const,
+        }
+      : null),
+  },
+  fallbackCover: { alignItems: "center", justifyContent: "center" },
+  fallbackCoverText: {
+    color: "#FFFFFF",
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: 0.3,
+  },
   image: { width: "100%", height: "100%" },
   imageOverlay: {
     position: "absolute",
@@ -484,9 +529,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
-    backgroundColor: "rgba(162,155,254,0.15)",
+    backgroundColor: sk("rgba(162,155,254,0.15)", "rgba(20,102,242,0.10)"),
   },
-  tagText: { fontSize: 10, color: "#A29BFE", fontWeight: "600" },
+  tagText: {
+    fontSize: 10,
+    color: sk("#A29BFE", "#1466F2"),
+    fontWeight: "600",
+  },
   detailBtnWrapper: {
     marginTop: 8,
     borderRadius: 10,
@@ -509,14 +558,18 @@ const styles = StyleSheet.create({
     padding: 24,
     gap: 8,
   },
-  errorText: { fontSize: 14, color: "#ff4d4f", textAlign: "center" },
-  emptyText: { fontSize: 14, color: "#888" },
+  errorText: {
+    fontSize: 14,
+    color: sk("#ff4d4f", "#DC2626"),
+    textAlign: "center",
+  },
+  emptyText: { fontSize: 14, color: sk("#888", "#5F6F8A") },
   retryBtn: {
     marginTop: 6,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: "#A29BFE",
+    backgroundColor: sk("#A29BFE", "#1466F2"),
   },
   retryText: { color: "#fff", fontWeight: "600", fontSize: 13 },
   newsHeaderLeft: {

@@ -65,7 +65,8 @@ if (!isExpoGo) {
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.82;
 
-const THEME_COLOR = "#F97316";
+// V3 Fresh: màu nhấn theo xanh dương thương hiệu (V2 giữ cam).
+const THEME_COLOR = sk("#F97316", "#1466F2");
 const NEON_BLUE = "#0EA5E9";
 
 // Default center (không xin được vị trí vẫn xem map bình thường)

@@ -1,5 +1,6 @@
 // app/play/index.tsx — "Tìm bạn đánh" (danh sách kèo, mobile)
 import React, { useMemo, useState, useCallback } from "react";
+import { sk } from "@/hooks/uiVersion";
 import {
   View,
   TouchableOpacity,
@@ -21,7 +22,8 @@ import {
 } from "@/slices/playApiSlice";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
 
-const GREEN = "#16a34a";
+// V3 Fresh: màu nhấn của màn này theo xanh dương thương hiệu (V2 giữ xanh lá).
+const GREEN = sk("#16a34a", "#1466F2");
 
 function InviteCard({ it, onJoin }: { it: any; onJoin: (it: any) => void }) {
   const C = useThemeTokens();

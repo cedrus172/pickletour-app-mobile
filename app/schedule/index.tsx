@@ -32,7 +32,27 @@ import {
 import { useMatchCalendar } from "@/hooks/useMatchCalendar";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { Ionicons } from "@expo/vector-icons";
-import LiquidGlassSurface from "@/components/ui/LiquidGlassSurface";
+import LiquidGlassSurfaceBase from "@/components/ui/LiquidGlassSurface";
+import { IS_V3, sk } from "@/hooks/uiVersion";
+
+// V3 Fresh: màn này không dùng lớp kính. Ở giao diện sáng, LiquidGlassSurface phủ một lớp trắng đục
+// (và khi bật "Giao diện nổi bật" còn bỏ luôn backgroundColor của style) → chữ trắng trên header /
+// trên các nhãn màu bị mờ. V3 vẽ bằng View thường để màu nền trong style được giữ đúng; V2 giữ nguyên.
+const PlainSurface: typeof LiquidGlassSurfaceBase = ({ children, style }) => (
+  <View style={style}>{children}</View>
+);
+const LiquidGlassSurface: typeof LiquidGlassSurfaceBase = IS_V3
+  ? PlainSurface
+  : LiquidGlassSurfaceBase;
+
+// Bóng mềm xanh của thẻ V3
+const V3_CARD_SHADOW = {
+  shadowColor: "#1B3A7A",
+  shadowOpacity: 0.08,
+  shadowRadius: 14,
+  shadowOffset: { width: 0, height: 5 },
+  elevation: 3,
+};
 // ===== CALENDAR LOCALE (VIETNAMESE) =====
 LocaleConfig.locales["vi"] = {
   monthNames: [
@@ -91,21 +111,23 @@ const CARD_MARGIN = 16;
 const CARD_WIDTH = width - CARD_MARGIN * 2;
 
 const getSchedulePalette = (isDark: boolean) => ({
-  bg: isDark ? "#070A0F" : "#F9FAFB",
+  bg: isDark ? "#070A0F" : sk("#F9FAFB", "#F2F6FC"),
   card: isDark ? "rgba(20,24,33,0.88)" : "#FFFFFF",
   cardSolid: isDark ? "#141821" : "#FFFFFF",
-  cardAlt: isDark ? "rgba(31,41,55,0.78)" : "#F9FAFB",
-  border: isDark ? "rgba(255,255,255,0.12)" : "#E5E7EB",
-  text: isDark ? "#F8FAFC" : "#1F2937",
-  sub: isDark ? "#A8B3C7" : "#6B7280",
-  muted: isDark ? "#5F6B7A" : "#9CA3AF",
-  primary: "#3B82F6",
+  cardAlt: isDark ? "rgba(31,41,55,0.78)" : sk("#F9FAFB", "#F5F8FD"),
+  border: isDark
+    ? "rgba(255,255,255,0.12)"
+    : sk("#E5E7EB", "rgba(16,42,92,0.10)"),
+  text: isDark ? "#F8FAFC" : sk("#1F2937", "#0B1B3A"),
+  sub: isDark ? "#A8B3C7" : sk("#6B7280", "#5F6F8A"),
+  muted: isDark ? "#5F6B7A" : sk("#9CA3AF", "#97A3B8"),
+  primary: sk("#3B82F6", "#1466F2"),
   header: isDark
     ? ["#07111F", "#10243C", "#1E3A5F"]
-    : ["#1E40AF", "#3B82F6", "#60A5FA"],
+    : sk(["#1E40AF", "#3B82F6", "#60A5FA"], ["#0B3FB8", "#1466F2", "#2F8BFF"]),
   headerSoft: isDark
     ? "rgba(255,255,255,0.10)"
-    : "rgba(255,255,255,0.25)",
+    : sk("rgba(255,255,255,0.25)", "rgba(255,255,255,0.16)"),
 });
 
 // ============= TYPES =============
@@ -315,7 +337,7 @@ export default function MatchScheduleScreen() {
             backgroundColor: dayData.hasLive
               ? "#FEE2E2"
               : dayData.hasUpcoming
-              ? "#DBEAFE"
+              ? sk("#DBEAFE", "rgba(20,102,242,0.10)")
               : undefined,
             borderRadius: 8,
           },
@@ -323,8 +345,8 @@ export default function MatchScheduleScreen() {
             color: dayData.hasLive
               ? "#DC2626"
               : dayData.hasUpcoming
-              ? "#2563EB"
-              : "#1F2937",
+              ? sk("#2563EB", "#1466F2")
+              : sk("#1F2937", "#0B1B3A"),
             fontWeight: "600",
           },
         },
@@ -336,7 +358,7 @@ export default function MatchScheduleScreen() {
       marked[selectedDate] = {
         ...marked[selectedDate],
         selected: true,
-        selectedColor: "#3B82F6",
+        selectedColor: sk("#3B82F6", "#1466F2"),
         selectedTextColor: "#FFFFFF",
       };
     }
@@ -477,7 +499,7 @@ export default function MatchScheduleScreen() {
       <View style={[styles.container, { backgroundColor: C.bg }]}>
         <StatusBar
           barStyle="light-content"
-          backgroundColor={isDark ? "#07111F" : "#1E40AF"}
+          backgroundColor={isDark ? "#07111F" : sk("#1E40AF", "#0B3FB8")}
         />
 
         {/* Animated Container */}
@@ -504,7 +526,7 @@ export default function MatchScheduleScreen() {
                 {
                   backgroundColor: isDark
                     ? "rgba(8,13,24,0.44)"
-                    : "rgba(255,255,255,0.24)",
+                    : sk("rgba(255,255,255,0.24)", "rgba(255,255,255,0.10)"),
                   borderColor: "rgba(255,255,255,0.22)",
                 },
               ]}
@@ -525,7 +547,12 @@ export default function MatchScheduleScreen() {
                       tintAlpha={0.62}
                       style={[
                         styles.backButton,
-                        { backgroundColor: "rgba(15,23,42,0.35)" },
+                        {
+                          backgroundColor: sk(
+                            "rgba(15,23,42,0.35)",
+                            "rgba(255,255,255,0.16)"
+                          ),
+                        },
                       ]}
                     >
                       <Ionicons name="chevron-back" size={24} color="#FFF" />
@@ -686,8 +713,8 @@ export default function MatchScheduleScreen() {
               <RefreshControl
                 refreshing={isFetching}
                 onRefresh={refetch}
-                tintColor="#3B82F6"
-                colors={["#3B82F6"]}
+                tintColor={sk("#3B82F6", "#1466F2")}
+                colors={[sk("#3B82F6", "#1466F2")]}
               />
             }
           >
@@ -909,7 +936,11 @@ export default function MatchScheduleScreen() {
                         <Text style={styles.viewAllText}>
                           Xem tất cả {upcomingData.matches.length} trận
                         </Text>
-                        <Icon name="arrow-right" size={18} color="#3B82F6" />
+                        <Icon
+                          name="arrow-right"
+                          size={18}
+                          color={sk("#3B82F6", "#1466F2")}
+                        />
                       </LiquidGlassSurface>
                     </TouchableOpacity>
                   )}
@@ -953,8 +984,8 @@ const StatPillSurface = ({ icon, label, value, color }: any) => {
       style={[
         styles.statPill,
         {
-          backgroundColor: C.headerSoft,
-          borderColor: "rgba(255,255,255,0.18)",
+          backgroundColor: sk(C.headerSoft, "#FFFFFF"),
+          borderColor: sk("rgba(255,255,255,0.18)", "rgba(255,255,255,0.9)"),
         },
       ]}
     >
@@ -1126,12 +1157,12 @@ const EnhancedMatchCard = ({
               <Icon
                 name="clock-outline"
                 size={16}
-                color={isDark ? "#E5E7EB" : "#1F2937"}
+                color={isDark ? "#E5E7EB" : sk("#1F2937", "#0B1B3A")}
               />
               <Text
                 style={[
                   styles.matchTime,
-                  { color: isDark ? "#F8FAFC" : "#1F2937" },
+                  { color: isDark ? "#F8FAFC" : sk("#1F2937", "#0B1B3A") },
                 ]}
               >
                 {match.localScheduledTime}
@@ -1187,7 +1218,7 @@ const EnhancedMatchCard = ({
               team={match.myTeam}
               label="Tôi"
               icon="account-group"
-              iconColor="#3B82F6"
+              iconColor={sk("#3B82F6", "#1466F2")}
               isHighlight={match.mySide === "A"}
               isWinner={match.winner === match.mySide}
             />
@@ -1270,10 +1301,10 @@ const EnhancedMatchCard = ({
                       {
                         backgroundColor: isDark
                           ? "rgba(37,99,235,0.16)"
-                          : "#EFF6FF",
+                          : sk("#EFF6FF", "rgba(20,102,242,0.10)"),
                         borderColor: isDark
                           ? "rgba(96,165,250,0.24)"
-                          : "#BFDBFE",
+                          : sk("#BFDBFE", "rgba(20,102,242,0.24)"),
                       },
                       inCalendar && [
                         styles.calendarBtnActive,
@@ -1289,13 +1320,18 @@ const EnhancedMatchCard = ({
                     ]}
                   >
                   {isAdding ? (
-                    <ActivityIndicator size="small" color="#3B82F6" />
+                    <ActivityIndicator
+                      size="small"
+                      color={sk("#3B82F6", "#1466F2")}
+                    />
                   ) : (
                     <>
                       <Icon
                         name={inCalendar ? "calendar-check" : "calendar-plus"}
                         size={16}
-                        color={inCalendar ? "#10B981" : "#3B82F6"}
+                        color={
+                          inCalendar ? "#10B981" : sk("#3B82F6", "#1466F2")
+                        }
                       />
                       <Text
                         style={[
@@ -1390,9 +1426,11 @@ const TeamRow = ({
           backgroundColor: isHighlight
             ? isDark
               ? "rgba(59,130,246,0.18)"
-              : "#EFF6FF"
+              : sk("#EFF6FF", "rgba(20,102,242,0.10)")
             : C.cardAlt,
-          borderColor: isHighlight ? "#60A5FA" : C.border,
+          borderColor: isHighlight
+            ? sk("#60A5FA", "rgba(20,102,242,0.45)")
+            : C.border,
         },
       ]}
     >
@@ -1489,7 +1527,11 @@ const CompactMatchCard = ({ match, index, onPress }: any) => {
             <Icon name="clock-fast" size={12} color="#D97706" />
             <Text style={styles.compactTimeText}>{match.timeUntilMatch}</Text>
           </LiquidGlassSurface>
-          <Icon name="chevron-right" size={18} color="#9CA3AF" />
+          <Icon
+            name="chevron-right"
+            size={18}
+            color={sk("#9CA3AF", "#97A3B8")}
+          />
         </View>
         </LiquidGlassSurface>
       </TouchableOpacity>
@@ -1641,7 +1683,7 @@ const SkeletonLoader = () => {
   const theme = useTheme();
   const isDark = !!theme.dark;
   const C = useMemo(() => getSchedulePalette(isDark), [isDark]);
-  const shape = isDark ? "rgba(255,255,255,0.10)" : "#E5E7EB";
+  const shape = isDark ? "rgba(255,255,255,0.10)" : sk("#E5E7EB", "#E9F0FA");
 
   return (
     <View style={styles.skeletonContainer}>
@@ -1707,10 +1749,18 @@ const CalendarPermissionModal = ({
         ]}
       >
         <LinearGradient
-          colors={isDark ? ["#10243C", "#172B46"] : ["#DBEAFE", "#EFF6FF"]}
+          colors={
+            isDark
+              ? ["#10243C", "#172B46"]
+              : sk(["#DBEAFE", "#EFF6FF"], ["#E3EEFF", "#F5F8FD"])
+          }
           style={styles.modalHeader}
         >
-          <Icon name="calendar-star" size={48} color="#3B82F6" />
+          <Icon
+            name="calendar-star"
+            size={48}
+            color={sk("#3B82F6", "#1466F2")}
+          />
           <Text style={[styles.modalTitle, { color: C.text }]}>
             Cấp quyền truy cập lịch
           </Text>
@@ -1776,7 +1826,7 @@ const CalendarPermissionModal = ({
               style={styles.modalButtonPrimaryGlass}
             >
               <LinearGradient
-                colors={["#3B82F6", "#2563EB"]}
+                colors={sk(["#3B82F6", "#2563EB"], ["#2F8BFF", "#1466F2"])}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.modalButtonPrimaryGradient}
@@ -1823,9 +1873,12 @@ const FeatureItem = ({ icon, title, subtitle }: any) => {
         effect="clear"
         isDark={isDark}
         tintAlpha={0.7}
-        style={[styles.featureIcon, { backgroundColor: C.cardAlt }]}
+        style={[
+          styles.featureIcon,
+          { backgroundColor: sk(C.cardAlt, "rgba(20,102,242,0.10)") },
+        ]}
       >
-        <Icon name={icon} size={24} color="#3B82F6" />
+        <Icon name={icon} size={24} color={sk("#3B82F6", "#1466F2")} />
       </LiquidGlassSurface>
       <View style={styles.featureText}>
         <Text style={[styles.featureTitle, { color: C.text }]}>{title}</Text>
@@ -1843,9 +1896,9 @@ function getStatusConfig(status: string) {
   const configs: Record<string, any> = {
     scheduled: {
       label: "Đã lên lịch",
-      color: "#3B82F6",
+      color: sk("#3B82F6", "#1466F2"),
       icon: "calendar-clock",
-      gradient: ["#DBEAFE", "#EFF6FF"],
+      gradient: sk(["#DBEAFE", "#EFF6FF"], ["#E3EEFF", "#F5F8FD"]),
     },
     queued: {
       label: "Chờ xếp",
@@ -1891,16 +1944,16 @@ const calendarTheme = {
   backgroundColor: "transparent",
   calendarBackground: "transparent",
   textSectionTitleColor: "#6B7280",
-  selectedDayBackgroundColor: "#3B82F6",
+  selectedDayBackgroundColor: sk("#3B82F6", "#1466F2"),
   selectedDayTextColor: "#FFFFFF",
   todayTextColor: "#EF4444",
-  dayTextColor: "#1F2937",
+  dayTextColor: sk("#1F2937", "#0B1B3A"),
   textDisabledColor: "#D1D5DB",
-  dotColor: "#3B82F6",
+  dotColor: sk("#3B82F6", "#1466F2"),
   selectedDotColor: "#FFFFFF",
-  arrowColor: "#3B82F6",
-  monthTextColor: "#1F2937",
-  indicatorColor: "#3B82F6",
+  arrowColor: sk("#3B82F6", "#1466F2"),
+  monthTextColor: sk("#1F2937", "#0B1B3A"),
+  indicatorColor: sk("#3B82F6", "#1466F2"),
   textDayFontFamily: "System",
   textMonthFontFamily: "System",
   textDayHeaderFontFamily: "System",
@@ -1948,7 +2001,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 15,
-    color: "rgba(255,255,255,0.8)",
+    color: sk("rgba(255,255,255,0.8)", "rgba(255,255,255,0.92)"),
     fontWeight: "500",
   },
   headerActions: {
@@ -1981,17 +2034,17 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.25)",
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: sk(12, 14),
     borderWidth: 1,
   },
   statValue: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#FFF",
+    color: sk("#FFF", "#0B1B3A"),
   },
   statLabel: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.9)",
+    color: sk("rgba(255,255,255,0.9)", "#5F6F8A"),
     fontWeight: "500",
   },
 
@@ -2000,25 +2053,27 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: -10,
     marginBottom: 16,
-    borderRadius: 12,
-    overflow: "hidden",
+    borderRadius: sk(12, 16),
+    overflow: sk<"hidden" | "visible">("hidden", "visible"),
     borderWidth: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    ...(IS_V3
+      ? V3_CARD_SHADOW
+      : Platform.select({
+          ios: {
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+          },
+          android: {
+            elevation: 3,
+          },
+        })),
   },
   permissionBannerGradient: {
     flexDirection: "row",
@@ -2038,23 +2093,25 @@ const styles = StyleSheet.create({
   calendarCard: {
     marginHorizontal: 16,
     marginTop: 16,
-    borderRadius: 16,
-    overflow: "hidden",
+    borderRadius: sk(16, 22),
+    overflow: sk<"hidden" | "visible">("hidden", "visible"),
     borderWidth: 1,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 5,
-      },
-    }),
+    ...(IS_V3
+      ? V3_CARD_SHADOW
+      : Platform.select({
+          ios: {
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 12,
+          },
+          android: {
+            elevation: 5,
+          },
+        })),
   },
   calendar: {
-    borderRadius: 16,
+    borderRadius: sk(16, 22),
     padding: 10,
   },
 
@@ -2067,6 +2124,7 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
     borderRadius: 22,
     borderWidth: 1,
+    ...(IS_V3 ? V3_CARD_SHADOW : null),
   },
   sectionHeader: {
     flexDirection: "row",
@@ -2090,7 +2148,7 @@ const styles = StyleSheet.create({
     color: "#1F2937",
   },
   countBadge: {
-    backgroundColor: "#3B82F6",
+    backgroundColor: sk("#3B82F6", "#1466F2"),
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -2105,24 +2163,28 @@ const styles = StyleSheet.create({
 
   // Enhanced Match Card
   enhancedMatchCard: {
-    borderRadius: 16,
+    borderRadius: sk(16, 20),
     marginBottom: 16,
-    overflow: "hidden",
+    overflow: sk<"hidden" | "visible">("hidden", "visible"),
     borderWidth: 1,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
+    ...(IS_V3
+      ? V3_CARD_SHADOW
+      : Platform.select({
+          ios: {
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.12,
+            shadowRadius: 12,
+          },
+          android: {
+            elevation: 6,
+          },
+        })),
   },
   matchCardTouchable: {
     overflow: "hidden",
+    // V3: thẻ ngoài để overflow visible cho bóng mềm → phần bấm tự bo góc để cắt dải màu đầu thẻ
+    ...(IS_V3 ? { borderRadius: 19 } : null),
   },
   matchCardHeader: {
     padding: 14,
@@ -2208,9 +2270,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   teamRowHighlight: {
-    backgroundColor: "#EFF6FF",
+    backgroundColor: sk("#EFF6FF", "rgba(20,102,242,0.10)"),
     borderWidth: 2,
-    borderColor: "#BFDBFE",
+    borderColor: sk("#BFDBFE", "rgba(20,102,242,0.45)"),
   },
   teamLeft: {
     flexDirection: "row",
@@ -2238,7 +2300,7 @@ const styles = StyleSheet.create({
   vsText: {
     fontSize: 13,
     fontWeight: "bold",
-    color: "#9CA3AF",
+    color: sk("#9CA3AF", "#97A3B8"),
     letterSpacing: 2,
   },
 
@@ -2287,10 +2349,10 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#BFDBFE",
-    backgroundColor: "#EFF6FF",
+    borderRadius: sk(10, 14),
+    borderWidth: sk(2, 1),
+    borderColor: sk("#BFDBFE", "rgba(20,102,242,0.24)"),
+    backgroundColor: sk("#EFF6FF", "rgba(20,102,242,0.10)"),
   },
   calendarBtnActive: {
     borderColor: "#86EFAC",
@@ -2299,7 +2361,7 @@ const styles = StyleSheet.create({
   calendarBtnText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#3B82F6",
+    color: sk("#3B82F6", "#1466F2"),
   },
   calendarBtnTextActive: {
     color: "#10B981",
@@ -2333,21 +2395,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     padding: 14,
-    borderRadius: 12,
+    borderRadius: sk(12, 18),
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    borderColor: sk("#E5E7EB", "rgba(16,42,92,0.10)"),
+    ...(IS_V3
+      ? V3_CARD_SHADOW
+      : Platform.select({
+          ios: {
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.06,
+            shadowRadius: 6,
+          },
+          android: {
+            elevation: 2,
+          },
+        })),
   },
   compactLeft: {
     alignItems: "center",
@@ -2363,7 +2427,7 @@ const styles = StyleSheet.create({
   compactTime: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#3B82F6",
+    color: sk("#3B82F6", "#1466F2"),
     marginTop: 2,
   },
   compactCenter: {
@@ -2411,6 +2475,7 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
     borderRadius: 22,
     borderWidth: 1,
+    ...(IS_V3 ? V3_CARD_SHADOW : null),
   },
 
   // Day Section
@@ -2436,7 +2501,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dayBadge: {
-    backgroundColor: "#3B82F6",
+    backgroundColor: sk("#3B82F6", "#1466F2"),
     borderRadius: 14,
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -2483,7 +2548,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   dayCountBadge: {
-    backgroundColor: "#3B82F6",
+    backgroundColor: sk("#3B82F6", "#1466F2"),
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -2501,9 +2566,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 20,
     marginBottom: 10,
-    borderRadius: 18,
+    borderRadius: sk(18, 22),
     borderWidth: 1,
     padding: 12,
+    ...(IS_V3 ? V3_CARD_SHADOW : null),
   },
   upcomingSectionHeader: {
     marginBottom: 14,
@@ -2529,15 +2595,15 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     marginTop: 10,
-    borderRadius: 12,
-    backgroundColor: "#EFF6FF",
+    borderRadius: sk(12, 16),
+    backgroundColor: sk("#EFF6FF", "rgba(20,102,242,0.10)"),
     borderWidth: 1,
-    borderColor: "#BFDBFE",
+    borderColor: sk("#BFDBFE", "rgba(20,102,242,0.24)"),
   },
   viewAllText: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#3B82F6",
+    color: sk("#3B82F6", "#1466F2"),
   },
 
   // Empty State
@@ -2577,7 +2643,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   skeletonCard: {
-    borderRadius: 16,
+    borderRadius: sk(16, 20),
     borderWidth: 1,
     padding: 16,
     marginBottom: 16,
@@ -2604,7 +2670,7 @@ const styles = StyleSheet.create({
   // Modal
   modalOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: sk("rgba(0,0,0,0.5)", "rgba(11,27,58,0.42)"),
     justifyContent: "flex-end",
   },
   modalBackdrop: {
@@ -2668,7 +2734,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#EFF6FF",
+    backgroundColor: sk("#EFF6FF", "rgba(20,102,242,0.10)"),
     alignItems: "center",
     justifyContent: "center",
   },
@@ -2695,15 +2761,15 @@ const styles = StyleSheet.create({
   },
   modalButtonSecondaryPressable: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: sk(12, 16),
     overflow: "hidden",
   },
   modalButtonSecondary: {
     minHeight: 56,
     paddingVertical: 16,
     paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 2,
+    borderRadius: sk(12, 16),
+    borderWidth: sk(2, 1),
     borderColor: "#E5E7EB",
     alignItems: "center",
     justifyContent: "center",
@@ -2715,12 +2781,12 @@ const styles = StyleSheet.create({
   },
   modalButtonPrimary: {
     flex: 2,
-    borderRadius: 12,
+    borderRadius: sk(12, 16),
     overflow: "hidden",
   },
   modalButtonPrimaryGlass: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: sk(12, 16),
     overflow: "hidden",
   },
   modalButtonPrimaryGradient: {
@@ -2762,6 +2828,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(15,23,42,0.35)",
+    backgroundColor: sk("rgba(15,23,42,0.35)", "rgba(255,255,255,0.16)"),
   },
 });

@@ -1,5 +1,6 @@
 // app/play/[id].tsx — chi tiết kèo "Tìm bạn đánh" (mobile)
 import React, { useState } from "react";
+import { sk } from "@/hooks/uiVersion";
 import {
   View,
   Image,
@@ -26,7 +27,8 @@ import {
 import { useShareToFeed } from "@/components/feed/ShareToFeedModal";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
 
-const GREEN = "#16a34a";
+// V3 Fresh: màu nhấn của màn này theo xanh dương thương hiệu (V2 giữ xanh lá).
+const GREEN = sk("#16a34a", "#1466F2");
 
 function Avatar({ uri, name, size = 36 }: { uri?: string; name?: string; size?: number }) {
   const C = useThemeTokens();

@@ -30,6 +30,27 @@ import {
   useGetFrequentOpponentsQuery,
   useGetPlayerStatsQuery,
 } from "@/slices/headtoheadApiSlice";
+import { IS_V3, sk } from "@/hooks/uiVersion";
+
+// Màu theo phiên bản giao diện: tham số đầu của sk(...) là giá trị V2 (giữ nguyên), sau là V3 Fresh.
+const ACCENT = sk("#4ECDC4", "#1466F2"); // màu nhấn chung / người chơi bên trái
+const WIN = sk("#4ECDC4", "#16A34A"); // số liệu mang nghĩa "thắng"
+const L_INK = sk("#1a1a2e", "#0B1B3A"); // chữ chính (nền sáng)
+const L_SUB = sk("#666", "#5F6F8A"); // chữ phụ (nền sáng)
+const L_MUTED = sk("#999", "#97A3B8"); // chữ mờ (nền sáng)
+const L_FAINT = sk("#ccc", "#C3CEDF"); // icon trạng thái trống
+const L_SOFT = sk("#f8f9fa", "#F5F8FD"); // bề mặt phụ
+const V3_CARD = IS_V3
+  ? {
+      borderWidth: 1,
+      borderColor: "rgba(16,42,92,0.07)",
+      shadowColor: "#1B3A7A",
+      shadowOpacity: 0.08,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 5 },
+      elevation: 3,
+    }
+  : null;
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const AVATAR_SIZE = 100;
@@ -69,14 +90,14 @@ const AnimatedStatBar = ({
       </Text>
       <View style={styles.statBarMiddle}>
         <Text
-          style={[styles.statBarLabel, { color: isDark ? "#888" : "#666" }]}
+          style={[styles.statBarLabel, { color: isDark ? "#888" : L_SUB }]}
         >
           {label}
         </Text>
         <View
           style={[
             styles.statBarTrack,
-            { backgroundColor: isDark ? "#2a2a2a" : "#e0e0e0" },
+            { backgroundColor: isDark ? "#2a2a2a" : sk("#e0e0e0", "#E3EAF5") },
           ]}
         >
           <Animated.View
@@ -189,7 +210,7 @@ const PlayerCard = ({ player, side, onPress, theme, isSelected }) => {
     }).start();
   };
 
-  const borderColor = side === "left" ? "#4ECDC4" : "#FF6B6B";
+  const borderColor = side === "left" ? ACCENT : "#FF6B6B";
 
   const getScore = (type) => {
     if (!player) return null;
@@ -224,7 +245,11 @@ const PlayerCard = ({ player, side, onPress, theme, isSelected }) => {
         style={[styles.playerCard, { transform: [{ scale: scaleAnim }] }]}
       >
         <LinearGradient
-          colors={isDark ? ["#1a1a2e", "#16213e"] : ["#ffffff", "#f8f9fa"]}
+          colors={
+            isDark
+              ? ["#1a1a2e", "#16213e"]
+              : sk(["#ffffff", "#f8f9fa"], ["#FFFFFF", "#FFFFFF"])
+          }
           style={[
             styles.playerCardInner,
             {
@@ -232,7 +257,7 @@ const PlayerCard = ({ player, side, onPress, theme, isSelected }) => {
                 ? borderColor
                 : isDark
                 ? "#333"
-                : "#e0e0e0",
+                : sk("#e0e0e0", "rgba(16,42,92,0.07)"),
               borderWidth: isSelected ? 2 : 1,
             },
           ]}
@@ -256,7 +281,7 @@ const PlayerCard = ({ player, side, onPress, theme, isSelected }) => {
               <Text
                 style={[
                   styles.playerName,
-                  { color: isDark ? "#fff" : "#1a1a2e" },
+                  { color: isDark ? "#fff" : L_INK },
                 ]}
                 numberOfLines={1}
               >
@@ -273,7 +298,7 @@ const PlayerCard = ({ player, side, onPress, theme, isSelected }) => {
                   <Text
                     style={[
                       styles.miniStatLabel,
-                      { color: isDark ? "#888" : "#666" },
+                      { color: isDark ? "#888" : L_SUB },
                     ]}
                   >
                     Đôi
@@ -283,7 +308,7 @@ const PlayerCard = ({ player, side, onPress, theme, isSelected }) => {
                 <View
                   style={[
                     styles.statDivider,
-                    { backgroundColor: isDark ? "#333" : "#e0e0e0" },
+                    { backgroundColor: isDark ? "#333" : sk("#e0e0e0", "rgba(16,42,92,0.10)") },
                   ]}
                 />
 
@@ -296,7 +321,7 @@ const PlayerCard = ({ player, side, onPress, theme, isSelected }) => {
                   <Text
                     style={[
                       styles.miniStatLabel,
-                      { color: isDark ? "#888" : "#666" },
+                      { color: isDark ? "#888" : L_SUB },
                     ]}
                   >
                     Đơn
@@ -312,7 +337,7 @@ const PlayerCard = ({ player, side, onPress, theme, isSelected }) => {
               <Text
                 style={[
                   styles.selectPlayerText,
-                  { color: isDark ? "#888" : "#666" },
+                  { color: isDark ? "#888" : L_SUB },
                 ]}
               >
                 Chọn người chơi
@@ -377,32 +402,32 @@ const PlayerSearchModal = ({
           {
             backgroundColor: isDark
               ? "rgba(20,20,30,0.95)"
-              : "rgba(255,255,255,0.98)",
+              : sk("rgba(255,255,255,0.98)", "#FFFFFF"),
           },
         ]}
       >
         <View style={styles.modalHeader}>
           <Text
-            style={[styles.modalTitle, { color: isDark ? "#fff" : "#1a1a2e" }]}
+            style={[styles.modalTitle, { color: isDark ? "#fff" : L_INK }]}
           >
             Tìm người chơi
           </Text>
           <TouchableOpacity onPress={onClose} style={styles.modalCloseBtn}>
-            <Ionicons name="close" size={24} color={isDark ? "#fff" : "#333"} />
+            <Ionicons name="close" size={24} color={isDark ? "#fff" : sk("#333", "#0B1B3A")} />
           </TouchableOpacity>
         </View>
 
         <View
           style={[
             styles.searchInputWrapper,
-            { backgroundColor: isDark ? "#1a1a2e" : "#f0f0f0" },
+            { backgroundColor: isDark ? "#1a1a2e" : sk("#f0f0f0", "#EEF3FA") },
           ]}
         >
-          <Ionicons name="search" size={20} color={isDark ? "#888" : "#666"} />
+          <Ionicons name="search" size={20} color={isDark ? "#888" : L_SUB} />
           <TextInput
-            style={[styles.searchInput, { color: isDark ? "#fff" : "#1a1a2e" }]}
+            style={[styles.searchInput, { color: isDark ? "#fff" : L_INK }]}
             placeholder="Nhập tên hoặc nickname..."
-            placeholderTextColor={isDark ? "#666" : "#999"}
+            placeholderTextColor={isDark ? "#666" : L_MUTED}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoFocus
@@ -412,14 +437,14 @@ const PlayerSearchModal = ({
               <Ionicons
                 name="close-circle"
                 size={20}
-                color={isDark ? "#666" : "#999"}
+                color={isDark ? "#666" : L_MUTED}
               />
             </TouchableOpacity>
           )}
         </View>
 
         {(isLoading || isFetching) && (
-          <ActivityIndicator style={{ marginTop: 20 }} color="#4ECDC4" />
+          <ActivityIndicator style={{ marginTop: 20 }} color={ACCENT} />
         )}
 
         <FlatList
@@ -435,7 +460,7 @@ const PlayerSearchModal = ({
             <TouchableOpacity
               style={[
                 styles.searchResultItem,
-                { backgroundColor: isDark ? "#1a1a2e" : "#f8f9fa" },
+                { backgroundColor: isDark ? "#1a1a2e" : L_SOFT },
               ]}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -452,7 +477,7 @@ const PlayerSearchModal = ({
                 <Text
                   style={[
                     styles.searchResultName,
-                    { color: isDark ? "#fff" : "#1a1a2e" },
+                    { color: isDark ? "#fff" : L_INK },
                   ]}
                   numberOfLines={1}
                 >
@@ -461,7 +486,7 @@ const PlayerSearchModal = ({
                 <Text
                   style={[
                     styles.searchResultSub,
-                    { color: isDark ? "#888" : "#666" },
+                    { color: isDark ? "#888" : L_SUB },
                   ]}
                 >
                   {item.province || "Chưa có tỉnh/thành"}
@@ -483,12 +508,12 @@ const PlayerSearchModal = ({
                 <Ionicons
                   name="search-outline"
                   size={48}
-                  color={isDark ? "#444" : "#ccc"}
+                  color={isDark ? "#444" : L_FAINT}
                 />
                 <Text
                   style={[
                     styles.emptySearchText,
-                    { color: isDark ? "#666" : "#999" },
+                    { color: isDark ? "#666" : L_MUTED },
                   ]}
                 >
                   Không tìm thấy người chơi
@@ -515,13 +540,13 @@ const MatchHistoryItem = ({ match, player1Id, theme, onPress }) => {
       onPress={onPress}
       style={[
         styles.matchHistoryItem,
-        { backgroundColor: isDark ? "#1a1a2e" : "#fff" },
+        { backgroundColor: isDark ? "#1a1a2e" : sk("#fff", "#F5F8FD") },
       ]}
     >
       <View
         style={[
           styles.matchResultIndicator,
-          { backgroundColor: isWinner ? "#4ECDC4" : "#FF6B6B" },
+          { backgroundColor: isWinner ? WIN : "#FF6B6B" },
         ]}
       />
       <View style={styles.matchHistoryContent}>
@@ -529,7 +554,7 @@ const MatchHistoryItem = ({ match, player1Id, theme, onPress }) => {
           <Text
             style={[
               styles.matchHistoryTitle,
-              { color: isDark ? "#fff" : "#1a1a2e" },
+              { color: isDark ? "#fff" : L_INK },
             ]}
             numberOfLines={1}
           >
@@ -538,7 +563,7 @@ const MatchHistoryItem = ({ match, player1Id, theme, onPress }) => {
           <Text
             style={[
               styles.matchHistoryDate,
-              { color: isDark ? "#666" : "#999" },
+              { color: isDark ? "#666" : L_MUTED },
             ]}
           >
             {match?.date
@@ -551,7 +576,7 @@ const MatchHistoryItem = ({ match, player1Id, theme, onPress }) => {
           <Text
             style={[
               styles.matchScore,
-              { color: isWinner ? "#4ECDC4" : "#FF6B6B" },
+              { color: isWinner ? WIN : "#FF6B6B" },
             ]}
           >
             {match.score1} - {match.score2}
@@ -559,13 +584,13 @@ const MatchHistoryItem = ({ match, player1Id, theme, onPress }) => {
           <View
             style={[
               styles.matchResultBadge,
-              { backgroundColor: isWinner ? "#4ECDC420" : "#FF6B6B20" },
+              { backgroundColor: isWinner ? sk("#4ECDC420", "rgba(22,163,74,0.12)") : "#FF6B6B20" },
             ]}
           >
             <Text
               style={[
                 styles.matchResultText,
-                { color: isWinner ? "#4ECDC4" : "#FF6B6B" },
+                { color: isWinner ? WIN : "#FF6B6B" },
               ]}
             >
               {isWinner ? "THẮNG" : "THUA"}
@@ -594,13 +619,13 @@ const PlayerStatsCard = ({ title, theme, data, loading }) => {
         <Text
           style={[
             styles.playerStatsCardTitle,
-            { color: isDark ? "#fff" : "#1a1a2e" },
+            { color: isDark ? "#fff" : L_INK },
           ]}
         >
           {title}
         </Text>
 
-        {loading ? <ActivityIndicator size="small" color="#4ECDC4" /> : null}
+        {loading ? <ActivityIndicator size="small" color={ACCENT} /> : null}
       </View>
 
       {!loading && data?.stats ? (
@@ -609,7 +634,7 @@ const PlayerStatsCard = ({ title, theme, data, loading }) => {
             <Text
               style={[
                 styles.playerStatsValue,
-                { color: isDark ? "#fff" : "#1a1a2e" },
+                { color: isDark ? "#fff" : L_INK },
               ]}
             >
               {data.stats.totalMatches ?? 0}
@@ -617,7 +642,7 @@ const PlayerStatsCard = ({ title, theme, data, loading }) => {
             <Text
               style={[
                 styles.playerStatsLabel,
-                { color: isDark ? "#888" : "#666" },
+                { color: isDark ? "#888" : L_SUB },
               ]}
             >
               Trận
@@ -625,13 +650,13 @@ const PlayerStatsCard = ({ title, theme, data, loading }) => {
           </View>
 
           <View style={styles.playerStatsCell}>
-            <Text style={[styles.playerStatsValue, { color: "#4ECDC4" }]}>
+            <Text style={[styles.playerStatsValue, { color: WIN }]}>
               {data.stats.wins ?? 0}
             </Text>
             <Text
               style={[
                 styles.playerStatsLabel,
-                { color: isDark ? "#888" : "#666" },
+                { color: isDark ? "#888" : L_SUB },
               ]}
             >
               Thắng
@@ -645,7 +670,7 @@ const PlayerStatsCard = ({ title, theme, data, loading }) => {
             <Text
               style={[
                 styles.playerStatsLabel,
-                { color: isDark ? "#888" : "#666" },
+                { color: isDark ? "#888" : L_SUB },
               ]}
             >
               Thua
@@ -656,7 +681,7 @@ const PlayerStatsCard = ({ title, theme, data, loading }) => {
             <Text
               style={[
                 styles.playerStatsValue,
-                { color: isDark ? "#fff" : "#1a1a2e" },
+                { color: isDark ? "#fff" : L_INK },
               ]}
             >
               {data.stats.winRate ?? 0}%
@@ -664,7 +689,7 @@ const PlayerStatsCard = ({ title, theme, data, loading }) => {
             <Text
               style={[
                 styles.playerStatsLabel,
-                { color: isDark ? "#888" : "#666" },
+                { color: isDark ? "#888" : L_SUB },
               ]}
             >
               Win rate
@@ -678,14 +703,14 @@ const PlayerStatsCard = ({ title, theme, data, loading }) => {
                 size={18}
                 color={
                   data?.stats?.currentStreak?.type === "win"
-                    ? "#4ECDC4"
+                    ? WIN
                     : "#FF6B6B"
                 }
               />
               <Text
                 style={[
                   styles.streakText,
-                  { color: isDark ? "#fff" : "#1a1a2e" },
+                  { color: isDark ? "#fff" : L_INK },
                 ]}
               >
                 Streak:{" "}
@@ -699,7 +724,7 @@ const PlayerStatsCard = ({ title, theme, data, loading }) => {
         </View>
       ) : loading ? null : (
         <Text
-          style={[styles.playerStatsEmpty, { color: isDark ? "#777" : "#888" }]}
+          style={[styles.playerStatsEmpty, { color: isDark ? "#777" : sk("#888", "#5F6F8A") }]}
         >
           Chưa có dữ liệu thống kê
         </Text>
@@ -721,7 +746,7 @@ const OpponentItem = ({ item, theme, onPress }) => {
       onPress={onPress}
       style={[
         styles.oppItem,
-        { backgroundColor: isDark ? "#1a1a2e" : "#f8f9fa" },
+        { backgroundColor: isDark ? "#1a1a2e" : L_SOFT },
       ]}
     >
       <Image
@@ -731,13 +756,13 @@ const OpponentItem = ({ item, theme, onPress }) => {
       />
       <View style={{ flex: 1 }}>
         <Text
-          style={[styles.oppName, { color: isDark ? "#fff" : "#1a1a2e" }]}
+          style={[styles.oppName, { color: isDark ? "#fff" : L_INK }]}
           numberOfLines={1}
         >
           {u?.nickname || u?.name || "Unknown"}
         </Text>
         <Text
-          style={[styles.oppSub, { color: isDark ? "#888" : "#666" }]}
+          style={[styles.oppSub, { color: isDark ? "#888" : L_SUB }]}
           numberOfLines={1}
         >
           {u?.province || "Chưa có tỉnh/thành"} • {item?.matchCount || 0} trận
@@ -746,7 +771,7 @@ const OpponentItem = ({ item, theme, onPress }) => {
       <View style={styles.oppRight}>
         <Text style={styles.oppRate}>{item?.winRate ?? 0}%</Text>
         <Text
-          style={[styles.oppRateLabel, { color: isDark ? "#888" : "#666" }]}
+          style={[styles.oppRateLabel, { color: isDark ? "#888" : L_SUB }]}
         >
           win
         </Text>
@@ -774,11 +799,11 @@ const FrequentOpponentsSection = ({
     >
       <View style={styles.historyHeader}>
         <Text
-          style={[styles.sectionTitle, { color: isDark ? "#fff" : "#1a1a2e" }]}
+          style={[styles.sectionTitle, { color: isDark ? "#fff" : L_INK }]}
         >
           {title}
         </Text>
-        {loading ? <ActivityIndicator size="small" color="#4ECDC4" /> : null}
+        {loading ? <ActivityIndicator size="small" color={ACCENT} /> : null}
       </View>
 
       {!loading && Array.isArray(data) && data.length ? (
@@ -797,7 +822,7 @@ const FrequentOpponentsSection = ({
         </View>
       ) : loading ? null : (
         <Text
-          style={[styles.playerStatsEmpty, { color: isDark ? "#777" : "#888" }]}
+          style={[styles.playerStatsEmpty, { color: isDark ? "#777" : sk("#888", "#5F6F8A") }]}
         >
           Chưa có dữ liệu đối thủ thường gặp
         </Text>
@@ -882,24 +907,24 @@ const Head2HeadMatchesModal = ({
             height: "85%",
             backgroundColor: isDark
               ? "rgba(20,20,30,0.95)"
-              : "rgba(255,255,255,0.98)",
+              : sk("rgba(255,255,255,0.98)", "#FFFFFF"),
           },
         ]}
       >
         <View style={styles.modalHeader}>
           <Text
-            style={[styles.modalTitle, { color: isDark ? "#fff" : "#1a1a2e" }]}
+            style={[styles.modalTitle, { color: isDark ? "#fff" : L_INK }]}
           >
             Tất cả trận đối đầu
           </Text>
           <TouchableOpacity onPress={onClose} style={styles.modalCloseBtn}>
-            <Ionicons name="close" size={24} color={isDark ? "#fff" : "#333"} />
+            <Ionicons name="close" size={24} color={isDark ? "#fff" : sk("#333", "#0B1B3A")} />
           </TouchableOpacity>
         </View>
 
         {isLoading && page === 1 ? (
           <View style={{ paddingTop: 30 }}>
-            <ActivityIndicator size="large" color="#4ECDC4" />
+            <ActivityIndicator size="large" color={ACCENT} />
           </View>
         ) : (
           <FlatList
@@ -923,7 +948,7 @@ const Head2HeadMatchesModal = ({
             ListFooterComponent={
               hasMore ? (
                 <View style={{ paddingVertical: 16 }}>
-                  <ActivityIndicator color="#4ECDC4" />
+                  <ActivityIndicator color={ACCENT} />
                 </View>
               ) : (
                 <View style={{ height: 16 }} />
@@ -934,12 +959,12 @@ const Head2HeadMatchesModal = ({
                 <MaterialCommunityIcons
                   name="sword-cross"
                   size={60}
-                  color={isDark ? "#444" : "#ccc"}
+                  color={isDark ? "#444" : L_FAINT}
                 />
                 <Text
                   style={[
                     styles.emptySearchText,
-                    { color: isDark ? "#666" : "#999" },
+                    { color: isDark ? "#666" : L_MUTED },
                   ]}
                 >
                   Chưa có trận đối đầu
@@ -1110,7 +1135,7 @@ export default function Head2HeadScreen() {
         ref={scrollRef}
         style={[
           styles.container,
-          { backgroundColor: isDark ? "#0a0a0f" : "#f5f7fb" },
+          { backgroundColor: isDark ? "#0a0a0f" : sk("#f5f7fb", "#F2F6FC") },
         ]}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
@@ -1122,7 +1147,7 @@ export default function Head2HeadScreen() {
           colors={
             isDark
               ? ["#1a1a2e", "#16213e", "#0f0f1a"]
-              : ["#4ECDC4", "#45B7D1", "#4ECDC4"]
+              : sk(["#4ECDC4", "#45B7D1", "#4ECDC4"], ["#2F8BFF", "#1466F2"])
           }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -1170,14 +1195,14 @@ export default function Head2HeadScreen() {
               </View>
               <View style={styles.quickStatDivider} />
               <View style={styles.quickStatItem}>
-                <Text style={[styles.quickStatValue, { color: "#4ECDC4" }]}>
+                <Text style={[styles.quickStatValue, { color: sk("#4ECDC4", "#C5F433") }]}>
                   {h2hData.player1Wins || 0}
                 </Text>
                 <Text style={styles.quickStatLabel}>Thắng</Text>
               </View>
               <View style={styles.quickStatDivider} />
               <View style={styles.quickStatItem}>
-                <Text style={[styles.quickStatValue, { color: "#FF6B6B" }]}>
+                <Text style={[styles.quickStatValue, { color: sk("#FF6B6B", "#FFB3B3") }]}>
                   {h2hData.player2Wins || 0}
                 </Text>
                 <Text style={styles.quickStatLabel}>Thua</Text>
@@ -1219,9 +1244,9 @@ export default function Head2HeadScreen() {
         {/* ===== LOADING H2H ===== */}
         {bothPlayersSelected && (h2hLoading || h2hFetching) && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4ECDC4" />
+            <ActivityIndicator size="large" color={ACCENT} />
             <Text
-              style={[styles.loadingText, { color: isDark ? "#888" : "#666" }]}
+              style={[styles.loadingText, { color: isDark ? "#888" : L_SUB }]}
             >
               Đang tải dữ liệu đối đầu...
             </Text>
@@ -1242,12 +1267,12 @@ export default function Head2HeadScreen() {
               <MaterialCommunityIcons
                 name="sword-cross"
                 size={60}
-                color={isDark ? "#444" : "#ccc"}
+                color={isDark ? "#444" : L_FAINT}
               />
               <Text
                 style={[
                   styles.noMatchesTitle,
-                  { color: isDark ? "#fff" : "#1a1a2e" },
+                  { color: isDark ? "#fff" : L_INK },
                 ]}
               >
                 Chưa có trận đấu nào
@@ -1255,7 +1280,7 @@ export default function Head2HeadScreen() {
               <Text
                 style={[
                   styles.noMatchesSubtitle,
-                  { color: isDark ? "#666" : "#999" },
+                  { color: isDark ? "#666" : L_MUTED },
                 ]}
               >
                 Hai người chơi này chưa từng gặp nhau trong các giải đấu
@@ -1274,7 +1299,7 @@ export default function Head2HeadScreen() {
             <Text
               style={[
                 styles.sectionTitle,
-                { color: isDark ? "#fff" : "#1a1a2e" },
+                { color: isDark ? "#fff" : L_INK },
               ]}
             >
               So sánh chỉ số đối đầu
@@ -1283,7 +1308,7 @@ export default function Head2HeadScreen() {
             <AnimatedStatBar
               leftValue={h2hData.player1Wins || 0}
               rightValue={h2hData.player2Wins || 0}
-              leftColor="#4ECDC4"
+              leftColor={ACCENT}
               rightColor="#FF6B6B"
               label="Số trận thắng"
               theme={theme}
@@ -1292,7 +1317,7 @@ export default function Head2HeadScreen() {
             <AnimatedStatBar
               leftValue={h2hData.player1Sets || 0}
               rightValue={h2hData.player2Sets || 0}
-              leftColor="#4ECDC4"
+              leftColor={ACCENT}
               rightColor="#FF6B6B"
               label="Số set thắng"
               theme={theme}
@@ -1301,7 +1326,7 @@ export default function Head2HeadScreen() {
             <AnimatedStatBar
               leftValue={h2hData.player1Points || 0}
               rightValue={h2hData.player2Points || 0}
-              leftColor="#4ECDC4"
+              leftColor={ACCENT}
               rightColor="#FF6B6B"
               label="Tổng điểm"
               theme={theme}
@@ -1310,7 +1335,7 @@ export default function Head2HeadScreen() {
             <AnimatedStatBar
               leftValue={h2hData.player1AvgScore || 0}
               rightValue={h2hData.player2AvgScore || 0}
-              leftColor="#4ECDC4"
+              leftColor={ACCENT}
               rightColor="#FF6B6B"
               label="Điểm TB/trận"
               theme={theme}
@@ -1330,7 +1355,7 @@ export default function Head2HeadScreen() {
               <Text
                 style={[
                   styles.sectionTitle,
-                  { color: isDark ? "#fff" : "#1a1a2e" },
+                  { color: isDark ? "#fff" : L_INK },
                 ]}
               >
                 Lịch sử đối đầu
@@ -1345,7 +1370,7 @@ export default function Head2HeadScreen() {
                 }}
               >
                 <Text style={styles.seeAllText}>Xem tất cả</Text>
-                <Ionicons name="chevron-forward" size={16} color="#4ECDC4" />
+                <Ionicons name="chevron-forward" size={16} color={ACCENT} />
               </TouchableOpacity>
             </View>
 
@@ -1394,12 +1419,12 @@ export default function Head2HeadScreen() {
             <MaterialCommunityIcons
               name="fencing"
               size={80}
-              color={isDark ? "#333" : "#ccc"}
+              color={isDark ? "#333" : L_FAINT}
             />
             <Text
               style={[
                 styles.emptyTitle,
-                { color: isDark ? "#fff" : "#1a1a2e" },
+                { color: isDark ? "#fff" : L_INK },
               ]}
             >
               Chọn 2 người chơi để so sánh
@@ -1407,7 +1432,7 @@ export default function Head2HeadScreen() {
             <Text
               style={[
                 styles.emptySubtitle,
-                { color: isDark ? "#666" : "#999" },
+                { color: isDark ? "#666" : L_MUTED },
               ]}
             >
               Xem lịch sử đối đầu, thống kê chi tiết, đối thủ thường gặp...
@@ -1465,7 +1490,20 @@ const styles = StyleSheet.create({
   },
 
   playerCardWrapper: { flex: 1, maxWidth: SCREEN_WIDTH * 0.38 },
-  playerCard: { borderRadius: 20, overflow: "hidden" },
+  playerCard: {
+    borderRadius: 20,
+    overflow: sk<"hidden" | "visible">("hidden", "visible"),
+    ...(IS_V3
+      ? {
+          backgroundColor: "#FFFFFF",
+          shadowColor: "#06215C",
+          shadowOpacity: 0.22,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 5,
+        }
+      : null),
+  },
   playerCardInner: {
     alignItems: "center",
     paddingVertical: 20,
@@ -1493,7 +1531,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "#4ECDC4",
+    backgroundColor: ACCENT,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
@@ -1586,6 +1624,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
+    ...V3_CARD,
   },
   sectionTitle: { fontSize: 18, fontWeight: "800", marginBottom: 16 },
 
@@ -1635,6 +1674,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
+    ...V3_CARD,
   },
   historyHeader: {
     flexDirection: "row",
@@ -1643,7 +1683,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   seeAllBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
-  seeAllText: { fontSize: 14, fontWeight: "600", color: "#4ECDC4" },
+  seeAllText: { fontSize: 14, fontWeight: "600", color: ACCENT },
 
   matchHistoryItem: {
     flexDirection: "row",
@@ -1651,10 +1691,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOpacity: 0.05,
+    shadowOpacity: sk(0.05, 0),
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    elevation: sk(2, 0),
   },
   matchResultIndicator: { width: 4 },
   matchHistoryContent: { flex: 1, padding: 14 },
@@ -1743,7 +1783,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: sk("#f0f0f0", "#E9F0FA"),
   },
   searchResultInfo: { flex: 1 },
   searchResultName: { fontSize: 15, fontWeight: "700" },
@@ -1751,10 +1791,10 @@ const styles = StyleSheet.create({
   searchResultStats: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: "rgba(78, 205, 196, 0.1)",
+    backgroundColor: sk("rgba(78, 205, 196, 0.1)", "rgba(20,102,242,0.10)"),
     borderRadius: 8,
   },
-  searchResultStatText: { fontSize: 12, fontWeight: "700", color: "#4ECDC4" },
+  searchResultStatText: { fontSize: 12, fontWeight: "700", color: ACCENT },
   emptySearch: { alignItems: "center", paddingVertical: 40 },
   emptySearchText: { fontSize: 14, fontWeight: "500", marginTop: 12 },
 
@@ -1779,6 +1819,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
+    ...V3_CARD,
   },
   noMatchesTitle: {
     fontSize: 18,
@@ -1799,12 +1840,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     padding: 16,
-    borderRadius: 18,
+    borderRadius: sk(18, 20),
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
+    ...V3_CARD,
   },
   playerStatsCardHeader: {
     flexDirection: "row",
@@ -1819,10 +1861,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   playerStatsCell: {
-    width: (SCREEN_WIDTH - 16 * 2 - 16 * 2 - 10) / 2, // rough
+    // V3: thẻ có viền 1px mỗi bên → trừ thêm để 2 ô vẫn nằm trên một hàng
+    width: (SCREEN_WIDTH - 16 * 2 - 16 * 2 - 10 - sk(0, 3)) / 2, // rough
     padding: 12,
     borderRadius: 14,
-    backgroundColor: "rgba(78, 205, 196, 0.08)",
+    backgroundColor: sk("rgba(78, 205, 196, 0.08)", "rgba(20,102,242,0.06)"),
   },
   playerStatsCellWide: {
     width: "100%",
@@ -1847,6 +1890,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
+    ...V3_CARD,
   },
   oppItem: {
     flexDirection: "row",
@@ -1859,11 +1903,11 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "#eee",
+    backgroundColor: sk("#eee", "#E9F0FA"),
   },
   oppName: { fontSize: 14, fontWeight: "800" },
   oppSub: { fontSize: 12, fontWeight: "600", marginTop: 3 },
   oppRight: { alignItems: "flex-end" },
-  oppRate: { fontSize: 14, fontWeight: "900", color: "#4ECDC4" },
+  oppRate: { fontSize: 14, fontWeight: "900", color: ACCENT },
   oppRateLabel: { fontSize: 11, fontWeight: "700", marginTop: 2 },
 });
