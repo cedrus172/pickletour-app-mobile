@@ -69,6 +69,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import ModernKnockoutBracketRN from "@/components/bracket/ModernKnockoutBracketRN";
 import { CompactBracketRounds, readBracketRoster, type OnResolvedPair } from "@/components/bracket/ModernBracketShared";
 import ModernRoundElimBracketRN from "@/components/bracket/ModernRoundElimBracketRN";
+import ModernMergedBracketRN from "@/components/bracket/ModernMergedBracketRN";
 import ModernGroupStageRN from "@/components/bracket/ModernGroupStageRN";
 import TiebreakDrawSheetRN from "@/components/bracket/TiebreakDrawSheetRN";
 import { ModernBracketToggle } from "@/components/bracket/ModernBracketShared";
@@ -1921,6 +1922,7 @@ const TabsBar = ({ items, value, onChange, t }) => (
     contentContainerStyle={styles.tabsContainer}
   >
     {items.map((node, i) => {
+      if (node == null) return null;
       const active = value === i;
       return (
         <Pressable
@@ -4273,6 +4275,7 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
     () => (currentMatches || []).filter((m) => !isThirdPlaceMatch(m)),
     [currentMatches]
   );
+
   const isCurrentKnockout =
     !!current && current.type !== "group" && current.type !== "roundElim";
   const currentChampionGate = useMemo(
@@ -4792,6 +4795,69 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
     ]
   );
 
+  // Sơ đồ gộp: đúng 1 Playoff (roundElim) + 1 Knockout ở giai đoạn sau → chung 1 trang.
+  const mergedBracket = useMemo(() => {
+    const list = brackets || [];
+    const poIdx = list.map((b, i) => (b?.type === "roundElim" ? i : -1)).filter((i) => i >= 0);
+    const koIdx = list.map((b, i) => (b?.type === "knockout" ? i : -1)).filter((i) => i >= 0);
+    if (poIdx.length !== 1 || koIdx.length !== 1) return null;
+    const po = list[poIdx[0]];
+    const ko = list[koIdx[0]];
+    if (Number(ko?.stage) <= Number(po?.stage)) return null;
+
+    const poMatches = byBracket[po._id] || [];
+    const koMain = (byBracket[ko._id] || []).filter((m) => !isThirdPlaceMatch(m));
+    const poRounds = buildRoundElimRounds(po, poMatches, resolveSideLabel) || [];
+    const scale = readBracketScale(ko);
+    const minRounds = Math.max(
+      new Set(koMain.map((m) => m.round ?? 1)).size,
+      scale ? Math.ceil(Math.log2(scale)) : 0
+    );
+    const expectedFirstRoundPairs =
+      Array.isArray(ko?.prefill?.seeds) && ko.prefill.seeds.length
+        ? ko.prefill.seeds.length
+        : Array.isArray(ko?.prefill?.pairs) && ko.prefill.pairs.length
+        ? ko.prefill.pairs.length
+        : scale
+        ? Math.floor(scale / 2)
+        : 0;
+    const koRounds =
+      koMain.length > 0
+        ? buildRoundsWithPlaceholders(koMain, resolveSideLabel, {
+            minRounds,
+            extendForward: true,
+            expectedFirstRoundPairs,
+          })
+        : ko.drawRounds && ko.drawRounds > 0
+        ? buildEmptyRoundsByScale(2 ** ko.drawRounds)
+        : buildEmptyRoundsByScale(scale || 4);
+    // Vòng bắt đầu: cộng số vòng của các bracket đứng trước playoff (vòng bảng = 1 vòng).
+    let base = 1;
+    for (let i = 0; i < poIdx[0]; i += 1) {
+      const b = list[i];
+      const ms = byBracket[b._id] || [];
+      base += b?.type === "group" ? 1 : Math.max(1, new Set(ms.map((m) => m.round ?? 1)).size);
+    }
+    const koGate = computeChampionGate(koMain);
+    return {
+      playoffIndex: poIdx[0],
+      knockoutIndex: koIdx[0],
+      sections: [
+        { kind: "playoff" as const, stage: Number(po.stage) || 1, baseRoundStart: base, rounds: poRounds },
+        {
+          kind: "knockout" as const,
+          stage: Number(ko.stage) || 2,
+          baseRoundStart: base + poRounds.length,
+          championMatchId: koGate.allowed ? koGate.matchId : null,
+          rounds: koRounds,
+        },
+      ],
+    };
+  }, [brackets, byBracket, resolveSideLabel]);
+  const isMergedTab =
+    !!mergedBracket &&
+    (tab === mergedBracket.playoffIndex || tab === mergedBracket.knockoutIndex);
+
   const prefillRounds = useMemo(() => {
     if (!current?.prefill) return null;
     const r = buildRoundsFromPrefill(current.prefill, current?.ko);
@@ -5055,7 +5121,16 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
     );
   }
 
-  const tabLabels = brackets.map((b) => {
+  const tabLabels = brackets.map((b, i) => {
+    if (mergedBracket && i === mergedBracket.knockoutIndex) return null;
+    if (mergedBracket && i === mergedBracket.playoffIndex) {
+      return (
+        <View key={b._id} style={{ flexDirection: "row", alignItems: "center" }}>
+          <Text style={{ fontWeight: "600", color: t.colors.text }}>Sơ đồ thi đấu</Text>
+          <Chip label="Playoff + Knockout" style={{ marginLeft: 8 }} t={t} />
+        </View>
+      );
+    }
     const ty =
       b.type === "group"
         ? "Group"
@@ -5785,7 +5860,16 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
             </View>
           </Card>
 
-          <TabsBar items={tabLabels} value={tab} onChange={setTab} t={t} />
+          <TabsBar
+            items={tabLabels}
+            value={
+              mergedBracket && tab === mergedBracket.knockoutIndex
+                ? mergedBracket.playoffIndex
+                : tab
+            }
+            onChange={setTab}
+            t={t}
+          />
 
           {/* Tìm trận theo tên / biệt danh VĐV (toàn giải) */}
           <View style={{ marginBottom: 10, zIndex: 20 }}>
@@ -5908,6 +5992,19 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
                 {renderGroupBlocks()}
               </Card>
             </View>
+          ) : isMergedTab ? (
+            <Card t={t}>
+              <Text style={[styles.subTitle, { color: t.colors.text }]}>
+                Sơ đồ thi đấu: Playoff + Knockout
+              </Text>
+              <ModernMergedBracketRN
+                sections={mergedBracket!.sections}
+                onOpenMatch={openMatch}
+                resolveSideLabel={resolveSideLabel}
+                isDark={!!t.dark}
+                zoom={modernZoom}
+              />
+            </Card>
           ) : current?.type === "roundElim" ? (
             <Card t={t}>
               <Text style={[styles.subTitle, { color: t.colors.text }]}>
@@ -5983,7 +6080,19 @@ export default function TournamentBracketRN({ tourId: tourIdProp }) {
                   t={t}
                 />
               ) : null}
-              {current.type === "roundElim" ? renderRE(true) : renderKO(true)}
+              {isMergedTab ? (
+                <ModernMergedBracketRN
+                  sections={mergedBracket!.sections}
+                  onOpenMatch={openMatch}
+                  resolveSideLabel={resolveSideLabel}
+                  isDark={!!t.dark}
+                  zoom={modernZoom}
+                />
+              ) : current.type === "roundElim" ? (
+                renderRE(true)
+              ) : (
+                renderKO(true)
+              )}
             </ScrollView>
           </View>
         )}
