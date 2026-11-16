@@ -79,6 +79,18 @@ export default function AppBootSplash({ isAppReady }: AppBootSplashProps) {
     }
   }, [isAppReady, loadedArtwork, containerOpacity]);
 
+  // Chốt an toàn: nếu ảnh splash không báo tải xong hoặc animation ẩn bị gián đoạn (ví dụ ngay sau khi
+  // nạp lại app để đổi giao diện) thì vẫn gỡ màn chờ sau 4 giây, không để kẹt.
+  useEffect(() => {
+    if (!isAppReady || isAnimationComplete) return;
+    const timer = setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => {});
+      __splashAlreadyShown__ = true;
+      setIsAnimationComplete(true);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [isAppReady, isAnimationComplete]);
+
   if (isAnimationComplete) {
     return null;
   }

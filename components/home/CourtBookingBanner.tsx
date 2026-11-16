@@ -48,7 +48,7 @@ export default function CourtBookingBanner() {
         <Pressable onPress={() => router.push("/courts")} style={v3.press}>
           <View style={v3.card}>
             <Image source={BOOKING_COURT_V3} style={v3.art} contentFit="cover" contentPosition="right bottom" />
-            <LinearGradient pointerEvents="none" colors={["#FFFFFF", "rgba(255,255,255,0.9)", "rgba(255,255,255,0)"]} locations={[0, 0.35, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={v3.artFade} />
+            <LinearGradient pointerEvents="none" colors={["#FFFFFF", "rgba(255,255,255,0.94)", "rgba(255,255,255,0)"]} locations={[0, 0.5, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={v3.artFade} />
             <View style={v3.copy}>
               <Text style={v3.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                 Đặt sân Pickleball
@@ -147,7 +147,7 @@ const v3 = StyleSheet.create({
   },
   card: { borderRadius: 22, overflow: "hidden", backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "rgba(16,42,92,0.05)" },
   art: { position: "absolute", right: 0, top: 0, bottom: 0, width: "58%" },
-  artFade: { position: "absolute", left: "42%", top: 0, bottom: 0, width: "30%" },
+  artFade: { position: "absolute", left: "42%", top: 0, bottom: 0, width: "40%" },
   copy: { width: "62%", paddingLeft: 16, paddingVertical: 16 },
   title: { color: V3.ink, fontSize: 19, lineHeight: 25, fontWeight: "900" },
   sub: { color: V3.ink2, fontSize: 12.5, lineHeight: 18, marginTop: 5 },

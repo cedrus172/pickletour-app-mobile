@@ -11,6 +11,7 @@ import {
 import { Text } from "@/components/ui/i18nText";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "@react-navigation/native";
+import { sk } from "@/hooks/uiVersion";
 import YoutubePlayer from "react-native-youtube-iframe";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -166,7 +167,7 @@ export default function GuideVideoScreen() {
                   <Ionicons
                     name="eye-outline"
                     size={14}
-                    color="#9AA0A6"
+                    color={sk("#9AA0A6", "#5F6F8A")}
                     style={{ marginRight: 4 }}
                   />
                   <Text style={styles.metaText}>{viewsLabel} lượt xem</Text>
@@ -178,7 +179,7 @@ export default function GuideVideoScreen() {
                   <Ionicons
                     name="thumbs-up-outline"
                     size={14}
-                    color="#9AA0A6"
+                    color={sk("#9AA0A6", "#5F6F8A")}
                     style={{ marginRight: 4 }}
                   />
                   <Text style={styles.metaText}>{likesLabel} lượt thích</Text>
@@ -190,7 +191,7 @@ export default function GuideVideoScreen() {
                   <Ionicons
                     name="time-outline"
                     size={14}
-                    color="#9AA0A6"
+                    color={sk("#9AA0A6", "#5F6F8A")}
                     style={{ marginRight: 4 }}
                   />
                   <Text style={styles.metaText}>{dateLabel}</Text>
@@ -248,12 +249,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    backgroundColor: sk("rgba(255, 255, 255, 0.06)", "#EEF3FA"),
   },
 
   metaText: {
     fontSize: 12,
-    color: "#9AA0A6",
+    color: sk("#9AA0A6", "#5F6F8A"),
   },
 
   loadingOverlay: {

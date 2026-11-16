@@ -80,7 +80,7 @@ import CccdQrModal from "@/components/CccdQrModal";
 import PhoneActivationCard from "@/components/auth/PhoneActivationCard";
 import apiSlice from "@/slices/apiSlice";
 import { useTheme } from "@react-navigation/native";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { applyUiVersion, IS_V3, sk, UI_VERSION, type UiVersion } from "@/hooks/uiVersion";
 import { buildLoginHref, runMobileLogoutFlow } from "@/services/authSession";
 import { DEVICE_ID_KEY } from "@/services/deviceIdentity";
 import { triggerCrashFeedbackTestCrash } from "@/services/crashFeedbackService";
@@ -1840,6 +1840,23 @@ export default function ProfileScreen({ isBack = false }) {
                       thumbColor="#fff"
                     />
                   </View>
+                  {/* Phiên bản giao diện: V2 Modern (tối) ↔ V3 Fresh (sáng). Đổi xong app tự nạp lại. */}
+                  <ThemeOption
+                    label="Phiên bản V2 Modern (nền tối)"
+                    selected={!IS_V3}
+                    onPress={() => confirmUiVersion("v2")}
+                    icon="layers"
+                    t={t}
+                    last={false}
+                  />
+                  <ThemeOption
+                    label="Phiên bản V3 Fresh (nền sáng)"
+                    selected={IS_V3}
+                    onPress={() => confirmUiVersion("v3")}
+                    icon="droplet"
+                    t={t}
+                    last={false}
+                  />
                   <ThemeOption
                     label="Theo hệ thống"
                     selected={prefTheme === "system"}
@@ -3267,6 +3284,21 @@ const CccdPreview = ({ uri, label, onPress, t }) => (
     </Text>
   </View>
 );
+
+// Hỏi lại rồi đổi phiên bản giao diện (app tự nạp lại để áp dụng).
+function confirmUiVersion(next: UiVersion) {
+  if (next === UI_VERSION) return;
+  Alert.alert(
+    "Đổi giao diện",
+    next === "v3"
+      ? "Chuyển sang giao diện V3 (nền sáng, phong cách mới)? Ứng dụng sẽ tự nạp lại."
+      : "Chuyển về giao diện V2 (nền tối)? Ứng dụng sẽ tự nạp lại.",
+    [
+      { text: "Huỷ", style: "cancel" },
+      { text: "Đổi ngay", onPress: () => void applyUiVersion(next) },
+    ],
+  );
+}
 
 const ThemeOption = ({ label, selected, onPress, icon, t, last }) => (
   <Pressable

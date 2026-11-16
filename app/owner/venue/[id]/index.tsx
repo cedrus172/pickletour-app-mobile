@@ -6,6 +6,7 @@ import { Text } from "@/components/ui/i18nText";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useTheme } from "@react-navigation/native";
+import { sk } from "@/hooks/uiVersion";
 import { useGetVenueQuery } from "@/slices/venuesApiSlice";
 import {
   useListVenueBookingsQuery,

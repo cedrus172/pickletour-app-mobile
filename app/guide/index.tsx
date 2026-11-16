@@ -14,6 +14,7 @@ import { Text } from "@/components/ui/i18nText";
 import { useResponsive } from "@/hooks/useResponsive";
 import { Stack, router } from "expo-router";
 import { useTheme } from "@react-navigation/native";
+import { sk } from "@/hooks/uiVersion";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import YoutubePlayer from "react-native-youtube-iframe";
@@ -345,7 +346,7 @@ export default function GuidesScreen() {
                 <Ionicons
                   name="eye-outline"
                   size={12}
-                  color="#9AA0A6"
+                  color={sk("#9AA0A6", "#5F6F8A")}
                   style={{ marginRight: 4 }}
                 />
                 <Text style={styles.chipText}>{viewsLabel} lượt xem</Text>
@@ -357,7 +358,7 @@ export default function GuidesScreen() {
                 <Ionicons
                   name="thumbs-up-outline"
                   size={12}
-                  color="#9AA0A6"
+                  color={sk("#9AA0A6", "#5F6F8A")}
                   style={{ marginRight: 4 }}
                 />
                 <Text style={styles.chipText}>{likesLabel} đánh giá</Text>
@@ -508,7 +509,7 @@ export default function GuidesScreen() {
                       <Ionicons
                         name="time-outline"
                         size={12}
-                        color="#9AA0A6"
+                        color={sk("#9AA0A6", "#5F6F8A")}
                         style={{ marginRight: 4 }}
                       />
                       <Text style={styles.previewMetaText}>
@@ -522,7 +523,7 @@ export default function GuidesScreen() {
                       <Ionicons
                         name="eye-outline"
                         size={12}
-                        color="#9AA0A6"
+                        color={sk("#9AA0A6", "#5F6F8A")}
                         style={{ marginRight: 4 }}
                       />
                       <Text style={styles.previewMetaText}>
@@ -592,11 +593,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    backgroundColor: sk("rgba(255, 255, 255, 0.06)", "#EEF3FA"),
   },
   chipText: {
     fontSize: 11,
-    color: "#9AA0A6",
+    color: sk("#9AA0A6", "#5F6F8A"),
   },
   center: {
     flex: 1,
@@ -681,10 +682,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: sk("rgba(255,255,255,0.06)", "#EEF3FA"),
   },
   previewMetaText: {
     fontSize: 11,
-    color: "#9AA0A6",
+    color: sk("#9AA0A6", "#5F6F8A"),
   },
 });

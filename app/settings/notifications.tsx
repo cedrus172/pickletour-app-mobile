@@ -12,6 +12,7 @@ import { Text } from "@/components/ui/i18nText";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, router } from "expo-router";
 import { useTheme } from "@react-navigation/native";
+import { sk } from "@/hooks/uiVersion";
 import {
   useGetNotificationPrefsQuery,
   usePatchNotificationPrefsMutation,
@@ -22,7 +23,7 @@ import {
 } from "@/slices/subscriptionApiSlice";
 import { useGetTournamentQuery } from "@/slices/tournamentsApiSlice";
 
-const ACCENT = "#4dd0e1";
+const ACCENT = sk("#4dd0e1", "#1466F2");
 
 function pal(dark: boolean) {
   return {
