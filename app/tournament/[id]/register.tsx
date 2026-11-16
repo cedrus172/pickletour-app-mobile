@@ -40,6 +40,7 @@ import {
   SafeAreaView,
   Animated,
   StatusBar,
+  InteractionManager,
 } from "react-native";
 import { TextInput } from "@/components/ui/i18nTextInput";
 import { Text } from "@/components/ui/i18nText";
@@ -1817,14 +1818,32 @@ export default function TournamentRegistrationScreen() {
   const [posterBusyId, setPosterBusyId] = useState("");
   const [aiPosterReg, setAiPosterReg] = useState<any>(null);
   const [aiPosterTemplateOpen, setAiPosterTemplateOpen] = useState(false);
-  // Mở AI Poster từ thông báo (?aiPoster=<regId>) khi danh sách đăng ký đã tải.
+  // Mở AI Poster từ thông báo (?aiPoster=<regId>). Màn AI Poster chỉ cần mã đăng ký nên
+  // mở luôn, không chờ danh sách; đợi màn chuyển xong (iOS từ chối mở Modal giữa lúc
+  // đang chuyển màn) rồi mới bật.
   useEffect(() => {
-    const target = String(aiPosterParam || "");
-    if (!target || !Array.isArray(regs) || !regs.length) return;
-    const reg = regs.find((r: any) => String(r?._id || r?.id) === target);
-    if (reg) setAiPosterReg(reg);
-    router.setParams({ aiPoster: undefined } as any);
-  }, [aiPosterParam, regs, router]);
+    const target = String(aiPosterParam || "").trim();
+    if (!target) return undefined;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const task = InteractionManager.runAfterInteractions(() => {
+      timer = setTimeout(() => {
+        if (cancelled) return;
+        const reg = (Array.isArray(regs) ? regs : []).find(
+          (r: any) => String(r?._id || r?.id) === target,
+        );
+        setAiPosterTemplateOpen(false);
+        setAiPosterReg(reg || { _id: target });
+        router.setParams({ aiPoster: undefined } as any);
+      }, 450);
+    });
+    return () => {
+      cancelled = true;
+      task?.cancel?.();
+      if (timer) clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiPosterParam]);
 
   const [replaceDlg, setReplaceDlg] = useState({
     open: false,
