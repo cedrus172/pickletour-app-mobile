@@ -6,6 +6,8 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -18,6 +20,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/i18nText";
+import { TextInput } from "@/components/ui/i18nTextInput";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import AppModal, { useModalTopInset } from "@/components/ui/AppModal";
 import {
@@ -35,6 +38,26 @@ type Props = {
   templateUrl?: string;
   onTemplateChanged?: () => void;
 };
+
+// Thanh tiến trình ước lượng theo thời gian trung bình (OpenAI không báo tiến độ thật).
+function jobProgress(job: any, now: number) {
+  if (!job) return { value: 0, label: "" };
+  if (job.status === "queued") return { value: 4, label: "Đang chờ tới lượt…" };
+  const eta = Math.max(30, Number(job.etaSec) || 100);
+  const started = Date.parse(job.startedAt || job.createdAt || "") || now;
+  const elapsed = Math.max(0, (now - started) / 1000);
+  const value = Math.min(95, 6 + (elapsed / eta) * 89);
+  const remain = Math.max(0, Math.round(eta - elapsed));
+  return {
+    value,
+    label:
+      elapsed < 8
+        ? "Đang chuẩn bị ảnh…"
+        : remain > 0
+          ? `AI đang vẽ poster… còn khoảng ${remain} giây`
+          : "Sắp xong, đang hoàn thiện ảnh…",
+  };
+}
 
 const STATUS_LABEL: Record<string, string> = {
   queued: "Đang chờ",
@@ -88,6 +111,16 @@ function Body({ onClose, tournamentId, registration, templateUrl, onTemplateChan
 
   const jobs: any[] = data?.jobs || [];
   const pending = jobs.some((j) => j.status === "queued" || j.status === "processing");
+  const pendingJob = jobs.find((j) => j.status === "queued" || j.status === "processing");
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    if (!pending) return undefined;
+    const t = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [pending]);
+  const progress = jobProgress(pendingJob, nowTick);
+  const [names, setNames] = useState<Record<string, string>>({});
+  const [paddleUri, setPaddleUri] = useState("");
   useEffect(() => setPolling(pending), [pending]);
 
   const players: any[] = data?.players || [];
@@ -119,12 +152,17 @@ function Body({ onClose, tournamentId, registration, templateUrl, onTemplateChan
       body.append("mode", mode);
       if (mode === "single") body.append("slot", slot);
       neededSlots.forEach((sl) => {
+        const customName = String(names[sl] || "").trim();
+        if (customName) body.append(`name_${sl}`, customName);
         if (usesAvatar(sl)) {
           body.append(`useAvatar_${sl}`, "1");
         } else {
           body.append(`photo_${sl}`, { uri: photos[sl], type: "image/jpeg", name: `${sl}.jpg` } as unknown as Blob);
         }
       });
+      if (paddleUri) {
+        body.append("paddle", { uri: paddleUri, type: "image/jpeg", name: "paddle.jpg" } as unknown as Blob);
+      }
       await createPoster({ tournamentId, regId, body }).unwrap();
       Alert.alert("Đã gửi yêu cầu", "AI đang tạo poster, thường mất 1–2 phút.");
       setPolling(true);
@@ -184,7 +222,11 @@ function Body({ onClose, tournamentId, registration, templateUrl, onTemplateChan
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 40 }}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 40 }}
+        keyboardShouldPersistTaps="handled"
+      >
         {!regId ? (
           <View style={{ gap: 12 }}>
             <Text style={{ color: C.text, fontWeight: "800", fontSize: 15 }}>Ảnh mẫu AI Poster của giải</Text>
@@ -329,6 +371,52 @@ function Body({ onClose, tournamentId, registration, templateUrl, onTemplateChan
               Có thể dùng ảnh avatar của VĐV hoặc chọn ảnh khác. Nên dùng ảnh rõ mặt, thấy dáng người (toàn thân hoặc nửa người), ít người khác trong khung.
             </Text>
 
+            <View style={[s.custom, { borderColor: C.border }]}>
+              <Text style={{ color: C.text, fontWeight: "800" }}>Tuỳ chỉnh (không bắt buộc)</Text>
+              {neededSlots.map((sl) => {
+                const p = players.find((x) => x.slot === sl);
+                return (
+                  <View key={`name-${sl}`} style={{ gap: 4 }}>
+                    <Text style={{ color: C.sub, fontSize: 12 }}>
+                      Tên hiển thị trên poster{players.length > 1 ? ` (${p?.name || sl})` : ""}
+                    </Text>
+                    <TextInput
+                      value={names[sl] || ""}
+                      onChangeText={(v: string) => setNames((prev) => ({ ...prev, [sl]: v.slice(0, 40) }))}
+                      placeholder={p?.name || "Để trống = tên mặc định"}
+                      placeholderTextColor={C.sub}
+                      editable={!submitting}
+                      style={[s.input, { color: C.text, borderColor: C.border, backgroundColor: C.card }]}
+                    />
+                  </View>
+                );
+              })}
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                {paddleUri ? <Image source={{ uri: paddleUri }} style={s.paddleThumb} resizeMode="contain" /> : null}
+                <TouchableOpacity
+                  onPress={async () => {
+                    try {
+                      const uri = await pickImage();
+                      if (uri) setPaddleUri(uri);
+                    } catch {
+                      Alert.alert("Không chọn được ảnh");
+                    }
+                  }}
+                  disabled={submitting}
+                  style={[s.outlineBtn, { borderColor: C.primary }]}
+                >
+                  <Text style={{ color: C.primary, fontWeight: "700", fontSize: 13 }}>
+                    {paddleUri ? "Đổi ảnh vợt" : "Chọn ảnh vợt muốn VĐV cầm"}
+                  </Text>
+                </TouchableOpacity>
+                {paddleUri ? (
+                  <TouchableOpacity onPress={() => setPaddleUri("")} hitSlop={8}>
+                    <Text style={{ color: C.sub, fontSize: 13 }}>Bỏ</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            </View>
+
             <TouchableOpacity
               onPress={submit}
               disabled={!ready || submitting || pending || !!noQuota || !!data?.needsPayment}
@@ -345,10 +433,16 @@ function Body({ onClose, tournamentId, registration, templateUrl, onTemplateChan
             </TouchableOpacity>
 
             {pending && (
-              <View style={[s.note, { backgroundColor: C.card, borderColor: C.border }]}>
-                <ActivityIndicator color={C.tint} />
-                <Text style={{ color: C.text, fontWeight: "700", flex: 1 }}>
-                  AI đang tạo poster… thường mất 1–2 phút.
+              <View style={[s.progressBox, { backgroundColor: C.card, borderColor: C.border }]}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+                  <Text style={{ color: C.text, fontWeight: "700", flex: 1 }}>{progress.label}</Text>
+                  <Text style={{ color: C.tint, fontWeight: "800" }}>{Math.round(progress.value)}%</Text>
+                </View>
+                <View style={[s.progressTrack, { backgroundColor: dark ? "#1E3560" : "#e2e8f0" }]}>
+                  <View style={[s.progressFill, { width: `${progress.value}%`, backgroundColor: C.tint }]} />
+                </View>
+                <Text style={{ color: C.sub, fontSize: 11 }}>
+                  Bạn có thể đóng màn này, khi xong sẽ có thông báo.
                 </Text>
               </View>
             )}
@@ -411,6 +505,7 @@ function Body({ onClose, tournamentId, registration, templateUrl, onTemplateChan
           </>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -472,4 +567,11 @@ const s = StyleSheet.create({
   result: { width: "100%", aspectRatio: 0.9, borderRadius: 12 },
   jobRow: { flexDirection: "row", alignItems: "center", gap: 10, padding: 8, borderRadius: 12, borderWidth: 1 },
   thumb: { width: 44, height: 44, borderRadius: 8 },
+  custom: { gap: 10, padding: 12, borderRadius: 12, borderWidth: 1, borderStyle: "dashed" },
+  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
+  paddleThumb: { width: 52, height: 52, borderRadius: 8 },
+  outlineBtn: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
+  progressBox: { gap: 8, padding: 12, borderRadius: 12, borderWidth: 1 },
+  progressTrack: { height: 8, borderRadius: 999, overflow: "hidden" },
+  progressFill: { height: "100%", borderRadius: 999 },
 });
