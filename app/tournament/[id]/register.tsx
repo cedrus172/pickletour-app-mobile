@@ -88,6 +88,7 @@ import { OpenMessageButton } from "@/components/social/OpenMessageButton";
 import PlayerNameText from "@/components/PlayerNameText";
 
 import AppModal, { ModalTopInset } from "@/components/ui/AppModal";
+import AiPosterSheet from "@/components/registration/AiPosterSheet";
 const PLACE = "https://dummyimage.com/800x600/cccccc/ffffff&text=?";
 
 /* =============== THEME & UTILS =============== */
@@ -975,6 +976,8 @@ const RegItem = memo(function RegItem({
   posterBusyId,
   isLoggedIn,
   myUserId,
+  aiPosterEnabled,
+  onOpenAiPoster,
   onJoinPartner,
   joinBusy,
   onApprovePartner,
@@ -989,6 +992,12 @@ const RegItem = memo(function RegItem({
   const isPaid = r.payment?.status === "Paid";
   const canOpenPoster = isPaid || canManage;
   const posterBusy = Boolean(posterRegId && posterBusyId === posterRegId);
+  const uidOf = (u: any) => String(u?._id || u?.id || u || "");
+  const isMember =
+    Boolean(myUserId) &&
+    [r?.player1?.user, r?.player2?.user].some((u) => uidOf(u) === String(myUserId));
+  const canAiPoster =
+    Boolean(aiPosterEnabled && onOpenAiPoster) && (canManage || (isPaid && isMember));
   const { state } = decideTotalState(total, cap, delta);
   const totalColor =
     state === "error"
@@ -1347,6 +1356,29 @@ const RegItem = memo(function RegItem({
                 )}
                 <Text style={[styles.actionTileText, { color: C.infoText }]}>
                   {posterBusy ? "Đang mở" : "Poster"}
+                </Text>
+              </RegisterGlassSurface>
+            </TouchableOpacity>
+          ) : null}
+
+          {canAiPoster ? (
+            <TouchableOpacity
+              onPress={() => onOpenAiPoster(r)}
+              style={[styles.actionTileTouch, C.v2 && R.actionTouch]}
+            >
+              <RegisterGlassSurface
+                C={C}
+                interactive
+                tintColor={glassAccentTint(C, 0.22)}
+                style={[
+                  styles.actionTile,
+                  { backgroundColor: C.warningBg || C.infoBg },
+                  IOS_26_LIQUID_GLASS_ENABLED && styles.actionGlassTile,
+                ]}
+              >
+                <Ionicons name="sparkles" size={18} color={C.warningText || C.infoText} />
+                <Text style={[styles.actionTileText, { color: C.warningText || C.infoText }]}>
+                  AI Poster
                 </Text>
               </RegisterGlassSurface>
             </TouchableOpacity>
@@ -1782,6 +1814,7 @@ export default function TournamentRegistrationScreen() {
   const sharingPosterRef = useRef(false);
   const posterOpenLockRef = useRef("");
   const [posterBusyId, setPosterBusyId] = useState("");
+  const [aiPosterReg, setAiPosterReg] = useState<any>(null);
 
   const [replaceDlg, setReplaceDlg] = useState({
     open: false,
@@ -3423,6 +3456,8 @@ export default function TournamentRegistrationScreen() {
               onDemoteToWaitlist={handleDemoteToWaitlist}
               busy={{ settingPayment, deletingId: cancelingId, demotingId }}
               posterBusyId={posterBusyId}
+              aiPosterEnabled={Boolean((tour as any)?.aiPosterTemplateUrl)}
+              onOpenAiPoster={setAiPosterReg}
             />
           )}
         />
@@ -3526,6 +3561,8 @@ export default function TournamentRegistrationScreen() {
               onDemoteToWaitlist={handleDemoteToWaitlist}
               busy={{ settingPayment, deletingId: cancelingId, demotingId }}
               posterBusyId={posterBusyId}
+              aiPosterEnabled={Boolean((tour as any)?.aiPosterTemplateUrl)}
+              onOpenAiPoster={setAiPosterReg}
             />
           )}
           ListHeaderComponent={HeaderComponent}
@@ -3811,6 +3848,12 @@ export default function TournamentRegistrationScreen() {
         {/* MODALS */}
 
         {/* === IMAGE VIEWER LIBRARY === */}
+        <AiPosterSheet
+          open={Boolean(aiPosterReg)}
+          onClose={() => setAiPosterReg(null)}
+          tournamentId={String(id || "")}
+          registration={aiPosterReg}
+        />
         <ImageView
           images={[{ uri: imgPreview.src, headers: imgPreview.headers }]}
           imageIndex={0}
