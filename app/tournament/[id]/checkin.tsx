@@ -483,7 +483,7 @@ export default function TournamentCheckinScreen() {
         <View style={styles.rowWrap}>
           <PrimaryBtn
             title="Sơ đồ giải đấu"
-            color="#ed6c02"
+            color={sk("#ed6c02", "#0B2A6B")}
             onPress={() =>
               router.push({
                 pathname: "/tournament/[id]/bracket",
@@ -494,7 +494,7 @@ export default function TournamentCheckinScreen() {
           />
           <PrimaryBtn
             title="Danh sách đăng ký"
-            color="#0288d1"
+            color={sk("#0288d1", "#1466F2")}
             onPress={() =>
               router.push({
                 pathname: "/tournament/[id]/register",
