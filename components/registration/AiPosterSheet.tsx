@@ -18,6 +18,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/i18nText";
+import { normalizeUrl } from "@/utils/normalizeUri";
 import AppModal, { useModalTopInset } from "@/components/ui/AppModal";
 import {
   useCreateRegistrationAiPosterMutation,
@@ -29,7 +30,10 @@ type Props = {
   open: boolean;
   onClose: () => void;
   tournamentId: string;
+  // null = chế độ BTC chỉ quản lý ảnh mẫu AI Poster của giải.
   registration: any;
+  templateUrl?: string;
+  onTemplateChanged?: () => void;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -55,7 +59,7 @@ async function pickImage() {
   return image.uri;
 }
 
-function Body({ onClose, tournamentId, registration }: Omit<Props, "open">) {
+function Body({ onClose, tournamentId, registration, templateUrl, onTemplateChanged }: Omit<Props, "open">) {
   const dark = useColorScheme() === "dark";
   const C = {
     bg: dark ? "#071226" : "#f8fafc",
@@ -76,6 +80,8 @@ function Body({ onClose, tournamentId, registration }: Omit<Props, "open">) {
     { tournamentId, regId },
     { skip: !tournamentId || !regId, pollingInterval: polling ? 4000 : 0 },
   );
+  const [localTemplate, setLocalTemplate] = useState<string>(templateUrl || "");
+  useEffect(() => setLocalTemplate(templateUrl || ""), [templateUrl]);
   const [createPoster, { isLoading: submitting }] = useCreateRegistrationAiPosterMutation();
   const [uploadTemplate, { isLoading: uploadingTemplate }] = useUploadAiPosterTemplateMutation();
 
@@ -123,9 +129,11 @@ function Body({ onClose, tournamentId, registration }: Omit<Props, "open">) {
       if (!uri) return;
       const body = new FormData();
       body.append("template", { uri, type: "image/jpeg", name: "ai-poster-template.jpg" } as unknown as Blob);
-      await uploadTemplate({ tournamentId, body }).unwrap();
+      const res = await uploadTemplate({ tournamentId, body }).unwrap();
+      if (res?.aiPosterTemplateUrl) setLocalTemplate(String(res.aiPosterTemplateUrl));
       Alert.alert("Đã lưu ảnh mẫu AI Poster");
-      refetch();
+      onTemplateChanged?.();
+      if (regId) refetch();
     } catch (e: any) {
       Alert.alert("Không tải được ảnh mẫu", e?.data?.message || "Vui lòng thử lại.");
     }
@@ -166,7 +174,40 @@ function Body({ onClose, tournamentId, registration }: Omit<Props, "open">) {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 40 }}>
-        {isFetching && !data ? (
+        {!regId ? (
+          <View style={{ gap: 12 }}>
+            <Text style={{ color: C.text, fontWeight: "800", fontSize: 15 }}>Ảnh mẫu AI Poster của giải</Text>
+            <Text style={{ color: C.sub, fontSize: 13 }}>
+              Tải poster mẫu chừa trống chỗ ảnh VĐV và dòng tên (dưới chữ &quot;VẬN ĐỘNG VIÊN&quot;). Khi có
+              ảnh mẫu, VĐV đã xác nhận đăng ký sẽ thấy nút AI Poster (3 lượt/cặp); admin và quản lý giải tạo
+              được cho mọi cặp, không giới hạn.
+            </Text>
+            {localTemplate ? (
+              <Image
+                source={{ uri: normalizeUrl(localTemplate) }}
+                style={[s.result, { borderWidth: 1, borderColor: C.border }]}
+                resizeMode="contain"
+              />
+            ) : (
+              <View style={[s.note, { backgroundColor: C.card, borderColor: C.border }]}>
+                <Ionicons name="image-outline" size={20} color={C.sub} />
+                <Text style={{ color: C.sub, flex: 1 }}>Giải chưa có ảnh mẫu AI Poster.</Text>
+              </View>
+            )}
+            <TouchableOpacity
+              onPress={changeTemplate}
+              disabled={uploadingTemplate}
+              style={[s.btn, { backgroundColor: C.tint, opacity: uploadingTemplate ? 0.6 : 1 }]}
+            >
+              {uploadingTemplate ? (
+                <ActivityIndicator color="#111827" />
+              ) : (
+                <Ionicons name="cloud-upload-outline" size={18} color="#111827" />
+              )}
+              <Text style={s.btnText}>{localTemplate ? "Đổi ảnh mẫu" : "Tải ảnh mẫu"}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : isFetching && !data ? (
           <ActivityIndicator style={{ marginTop: 40 }} />
         ) : error ? (
           <Text style={{ color: "#ef4444" }}>
@@ -333,10 +374,25 @@ function Body({ onClose, tournamentId, registration }: Omit<Props, "open">) {
   );
 }
 
-export default function AiPosterSheet({ open, onClose, tournamentId, registration }: Props) {
+export default function AiPosterSheet({
+  open,
+  onClose,
+  tournamentId,
+  registration,
+  templateUrl,
+  onTemplateChanged,
+}: Props) {
   return (
     <AppModal visible={open} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
-      {open ? <Body onClose={onClose} tournamentId={tournamentId} registration={registration} /> : null}
+      {open ? (
+        <Body
+          onClose={onClose}
+          tournamentId={tournamentId}
+          registration={registration}
+          templateUrl={templateUrl}
+          onTemplateChanged={onTemplateChanged}
+        />
+      ) : null}
     </AppModal>
   );
 }

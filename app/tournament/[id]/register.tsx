@@ -996,8 +996,9 @@ const RegItem = memo(function RegItem({
   const isMember =
     Boolean(myUserId) &&
     [r?.player1?.user, r?.player2?.user].some((u) => uidOf(u) === String(myUserId));
+  // Admin / quản lý giải: mọi cặp (kể cả chưa thanh toán, chưa có ảnh mẫu → tải trong màn AI Poster).
   const canAiPoster =
-    Boolean(aiPosterEnabled && onOpenAiPoster) && (canManage || (isPaid && isMember));
+    Boolean(onOpenAiPoster) && (canManage || (aiPosterEnabled && isPaid && isMember));
   const { state } = decideTotalState(total, cap, delta);
   const totalColor =
     state === "error"
@@ -1689,7 +1690,7 @@ export default function TournamentRegistrationScreen() {
   // Data Fetching
   const { data: me, isLoading: meLoading } = useGetMeScoreQuery();
   const isLoggedIn = !!me?._id;
-  const { data: tour, isLoading: tourLoading } = useGetTournamentQuery(id);
+  const { data: tour, isLoading: tourLoading, refetch: refetchTour } = useGetTournamentQuery(id);
   const {
     data: regs = [],
     isLoading: regsLoading,
@@ -1815,6 +1816,7 @@ export default function TournamentRegistrationScreen() {
   const posterOpenLockRef = useRef("");
   const [posterBusyId, setPosterBusyId] = useState("");
   const [aiPosterReg, setAiPosterReg] = useState<any>(null);
+  const [aiPosterTemplateOpen, setAiPosterTemplateOpen] = useState(false);
 
   const [replaceDlg, setReplaceDlg] = useState({
     open: false,
@@ -3280,6 +3282,32 @@ export default function TournamentRegistrationScreen() {
           </TouchableOpacity>
 
           {canManage && (
+            <TouchableOpacity
+              onPress={() => {
+                setAiPosterReg(null);
+                setAiPosterTemplateOpen(true);
+              }}
+              style={{
+                marginTop: 10,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                paddingVertical: 11,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: C.warningText,
+                backgroundColor: C.warningBg,
+              }}
+            >
+              <Ionicons name="sparkles" size={17} color={C.warningText} />
+              <Text style={{ color: C.warningText, fontWeight: "800", fontSize: 14 }}>
+                {(tour as any)?.aiPosterTemplateUrl ? "Ảnh mẫu AI Poster (đã có)" : "Tải ảnh mẫu AI Poster"}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {canManage && (
             <View
               style={{
                 marginTop: 10,
@@ -3849,10 +3877,15 @@ export default function TournamentRegistrationScreen() {
 
         {/* === IMAGE VIEWER LIBRARY === */}
         <AiPosterSheet
-          open={Boolean(aiPosterReg)}
-          onClose={() => setAiPosterReg(null)}
+          open={Boolean(aiPosterReg) || aiPosterTemplateOpen}
+          onClose={() => {
+            setAiPosterReg(null);
+            setAiPosterTemplateOpen(false);
+          }}
           tournamentId={String(id || "")}
           registration={aiPosterReg}
+          templateUrl={String((tour as any)?.aiPosterTemplateUrl || "")}
+          onTemplateChanged={() => refetchTour()}
         />
         <ImageView
           images={[{ uri: imgPreview.src, headers: imgPreview.headers }]}
