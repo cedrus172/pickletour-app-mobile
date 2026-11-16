@@ -1,5 +1,5 @@
 import { t } from "@/utils/i18n";
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 // app/contact/index.jsx  (hoặc src/screens/ContactScreen.jsx)
 import {
   useGetContactContentQuery } from "@/slices/cmsApiSlice";
@@ -103,17 +103,17 @@ function SocialButton({ onPress, children, bg }) {
 
 export default function ContactScreen() {
   const scheme = useColorScheme() ?? "light";
-  const v2 = useUiVersion() === "v2";
-  const isDark = v2 || scheme === "dark";
+  const v2 = useUiVersion() === "v2" || IS_V3;
+  const isDark = (v2 && !IS_V3) || scheme === "dark";
 
-  const bg = v2 ? "#040E20" : isDark ? "#0f1115" : "#ffffff";
-  const cardBg = v2 ? "#0A1B34" : isDark ? "#14171c" : "#ffffff";
-  const border = v2 ? "rgba(92,180,255,0.16)" : isDark ? "#2a2e35" : "#e7eaf0";
-  const textPrimary = v2 ? "#EAF3FF" : isDark ? "#ffffff" : "#111111";
-  const textSecondary = v2 ? "#8CA6C8" : isDark ? "#c9c9c9" : "#555555";
-  const muted = v2 ? "#0E2244" : isDark ? "#1a1e24" : "#f6f8fb";
-  const skeleton = v2 ? "rgba(92,180,255,0.12)" : isDark ? "#262a31" : "rgba(0,0,0,0.08)";
-  const tint = v2 ? "#12B6F3" : isDark ? "#7cc0ff" : "#0a84ff";
+  const bg = v2 ? sk("#040E20", "#F2F6FC") : isDark ? "#0f1115" : "#ffffff";
+  const cardBg = v2 ? sk("#0A1B34", "#FFFFFF") : isDark ? "#14171c" : "#ffffff";
+  const border = v2 ? sk("rgba(92,180,255,0.16)", "rgba(16,42,92,0.10)") : isDark ? "#2a2e35" : "#e7eaf0";
+  const textPrimary = v2 ? sk("#EAF3FF", "#0B1B3A") : isDark ? "#ffffff" : "#111111";
+  const textSecondary = v2 ? sk("#8CA6C8", "#5F6F8A") : isDark ? "#c9c9c9" : "#555555";
+  const muted = v2 ? sk("#0E2244", "#EEF3FA") : isDark ? "#1a1e24" : "#f6f8fb";
+  const skeleton = v2 ? sk("rgba(92,180,255,0.12)", "rgba(16,42,92,0.08)") : isDark ? "#262a31" : "rgba(0,0,0,0.08)";
+  const tint = v2 ? sk("#12B6F3", "#1466F2") : isDark ? "#7cc0ff" : "#0a84ff";
 
   const { data, isLoading, isError } = useGetContactContentQuery();
   const info = useMemo(
@@ -319,9 +319,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 16,
     padding: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.06, 0.1),
+    shadowRadius: sk(10, 16),
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },

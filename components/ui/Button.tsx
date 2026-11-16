@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { LinearGradient } from "expo-linear-gradient";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 
 interface ButtonProps {
   title: string;
@@ -54,7 +55,11 @@ export default function Button({
         <ActivityIndicator
           size="small"
           color={
-            variant === "outline" || variant === "ghost" ? "#667eea" : "#fff"
+            variant === "outline" || variant === "ghost"
+              ? sk("#667eea", "#1466F2")
+              : variant === "secondary"
+                ? sk("#fff", "#1466F2")
+                : "#fff"
           }
         />
       ) : (
@@ -63,6 +68,7 @@ export default function Button({
           <Text
             style={[
               styles.text,
+              variant === "secondary" && IS_V3 && styles.textSecondaryV3,
               variant === "outline" && styles.textOutline,
               variant === "ghost" && styles.textGhost,
               textSizes[size],
@@ -85,7 +91,7 @@ export default function Button({
         style={[styles.container, style]}
       >
         <LinearGradient
-          colors={["#667eea", "#764ba2"]}
+          colors={sk<[string, string]>(["#667eea", "#764ba2"], ["#2F8BFF", "#1466F2"])}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={[styles.gradient, sizeStyles[size]]}
@@ -142,24 +148,27 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   primary: {
-    backgroundColor: "#667eea",
+    backgroundColor: sk("#667eea", "#1466F2"),
   },
   secondary: {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: sk("#f5f5f5", "#EEF3FA"),
   },
   outline: {
     backgroundColor: "transparent",
     borderWidth: 1.5,
-    borderColor: "#667eea",
+    borderColor: sk("#667eea", "#1466F2"),
   },
   ghost: {
     backgroundColor: "transparent",
   },
+  textSecondaryV3: {
+    color: "#0B1B3A",
+  },
   textOutline: {
-    color: "#667eea",
+    color: sk("#667eea", "#1466F2"),
   },
   textGhost: {
-    color: "#667eea",
+    color: sk("#667eea", "#1466F2"),
   },
   disabled: {
     opacity: 0.5,

@@ -1,5 +1,5 @@
 // app/screens/LevelPointScreen.jsx
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 import AuthGuard from "@/components/auth/AuthGuard";
 import {
   useGetLatestAssessmentQuery,
@@ -66,21 +66,21 @@ const duprFromRaw = (raw0to10) =>
 /* ===== THEME TOKENS ===== */
 function useThemeTokens() {
   const scheme = useColorScheme() ?? "light";
-  const v2 = useUiVersion() === "v2";
-  const isDark = v2 || scheme === "dark";
+  const v2 = useUiVersion() === "v2" || IS_V3;
+  const isDark = (v2 && !IS_V3) || scheme === "dark";
 
   return {
     isDark,
-    bg: v2 ? "#040E20" : isDark ? "#0f172a" : "#f8fafc",
-    card: v2 ? "#0A1B34" : isDark ? "#1e293b" : "#ffffff",
-    text: v2 ? "#EAF3FF" : isDark ? "#f1f5f9" : "#0f172a",
-    subText: v2 ? "#8CA6C8" : isDark ? "#94a3b8" : "#64748b",
-    border: v2 ? "rgba(92,180,255,0.16)" : isDark ? "#334155" : "#e2e8f0",
-    primary: v2 ? "#12B6F3" : "#3b82f6",
-    primaryLight: v2 ? "rgba(18,182,243,0.18)" : isDark ? "rgba(59, 130, 246, 0.2)" : "#eff6ff",
-    success: "#10b981",
+    bg: v2 ? sk("#040E20", "#F2F6FC") : isDark ? "#0f172a" : "#f8fafc",
+    card: v2 ? sk("#0A1B34", "#FFFFFF") : isDark ? "#1e293b" : "#ffffff",
+    text: v2 ? sk("#EAF3FF", "#0B1B3A") : isDark ? "#f1f5f9" : "#0f172a",
+    subText: v2 ? sk("#8CA6C8", "#5F6F8A") : isDark ? "#94a3b8" : "#64748b",
+    border: v2 ? sk("rgba(92,180,255,0.16)", "rgba(16,42,92,0.12)") : isDark ? "#334155" : "#e2e8f0",
+    primary: v2 ? sk("#12B6F3", "#1466F2") : "#3b82f6",
+    primaryLight: v2 ? sk("rgba(18,182,243,0.18)", "rgba(20,102,242,0.10)") : isDark ? "rgba(59, 130, 246, 0.2)" : "#eff6ff",
+    success: sk("#10b981", "#16A34A"),
     successLight: isDark ? "rgba(16, 185, 129, 0.2)" : "#ecfdf5",
-    chipBg: isDark ? "#334155" : "#e2e8f0",
+    chipBg: isDark ? "#334155" : sk("#e2e8f0", "#EEF3FA"),
     skeleton: isDark ? "#334155" : "#cbd5e1", // Màu cho skeleton
   };
 }
@@ -662,7 +662,7 @@ export default function LevelPointScreen({ userId: userIdProp }) {
               <View
                 style={[
                   styles.rubricContainer,
-                  { backgroundColor: T.isDark ? "#ffffff05" : "#ffffff80" },
+                  { backgroundColor: T.isDark ? "#ffffff05" : sk("#ffffff80", "#FFFFFF") },
                 ]}
               >
                 {RUBRIC.map((item) => (
@@ -714,11 +714,11 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: "center",
     borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOffset: { width: 0, height: sk(2, 4) },
+    shadowOpacity: sk(0.05, 0.1),
+    shadowRadius: sk(8, 14),
+    elevation: sk(2, 3),
   },
   iconCircle: {
     width: 36,

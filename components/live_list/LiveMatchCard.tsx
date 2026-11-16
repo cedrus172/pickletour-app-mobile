@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { useTheme } from "@react-navigation/native";
+import { sk } from "@/hooks/uiVersion";
 import { Image as ExpoImage } from "expo-image";
 import { WebView } from "react-native-webview";
 import * as Clipboard from "expo-clipboard";
@@ -50,16 +51,16 @@ function useThemeTokens() {
     isDark,
     accent: navTheme?.colors?.primary ?? (isDark ? "#6ee7d8" : "#0f766e"),
     textPrimary: navTheme?.colors?.text ?? (isDark ? "#ffffff" : "#102a26"),
-    textSecondary: isDark ? "#b8c4c2" : "#5b6f6a",
+    textSecondary: isDark ? "#b8c4c2" : sk("#5b6f6a", "#5F6F8A"),
     cardBg: navTheme?.colors?.card ?? (isDark ? "#10201d" : "#fffdf8"),
     pageBg: navTheme?.colors?.background ?? (isDark ? "#091513" : "#f5f3ec"),
     cardBorder: navTheme?.colors?.border ?? (isDark ? "#25423d" : "#d9e7e2"),
-    softBg: isDark ? "#17312d" : "#eef6f3",
+    softBg: isDark ? "#17312d" : sk("#eef6f3", "#EEF3FA"),
     liveBg: "rgba(220, 38, 38, 0.92)",
     liveText: "#ffffff",
     shadow: {
-      shadowColor: "#08110f",
-      shadowOffset: { width: 0, height: 10 },
+      shadowColor: sk("#08110f", "#1B3A7A"),
+      shadowOffset: sk({ width: 0, height: 10 }, { width: 0, height: 5 }),
       shadowOpacity: isDark ? 0.32 : 0.08,
       shadowRadius: 16,
       elevation: 4,

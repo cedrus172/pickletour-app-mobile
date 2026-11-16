@@ -21,6 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useGetNewsQuery } from "@/slices/newsApiSlice";
 import { normalizeUrl } from "@/utils/normalizeUri";
+import { sk } from "@/hooks/uiVersion";
 
 const FALLBACK_IMG =
   "https://dummyimage.com/600x400/A29BFE/ffffff&text=Pickleball+News";
@@ -300,11 +301,18 @@ export default function NewsListScreen() {
           headerStyle: { backgroundColor: "transparent" },
           headerBackground: () => (
             <LinearGradient
-              colors={[
-                "rgba(9,9,20,0.98)",
-                "rgba(79,70,229,0.98)",
-                "rgba(9,9,20,0.0)",
-              ]}
+              colors={sk<[string, string, string]>(
+                [
+                  "rgba(9,9,20,0.98)",
+                  "rgba(79,70,229,0.98)",
+                  "rgba(9,9,20,0.0)",
+                ],
+                [
+                  "rgba(11,42,107,0.98)",
+                  "rgba(20,102,242,0.98)",
+                  "rgba(20,102,242,0.0)",
+                ]
+              )}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={{ flex: 1 }}
@@ -358,7 +366,7 @@ export default function NewsListScreen() {
             />
             <TextInput
               placeholder="Tìm bài viết, nguồn, tag..."
-              placeholderTextColor="#9aa0b1"
+              placeholderTextColor={sk("#9aa0b1", "#97A3B8")}
               value={searchText}
               onChangeText={setSearchText}
               style={styles.searchInput}
@@ -553,17 +561,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 14,
-    backgroundColor: "rgba(6,10,18,0.98)",
+    backgroundColor: sk("rgba(6,10,18,0.98)", "#FFFFFF"),
     flexDirection: "row",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.25,
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.25, 0.1),
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
     elevation: 5,
     gap: 6,
   },
-  searchInput: { flex: 1, fontSize: 13, color: "#e4e7ed" },
+  searchInput: { flex: 1, fontSize: 13, color: sk("#e4e7ed", "#0B1B3A") },
   sortBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -571,7 +579,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 18,
     marginBottom: 4,
   },
-  sortText: { fontSize: 11, color: "#9aa0b1" },
+  sortText: { fontSize: 11, color: sk("#9aa0b1", "#5F6F8A") },
   headerRightSpacer: { marginLeft: 10 },
   newsHeaderPill: {
     flexDirection: "row",

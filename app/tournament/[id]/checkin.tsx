@@ -1,5 +1,5 @@
 // app/tournament/[id]/checkin.tsx
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -26,18 +26,18 @@ import {
 /* ---------- Theme helpers ---------- */
 function useThemeColors() {
   const scheme = useColorScheme() ?? "light";
-  const v2 = useUiVersion() === "v2";
-  const isDark = v2 || scheme === "dark";
+  const v2 = useUiVersion() === "v2" || IS_V3;
+  const isDark = (v2 && !IS_V3) || scheme === "dark";
 
-  const tint = v2 ? "#12B6F3" : isDark ? "#7cc0ff" : "#0a84ff";
-  const background = v2 ? "#040E20" : isDark ? "#0f1115" : "#fafafa";
-  const cardBg = v2 ? "#0A1B34" : isDark ? "#16181d" : "#ffffff";
-  const border = v2 ? "rgba(92,180,255,0.16)" : isDark ? "#2f3136" : "#e6e8ef";
-  const hairline = v2 ? "rgba(92,180,255,0.12)" : isDark ? "#26282d" : "#e6e8ef";
-  const inputBg = v2 ? "rgba(255,255,255,0.06)" : isDark ? "#1a1c21" : "#ffffff";
-  const inputBorder = v2 ? "rgba(92,180,255,0.2)" : isDark ? "#2a2d33" : "#e0e0e0";
-  const textPrimary = v2 ? "#EAF3FF" : isDark ? "#ffffff" : "#111111";
-  const textMuted = v2 ? "#8CA6C8" : isDark ? "#9aa0a6" : "#666666";
+  const tint = v2 ? sk("#12B6F3", "#1466F2") : isDark ? "#7cc0ff" : "#0a84ff";
+  const background = v2 ? sk("#040E20", "#F2F6FC") : isDark ? "#0f1115" : "#fafafa";
+  const cardBg = v2 ? sk("#0A1B34", "#FFFFFF") : isDark ? "#16181d" : "#ffffff";
+  const border = v2 ? sk("rgba(92,180,255,0.16)", "rgba(16,42,92,0.10)") : isDark ? "#2f3136" : "#e6e8ef";
+  const hairline = v2 ? sk("rgba(92,180,255,0.12)", "rgba(16,42,92,0.08)") : isDark ? "#26282d" : "#e6e8ef";
+  const inputBg = v2 ? sk("rgba(255,255,255,0.06)", "#EEF3FA") : isDark ? "#1a1c21" : "#ffffff";
+  const inputBorder = v2 ? sk("rgba(92,180,255,0.2)", "rgba(16,42,92,0.16)") : isDark ? "#2a2d33" : "#e0e0e0";
+  const textPrimary = v2 ? sk("#EAF3FF", "#0B1B3A") : isDark ? "#ffffff" : "#111111";
+  const textMuted = v2 ? sk("#8CA6C8", "#5F6F8A") : isDark ? "#9aa0a6" : "#666666";
   const btnDisabled = isDark ? "#4b5563" : "#9aa0a6";
 
   // Soft info/danger boxes (balanced for dark)
@@ -734,6 +734,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     padding: 12,
+    // V3: thẻ trắng có bóng mềm (V2 giữ nguyên).
+    ...(IS_V3 ? { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 } : null),
   },
   actionsCard: { gap: 8 },
   rowWrap: {

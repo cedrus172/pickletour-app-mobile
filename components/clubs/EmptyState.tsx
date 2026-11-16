@@ -9,6 +9,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn, BounceIn } from 'react-native-reanimated';
 import Button from '../ui/Button';
+import { sk } from '@/hooks/uiVersion';
 
 interface EmptyStateProps {
   icon: string;
@@ -29,10 +30,10 @@ export default function EmptyState({
     <Animated.View entering={FadeIn.duration(500)} style={styles.container}>
       <Animated.View entering={BounceIn.delay(200).duration(600)}>
         <LinearGradient
-          colors={['rgba(102, 126, 234, 0.1)', 'rgba(118, 75, 162, 0.1)']}
+          colors={sk<[string, string]>(['rgba(102, 126, 234, 0.1)', 'rgba(118, 75, 162, 0.1)'], ['rgba(47,139,255,0.10)', 'rgba(20,102,242,0.10)'])}
           style={styles.iconContainer}
         >
-          <MaterialCommunityIcons name={icon as any} size={64} color="#667eea" />
+          <MaterialCommunityIcons name={icon as any} size={64} color={sk("#667eea", "#1466F2")} />
         </LinearGradient>
       </Animated.View>
 
@@ -65,13 +66,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: sk('#333', '#0B1B3A'),
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
-    color: '#999',
+    color: sk('#999', '#5F6F8A'),
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,

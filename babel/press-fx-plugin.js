@@ -3,6 +3,7 @@
 // React Native (không đổi gì); ở V3 chúng có thêm hiệu ứng nhún khi bấm.
 const TARGETS = new Set(["TouchableOpacity", "Pressable"]);
 const PRESS_FX = "@/components/ui/PressFx";
+const EXCLUDED = ["/components/match/RefereeScorePanel", "/components/match/RefereeModalSurface", "/components/match/MatchSettingsModal"];
 
 module.exports = function pressFxPlugin({ types: t }) {
   return {
@@ -11,6 +12,8 @@ module.exports = function pressFxPlugin({ types: t }) {
       ImportDeclaration(path, state) {
         const file = String(state.filename || state.file?.opts?.filename || "").replace(/\\/g, "/");
         if (!file || file.includes("/node_modules/") || file.endsWith("/components/ui/PressFx.tsx")) return;
+        // Bảng chấm điểm trọng tài phải phản hồi y như V2 (không thêm hiệu ứng).
+        if (EXCLUDED.some((part) => file.includes(part))) return;
         const node = path.node;
         if (node.source.value !== "react-native" || node.importKind === "type") return;
         const moved = [];

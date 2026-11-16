@@ -19,6 +19,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-reanimated";
 import { Text } from "@/components/ui/i18nText";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { IS_V3 } from "@/hooks/uiVersion";
 import { useResponsive } from "@/hooks/useResponsive";
 import CameraPlayback, { type CameraPlaybackHandle } from "@/components/clipCam/CameraPlayback";
 import { useClipCameraAccess } from "@/hooks/useClipCameraPreviews";
@@ -575,7 +576,7 @@ export default function ClipCutScreen() {
   return (
     <SafeAreaView style={styles.root} edges={["bottom", "left", "right"]}>
       <Stack.Screen options={{ title: channelName, headerShown: true, headerStyle: { backgroundColor: C.card }, headerTintColor: C.text, headerShadowVisible: false,
-        ...(C.isV2 ? { headerBackVisible: false, headerTitleAlign: "center", headerLeft: () => <Pressable accessibilityRole="button" accessibilityLabel="Quay lại" onPress={() => router.back()} style={styles.headerBack}><Ionicons name="chevron-back" size={24} color={C.text} /></Pressable>, headerTitle: () => <View style={{ alignItems: "center", maxWidth: Math.max(150, rsp.width - 145) }}><Text numberOfLines={1} style={{ color: C.text, fontSize: 18, fontWeight: "800" }}>{channelName}</Text><Text numberOfLines={1} style={{ color: C.sub, fontSize: 12, marginTop: 3 }}>{String(venueName || "")}</Text></View> } : {}),
+        ...((C.isV2 || IS_V3) ? { headerBackVisible: false, headerTitleAlign: "center", headerLeft: () => <Pressable accessibilityRole="button" accessibilityLabel="Quay lại" onPress={() => router.back()} style={styles.headerBack}><Ionicons name="chevron-back" size={24} color={C.text} /></Pressable>, headerTitle: () => <View style={{ alignItems: "center", maxWidth: Math.max(150, rsp.width - 145) }}><Text numberOfLines={1} style={{ color: C.text, fontSize: 18, fontWeight: "800" }}>{channelName}</Text><Text numberOfLines={1} style={{ color: C.sub, fontSize: 12, marginTop: 3 }}>{String(venueName || "")}</Text></View> } : {}),
       }} />
       <ScrollView testID="camera-cut-scroll" contentContainerStyle={[styles.content, rsp.isWide && { maxWidth: rsp.contentMaxWidth }]}>
         {manifest ? <CameraPlayback key={manifest} ref={playerRef} uri={manifest} mode={previewMode} originMs={playbackOrigin} autoPlay={autoPlay} C={C} onPlayingChange={setPlaying} /> : (

@@ -11,6 +11,7 @@ import { Text } from "@/components/ui/i18nText";
 import { useSelector } from "react-redux";
 
 import { useOpenDmMutation } from "@/slices/messagesApiSlice";
+import { sk } from "@/hooks/uiVersion";
 
 export function OpenMessageButton({
   userId,
@@ -43,8 +44,8 @@ export function OpenMessageButton({
       disabled={isLoading}
       style={[styles.btn, compact && styles.btnCompact, appearance === "profile" && styles.profile]}
     >
-      <Ionicons name="chatbubble-outline" size={16} color={appearance === "profile" ? "#EAF3FF" : "#0066FF"} />
-      {!compact && <Text style={[styles.text, appearance === "profile" && { color: "#EAF3FF" }]}>{label}</Text>}
+      <Ionicons name="chatbubble-outline" size={16} color={appearance === "profile" ? sk("#EAF3FF", "#1466F2") : "#0066FF"} />
+      {!compact && <Text style={[styles.text, appearance === "profile" && { color: sk("#EAF3FF", "#1466F2") }]}>{label}</Text>}
     </Pressable>
   );
 }
@@ -73,7 +74,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: "center",
     borderRadius: 12,
-    borderColor: "rgba(157,180,204,0.7)",
-    backgroundColor: "rgba(11,32,53,0.92)",
+    borderColor: sk("rgba(157,180,204,0.7)", "rgba(20,102,242,0.28)"),
+    backgroundColor: sk("rgba(11,32,53,0.92)", "#FFFFFF"),
   },
 });

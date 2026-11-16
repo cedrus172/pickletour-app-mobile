@@ -16,7 +16,7 @@ import { normalizeUrl } from "@/utils/normalizeUri";
 import { SHOULD_RENDER_NATIVE_LOTTIE } from "@/utils/runtimeSafety";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
 import { IOS_26_LIQUID_GLASS_ENABLED } from "@/utils/nativeTabs";
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 import { HOME_COLORS } from "@/components/home/HomeDesign";
 
 const BG_3D = SHOULD_RENDER_NATIVE_LOTTIE
@@ -26,7 +26,7 @@ const BG_3D = SHOULD_RENDER_NATIVE_LOTTIE
 /* ---------- Leaderboard Card Component ---------- */
 function LeaderboardCard({ athlete, theme }) {
   const isDark = !!theme?.dark;
-  const v2 = useUiVersion() === "v2";
+  const v2 = useUiVersion() === "v2" || IS_V3;
   const bg = v2 ? HOME_COLORS.surfaceStrong : theme?.colors?.card ?? (isDark ? "#1a1d23" : "#ffffff");
   const text = v2 ? HOME_COLORS.text : theme?.colors?.text ?? (isDark ? "#ffffff" : "#111111");
   const subtext = v2 ? HOME_COLORS.textMuted : isDark ? "#b0b0b0" : "#666666";
@@ -163,7 +163,7 @@ function LeaderboardCard({ athlete, theme }) {
               <>
                 <View style={styles.statDivider} />
                 <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: "#FFD700" }]}>
+                  <Text style={[styles.statValue, { color: sk("#FFD700", "#D97706") }]}>
                     {athlete.finalWins}
                   </Text>
                   <Text style={[styles.statLabel, { color: subtext }]}>
@@ -211,7 +211,7 @@ function LeaderboardCard({ athlete, theme }) {
 /* ---------- Leaderboard Section Component ---------- */
 export default function LeaderboardSection() {
   const theme = useTheme();
-  const v2 = useUiVersion() === "v2";
+  const v2 = useUiVersion() === "v2" || IS_V3;
   const { data, isLoading, isError } = useGetFeaturedLeaderboardQuery({
     sinceDays: 90,
     limit: 5,
@@ -246,7 +246,7 @@ export default function LeaderboardSection() {
         ) : null}
         {v2 ? (
           <LinearGradient
-            colors={["rgba(8,31,58,0.94)", "rgba(2,11,28,0.98)"]}
+            colors={sk<[string, string]>(["rgba(8,31,58,0.94)", "rgba(2,11,28,0.98)"], ["#FFFFFF", "#F1F6FE"])}
             style={StyleSheet.absoluteFillObject}
           />
         ) : (
@@ -260,7 +260,7 @@ export default function LeaderboardSection() {
           <AppleLiquidGlassView
             fallback="view"
             glassEffectStyle="regular"
-            glassTintColor="rgba(255, 213, 64, 0.72)"
+            glassTintColor={sk("rgba(255, 213, 64, 0.72)", "rgba(47, 139, 255, 0.72)")}
             isInteractive
             style={[styles.leaderboardHeader, styles.leaderboardHeaderGlass]}
           >
@@ -268,22 +268,22 @@ export default function LeaderboardSection() {
               pointerEvents="none"
               colors={
                 v2
-                  ? ["rgba(16,57,91,0.98)", "rgba(7,29,55,0.98)"]
+                  ? sk<[string, string]>(["rgba(16,57,91,0.98)", "rgba(7,29,55,0.98)"], ["#2F8BFF", "#1466F2"])
                   : ["rgba(255, 232, 96, 0.98)", "rgba(255, 166, 0, 0.92)"]
               }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFillObject}
             />
-            <Ionicons name="podium" size={25} color={v2 ? HOME_COLORS.warning : "#FFFFFF"} />
+            <Ionicons name="podium" size={25} color={v2 ? sk(HOME_COLORS.warning, "#C5F433") : "#FFFFFF"} />
             <Text style={styles.leaderboardHeaderText}>
               Bảng xếp hạng nổi bật
             </Text>
-            <Ionicons name="podium" size={25} color={v2 ? HOME_COLORS.warning : "#FFFFFF"} />
+            <Ionicons name="podium" size={25} color={v2 ? sk(HOME_COLORS.warning, "#C5F433") : "#FFFFFF"} />
           </AppleLiquidGlassView>
         ) : (
           <LinearGradient
-            colors={["#FFD700", "#FFA500"]}
+            colors={sk<[string, string]>(["#FFD700", "#FFA500"], ["#2F8BFF", "#1466F2"])}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.leaderboardHeader}
@@ -310,11 +310,11 @@ export default function LeaderboardSection() {
                 <AppleLiquidGlassView
                   fallback="view"
                   intensity={70}
-                  tint="dark"
-                  glassTintColor="rgba(0, 0, 0, 0.2)"
+                  tint={sk<"dark" | "light">("dark", "light")}
+                  glassTintColor={sk("rgba(0, 0, 0, 0.2)", "rgba(16, 42, 92, 0.06)")}
                   style={[
                     styles.leaderboardCard,
-                    { backgroundColor: "#00000020", height: 200 },
+                    { backgroundColor: sk("#00000020", "rgba(16,42,92,0.06)"), height: 200 },
                   ]}
                 />
               </View>
@@ -325,7 +325,7 @@ export default function LeaderboardSection() {
         {/* Error State */}
         {isError && (
           <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle" size={48} color="#FF6B6B" />
+            <Ionicons name="alert-circle" size={48} color={sk("#FF6B6B", "#DC2626")} />
             <Text style={styles.errorText}>Không thể tải bảng xếp hạng</Text>
           </View>
         )}
@@ -333,7 +333,7 @@ export default function LeaderboardSection() {
         {/* Empty State */}
         {!isLoading && !isError && items.length === 0 && (
           <View style={styles.emptyContainer}>
-            <Ionicons name="trophy-outline" size={48} color="#999999" />
+            <Ionicons name="trophy-outline" size={48} color={sk("#999999", "#97A3B8")} />
             <Text style={styles.emptyText}>Chưa có dữ liệu xếp hạng</Text>
           </View>
         )}
@@ -374,7 +374,7 @@ export default function LeaderboardSection() {
             <AppleLiquidGlassView
               fallback="view"
               glassEffectStyle="regular"
-              glassTintColor="rgba(255, 214, 66, 0.78)"
+              glassTintColor={sk("rgba(255, 214, 66, 0.78)", "rgba(47, 139, 255, 0.78)")}
               isInteractive
               style={[styles.viewAllGradient, styles.viewAllGlass]}
             >
@@ -382,7 +382,7 @@ export default function LeaderboardSection() {
               pointerEvents="none"
                 colors={
                   v2
-                    ? [HOME_COLORS.primary, HOME_COLORS.secondary]
+                    ? sk<[string, string]>([HOME_COLORS.primary, HOME_COLORS.secondary], ["#2F8BFF", "#1466F2"])
                     : ["rgba(255, 225, 72, 0.98)", "rgba(255, 149, 0, 0.92)"]
                 }
                 start={{ x: 0, y: 0 }}
@@ -398,7 +398,7 @@ export default function LeaderboardSection() {
             </AppleLiquidGlassView>
           ) : (
             <LinearGradient
-              colors={["#FFD700", "#FFA500"]}
+              colors={sk<[string, string]>(["#FFD700", "#FFA500"], ["#2F8BFF", "#1466F2"])}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.viewAllGradient}
@@ -428,6 +428,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     overflow: "hidden",
     borderRadius: 24,
+    ...(IS_V3 ? { borderWidth: 1, borderColor: "rgba(16,42,92,0.08)" } : null),
   },
   leaderboardOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -450,8 +451,8 @@ const styles = StyleSheet.create({
   leaderboardHeaderGlass: {
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.62)",
-    shadowColor: "#FFD700",
-    shadowOpacity: 0.36,
+    shadowColor: sk("#FFD700", "#1466F2"),
+    shadowOpacity: sk(0.36, 0.22),
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
   },
@@ -460,7 +461,7 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: "#FFFFFF",
     letterSpacing: 0,
-    textShadowColor: "rgba(120,72,0,0.56)",
+    textShadowColor: sk("rgba(120,72,0,0.56)", "rgba(8,40,110,0.35)"),
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
@@ -471,6 +472,15 @@ const styles = StyleSheet.create({
   leaderboardCardGradient: {
     borderRadius: 16,
     padding: 2,
+    ...(IS_V3
+      ? {
+          shadowColor: "#1B3A7A",
+          shadowOpacity: 0.1,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 5 },
+          elevation: 3,
+        }
+      : null),
   },
   leaderboardCard: {
     borderRadius: 14,
@@ -485,7 +495,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 215, 0, 0.2)",
+    backgroundColor: sk("rgba(255, 215, 0, 0.2)", "rgba(245, 158, 11, 0.14)"),
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -493,7 +503,7 @@ const styles = StyleSheet.create({
   rankText: {
     fontSize: 18,
     fontWeight: "900",
-    color: "#FFD700",
+    color: sk("#FFD700", "#B45309"),
   },
   avatarImage: {
     width: 50,
@@ -604,7 +614,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
-    color: "#FF6B6B",
+    color: sk("#FF6B6B", "#DC2626"),
     marginTop: 12,
     fontWeight: "600",
   },
@@ -615,7 +625,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: "#999999",
+    color: sk("#999999", "#5F6F8A"),
     marginTop: 12,
     fontWeight: "600",
   },
@@ -624,7 +634,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     borderRadius: 12,
     overflow: "hidden",
-    shadowColor: "#FFD700",
+    shadowColor: sk("#FFD700", "#1466F2"),
     shadowOpacity: 0.22,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
@@ -647,7 +657,7 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: "#FFFFFF",
     letterSpacing: 0,
-    textShadowColor: "rgba(120,72,0,0.5)",
+    textShadowColor: sk("rgba(120,72,0,0.5)", "rgba(8,40,110,0.3)"),
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },

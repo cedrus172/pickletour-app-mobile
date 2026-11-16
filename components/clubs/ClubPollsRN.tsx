@@ -20,6 +20,7 @@ import {
   useDeletePollMutation,
 } from "@/slices/clubsApiSlice";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { sk } from "@/hooks/uiVersion";
 
 const getApiErrMsg = (e: any) =>
   e?.data?.message ||
@@ -41,7 +42,7 @@ function GradLightCard({
   return (
     <View style={[styles.card, style]}>
       <LinearGradient
-        colors={["rgba(102,126,234,0.06)", "rgba(118,75,162,0.06)"]}
+        colors={sk<[string, string]>(["rgba(102,126,234,0.06)", "rgba(118,75,162,0.06)"], ["rgba(47,139,255,0.04)", "rgba(20,102,242,0.04)"])}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -71,7 +72,7 @@ function SmallPrimaryGradBtn({
       style={styles.smallBtn}
     >
       <LinearGradient
-        colors={["#667eea", "#764ba2"]}
+        colors={sk<[string, string]>(["#667eea", "#764ba2"], ["#2F8BFF", "#1466F2"])}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -260,7 +261,7 @@ function PollItem({
                       : "radiobox-blank"
                 }
                 size={18}
-                color={picked ? "#667eea" : C.muted}
+                color={picked ? sk("#667eea", "#1466F2") : C.muted}
                 style={{ marginRight: 6 }}
               />
               <Text
@@ -400,7 +401,7 @@ export default function ClubPollsRN({
             <MaterialCommunityIcons
               name={multiple ? "checkbox-marked" : "checkbox-blank-outline"}
               size={20}
-              color={multiple ? "#667eea" : C.muted}
+              color={multiple ? sk("#667eea", "#1466F2") : C.muted}
             />
             <Text style={styles.checkLabel}>Cho phép chọn nhiều phương án</Text>
           </TouchableOpacity>
@@ -442,8 +443,8 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     backgroundColor: C.card,
     borderWidth: 1,
     borderColor: C.border,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.06, 0.1),
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 10,
     elevation: 3,
@@ -486,7 +487,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     backgroundColor: C.field,
   },
   optionPicked: {
-    borderColor: "#667eea",
+    borderColor: sk("#667eea", "#1466F2"),
     backgroundColor: C.field,
   },
   optionHead: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
@@ -503,7 +504,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
   },
-  tagText: { color: C.dark ? "#8B96F0" : "#4E56A6", fontSize: 11, fontWeight: "700" },
+  tagText: { color: C.dark ? "#8B96F0" : sk("#4E56A6", "#1466F2"), fontSize: 11, fontWeight: "700" },
 
   adminRow: { flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" },
 

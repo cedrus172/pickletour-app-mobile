@@ -80,6 +80,7 @@ import CccdQrModal from "@/components/CccdQrModal";
 import PhoneActivationCard from "@/components/auth/PhoneActivationCard";
 import apiSlice from "@/slices/apiSlice";
 import { useTheme } from "@react-navigation/native";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 import { buildLoginHref, runMobileLogoutFlow } from "@/services/authSession";
 import { DEVICE_ID_KEY } from "@/services/deviceIdentity";
 import { triggerCrashFeedbackTestCrash } from "@/services/crashFeedbackService";
@@ -296,29 +297,46 @@ const fmtScore = (v) => {
 };
 
 /* ---------- Theme ---------- */
+// V3 Fresh: bóng mềm cho thẻ nền trắng (V2 không có bóng → null).
+const V3_CARD_SHADOW = IS_V3
+  ? {
+      shadowColor: "#1B3A7A",
+      shadowOpacity: 0.08,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 5 },
+      elevation: 3,
+    }
+  : null;
+
 function useTokens() {
   const navTheme = (useTheme?.() || {}) as any;
   const scheme = useColorScheme?.() || "light";
-  const v2 = navTheme?.version === "v2";
+  // V3 Fresh đi theo bố cục V2 nhưng dùng bảng màu sáng.
+  const v2 = navTheme?.version === "v2" || IS_V3;
   const dark =
-    v2 || (typeof navTheme.dark === "boolean" ? navTheme.dark : scheme === "dark");
+    (v2 && !IS_V3) ||
+    (typeof navTheme.dark === "boolean" ? navTheme.dark : scheme === "dark");
   if (v2) {
     return {
-      dark: true,
+      dark: sk(true, false),
       v2: true,
-      headerGradient: ["#040E20", "#0A1B34", "#0E2A52"],
-      bg: "#040E20",
-      surface: "#0A1B34",
-      surfaceAlt: "#0E2244",
-      text: "#EAF3FF",
-      textSecondary: "#8CA6C8",
-      textMuted: "#5F7BA0",
-      accent: "#12B6F3",
-      accentLight: "rgba(18,182,243,0.18)",
-      border: "rgba(92,180,255,0.16)",
-      success: "#22c55e",
-      warning: "#f59e0b",
-      error: "#ef4444",
+      // V3: khối hero xanh dương, giữ chữ trắng phía trên.
+      headerGradient: sk(
+        ["#040E20", "#0A1B34", "#0E2A52"],
+        ["#2F8BFF", "#1466F2", "#0B3FB8"],
+      ),
+      bg: sk("#040E20", "#F2F6FC"),
+      surface: sk("#0A1B34", "#FFFFFF"),
+      surfaceAlt: sk("#0E2244", "#EEF3FA"),
+      text: sk("#EAF3FF", "#0B1B3A"),
+      textSecondary: sk("#8CA6C8", "#5F6F8A"),
+      textMuted: sk("#5F7BA0", "#97A3B8"),
+      accent: sk("#12B6F3", "#1466F2"),
+      accentLight: sk("rgba(18,182,243,0.18)", "rgba(20,102,242,0.10)"),
+      border: sk("rgba(92,180,255,0.16)", "rgba(16,42,92,0.10)"),
+      success: sk("#22c55e", "#16A34A"),
+      warning: sk("#f59e0b", "#D97706"),
+      error: sk("#ef4444", "#DC2626"),
     };
   }
   return {
@@ -1213,7 +1231,7 @@ export default function ProfileScreen({ isBack = false }) {
                   avatarUrl ||
                   `https://ui-avatars.com/api/?name=${encodeURIComponent(
                     user.name || "U",
-                  )}&background=8b5cf6&color=fff`
+                  )}&background=${sk("8b5cf6", "1466F2")}&color=fff`
                 }
                 style={styles.avatarImg}
               />
@@ -1388,27 +1406,27 @@ export default function ProfileScreen({ isBack = false }) {
               <>
                 <View testID="profile-responsive-overview" style={twoPane ? { flexDirection: "row", alignItems: "flex-start", gap: 16 } : { gap: 16 }}>
                 <View style={twoPane ? { flex: 1, minWidth: 0 } : undefined}>
-                <View style={{ backgroundColor: t.surface, borderColor: t.border, borderWidth: 1, borderRadius: 20, padding: 16, gap: 12 }}>
+                <View style={[{ backgroundColor: t.surface, borderColor: t.border, borderWidth: 1, borderRadius: 20, padding: 16, gap: 12 }, V3_CARD_SHADOW]}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                    <View style={{ width: 4, height: 32, borderRadius: 2, backgroundColor: "#A3E635" }} />
+                    <View style={{ width: 4, height: 32, borderRadius: 2, backgroundColor: sk("#A3E635", "#8FCB10") }} />
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: t.text, fontSize: 19, fontWeight: "800" }}>Tổng quan tài khoản</Text>
                       <Text style={{ color: t.textSecondary, fontSize: 12 }}>Thành tích và chỉ số PickleTour của bạn</Text>
                     </View>
                   </View>
                   <View style={{ flexDirection: "row", gap: 10 }}>
-                    <View style={{ flex: 1, borderWidth: 1, borderColor: t.border, borderLeftWidth: 4, borderLeftColor: "#06BDE5", borderRadius: 14, padding: 14 }}>
-                      <Feather name="award" size={22} color="#06BDE5" />
+                    <View style={{ flex: 1, borderWidth: 1, borderColor: t.border, borderLeftWidth: 4, borderLeftColor: sk("#06BDE5", "#1466F2"), borderRadius: 14, padding: 14 }}>
+                      <Feather name="award" size={22} color={sk("#06BDE5", "#1466F2")} />
                       <Text style={{ color: t.text, fontSize: 26, fontWeight: "800", marginTop: 7 }}>{user.stats?.tournaments || 0}</Text>
                       <Text style={{ color: t.textSecondary }}>Giải đấu</Text>
                     </View>
-                    <Pressable onPress={() => setRepInfoOpen(true)} accessibilityRole="button" accessibilityLabel="Thông tin uy tín" style={{ flex: 1, borderWidth: 1, borderColor: t.border, borderLeftWidth: 4, borderLeftColor: "#A3E635", borderRadius: 14, padding: 14 }}>
-                      <Feather name="shield" size={22} color="#A3E635" />
+                    <Pressable onPress={() => setRepInfoOpen(true)} accessibilityRole="button" accessibilityLabel="Thông tin uy tín" style={{ flex: 1, borderWidth: 1, borderColor: t.border, borderLeftWidth: 4, borderLeftColor: sk("#A3E635", "#8FCB10"), borderRadius: 14, padding: 14 }}>
+                      <Feather name="shield" size={22} color={sk("#A3E635", "#5E9C00")} />
                       <Text style={{ color: t.text, fontSize: 26, fontWeight: "800", marginTop: 7 }}>{user.stats?.reputation || 0}</Text>
                       <Text style={{ color: t.textSecondary }}>Uy tín</Text>
                     </Pressable>
                   </View>
-                  <View style={{ flexDirection: "row", borderWidth: 1, borderColor: t.border, borderLeftWidth: 4, borderLeftColor: "#06BDE5", borderRadius: 14, padding: 14 }}>
+                  <View style={{ flexDirection: "row", borderWidth: 1, borderColor: t.border, borderLeftWidth: 4, borderLeftColor: sk("#06BDE5", "#1466F2"), borderRadius: 14, padding: 14 }}>
                     {[{ label: "Điểm đôi", value: user.ratingDouble }, { label: "Điểm đơn", value: user.ratingSingle }].map((score, index) => (
                       <View key={score.label} style={{ flex: 1, paddingLeft: index ? 14 : 0, borderLeftWidth: index ? 1 : 0, borderLeftColor: t.border }}>
                         <Text style={{ color: t.text, fontSize: 24, fontWeight: "800" }}>{user.rated === false ? "Chưa chấm" : fmtScore(score.value)}</Text>
@@ -1727,20 +1745,20 @@ export default function ProfileScreen({ isBack = false }) {
                         size={20}
                         color={
                           status === "verified"
-                            ? "#22c55e"
+                            ? sk("#22c55e", "#16A34A")
                             : status === "pending"
-                              ? "#f59e0b"
-                              : "#ef4444"
+                              ? sk("#f59e0b", "#D97706")
+                              : sk("#ef4444", "#DC2626")
                         }
                       />
                       <Text
                         style={{
                           color:
                             status === "verified"
-                              ? "#22c55e"
+                              ? sk("#22c55e", "#16A34A")
                               : status === "pending"
-                                ? "#f59e0b"
-                                : "#ef4444",
+                                ? sk("#f59e0b", "#D97706")
+                                : sk("#ef4444", "#DC2626"),
                           fontWeight: "600",
                         }}
                       >
@@ -3121,7 +3139,7 @@ const GradientBtn = ({ title, onPress, disabled = false, loading = false }) => {
               : "rgba(113,113,122,0.34)"
             : IOS_26_LIQUID_GLASS_ENABLED
               ? profileGlassAccentTintFor(t, 0.78, 0.82)
-              : "rgba(139,92,246,0.34)"
+              : sk("rgba(139,92,246,0.34)", "rgba(20,102,242,0.34)")
         }
         style={[
           styles.gradientBtn,
@@ -3135,7 +3153,7 @@ const GradientBtn = ({ title, onPress, disabled = false, loading = false }) => {
                 ? ["rgba(113,113,122,0.62)", "rgba(82,82,91,0.48)"]
                 : ["#71717a", "#52525b"]
               : t.v2
-                ? ["#06B6D4", "#12B6F3"]
+                ? sk(["#06B6D4", "#12B6F3"], ["#2F8BFF", "#1466F2"])
                 : IOS_26_LIQUID_GLASS_ENABLED
                   ? ["rgba(139,92,246,0.94)", "rgba(99,102,241,0.86)"]
                   : ["#8b5cf6", "#6366f1"]
@@ -3516,6 +3534,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
+    ...V3_CARD_SHADOW,
   },
 
   skelLine: {
@@ -3530,13 +3549,14 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 4,
     borderWidth: 1,
+    ...V3_CARD_SHADOW,
   },
   tabBarGlass: {
-    borderColor: "rgba(255,255,255,0.16)",
+    borderColor: sk("rgba(255,255,255,0.16)", "rgba(16,42,92,0.10)"),
     overflow: "hidden",
-    shadowColor: "#000",
+    shadowColor: sk("#000", "#1B3A7A"),
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.18,
+    shadowOpacity: sk(0.18, 0.1),
     shadowRadius: 18,
   },
   tabItemPressable: {
@@ -3571,7 +3591,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.28)",
     overflow: "hidden",
-    shadowColor: "#8b5cf6",
+    shadowColor: sk("#8b5cf6", "#1466F2"),
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.28,
     shadowRadius: 16,
@@ -3617,27 +3637,27 @@ const styles = StyleSheet.create({
   bentoValue: { fontSize: 28, fontWeight: "800", color: "#fff" },
   bentoLabel: { fontSize: 12, color: "rgba(255,255,255,0.8)" },
 
-  card: { borderRadius: 20, padding: 16, borderWidth: 1 },
+  card: { borderRadius: 20, padding: 16, borderWidth: 1, ...V3_CARD_SHADOW },
   cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 14 },
   cardGlass: {
-    borderColor: "rgba(255,255,255,0.24)",
+    borderColor: sk("rgba(255,255,255,0.24)", "rgba(16,42,92,0.10)"),
     overflow: "hidden",
-    shadowColor: "#000",
+    shadowColor: sk("#000", "#1B3A7A"),
     shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.24,
+    shadowOpacity: sk(0.24, 0.12),
     shadowRadius: 28,
   },
   cardGlassEdge: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.16)",
+    borderColor: sk("rgba(255,255,255,0.16)", "rgba(16,42,92,0.08)"),
   },
   editProfileCardGlass: {
-    borderColor: "rgba(255,255,255,0.32)",
-    shadowColor: "#8b5cf6",
+    borderColor: sk("rgba(255,255,255,0.32)", "rgba(16,42,92,0.14)"),
+    shadowColor: sk("#8b5cf6", "#1466F2"),
     shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.24,
+    shadowOpacity: sk(0.24, 0.14),
     shadowRadius: 30,
   },
   cardTitle: { fontSize: 17, fontWeight: "700", marginBottom: 24 },
@@ -3668,13 +3688,13 @@ const styles = StyleSheet.create({
   },
   formInputGlass: {
     overflow: "hidden",
-    shadowColor: "#000",
+    shadowColor: sk("#000", "#1B3A7A"),
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
+    shadowOpacity: sk(0.12, 0.08),
     shadowRadius: 14,
   },
   formInputGlassActive: {
-    shadowColor: "#8b5cf6",
+    shadowColor: sk("#8b5cf6", "#1466F2"),
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.22,
     shadowRadius: 18,
@@ -3697,7 +3717,7 @@ const styles = StyleSheet.create({
   gradientBtnGlass: {
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.32)",
-    shadowColor: "#8b5cf6",
+    shadowColor: sk("#8b5cf6", "#1466F2"),
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.32,
     shadowRadius: 18,
@@ -3767,12 +3787,12 @@ const styles = StyleSheet.create({
   },
   statusBoxGlass: {
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
+    borderColor: sk("rgba(255,255,255,0.14)", "rgba(16,42,92,0.08)"),
     overflow: "hidden",
   },
 
   warningText: {
-    color: "#f59e0b",
+    color: sk("#f59e0b", "#D97706"),
     fontSize: 12,
     marginTop: 8,
     textAlign: "center",
@@ -3795,7 +3815,7 @@ const styles = StyleSheet.create({
   },
   glassPill: {
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.24)",
+    borderColor: sk("rgba(255,255,255,0.24)", "rgba(16,42,92,0.10)"),
     overflow: "hidden",
   },
 

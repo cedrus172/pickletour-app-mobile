@@ -1,6 +1,6 @@
 import TournamentSponsors from "@/components/tournament/TournamentSponsors";
 import { t } from "@/utils/i18n";
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 /* eslint-disable react/prop-types */
 // app/tournament/[id]/index.jsx
 import React, {
@@ -165,36 +165,37 @@ const isRefereeOfTournament = (tour, matches, me) => {
 /* -------------------- theme tokens -------------------- */
 function useTokens() {
   const scheme = useColorScheme() ?? "light";
-  const v2 = useUiVersion() === "v2";
-  const dark = v2 || scheme === "dark";
+  // V3 Fresh: bố cục của V2, bảng màu sáng.
+  const v2 = useUiVersion() === "v2" || IS_V3;
+  const dark = (v2 && !IS_V3) || scheme === "dark";
   return useMemo(
     () => ({
       scheme,
       dark, v2,
-      bg: v2 ? "#041329" : dark ? "#0b0d10" : "#f5f8fa",
-      card: v2 ? "#082138" : dark ? "#12151a" : "#ffffff",
-      soft: v2 ? "#0C2945" : dark ? "#1a1f26" : "#f1f5f9",
-      border: v2 ? "#174A6C" : dark ? "#2a313a" : "#e2e8f0",
-      text: v2 ? "#F0F6FF" : dark ? "#eef2f7" : "#0f172a",
-      sub: v2 ? "#A9C2D9" : dark ? "#cbd5e1" : "#475569",
-      muted: v2 ? "#94B3D0" : dark ? "#94a3b8" : "#64748b",
-      tint: v2 ? "#12C8EC" : dark ? "#63b3ed" : "#2563eb",
+      bg: v2 ? sk("#041329", "#F2F6FC") : dark ? "#0b0d10" : "#f5f8fa",
+      card: v2 ? sk("#082138", "#FFFFFF") : dark ? "#12151a" : "#ffffff",
+      soft: v2 ? sk("#0C2945", "#F5F8FD") : dark ? "#1a1f26" : "#f1f5f9",
+      border: v2 ? sk("#174A6C", "rgba(16,42,92,0.10)") : dark ? "#2a313a" : "#e2e8f0",
+      text: v2 ? sk("#F0F6FF", "#0B1B3A") : dark ? "#eef2f7" : "#0f172a",
+      sub: v2 ? sk("#A9C2D9", "#243450") : dark ? "#cbd5e1" : "#475569",
+      muted: v2 ? sk("#94B3D0", "#5F6F8A") : dark ? "#94a3b8" : "#64748b",
+      tint: v2 ? sk("#12C8EC", "#1466F2") : dark ? "#63b3ed" : "#2563eb",
 
       live: "#e65100",
       ok: dark ? "#4ade80" : "#16a34a",
       warn: dark ? "#facc15" : "#ca8a04",
       err: dark ? "#f87171" : "#dc2626",
 
-      gradA: v2 ? "#093453" : dark ? "#0b2a4a" : "#1d4ed8",
-      gradB: v2 ? "#041329" : dark ? "#0a1626" : "#0b3aa6",
+      gradA: v2 ? sk("#093453", "#2F8BFF") : dark ? "#0b2a4a" : "#1d4ed8",
+      gradB: v2 ? sk("#041329", "#1466F2") : dark ? "#0a1626" : "#0b3aa6",
 
       skel: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
       shadow: {
-        shadowColor: "#000",
-        shadowOpacity: v2 ? 0 : dark ? 0.32 : 0.08,
+        shadowColor: sk("#000", "#1B3A7A"),
+        shadowOpacity: v2 ? sk(0, 0.09) : dark ? 0.32 : 0.08,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 6 },
-        elevation: v2 ? 0 : 3,
+        elevation: v2 ? sk(0, 3) : 3,
       },
     }),
     [scheme, v2]
@@ -707,7 +708,7 @@ export default function TournamentOverviewScreen() {
       <Stack.Screen
         options={{
           title: t("Tổng quan giải đấu"),
-          headerStyle: { backgroundColor: T.v2 ? "#061D33" : T.card },
+          headerStyle: { backgroundColor: T.v2 ? sk("#061D33", "#FFFFFF") : T.card },
           headerTitleStyle: { color: T.text, ...(T.v2 ? { fontSize: 18, fontWeight: "800" } : {}) },
           ...(T.v2 ? { headerTitleAlign: "center", headerRight: () => null } : {}),
           headerShadowVisible: false,
@@ -798,7 +799,7 @@ export default function TournamentOverviewScreen() {
             </View>
 
             <Text testID="tournament-overview-title" style={[S.heroTitle, T.v2 && O.heroTitle]} numberOfLines={T.v2 ? undefined : 2}>
-              {T.v2 ? titleEnd ? <>{titleEnd[1]}<Text style={{ color: T.tint }}>{titleEnd[2]}</Text></> : heading.title : tournament?.name || "Giải đấu"}
+              {T.v2 ? titleEnd ? <>{titleEnd[1]}<Text style={{ color: sk(T.tint, "#C5F433") }}>{titleEnd[2]}</Text></> : heading.title : tournament?.name || "Giải đấu"}
             </Text>
             {T.v2 && !!heading.category ? <View style={O.category}><Text style={O.categoryText}>{heading.category}</Text></View> : null}
 
@@ -853,7 +854,7 @@ export default function TournamentOverviewScreen() {
                 ]}
               >
                 <View style={[S.shortcutIcon, T.v2 && O.shortcutIcon]}>
-                  <MaterialIcons name="event-note" size={T.v2 ? 23 : 18} color="#fff" />
+                  <MaterialIcons name="event-note" size={T.v2 ? 23 : 18} color={sk("#fff", "#1466F2")} />
                 </View>
                 <Text numberOfLines={T.v2 ? undefined : 2} style={[S.shortcutText, T.v2 && O.shortcutText]}>Lịch</Text>
               </Pressable>
@@ -871,7 +872,7 @@ export default function TournamentOverviewScreen() {
                   <MaterialCommunityIcons
                     name="tournament"
                     size={T.v2 ? 23 : 18}
-                    color="#fff"
+                    color={sk("#fff", "#1466F2")}
                   />
                 </View>
                 <Text numberOfLines={T.v2 ? undefined : 2} style={[S.shortcutText, T.v2 && O.shortcutText]}>Sơ đồ</Text>
@@ -896,7 +897,7 @@ export default function TournamentOverviewScreen() {
                     <MaterialCommunityIcons
                       name="shield-star"
                       size={T.v2 ? 23 : 18}
-                      color="#fff"
+                      color={sk("#fff", "#D97706")}
                     />
                   </View>
                   <Text numberOfLines={T.v2 ? undefined : 2} style={[S.shortcutText, T.v2 && O.shortcutText]}>MLP</Text>
@@ -915,9 +916,9 @@ export default function TournamentOverviewScreen() {
                 ]}
               >
                 <View style={[S.shortcutIcon, T.v2 && O.shortcutIcon]}>
-                  <Ionicons name="create-outline" size={T.v2 ? 23 : 18} color={T.v2 ? "#032139" : "#fff"} />
+                  <Ionicons name="create-outline" size={T.v2 ? 23 : 18} color={T.v2 ? sk("#032139", "#12300A") : "#fff"} />
                 </View>
-                <Text numberOfLines={T.v2 ? undefined : 2} style={[S.shortcutText, T.v2 && O.shortcutText, T.v2 && { color: "#032139" }]}>Đăng ký</Text>
+                <Text numberOfLines={T.v2 ? undefined : 2} style={[S.shortcutText, T.v2 && O.shortcutText, T.v2 && { color: sk("#032139", "#12300A") }]}>Đăng ký</Text>
               </Pressable>
 
               <Pressable
@@ -951,7 +952,7 @@ export default function TournamentOverviewScreen() {
                 ]}
               >
                 <View style={[S.shortcutIcon, { backgroundColor: "#F59E0B" }, T.v2 && O.shortcutIcon]}>
-                  <Ionicons name="star" size={T.v2 ? 23 : 18} color={T.v2 ? "#FFBB15" : "#fff"} />
+                  <Ionicons name="star" size={T.v2 ? 23 : 18} color={T.v2 ? sk("#FFBB15", "#F59E0B") : "#fff"} />
                 </View>
                 <Text numberOfLines={T.v2 ? undefined : 2} style={[S.shortcutText, T.v2 && O.shortcutText]}>
                   {reviewSummary?.summary?.count
@@ -979,7 +980,7 @@ export default function TournamentOverviewScreen() {
                   <Ionicons
                     name={isFollowing ? "notifications" : "notifications-outline"}
                     size={T.v2 ? 23 : 18}
-                    color={T.v2 ? isFollowing ? "#4ADE80" : "#9C67FF" : "#fff"}
+                    color={T.v2 ? isFollowing ? sk("#4ADE80", "#16A34A") : sk("#9C67FF", "#7C3AED") : "#fff"}
                   />
                 </View>
                 <Text numberOfLines={T.v2 ? undefined : 2} style={[S.shortcutText, T.v2 && O.shortcutText]}>
@@ -990,7 +991,7 @@ export default function TournamentOverviewScreen() {
           </LinearGradient>
 
           {/* STATS (overlap) */}
-          <View testID="tournament-overview-stats" style={{ paddingHorizontal: 16, marginTop: T.v2 ? 0 : -28 }}>
+          <View testID="tournament-overview-stats" style={{ paddingHorizontal: 16, marginTop: T.v2 ? sk(0, 14) : -28 }}>
             <View style={{ flexDirection: "row", gap: 10 }}>
               <View style={{ flex: 1 }}>
                 <StatCard
@@ -1646,20 +1647,20 @@ const S = StyleSheet.create({
 
 // Giao diện V2 theo ảnh duyệt; style V1 ở S được giữ nguyên.
 const O = StyleSheet.create({
-  headerBack: { width: 40, height: 40, borderWidth: 1, borderColor: "#21577A", borderRadius: 20, backgroundColor: "#082239", alignItems: "center", justifyContent: "center" },
+  headerBack: { width: 40, height: 40, borderWidth: 1, borderColor: sk("#21577A", "rgba(16,42,92,0.10)"), borderRadius: 20, backgroundColor: sk("#082239", "#F5F8FD"), alignItems: "center", justifyContent: "center" },
   hero: { paddingTop: 12, paddingBottom: 16, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: "hidden" },
-  heroBadge: { backgroundColor: "#123A59", borderColor: "#246389" },
-  heroCountdown: { backgroundColor: "#061E33", borderColor: "#246389" },
+  heroBadge: { backgroundColor: sk("#123A59", "rgba(255,255,255,0.18)"), borderColor: sk("#246389", "rgba(255,255,255,0.30)") },
+  heroCountdown: { backgroundColor: sk("#061E33", "rgba(11,42,107,0.30)"), borderColor: sk("#246389", "rgba(255,255,255,0.30)") },
   heroTitle: { fontSize: 25, lineHeight: 32, marginTop: 12, textTransform: "uppercase", textShadowRadius: 0 },
-  category: { alignSelf: "flex-start", marginTop: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 18, backgroundColor: "#1A3E63", maxWidth: "100%" },
-  categoryText: { color: "#B9D9F2", fontWeight: "800", fontSize: 13, lineHeight: 19 },
-  heroLocation: { flex: 1, minWidth: 0, fontSize: 12, lineHeight: 19, color: "#B4CCE2", fontWeight: "500" },
+  category: { alignSelf: "flex-start", marginTop: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 18, backgroundColor: sk("#1A3E63", "rgba(255,255,255,0.18)"), maxWidth: "100%" },
+  categoryText: { color: sk("#B9D9F2", "#FFFFFF"), fontWeight: "800", fontSize: 13, lineHeight: 19 },
+  heroLocation: { flex: 1, minWidth: 0, fontSize: 12, lineHeight: 19, color: sk("#B4CCE2", "rgba(255,255,255,0.90)"), fontWeight: "500" },
   heroDate: { flexShrink: 1, fontSize: 13, lineHeight: 20 },
   shortcutsWrap: { flexWrap: "wrap", gap: 10, marginTop: 18 },
-  shortcut: { flexBasis: "30%", flexGrow: 1, flexShrink: 0, minWidth: 0, minHeight: 54, paddingVertical: 12, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#07233B", borderColor: "#1A6086", borderRadius: 12 },
-  shortcutPrimary: { backgroundColor: "#12C8EC", borderColor: "#0AAAD4" },
+  shortcut: { flexBasis: "30%", flexGrow: 1, flexShrink: 0, minWidth: 0, minHeight: 54, paddingVertical: 12, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: sk("#07233B", "#FFFFFF"), borderColor: sk("#1A6086", "#FFFFFF"), borderRadius: 12, ...(IS_V3 ? { shadowColor: "#0B2A6B", shadowOpacity: 0.14, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 } : null) },
+  shortcutPrimary: { backgroundColor: sk("#12C8EC", "#C5F433"), borderColor: sk("#0AAAD4", "#C5F433") },
   shortcutIcon: { width: 24, height: 26, borderRadius: 0, backgroundColor: "transparent" },
-  shortcutText: { fontSize: 12, lineHeight: 17, fontWeight: "800", flexShrink: 1 },
+  shortcutText: { fontSize: 12, lineHeight: 17, fontWeight: "800", flexShrink: 1, ...(IS_V3 ? { color: "#0B1B3A" } : null) },
   statCard: { minHeight: 86, padding: 12, gap: 10 },
   statIcon: { width: 40, height: 44, borderRadius: 12 },
   statLabel: { fontSize: 10.5, lineHeight: 14 },
@@ -1669,6 +1670,6 @@ const O = StyleSheet.create({
   block: { padding: 14 },
   blockHead: { gap: 10, flexWrap: "wrap" },
   blockTitle: { fontSize: 18, lineHeight: 24 },
-  quickList: { gap: 0, borderWidth: 1, borderColor: "#174A6C", borderRadius: 12, overflow: "hidden" },
+  quickList: { gap: 0, borderWidth: 1, borderColor: sk("#174A6C", "rgba(16,42,92,0.10)"), borderRadius: 12, overflow: "hidden" },
   quickRow: { minHeight: 48, borderWidth: 0, borderBottomWidth: 1, borderRadius: 0, paddingVertical: 13 },
 });

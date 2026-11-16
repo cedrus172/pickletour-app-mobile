@@ -18,6 +18,7 @@ import { useLazySearchUserQuery } from "@/slices/usersApiSlice";
 import { normalizeUri } from "@/utils/normalizeUri";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
 import { IOS_26_LIQUID_GLASS_ENABLED } from "@/utils/nativeTabs";
+import { sk } from "@/hooks/uiVersion";
 
 type Props = {
   label: string;
@@ -61,7 +62,7 @@ function useThemeColors(tournament = false) {
     dropBg,
     scoreChipBg,
     scoreChipFg,
-    ...(tournament ? { tint: "#12C8EC", cardBg: "#082138", inputBg: "#061D33", border: "#23789D", hairline: "#174A6C", textPrimary: "#F0F6FF", muted: "#94B3D0", clearBg: "#0C2945", clearText: "#F0F6FF", rowPressed: "#0C2945", dropBg: "#082138", scoreChipBg: "#0C2945", scoreChipFg: "#12C8EC" } : {}),
+    ...(tournament ? { tint: sk("#12C8EC", "#1466F2"), cardBg: sk("#082138", "#FFFFFF"), inputBg: sk("#061D33", "#F5F8FD"), border: sk("#23789D", "rgba(16,42,92,0.16)"), hairline: sk("#174A6C", "rgba(16,42,92,0.10)"), textPrimary: sk("#F0F6FF", "#0B1B3A"), muted: sk("#94B3D0", "#5F6F8A"), clearBg: sk("#0C2945", "#E3EAF5"), clearText: sk("#F0F6FF", "#243450"), rowPressed: sk("#0C2945", "#EEF3FA"), dropBg: sk("#082138", "#FFFFFF"), scoreChipBg: sk("#0C2945", "rgba(20,102,242,0.10)"), scoreChipFg: sk("#12C8EC", "#1466F2") } : {}),
   };
 }
 

@@ -1,5 +1,5 @@
 // app/matches/live-setup/index.tsx
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
@@ -76,6 +76,24 @@ const THEME_COLORS = {
     headerBg: "#121212",
     headerTint: "#ffffff",
   },
+  // V3 Fresh: nền sáng, xanh dương theo logo mới.
+  v3: {
+    background: "#F2F6FC",
+    text: "#0B1B3A",
+    subText: "#5F6F8A",
+    inputBg: "#FFFFFF",
+    inputBorder: "rgba(16,42,92,0.12)",
+    cardBg: "#FFFFFF",
+    divider: "rgba(16,42,92,0.10)",
+    placeholder: "#97A3B8",
+    activeItemBg: "rgba(20,102,242,0.10)",
+    activeItemText: "#1466F2",
+    warningBg: "#FFF7E6",
+    warningBorder: "#FFE4B5",
+    warningText: "#92400E",
+    headerBg: "#FFFFFF",
+    headerTint: "#0B1B3A",
+  },
 };
 
 type TournamentLite = {
@@ -125,10 +143,10 @@ function formatDateTime(value?: string) {
 // ==========================================
 export default function UserMatchLiveSetupScreen() {
   const colorScheme = useColorScheme();
-  const v2 = useUiVersion() === "v2";
+  const v2 = useUiVersion() === "v2" || IS_V3;
   const insets = useSafeAreaInsets(); // ✅ Lấy safe area để xử lý footer
-  const isDark = v2 || colorScheme === "dark";
-  const theme = THEME_COLORS[isDark ? "dark" : "light"];
+  const isDark = (v2 && !IS_V3) || colorScheme === "dark";
+  const theme = THEME_COLORS[IS_V3 ? "v3" : isDark ? "dark" : "light"];
 
   // State Form
   const [selectedResolutionId, setSelectedResolutionId] = useState<
@@ -332,7 +350,7 @@ export default function UserMatchLiveSetupScreen() {
             modalStyles.tCard,
             { backgroundColor: theme.cardBg, borderColor: theme.inputBorder },
             isActive && {
-              borderColor: isDark ? "#60a5fa" : "#2563EB",
+              borderColor: IS_V3 ? "#1466F2" : isDark ? "#60a5fa" : "#2563EB",
               borderWidth: 1.5,
             },
           ]}
@@ -392,13 +410,13 @@ export default function UserMatchLiveSetupScreen() {
             <View
               style={[
                 modalStyles.checkBadge,
-                { backgroundColor: isDark ? "#0c4a6e" : "#dbeafe" },
+                { backgroundColor: IS_V3 ? "rgba(20,102,242,0.12)" : isDark ? "#0c4a6e" : "#dbeafe" },
               ]}
             >
               <Ionicons
                 name="checkmark"
                 size={14}
-                color={isDark ? "#38bdf8" : "#2563EB"}
+                color={IS_V3 ? "#1466F2" : isDark ? "#38bdf8" : "#2563EB"}
               />
             </View>
           ) : (
@@ -440,7 +458,7 @@ export default function UserMatchLiveSetupScreen() {
       >
         {/* Nút Live */}
         <LinearGradient
-          colors={["#0a84ff", "#4ECDC4"]}
+          colors={sk(["#0a84ff", "#4ECDC4"], ["#2F8BFF", "#1466F2"])}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.liveButtonWrapper}
@@ -695,14 +713,14 @@ export default function UserMatchLiveSetupScreen() {
                             style={[
                               styles.badge,
                               {
-                                backgroundColor: isDark ? "#0c4a6e" : "#e0f2fe",
+                                backgroundColor: IS_V3 ? "rgba(20,102,242,0.10)" : isDark ? "#0c4a6e" : "#e0f2fe",
                               },
                             ]}
                           >
                             <Text
                               style={[
                                 styles.badgeText,
-                                { color: isDark ? "#38bdf8" : "#0369a1" },
+                                { color: IS_V3 ? "#1466F2" : isDark ? "#38bdf8" : "#0369a1" },
                               ]}
                             >
                               Mặc định
@@ -889,7 +907,7 @@ export default function UserMatchLiveSetupScreen() {
                 <Ionicons
                   name="refresh"
                   size={18}
-                  color={tournamentsFetching ? "#0a84ff" : theme.subText}
+                  color={tournamentsFetching ? sk("#0a84ff", "#1466F2") : theme.subText}
                 />
               </TouchableOpacity>
             </View>
@@ -897,7 +915,7 @@ export default function UserMatchLiveSetupScreen() {
             {/* List Content */}
             {tournamentsLoading ? (
               <View style={modalStyles.center}>
-                <ActivityIndicator size="large" color="#0a84ff" />
+                <ActivityIndicator size="large" color={sk("#0a84ff", "#1466F2")} />
                 <Text
                   style={[modalStyles.centerText, { color: theme.subText }]}
                 >
@@ -919,7 +937,7 @@ export default function UserMatchLiveSetupScreen() {
                     <Ionicons
                       name="trophy-outline"
                       size={36}
-                      color={isDark ? "#4b5563" : "#cbd5e1"}
+                      color={IS_V3 ? "#97A3B8" : isDark ? "#4b5563" : "#cbd5e1"}
                     />
                     <Text
                       style={[modalStyles.centerText, { color: theme.subText }]}
@@ -984,6 +1002,8 @@ export default function UserMatchLiveSetupScreen() {
                     opacity: pickedTournament ? 1 : 0.5,
                     backgroundColor: pickedTournament
                       ? "#ef4444"
+                      : IS_V3
+                      ? "#97A3B8"
                       : theme.inputBorder,
                   },
                 ]}
@@ -1158,7 +1178,7 @@ const modalStyles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: "#0ea5e9",
+    backgroundColor: sk("#0ea5e9", "#1466F2"),
     alignItems: "center",
     justifyContent: "center",
   },

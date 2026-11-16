@@ -55,6 +55,7 @@ import { ReactorsModal } from "@/components/feed/ReactorsModal";
 import { AuthorAvatar } from "@/components/social/AuthorAvatar";
 import { useLazySearchUserQuery } from "@/slices/usersApiSlice";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { sk } from "@/hooks/uiVersion";
 
 const authorName = (u?: any) => u?.nickname || u?.name || "Người dùng";
 function extractErr(err: any): string {
@@ -229,7 +230,7 @@ function CommentMedia({ media }: { media: any[] }) {
                 width: size,
                 height: size,
                 borderRadius: 10,
-                backgroundColor: "#0b1220",
+                backgroundColor: sk("#0b1220", "#E9F0FA"),
               }}
               resizeMode="cover"
             />
@@ -437,7 +438,7 @@ function CommentItem({
                   styles.commentMetaText,
                   {
                     fontWeight: "600",
-                    color: myReaction ? "#0066FF" : "#64748B",
+                    color: myReaction ? sk("#0066FF", "#1466F2") : "#64748B",
                   },
                 ]}
               >
@@ -1173,7 +1174,7 @@ export default function FeedPostDetail() {
                 commentMedia.length >= 4 && { opacity: 0.4 },
               ]}
             >
-              <Ionicons name="image-outline" size={22} color="#0066FF" />
+              <Ionicons name="image-outline" size={22} color={sk("#0066FF", "#1466F2")} />
             </Pressable>
             <TextInput
               style={styles.commentInput}
@@ -1227,7 +1228,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#0066FF",
+    backgroundColor: sk("#0066FF", "#1466F2"),
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1305,7 +1306,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#0066FF",
+    backgroundColor: sk("#0066FF", "#1466F2"),
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1317,7 +1318,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     paddingVertical: 6,
     marginTop: 6,
     alignSelf: "flex-start",
-    shadowColor: "#000",
+    shadowColor: sk("#000", "#1B3A7A"),
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,

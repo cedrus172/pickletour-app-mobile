@@ -39,6 +39,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useSelector } from "react-redux";
 import { skipToken } from "@reduxjs/toolkit/query";
 import { useTheme } from "@react-navigation/native";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 
 /* ---------- helpers ---------- */
 const AVA_PLACE = "https://dummyimage.com/160x160/cccccc/ffffff&text=?";
@@ -194,8 +195,8 @@ const Chip = ({ label, bg, fg }: any) => {
   const sysScheme = useColorScheme?.() || "light";
   const isDark =
     typeof navTheme.dark === "boolean" ? navTheme.dark : sysScheme === "dark";
-  const defaultBg = isDark ? "#22262c" : "#eef2f7";
-  const defaultFg = isDark ? "#e5e7eb" : "#263238";
+  const defaultBg = isDark ? "#22262c" : sk("#eef2f7", "#EEF3FA");
+  const defaultFg = isDark ? "#e5e7eb" : sk("#263238", "#243450");
   return (
     <View style={[styles.chip, { backgroundColor: bg ?? defaultBg }]}>
       <Text
@@ -262,7 +263,7 @@ function InfoRow({ label, value }: { label: string; value?: string }) {
   const scheme = useColorScheme() || "light";
   const isDark =
     typeof navTheme?.dark === "boolean" ? navTheme.dark : scheme === "dark";
-  const muted = isDark ? "#9aa0a6" : "#6b7280";
+  const muted = isDark ? "#9aa0a6" : sk("#6b7280", "#5F6F8A");
   if (!value) return null;
   return (
     <View style={styles.infoRow}>
@@ -336,7 +337,7 @@ function InfoRowWithCopy({
   const sysScheme = useColorScheme?.() || "light";
   const isDark =
     typeof navTheme.dark === "boolean" ? navTheme.dark : sysScheme === "dark";
-  const muted = isDark ? "#9aa0a6" : "#6b7280";
+  const muted = isDark ? "#9aa0a6" : sk("#6b7280", "#5F6F8A");
 
   if (!value) return null;
   return (
@@ -702,8 +703,8 @@ export default function PublicProfileSheet({ open, onClose, userId }: Props) {
   const pageBg =
     navTheme?.colors?.background ?? (isDark ? "#0b0d10" : "#f7f9fc");
   const border = navTheme?.colors?.border ?? (isDark ? "#2e2f33" : "#e4e8ef");
-  const subtext = isDark ? "#c9c9c9" : "#555";
-  const skelBg = isDark ? "#22262c" : "#e9eef5";
+  const subtext = isDark ? "#c9c9c9" : sk("#555", "#5F6F8A");
+  const skelBg = isDark ? "#22262c" : sk("#e9eef5", "#E9F0FA");
 
   const viewerIsAdmin = useSelector(
     (s: any) =>
@@ -1346,7 +1347,7 @@ export default function PublicProfileSheet({ open, onClose, userId }: Props) {
                           <MaterialIcons
                             name="edit"
                             size={18}
-                            color={isDark ? "#38bdf8" : "#0284c7"}
+                            color={isDark ? "#38bdf8" : sk("#0284c7", "#1466F2")}
                           />
                         </Pressable>
                         <Pressable
@@ -2133,7 +2134,7 @@ export default function PublicProfileSheet({ open, onClose, userId }: Props) {
             backgroundColor: pageBg,
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
-            shadowColor: "#000",
+            shadowColor: sk("#000", "#1B3A7A"),
             shadowOpacity: 0.15,
             shadowRadius: 12,
             shadowOffset: { width: 0, height: -2 },
@@ -2435,10 +2436,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
     paddingRight: 44,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.08, 0.1),
+    shadowRadius: sk(8, 14),
+    shadowOffset: { width: 0, height: sk(2, 5) },
     elevation: 3,
   },
 
@@ -2463,6 +2464,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 16,
     padding: 12,
+    ...(IS_V3
+      ? {
+          shadowColor: "#1B3A7A",
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 3,
+        }
+      : null),
   },
   sectionTitle: {
     fontWeight: "700",
@@ -2482,7 +2492,7 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     flex: 1,
-    color: "#0f172a",
+    color: sk("#0f172a", "#0B1B3A"),
     fontWeight: "700",
   },
 

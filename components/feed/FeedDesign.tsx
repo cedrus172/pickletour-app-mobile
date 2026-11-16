@@ -5,8 +5,9 @@ import React, { memo, type ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { Text } from "@/components/ui/i18nText";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 
-export const FEED_COLORS = {
+const FEED_COLORS_V2 = {
   background: "#020B1C",
   backgroundAlt: "#06152B",
   surface: "rgba(6,25,49,0.94)",
@@ -21,6 +22,27 @@ export const FEED_COLORS = {
   textMuted: "#8FAAC8",
   border: "rgba(90,180,230,0.25)",
 } as const;
+
+type FeedColors = { [K in keyof typeof FEED_COLORS_V2]: string };
+
+// V3 Fresh: cùng bộ khoá màu nhưng trên nền sáng.
+const FEED_COLORS_V3: FeedColors = {
+  background: "#F7FAFF",
+  backgroundAlt: "#EEF4FC",
+  surface: "#FFFFFF",
+  surfaceStrong: "#FFFFFF",
+  primary: "#1466F2",
+  secondary: "#2F8BFF",
+  success: "#16A34A",
+  warning: "#D97706",
+  event: "#E11D54",
+  text: "#0B1B3A",
+  textSoft: "#243450",
+  textMuted: "#5F6F8A",
+  border: "rgba(16,42,92,0.10)",
+};
+
+export const FEED_COLORS: FeedColors = IS_V3 ? FEED_COLORS_V3 : FEED_COLORS_V2;
 
 export const FeedPage = memo(function FeedPage({ children }: { children: ReactNode }) {
   return (
@@ -44,7 +66,7 @@ export const FeedHeader = memo(function FeedHeader() {
         <View style={styles.heroBeam} />
         <View style={styles.paddleHandle} />
         <LinearGradient
-          colors={["#0A416D", "#06162B"]}
+          colors={sk<[string, string]>(["#0A416D", "#06162B"], ["#DCEBFF", "#F4F8FF"])}
           style={styles.paddleFace}
         >
           <View style={styles.paddleInset} />
@@ -97,7 +119,7 @@ export const FeedFilters = memo(function FeedFilters({
           >
             {selected ? (
               <LinearGradient
-                colors={[FEED_COLORS.primary, FEED_COLORS.secondary]}
+                colors={sk<[string, string]>([FEED_COLORS.primary, FEED_COLORS.secondary], ["#2F8BFF", "#1466F2"])}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.filterActive}
@@ -131,7 +153,7 @@ const styles = StyleSheet.create({
     width: 320,
     height: 320,
     borderRadius: 160,
-    backgroundColor: "rgba(8,189,245,0.09)",
+    backgroundColor: sk("rgba(8,189,245,0.09)", "rgba(20,102,242,0.07)"),
   },
   ambientSide: {
     position: "absolute",
@@ -140,7 +162,7 @@ const styles = StyleSheet.create({
     width: 310,
     height: 310,
     borderRadius: 155,
-    backgroundColor: "rgba(22,119,255,0.05)",
+    backgroundColor: sk("rgba(22,119,255,0.05)", "rgba(197,244,51,0.10)"),
   },
   header: {
     height: 166,
@@ -163,8 +185,8 @@ const styles = StyleSheet.create({
     lineHeight: 44,
     fontWeight: "900",
     letterSpacing: -1.2,
-    textShadowColor: "rgba(8,189,245,0.3)",
-    textShadowRadius: 9,
+    textShadowColor: sk("rgba(8,189,245,0.3)", "transparent"),
+    textShadowRadius: sk(9, 0),
   },
   subtitle: {
     color: FEED_COLORS.textSoft,
@@ -178,7 +200,7 @@ const styles = StyleSheet.create({
     right: -4,
     width: 174,
     height: 150,
-    opacity: 0.62,
+    opacity: sk(0.62, 0.9),
   },
   heroBeam: {
     position: "absolute",
@@ -189,7 +211,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: FEED_COLORS.primary,
     shadowColor: FEED_COLORS.primary,
-    shadowOpacity: 0.8,
+    shadowOpacity: sk(0.8, 0.25),
     shadowRadius: 10,
     transform: [{ rotate: "-17deg" }],
   },
@@ -201,7 +223,7 @@ const styles = StyleSheet.create({
     height: 107,
     borderRadius: 43,
     borderWidth: 2,
-    borderColor: "rgba(8,189,245,0.7)",
+    borderColor: sk("rgba(8,189,245,0.7)", "rgba(20,102,242,0.55)"),
     transform: [{ rotate: "24deg" }],
     alignItems: "center",
     justifyContent: "center",
@@ -211,7 +233,7 @@ const styles = StyleSheet.create({
     height: 84,
     borderRadius: 34,
     borderWidth: 1,
-    borderColor: "rgba(143,170,200,0.22)",
+    borderColor: sk("rgba(143,170,200,0.22)", "rgba(20,102,242,0.18)"),
   },
   paddleHandle: {
     position: "absolute",
@@ -220,9 +242,9 @@ const styles = StyleSheet.create({
     width: 23,
     height: 58,
     borderRadius: 9,
-    backgroundColor: "#071426",
+    backgroundColor: sk("#071426", "#0B2A6B"),
     borderWidth: 1,
-    borderColor: "rgba(8,189,245,0.48)",
+    borderColor: sk("rgba(8,189,245,0.48)", "rgba(20,102,242,0.45)"),
     transform: [{ rotate: "-38deg" }],
   },
   ball: {
@@ -232,12 +254,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#A6E92E",
-    shadowColor: "#75D20B",
-    shadowOpacity: 0.45,
+    backgroundColor: sk("#A6E92E", "#C5F433"),
+    shadowColor: sk("#75D20B", "#8FCB10"),
+    shadowOpacity: sk(0.45, 0.35),
     shadowRadius: 10,
   },
-  ballHole: { position: "absolute", width: 7, height: 7, borderRadius: 4, backgroundColor: "#315E13" },
+  ballHole: { position: "absolute", width: 7, height: 7, borderRadius: 4, backgroundColor: sk("#315E13", "#5E9C00") },
   ballHoleOne: { top: 9, left: 16 },
   ballHoleTwo: { top: 22, right: 8 },
   ballHoleThree: { bottom: 8, left: 11 },
@@ -266,7 +288,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 7,
     borderRadius: 999,
-    backgroundColor: "rgba(7,29,55,0.86)",
+    backgroundColor: sk("rgba(7,29,55,0.86)", "#FFFFFF"),
     borderWidth: 1,
     borderColor: FEED_COLORS.border,
   },
@@ -279,9 +301,9 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(7,29,55,0.86)",
+    backgroundColor: sk("rgba(7,29,55,0.86)", "#FFFFFF"),
     borderWidth: 1,
-    borderColor: "rgba(8,189,245,0.35)",
+    borderColor: sk("rgba(8,189,245,0.35)", "rgba(20,102,242,0.20)"),
   },
   pressed: { opacity: 0.84 },
 });

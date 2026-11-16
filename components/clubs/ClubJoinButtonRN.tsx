@@ -14,6 +14,7 @@ import {
   useLeaveClubMutation,
 } from "@/slices/clubsApiSlice";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { sk } from "@/hooks/uiVersion";
 
 function PrimaryButton({
   title,
@@ -171,7 +172,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
   // Primary: gradient tím cho nền sáng
   btnPrimary: {
     overflow: "hidden",
-    shadowColor: "#000",
+    shadowColor: sk("#000", "#1B3A7A"),
     shadowOpacity: 0.12,
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 10,
@@ -189,7 +190,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
   btnDangerGhost: {
     backgroundColor: C.card,
     borderWidth: 1,
-    borderColor: C.redSoft,
+    borderColor: sk(C.redSoft, "rgba(220,38,38,0.30)"),
   },
 
   btnText: { fontWeight: "800", fontSize: 15 },

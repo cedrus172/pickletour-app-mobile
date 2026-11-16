@@ -38,9 +38,10 @@ export function FreshTabIcon({ name, color, size = 24, filled = false }: { name:
     case "tournaments":
       // Vợt pickleball nghiêng
       drawing = (
-        <G transform="rotate(40 16 16)" fill="none" stroke={color} strokeWidth={2.3} strokeLinejoin="round" strokeLinecap="round">
-          <Path d="M16 1.2c5.2 0 8.6 3.3 8.6 8.2 0 4.6-2.2 8.3-5.6 10.4v2.3h-6v-2.3C9.600 17.700 7.400 14 7.400 9.400 7.400 4.500 10.800 1.200 16 1.200Z" />
-          <Path d="M16 22.6v7.600" strokeWidth={4.6} />
+        <G transform="rotate(35 16 16)" stroke={color} strokeLinejoin="round" strokeLinecap="round">
+          <Rect x={9} y={0.8} width={14} height={18.4} rx={4.6} fill="none" strokeWidth={2.3} />
+          <Path d="M13.4 19.2 14.6 22h2.8l1.2-2.8" fill="none" strokeWidth={2} />
+          <Rect x={14.1} y={22} width={3.8} height={8.6} rx={1.6} fill={color} strokeWidth={1.4} />
         </G>
       );
       break;

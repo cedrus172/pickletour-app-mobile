@@ -12,6 +12,7 @@ import { TextInput } from "@/components/ui/i18nTextInput";
 import { Text } from "@/components/ui/i18nText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@react-navigation/native";
+import { sk } from "@/hooks/uiVersion";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -50,14 +51,14 @@ function useThemeTokens() {
     isDark,
     tint: navTheme?.colors?.primary ?? (isDark ? "#6ee7d8" : "#0f766e"),
     textPrimary: navTheme?.colors?.text ?? (isDark ? "#ffffff" : "#102a26"),
-    textSecondary: isDark ? "#b8c4c2" : "#5b6f6a",
+    textSecondary: isDark ? "#b8c4c2" : sk("#5b6f6a", "#5F6F8A"),
     pageBg: navTheme?.colors?.background ?? (isDark ? "#091513" : "#f5f3ec"),
     cardBg: navTheme?.colors?.card ?? (isDark ? "#10201d" : "#fffdf8"),
     border: navTheme?.colors?.border ?? (isDark ? "#25423d" : "#d9e7e2"),
-    softBg: isDark ? "#17312d" : "#eef6f3",
-    heroStart: isDark ? "#14332d" : "#fff1da",
-    heroEnd: isDark ? "#0d1f1b" : "#dff6ef",
-    highlight: isDark ? "rgba(110,231,216,0.14)" : "rgba(15,118,110,0.1)",
+    softBg: isDark ? "#17312d" : sk("#eef6f3", "#EEF3FA"),
+    heroStart: isDark ? "#14332d" : sk("#fff1da", "#F7FAFF"),
+    heroEnd: isDark ? "#0d1f1b" : sk("#dff6ef", "#E6EFFC"),
+    highlight: isDark ? "rgba(110,231,216,0.14)" : sk("rgba(15,118,110,0.1)", "rgba(20,102,242,0.08)"),
   };
 }
 
@@ -293,7 +294,7 @@ function LiveClustersPane({
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={showRefreshControl} onRefresh={handleRefresh} />
+        <RefreshControl refreshing={showRefreshControl} onRefresh={handleRefresh} tintColor={sk<string | undefined>(undefined, "#1466F2")} />
       }
     >
       <View style={styles.sectionHeader}>
@@ -507,6 +508,7 @@ function LiveArchivePane({ T }: any) {
         <RefreshControl
           refreshing={showArchiveRefreshControl}
           onRefresh={handleRefresh}
+          tintColor={sk<string | undefined>(undefined, "#1466F2")}
         />
       }
     >
@@ -813,6 +815,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     padding: 16,
+    ...sk({}, { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 }),
   },
   summaryHead: {
     flexDirection: "row",
@@ -858,6 +861,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 16,
     gap: 12,
+    ...sk({}, { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 }),
   },
   stationHead: {
     flexDirection: "row",

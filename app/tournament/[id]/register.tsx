@@ -5,7 +5,7 @@ import TournamentSponsors from "@/components/tournament/TournamentSponsors";
 import OverviewHeroArt from "@/components/tournament/OverviewHeroArt";
 import TournamentRuleFiles from "@/components/tournament/TournamentRuleFiles";
 import { t } from "@/utils/i18n";
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 // app/screens/TournamentRegistrationScreen.tsx
 import {
   Stack,
@@ -95,9 +95,9 @@ const PLACE = "https://dummyimage.com/800x600/cccccc/ffffff&text=?";
 /* =============== THEME & UTILS =============== */
 function useThemeColors() {
   const scheme = useColorScheme() ?? "light";
-  const v2 = useUiVersion() === "v2";
+  const v2 = useUiVersion() === "v2" || IS_V3;
   return useMemo(() => {
-    const isDark = v2 || scheme === "dark";
+    const isDark = (v2 && !IS_V3) || scheme === "dark";
     return {
       // scheme HIỆU LỰC = theo isDark (gồm cả V2), KHÔNG để nguyên scheme hệ thống.
       // Nếu để scheme hệ thống (light) mà nội dung lại tô theo isDark (V2→tối) thì
@@ -105,14 +105,14 @@ function useThemeColors() {
       // nền sáng, không đọc được (bug light mode khi bật V2).
       scheme: isDark ? "dark" : "light",
       isDark, v2,
-      tint: v2 ? "#12C8EC" : isDark ? "#60a5fa" : "#2563eb",
-      pageBg: v2 ? "#041329" : isDark ? "#0f1115" : "#F5F7FA",
-      cardBg: v2 ? "#082138" : isDark ? "#181a20" : "#FFFFFF",
-      border: v2 ? "#174A6C" : isDark ? "#262932" : "#E5E7EB",
-      textPrimary: v2 ? "#F0F6FF" : isDark ? "#f8fafc" : "#0f172a",
-      textSecondary: v2 ? "#94B3D0" : isDark ? "#848E9C" : "#6B7280",
-      chipBg: v2 ? "#0C2945" : isDark ? "#20232b" : "#F3F4F6",
-      inputBg: v2 ? "#061D33" : isDark ? "#20232b" : "#F3F4F6",
+      tint: v2 ? sk("#12C8EC", "#1466F2") : isDark ? "#60a5fa" : "#2563eb",
+      pageBg: v2 ? sk("#041329", "#F2F6FC") : isDark ? "#0f1115" : "#F5F7FA",
+      cardBg: v2 ? sk("#082138", "#FFFFFF") : isDark ? "#181a20" : "#FFFFFF",
+      border: v2 ? sk("#174A6C", "rgba(16,42,92,0.10)") : isDark ? "#262932" : "#E5E7EB",
+      textPrimary: v2 ? sk("#F0F6FF", "#0B1B3A") : isDark ? "#f8fafc" : "#0f172a",
+      textSecondary: v2 ? sk("#94B3D0", "#5F6F8A") : isDark ? "#848E9C" : "#6B7280",
+      chipBg: v2 ? sk("#0C2945", "#EEF3FA") : isDark ? "#20232b" : "#F3F4F6",
+      inputBg: v2 ? sk("#061D33", "#F5F8FD") : isDark ? "#20232b" : "#F3F4F6",
       ghostBg: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
       successBg: isDark ? "rgba(34,197,94,0.15)" : "#dcfce7",
       successText: isDark ? "#4ade80" : "#166534",
@@ -122,20 +122,20 @@ function useThemeColors() {
       errorText: isDark ? "#f87171" : "#991b1b",
       infoBg: isDark ? "rgba(59,130,246,0.2)" : "#eff6ff",
       infoText: isDark ? "#93c5fd" : "#1e3a8a",
-      softBtn: v2 ? "#082138" : isDark ? "#20232b" : "#E5E7EB",
-      gradStart: v2 ? "#093453" : isDark ? "#181a20" : "#1A1D1E",
-      gradEnd: v2 ? "#041329" : isDark ? "#0f1115" : "#111827",
+      softBtn: v2 ? sk("#082138", "#FFFFFF") : isDark ? "#20232b" : "#E5E7EB",
+      gradStart: v2 ? sk("#093453", "#1E73F5") : isDark ? "#181a20" : "#1A1D1E",
+      gradEnd: v2 ? sk("#041329", "#0B3FB8") : isDark ? "#0f1115" : "#111827",
       skeleton: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
       // Theme cho Image Viewer
       imageViewBg: isDark ? "#000000" : "#ffffff",
       imageViewText: isDark ? "#ffffff" : "#000000",
       imageViewCloseBtn: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.1)",
       shadow: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: v2 ? 0 : isDark ? 0.3 : 0.06,
-        shadowRadius: 8,
-        elevation: v2 ? 0 : 3,
+        shadowColor: sk("#000", "#1B3A7A"),
+        shadowOffset: sk({ width: 0, height: 2 }, { width: 0, height: 4 }),
+        shadowOpacity: v2 ? sk(0, 0.08) : isDark ? 0.3 : 0.06,
+        shadowRadius: sk(8, 12),
+        elevation: v2 ? sk(0, 3) : 3,
       },
     };
   }, [scheme, v2]);
@@ -3113,8 +3113,8 @@ export default function TournamentRegistrationScreen() {
                         gap: 6,
                       }}
                     >
-                      <Ionicons name="paper-plane" size={18} color={C.v2 ? "#032139" : "#fff"} />
-                      <Text style={{ color: C.v2 ? "#032139" : "#fff", fontWeight: "800" }}>
+                      <Ionicons name="paper-plane" size={18} color={C.v2 ? sk("#032139", "#FFFFFF") : "#fff"} />
+                      <Text style={{ color: C.v2 ? sk("#032139", "#FFFFFF") : "#fff", fontWeight: "800" }}>
                         Gửi đăng ký
                       </Text>
                     </View>
@@ -3300,12 +3300,12 @@ export default function TournamentRegistrationScreen() {
               gap: 8,
               paddingVertical: 12,
               borderRadius: 12,
-              backgroundColor: C.v2 ? "#082F50" : "#2563EB",
+              backgroundColor: C.v2 ? sk("#082F50", "rgba(20,102,242,0.08)") : "#2563EB",
               ...(C.v2 ? { borderWidth: 1, borderColor: C.tint, minHeight: 48 } : {}),
             }}
           >
-            <Ionicons name="podium-outline" size={18} color="#fff" />
-            <Text style={{ color: "#fff", fontWeight: "800", fontSize: 14 }}>
+            <Ionicons name="podium-outline" size={18} color={sk("#fff", "#1466F2")} />
+            <Text style={{ color: sk("#fff", "#1466F2"), fontWeight: "800", fontSize: 14 }}>
               Các VĐV đã đăng ký
             </Text>
           </TouchableOpacity>
@@ -3367,7 +3367,7 @@ export default function TournamentRegistrationScreen() {
                       borderRadius: 999,
                       borderWidth: 1,
                       borderColor: active ? C.tint : C.border,
-                      backgroundColor: active ? (C.v2 ? "#0C3854" : "#2563EB") : "transparent",
+                      backgroundColor: active ? (C.v2 ? sk("#0C3854", "#1466F2") : "#2563EB") : "transparent",
                       minHeight: C.v2 ? 40 : undefined,
                       justifyContent: "center",
                     }}
@@ -3561,7 +3561,7 @@ export default function TournamentRegistrationScreen() {
           headerShown: searchOpen ? false : true,
           title: t("Đăng ký giải đấu"),
           ...(C.v2 ? {
-            headerStyle: { backgroundColor: "#061D33" }, headerTitleStyle: { color: C.textPrimary, fontSize: 18, fontWeight: "800" }, headerTitleAlign: "center", headerShadowVisible: false,
+            headerStyle: { backgroundColor: sk("#061D33", "#FFFFFF") }, headerTitleStyle: { color: C.textPrimary, fontSize: 18, fontWeight: "800" }, headerTitleAlign: "center", headerShadowVisible: false,
             headerRight: () => null,
             headerLeft: () => <Pressable accessibilityRole="button" accessibilityLabel="Quay lại" hitSlop={8} onPress={() => router.back()} style={R.headerBack}><Ionicons name="chevron-back" size={24} color={C.textPrimary} /></Pressable>,
           } : {}),
@@ -5279,22 +5279,22 @@ function registrationSurfaceStyle(style: any) {
   return mappings.filter(([key]) => parts.includes(key)).map(([, value]) => value);
 }
 const R = StyleSheet.create({
-  headerBack: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: "#174A6C", backgroundColor: "#061D33", alignItems: "center", justifyContent: "center" },
+  headerBack: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: sk("#174A6C", "rgba(16,42,92,0.10)"), backgroundColor: sk("#061D33", "#F5F8FD"), alignItems: "center", justifyContent: "center" },
   hero: { paddingBottom: 18, minHeight: 0 },
   heroTitle: { fontSize: 24, lineHeight: 32, fontWeight: "900", textTransform: "uppercase", textShadowRadius: 0 },
   stats: { marginTop: 0, paddingTop: 0 },
-  statCard: { minHeight: 82, padding: 12, gap: 9, borderRadius: 16, borderColor: "#174A6C", shadowOpacity: 0, elevation: 0 },
-  regCard: { borderColor: "#174A6C", borderRadius: 16, shadowOpacity: 0, elevation: 0 },
+  statCard: { minHeight: 82, padding: 12, gap: 9, borderRadius: 16, borderColor: sk("#174A6C", "rgba(16,42,92,0.06)"), shadowOpacity: sk(0, 0.1), elevation: sk(0, 3) },
+  regCard: { borderColor: sk("#174A6C", "rgba(16,42,92,0.08)"), borderRadius: 16, shadowOpacity: sk(0, 0.08), elevation: sk(0, 3) },
   regHeader: { flexWrap: "wrap", gap: 8 },
-  formCard: { borderColor: "#174A6C", borderRadius: 18, shadowOpacity: 0, elevation: 0 },
+  formCard: { borderColor: sk("#174A6C", "rgba(16,42,92,0.08)"), borderRadius: 18, shadowOpacity: sk(0, 0.08), elevation: sk(0, 3) },
   selectorWrap: { backgroundColor: "transparent", padding: 0, borderWidth: 0, shadowOpacity: 0, elevation: 0 },
-  inputWrap: { minHeight: 48, backgroundColor: "#061D33", borderColor: "#23789D", shadowOpacity: 0, elevation: 0 },
+  inputWrap: { minHeight: 48, backgroundColor: sk("#061D33", "#F5F8FD"), borderColor: sk("#23789D", "rgba(16,42,92,0.16)"), shadowOpacity: 0, elevation: 0 },
   actionTouch: { flexBasis: "30%", minWidth: 0, flexGrow: 1, minHeight: 48 },
-  actionTile: { flexBasis: "auto", minWidth: 0, width: "100%", minHeight: 58, borderWidth: 1, borderColor: "#23789D", shadowOpacity: 0, elevation: 0 },
+  actionTile: { flexBasis: "auto", minWidth: 0, width: "100%", minHeight: 58, borderWidth: 1, borderColor: sk("#23789D", "rgba(16,42,92,0.10)"), shadowOpacity: 0, elevation: 0 },
   // Cùng kiểu với actionTile (biểu tượng trên, chữ dưới, cao 58) để Thu phí / Chờ / Xóa không lệch hàng.
-  iconAction: { width: "100%", minHeight: 58, borderWidth: 1, borderColor: "#174A6C", flexDirection: "column", gap: 4, paddingHorizontal: 8, paddingVertical: 8 },
+  iconAction: { width: "100%", minHeight: 58, borderWidth: 1, borderColor: sk("#174A6C", "rgba(16,42,92,0.10)"), flexDirection: "column", gap: 4, paddingHorizontal: 8, paddingVertical: 8 },
   actionLabel: { fontSize: 12, fontWeight: "700", textAlign: "center" },
-  primary: { minHeight: 48, borderColor: "#12C8EC", shadowOpacity: 0, elevation: 0 },
-  softButton: { minHeight: 46, borderWidth: 1, borderColor: "#23789D", backgroundColor: "#082138" },
-  searchButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: "#23789D", backgroundColor: "#082138" },
+  primary: { minHeight: 48, borderColor: sk("#12C8EC", "#1466F2"), shadowOpacity: 0, elevation: 0 },
+  softButton: { minHeight: 46, borderWidth: 1, borderColor: sk("#23789D", "rgba(16,42,92,0.14)"), backgroundColor: sk("#082138", "#FFFFFF") },
+  searchButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: sk("#23789D", "rgba(16,42,92,0.14)"), backgroundColor: sk("#082138", "#FFFFFF") },
 });

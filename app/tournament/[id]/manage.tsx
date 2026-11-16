@@ -69,6 +69,7 @@ import BatchAssignRefModal from "@/components/sheets/BatchAssignRefModal";
 import * as IntentLauncher from "expo-intent-launcher";
 import FileViewerModal from "@/components/FileViewerModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 
 // Màu chỉ áp dụng trong trang quản lý; giữ theme V1 sáng/tối và các màn khác.
 function useManageTheme() {
@@ -80,6 +81,10 @@ function useManageTheme() {
       primary: "#08C9EA", background: "#041021", card: "#082035",
       border: "#29475F", text: "#F2F7FF",
     },
+  } : IS_V3 ? {
+    // V3 Fresh: giữ bảng màu sáng của theme, chỉ làm viền rõ hơn một chút cho nút/thẻ có viền.
+    ...theme,
+    colors: { ...theme.colors, border: "rgba(16,42,92,0.14)" },
   } : theme, [theme]);
 }
 
@@ -622,8 +627,8 @@ const buildExportHTML = ({ tourName, typeLabel, sections }) => {
 
 function getThemeTokens(colors, dark) {
   const tint = colors.primary;
-  const muted = dark ? "#9AB1CD" : "#64748b";
-  const placeholder = dark ? "#8b97a8" : "#94a3b8";
+  const muted = dark ? "#9AB1CD" : sk("#64748b", "#5F6F8A");
+  const placeholder = dark ? "#8b97a8" : sk("#94a3b8", "#97A3B8");
   const disabled = dark ? "#475569" : "#94a3b8";
   const chipDefaultBg = dark ? "#1f2937" : "#eef2f7";
   const chipDefaultFg = dark ? "#e5e7eb" : "#263238";
@@ -690,7 +695,7 @@ function getThemeTokens(colors, dark) {
   };
 }
 
-const MANAGE_LIGHT_BACKGROUND = "#fff";
+const MANAGE_LIGHT_BACKGROUND = sk("#fff", "#F2F6FC");
 const MANAGE_DARK_BACKGROUND = "#041021";
 const manageScreenBackground = (dark) =>
   dark ? MANAGE_DARK_BACKGROUND : MANAGE_LIGHT_BACKGROUND;
@@ -1049,7 +1054,7 @@ const MiniChipBtn = memo(({ icon, label, onPress, color, grid = false, primary =
     }).start();
   };
   if (grid) {
-    const fg = primary ? "#042139" : color || (dark ? "#A4CAEE" : colors.primary);
+    const fg = primary ? sk("#042139", "#FFFFFF") : color || (dark ? "#A4CAEE" : colors.primary);
     return (
       <Pressable
         accessibilityRole="button"
@@ -5219,6 +5224,8 @@ const styles = StyleSheet.create({
     padding: 10,
     position: "relative",
     overflow: "hidden",
+    // V3: thẻ trắng có bóng mềm (V2 giữ nguyên).
+    ...(IS_V3 ? { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 } : null),
   },
   matchRowSeparator: { height: 12 },
   selectRow: {

@@ -56,6 +56,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
 import { IOS_26_LIQUID_GLASS_ENABLED } from "@/utils/nativeTabs";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 import { FriendActions } from "@/components/social/FriendActions";
 import { OpenMessageButton } from "@/components/social/OpenMessageButton";
 import { UserActionsMenu } from "@/components/social/UserActionsMenu";
@@ -434,9 +435,9 @@ const InfoBadge = React.memo(
   ({ icon, text, color = "#666", bgColor, textColor }) => (
     <AppleLiquidGlassView
       fallback="view"
-      glassColorScheme="dark"
+      glassColorScheme={sk("dark", "light")}
       glassEffectStyle="clear"
-      glassTintColor={bgColor || "rgba(255,255,255,0.18)"}
+      glassTintColor={bgColor || sk("rgba(255,255,255,0.18)", "rgba(20,102,242,0.08)")}
       style={[
         styles.badge,
         {
@@ -465,7 +466,7 @@ const KycBadge = React.memo(({ status }) => {
     <TouchableOpacity activeOpacity={0.7}>
       <AppleLiquidGlassView
         fallback="view"
-        glassColorScheme="dark"
+        glassColorScheme={sk("dark", "light")}
         glassEffectStyle="clear"
         glassTintColor={meta.bgColor}
         style={[
@@ -731,7 +732,7 @@ const RatingHistoryRow = React.memo(
               disabled={isDeleting}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Ionicons name="create-outline" size={18} color="#12B6F3" />
+              <Ionicons name="create-outline" size={18} color={sk("#12B6F3", "#1466F2")} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.deleteItemButton}
@@ -1308,20 +1309,20 @@ export default function PublicProfileScreen() {
   const theme = useTheme() as any;
   const insets = useSafeAreaInsets();
   const isDark = theme.dark;
-  const v2 = theme?.version === "v2";
+  const v2 = theme?.version === "v2" || IS_V3;
 
   const colors = useMemo(
     () => ({
       isDark,
-      primary: v2 ? "#0BBFE7" : theme.colors.primary || "#6366F1",
-      bg: v2 ? "#051221" : isDark ? "#0f1115" : "#F5F7FA",
-      card: v2 ? "#0B2035" : isDark ? "#181a20" : "#FFFFFF",
-      text: v2 ? "#EAF3FF" : isDark ? "#FFFFFF" : "#333333",
-      subText: v2 ? "#9DB4CC" : isDark ? "#848E9C" : "#666666",
-      border: v2 ? "rgba(103,181,219,0.38)" : isDark ? "#262932" : "#E0E0E0",
-      bgMuted: v2 ? "#0B263A" : isDark ? "#20232b" : "#F8F9FA",
-      tabActive: v2 ? "#12B6F3" : "#6366F1",
-      tabInactive: v2 ? "#8CA6C8" : isDark ? "#A0A0A0" : "#666666",
+      primary: v2 ? sk("#0BBFE7", "#1466F2") : theme.colors.primary || "#6366F1",
+      bg: v2 ? sk("#051221", "#F2F6FC") : isDark ? "#0f1115" : "#F5F7FA",
+      card: v2 ? sk("#0B2035", "#FFFFFF") : isDark ? "#181a20" : "#FFFFFF",
+      text: v2 ? sk("#EAF3FF", "#0B1B3A") : isDark ? "#FFFFFF" : "#333333",
+      subText: v2 ? sk("#9DB4CC", "#5F6F8A") : isDark ? "#848E9C" : "#666666",
+      border: v2 ? sk("rgba(103,181,219,0.38)", "rgba(16,42,92,0.10)") : isDark ? "#262932" : "#E0E0E0",
+      bgMuted: v2 ? sk("#0B263A", "#F5F8FD") : isDark ? "#20232b" : "#F8F9FA",
+      tabActive: v2 ? sk("#12B6F3", "#1466F2") : "#6366F1",
+      tabInactive: v2 ? sk("#8CA6C8", "#5F6F8A") : isDark ? "#A0A0A0" : "#666666",
     }),
     [isDark, v2, theme.colors.primary]
   );
@@ -2137,7 +2138,7 @@ export default function PublicProfileScreen() {
       edges={["top"]}
     >
       <BottomSheetModalProvider>
-        <StatusBar barStyle="light-content" />
+        <StatusBar barStyle={sk("light-content", "dark-content")} />
 
         {/* Sticky Tab Bar */}
         {isTabBarSticky && (
@@ -2344,8 +2345,8 @@ export default function PublicProfileScreen() {
                 activeOpacity={0.85}
                 style={[styles.profileAction, styles.challengeAction]}
               >
-                <MaterialCommunityIcons name="sword-cross" size={20} color="#F5B935" />
-                <Text style={[styles.profileActionText, { color: "#F5B935" }]}>
+                <MaterialCommunityIcons name="sword-cross" size={20} color={sk("#F5B935", "#B45309")} />
+                <Text style={[styles.profileActionText, { color: sk("#F5B935", "#B45309") }]}>
                   Đối đầu
                 </Text>
               </TouchableOpacity>
@@ -3123,19 +3124,19 @@ const styles = StyleSheet.create({
   },
   profileGlassPanel: {
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.24)",
-    shadowColor: "#000",
-    shadowOpacity: 0.14,
+    borderColor: sk("rgba(255,255,255,0.24)", "rgba(16,42,92,0.10)"),
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.14, 0.1),
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
   },
   profileInnerGlass: {
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
+    borderColor: sk("rgba(255,255,255,0.18)", "rgba(16,42,92,0.08)"),
   },
   profileHeaderChipGlass: {
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.24)",
+    borderColor: sk("rgba(255,255,255,0.24)", "rgba(16,42,92,0.14)"),
   },
 
   centerBox: { padding: 20, justifyContent: "center", alignItems: "center" },
@@ -3218,7 +3219,7 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
 
-  userName: { fontSize: 23, fontWeight: "800", color: "#FFF", marginBottom: 8, flexShrink: 1 },
+  userName: { fontSize: 23, fontWeight: "800", color: sk("#FFF", "#0B1B3A"), marginBottom: 8, flexShrink: 1 },
   nicknameContainer: {
     backgroundColor: "rgba(255,255,255,0.2)",
     paddingHorizontal: 16,
@@ -3226,7 +3227,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 16,
   },
-  userNickname: { fontSize: 15, fontWeight: "600", color: "#FFF" },
+  userNickname: { fontSize: 15, fontWeight: "600", color: sk("#FFF", "#5F6F8A") },
 
   quickInfoContainer: {
     flexDirection: "row",
@@ -3362,8 +3363,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   challengeAction: {
-    borderColor: "rgba(245,185,53,0.55)",
-    backgroundColor: "rgba(245,185,53,0.12)",
+    borderColor: sk("rgba(245,185,53,0.55)", "rgba(217,119,6,0.4)"),
+    backgroundColor: sk("rgba(245,185,53,0.12)", "rgba(245,158,11,0.12)"),
   },
   profileActionText: { fontSize: 13, fontWeight: "700", flexShrink: 1 },
 
@@ -3401,9 +3402,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
-    backgroundColor: "rgba(76,175,80,0.18)",
+    backgroundColor: sk("rgba(76,175,80,0.18)", "rgba(22,163,74,0.12)"),
   },
-  statSecondaryText: { fontSize: 11, fontWeight: "700", color: "#4CAF50" },
+  statSecondaryText: { fontSize: 11, fontWeight: "700", color: sk("#4CAF50", "#16A34A") },
 
   statsContainer: {
     flexDirection: "row",
@@ -3422,11 +3423,11 @@ const styles = StyleSheet.create({
     minHeight: 116,
     borderWidth: 1,
     overflow: "hidden",
-    shadowColor: "#000",
+    shadowColor: sk("#000", "#1B3A7A"),
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: sk(0.15, 0.1),
+    shadowRadius: sk(8, 14),
+    elevation: sk(4, 3),
   },
   statCardGlass: {
     borderWidth: 1,
@@ -3442,12 +3443,12 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontVariant: ["tabular-nums"],
     flexShrink: 1,
-    color: "#FFF",
+    color: sk("#FFF", "#0B1B3A"),
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 13,
-    color: "rgba(255,255,255,0.9)",
+    color: sk("rgba(255,255,255,0.9)", "#5F6F8A"),
     textAlign: "left",
     fontWeight: "600",
   },
@@ -3462,7 +3463,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     zIndex: 100,
     borderBottomWidth: 1,
-    shadowColor: "#000",
+    shadowColor: sk("#000", "#1B3A7A"),
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -3528,11 +3529,12 @@ const styles = StyleSheet.create({
   section: {
     borderRadius: 16,
     padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOffset: { width: 0, height: sk(2, 5) },
+    shadowOpacity: sk(0.05, 0.09),
+    shadowRadius: sk(4, 14),
+    elevation: sk(2, 3),
+    ...(IS_V3 ? { borderWidth: 1 } : null),
   },
   sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 16 },
   bioText: { fontSize: 14, lineHeight: 22 },
@@ -3561,10 +3563,10 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOffset: { width: 0, height: sk(2, 5) },
+    shadowOpacity: sk(0.1, 0.09),
+    shadowRadius: sk(4, 14),
     elevation: 3,
   },
   resultBadge: {
@@ -3643,11 +3645,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOffset: { width: 0, height: sk(1, 4) },
+    shadowOpacity: sk(0.05, 0.08),
+    shadowRadius: sk(2, 12),
+    elevation: sk(1, 3),
+    ...(IS_V3 ? { borderWidth: 1 } : null),
     position: "relative",
   },
   ratingAdminActions: {
@@ -3662,7 +3665,7 @@ const styles = StyleSheet.create({
   editItemButton: {
     padding: 4,
     borderRadius: 8,
-    backgroundColor: "rgba(18,182,243,0.12)",
+    backgroundColor: sk("rgba(18,182,243,0.12)", "rgba(20,102,242,0.10)"),
   },
   deleteItemButton: {
     padding: 4,
@@ -3770,7 +3773,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: sk("#000", "#1B3A7A"),
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,

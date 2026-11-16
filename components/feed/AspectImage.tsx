@@ -5,6 +5,7 @@
 // sau render tức thì.
 import React, { useEffect, useMemo, useState } from "react";
 import { Image, Pressable, StyleProp, ImageStyle, View } from "react-native";
+import { sk } from "@/hooks/uiVersion";
 
 const aspectCache = new Map<string, number>();
 
@@ -75,7 +76,7 @@ export function AspectImage({
   const rawH = width / aspect;
   const h = Math.max(minHeight, Math.min(maxHeight, rawH));
   const img = (
-    <View style={{ width, height: h, borderRadius, overflow: "hidden", backgroundColor: "#0b1220" }}>
+    <View style={{ width, height: h, borderRadius, overflow: "hidden", backgroundColor: sk("#0b1220", "#E9F0FA") }}>
       {blurredBackground ? (
         <>
           <Image source={{ uri: url }} style={{ position: "absolute", width, height: h }} resizeMode="cover" blurRadius={24} />

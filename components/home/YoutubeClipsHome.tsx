@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/i18nText";
 import { HOME_COLORS } from "@/components/home/HomeDesign";
+import { sk } from "@/hooks/uiVersion";
 import { useYoutubeLibraryQuery } from "@/slices/youtubeLibraryApiSlice";
 
 type Video = {
@@ -90,7 +91,7 @@ export default function YoutubeClipsHome() {
       <View style={styles.headerRow}>
         <View style={styles.titleRow}>
           <View style={styles.accent} />
-          <Ionicons name="logo-youtube" size={18} color="#FF4D4D" />
+          <Ionicons name="logo-youtube" size={18} color={sk("#FF4D4D", "#EF3B3B")} />
           <Text style={styles.sectionTitle}>Kho clip YouTube</Text>
         </View>
         <Pressable onPress={() => router.push("/youtube-library")} style={styles.viewAll} hitSlop={8}>
@@ -122,7 +123,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 7 },
-  accent: { width: 4, height: 19, borderRadius: 2, backgroundColor: "#FF4D4D" },
+  accent: { width: 4, height: 19, borderRadius: 2, backgroundColor: sk("#FF4D4D", "#EF3B3B") },
   sectionTitle: {
     color: HOME_COLORS.text,
     fontSize: 20,

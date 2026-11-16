@@ -1,5 +1,5 @@
 import { t } from "@/utils/i18n";
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -14,13 +14,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function NotFound() {
   const scheme0 = useColorScheme() ?? "light";
-  const v2 = useUiVersion() === "v2";
-  const scheme = v2 ? "dark" : scheme0;
-  const textPrimary = scheme === "dark" ? "#fff" : "#111";
-  const textSecondary = scheme === "dark" ? "#c9c9c9" : "#444";
-  const border = scheme === "dark" ? "#2e2f33" : "#e5e9f0";
+  const v2 = useUiVersion() === "v2" || IS_V3;
+  const scheme = v2 && !IS_V3 ? "dark" : IS_V3 ? "light" : scheme0;
+  const textPrimary = scheme === "dark" ? "#fff" : sk("#111", "#0B1B3A");
+  const textSecondary = scheme === "dark" ? "#c9c9c9" : sk("#444", "#5F6F8A");
+  const border = scheme === "dark" ? "#2e2f33" : sk("#e5e9f0", "rgba(16,42,92,0.10)");
   const cardBg = scheme === "dark" ? "#16181c" : "#fff";
-  const tint = scheme === "dark" ? "#7cc0ff" : "#0a84ff";
+  const tint = scheme === "dark" ? "#7cc0ff" : sk("#0a84ff", "#1466F2");
 
   const params = useLocalSearchParams<{ origin?: string }>();
   const [storedOrigin, setStoredOrigin] = useState<string>("");
@@ -188,6 +188,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 24,
     alignItems: "center",
+    ...sk({}, { shadowColor: "#1B3A7A", shadowOpacity: 0.1, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 3 }),
   },
   h1: {
     fontSize: 96,

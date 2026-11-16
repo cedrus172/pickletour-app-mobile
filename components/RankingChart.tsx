@@ -33,6 +33,7 @@ import { normalizeUrl } from "@/utils/normalizeUri";
 import * as Haptics from "expo-haptics";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
 import { IOS_26_LIQUID_GLASS_ENABLED } from "@/utils/nativeTabs";
+import { sk } from "@/hooks/uiVersion";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PLACE = "https://dummyimage.com/100x100/cccccc/ffffff&text=?";
@@ -1132,7 +1133,7 @@ const styles = StyleSheet.create({
   },
   glassChartShell: {
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
+    borderColor: sk("rgba(255,255,255,0.3)", "rgba(16,42,92,0.10)"),
   },
   emptyContainer: {
     height: 200,
@@ -1144,7 +1145,7 @@ const styles = StyleSheet.create({
   },
   glassCard: {
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.34)",
+    borderColor: sk("rgba(255,255,255,0.34)", "rgba(16,42,92,0.10)"),
   },
   emptyText: {
     fontSize: 14,
@@ -1238,7 +1239,7 @@ const styles = StyleSheet.create({
   },
   glassMiniBadge: {
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.35)",
+    borderColor: sk("rgba(255,255,255,0.35)", "rgba(16,42,92,0.10)"),
   },
   legend: {
     flexDirection: "row",
@@ -1361,7 +1362,7 @@ const styles = StyleSheet.create({
   },
   glassPanel: {
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.28)",
+    borderColor: sk("rgba(255,255,255,0.28)", "rgba(16,42,92,0.10)"),
   },
   statColumn: {
     alignItems: "center",

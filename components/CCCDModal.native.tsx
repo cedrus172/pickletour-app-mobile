@@ -15,6 +15,7 @@ import { useTheme } from "@react-navigation/native";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import RefereeModalSurface, { modalStyles, refereeModalColors as M } from "./match/RefereeModalSurface";
 import AppModal from "@/components/ui/AppModal";
+import { IS_V3 } from "@/hooks/uiVersion";
 // import { normalizeUrl } from "@/utils/normalizeUrl";
 
 const textOf = (v) => {
@@ -38,7 +39,7 @@ const getCccdImages = (u) => {
 export default function CCCDModal({ visible, onClose, user, refereeDesign = false }) {
   const navTheme = useTheme();
   const { colors, dark } = navTheme;
-  const sport = refereeDesign && (navTheme as any).version === "v2";
+  const sport = refereeDesign && ((navTheme as any).version === "v2" || IS_V3);
   const { width, height } = useWindowDimensions();
   const landscape = width > height;
   const ModalRoot = sport ? View : SafeAreaView;

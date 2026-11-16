@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Href, router } from "expo-router";
 import { Pressable, StyleSheet } from "react-native";
+import { sk } from "@/hooks/uiVersion";
 
 type AppBackButtonProps = {
   color?: string;
@@ -8,7 +9,7 @@ type AppBackButtonProps = {
 };
 
 export default function AppBackButton({
-  color = "#FFFFFF",
+  color = sk("#FFFFFF", "#0B1B3A"),
   fallbackHref = "/",
 }: AppBackButtonProps) {
   const handlePress = () => {

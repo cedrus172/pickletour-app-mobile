@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 // AdminMatchTools.tsx
 // Bộ công cụ quản trị trận nâng cao trên mobile — parity với web MatchContent:
 //   • Chỉnh đội A/B (chọn registration / BYE / đội thắng từ trận khác / swap)
@@ -53,19 +53,19 @@ import {
 /* ================= theme (mirror MatchContent tokens) ================= */
 function useTokens() {
   const scheme = useColorScheme() ?? "light";
-  const v2 = useUiVersion() === "v2";
-  const isDark = v2 || scheme === "dark";
+  const v2 = useUiVersion() === "v2" || IS_V3;
+  const isDark = (v2 && !IS_V3) || scheme === "dark";
   return useMemo(
     () => ({
       isDark,
-      tint: v2 ? "#12B6F3" : isDark ? "#60a5fa" : "#2563eb",
-      textPrimary: v2 ? "#EAF3FF" : isDark ? "#f8fafc" : "#1e293b",
-      textSecondary: v2 ? "#8CA6C8" : isDark ? "#94a3b8" : "#64748b",
-      pageBg: v2 ? "#040E20" : isDark ? "#0f172a" : "#f8fafc",
-      cardBg: v2 ? "#0A1B34" : isDark ? "#1e293b" : "#ffffff",
-      cardBorder: v2 ? "rgba(92,180,255,0.16)" : isDark ? "#334155" : "#e2e8f0",
-      softBg: v2 ? "#0E2244" : isDark ? "#334155" : "#f1f5f9",
-      inputBg: v2 ? "rgba(255,255,255,0.06)" : isDark ? "#0f172a" : "#fff",
+      tint: v2 ? sk("#12B6F3", "#1466F2") : isDark ? "#60a5fa" : "#2563eb",
+      textPrimary: v2 ? sk("#EAF3FF", "#0B1B3A") : isDark ? "#f8fafc" : "#1e293b",
+      textSecondary: v2 ? sk("#8CA6C8", "#5F6F8A") : isDark ? "#94a3b8" : "#64748b",
+      pageBg: v2 ? sk("#040E20", "#F2F6FC") : isDark ? "#0f172a" : "#f8fafc",
+      cardBg: v2 ? sk("#0A1B34", "#FFFFFF") : isDark ? "#1e293b" : "#ffffff",
+      cardBorder: v2 ? sk("rgba(92,180,255,0.16)", "rgba(16,42,92,0.10)") : isDark ? "#334155" : "#e2e8f0",
+      softBg: v2 ? sk("#0E2244", "#EEF3FA") : isDark ? "#334155" : "#f1f5f9",
+      inputBg: v2 ? sk("rgba(255,255,255,0.06)", "#F5F8FD") : isDark ? "#0f172a" : "#fff",
       success: isDark ? "#4ade80" : "#166534",
       successBg: isDark ? "rgba(34,197,94,0.15)" : "#dcfce7",
       warn: isDark ? "#fbbf24" : "#b45309",

@@ -6,6 +6,7 @@ import { TouchableOpacity, View, StyleSheet } from "react-native";
 import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from "react-native-svg";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/i18nText";
+import { sk } from "@/hooks/uiVersion";
 
 export const TEAM_A_COLOR = "#0EA5E9";
 export const TEAM_B_COLOR = "#F97316";
@@ -77,7 +78,7 @@ function MatchScoreChart({ timeline, dark, textPrimary, textSecondary, cardBg, t
   const info = useMemo(() => buildGame(rows), [rows]);
   if (!games.length || !rows.length) return null;
 
-  const grid = dark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)";
+  const grid = dark ? "rgba(255,255,255,0.08)" : sk("rgba(15,23,42,0.08)", "rgba(16,42,92,0.10)");
   const n = rows.length;
   const step = niceStep(info.maxScore);
   const yMax = Math.ceil(info.maxScore / step) * step;

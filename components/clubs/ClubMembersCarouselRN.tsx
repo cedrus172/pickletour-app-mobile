@@ -25,6 +25,7 @@ import * as Haptics from "expo-haptics";
 import { normalizeUrl } from "@/utils/normalizeUri";
 // Thêm 2 thư viện này
 import { useTheme } from "@react-navigation/native";
+import { sk } from "@/hooks/uiVersion";
 import { router } from "expo-router";
 
 // --- COMPONENT AVATAR (Đã thêm dark mode prop) ---
@@ -53,7 +54,7 @@ function UserAvatar({ uri, size = 68, colors }) {
           },
         ]}
       >
-        <Ionicons name="person" size={size * 0.45} color="#818CF8" />
+        <Ionicons name="person" size={size * 0.45} color={sk("#818CF8", "#1466F2")} />
       </View>
     );
   }
@@ -94,7 +95,7 @@ function GradLightCard({ children, style, pad = 12, colors }) {
     >
       {/* Giữ gradient overlay nhẹ để tạo hiệu ứng kính/bóng */}
       <LinearGradient
-        colors={["rgba(8,188,215,0.08)", "rgba(7,141,180,0.08)"]}
+        colors={sk<[string, string]>(["rgba(8,188,215,0.08)", "rgba(7,141,180,0.08)"], ["rgba(47,139,255,0.05)", "rgba(20,102,242,0.05)"])}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -114,7 +115,7 @@ function SmallGradBtn({ title, onPress, style, disabled, icon }) {
       style={[styles.smallBtn, style, disabled && { opacity: 0.6 }]}
     >
       <LinearGradient
-        colors={["#08bcd7", "#078db4"]}
+        colors={sk<[string, string]>(["#08bcd7", "#078db4"], ["#2F8BFF", "#1466F2"])}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -164,14 +165,14 @@ export default function ClubMembersManagerRN({ club, canManage }) {
 
   const colors = useMemo(
     () => ({
-      text: isDark ? "#FFFFFF" : "#2D3561",
-      subText: isDark ? "#A0A0A0" : "#6B7280",
+      text: isDark ? "#FFFFFF" : sk("#2D3561", "#0B1B3A"),
+      subText: isDark ? "#A0A0A0" : sk("#6B7280", "#5F6F8A"),
       card: isDark ? "#1E1E1E" : "#FFFFFF",
-      border: isDark ? "#333333" : "#E6E8F5",
-      inputBg: isDark ? "#2C2C2E" : "#F9FAFB",
-      placeholderText: isDark ? "#666" : "#9CA3AF",
-      avatarPlaceholder: isDark ? "#2C2C2E" : "#EEF2FF",
-      avatarBg: isDark ? "#333" : "#E0E7FF",
+      border: isDark ? "#333333" : sk("#E6E8F5", "rgba(16,42,92,0.10)"),
+      inputBg: isDark ? "#2C2C2E" : sk("#F9FAFB", "#F5F8FD"),
+      placeholderText: isDark ? "#666" : sk("#9CA3AF", "#97A3B8"),
+      avatarPlaceholder: isDark ? "#2C2C2E" : sk("#EEF2FF", "#EEF3FA"),
+      avatarBg: isDark ? "#333" : sk("#E0E7FF", "#E9F0FA"),
       // Role Pills colors
       roleOwnerBg: isDark ? "rgba(255, 193, 7, 0.2)" : "#FFF7E6",
       roleOwnerText: isDark ? "#FFD54F" : "#B7791F",
@@ -280,7 +281,7 @@ export default function ClubMembersManagerRN({ club, canManage }) {
     if (isLoading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#08bcd7" />
+          <ActivityIndicator size="large" color={sk("#08bcd7", "#1466F2")} />
           <Text style={[styles.loadingText, { color: colors.subText }]}>
             Đang tải danh sách...
           </Text>
@@ -496,7 +497,7 @@ export default function ClubMembersManagerRN({ club, canManage }) {
           {isFetching && (
             <ActivityIndicator
               size="small"
-              color="#08bcd7"
+              color={sk("#08bcd7", "#1466F2")}
               style={{ marginRight: 6 }}
             />
           )}
@@ -507,7 +508,7 @@ export default function ClubMembersManagerRN({ club, canManage }) {
             <Ionicons
               name="refresh"
               size={14}
-              color="#08bcd7"
+              color={sk("#08bcd7", "#1466F2")}
               style={{ marginLeft: 4 }}
             />
           )}
@@ -559,8 +560,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: "hidden",
     borderWidth: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.06, 0.1),
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 10,
     elevation: 3,
@@ -613,7 +614,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   refreshBtn: { flexDirection: "row", alignItems: "center" },
-  refreshText: { color: "#08bcd7", fontWeight: "600", fontSize: 13 },
+  refreshText: { color: sk("#08bcd7", "#1466F2"), fontWeight: "600", fontSize: 13 },
 
   name: { fontWeight: "700", marginTop: 8, maxWidth: 140 },
   pill: {

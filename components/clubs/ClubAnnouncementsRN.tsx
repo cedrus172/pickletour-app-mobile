@@ -19,6 +19,7 @@ import {
   useDeleteAnnouncementMutation,
 } from "@/slices/clubsApiSlice";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { sk } from "@/hooks/uiVersion";
 
 const getApiErrMsg = (e: any) =>
   e?.data?.message ||
@@ -40,7 +41,7 @@ function GradLightCard({
   return (
     <View style={[styles.card, style]}>
       <LinearGradient
-        colors={["rgba(8,188,215,0.08)", "rgba(7,141,180,0.08)"]}
+        colors={sk<[string, string]>(["rgba(8,188,215,0.08)", "rgba(7,141,180,0.08)"], ["rgba(47,139,255,0.04)", "rgba(20,102,242,0.04)"])}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -185,7 +186,7 @@ export default function ClubAnnouncementsRN({
             <MaterialCommunityIcons
               name={pinned ? "checkbox-marked" : "checkbox-blank-outline"}
               size={20}
-              color={pinned ? "#08bcd7" : C.muted}
+              color={pinned ? sk("#08bcd7", "#1466F2") : C.muted}
             />
             <Text style={styles.checkLabel}>Ghim lên đầu</Text>
           </TouchableOpacity>
@@ -193,7 +194,7 @@ export default function ClubAnnouncementsRN({
           <View style={{ marginTop: 12, flexDirection: "row", gap: 8 }}>
             <View style={styles.btnPrimary}>
               <LinearGradient
-                colors={["#08bcd7", "#078db4"]}
+                colors={sk<[string, string]>(["#08bcd7", "#078db4"], ["#2F8BFF", "#1466F2"])}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
@@ -295,8 +296,8 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     backgroundColor: C.card,
     borderWidth: 1,
     borderColor: C.border,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.06, 0.1),
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 10,
     elevation: 3,

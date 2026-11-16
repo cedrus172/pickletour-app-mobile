@@ -61,6 +61,7 @@ import {
 import { setLiveWatchPayload } from "./liveWatchHandoff";
 
 import AppModal, { ModalTopInset } from "@/components/ui/AppModal";
+import { sk } from "@/hooks/uiVersion";
 const FEED_LIMIT = 8;
 const GLOBAL_MUTE_KEY = "pickletour-live-global-muted-v1";
 const BLURHASH = "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXo";
@@ -1038,7 +1039,7 @@ function ModeChip({
     >
       <LiveGlassSurface
         interactive
-        tintColor={active ? "rgba(37,244,238,0.46)" : "rgba(6,10,16,0.58)"}
+        tintColor={active ? sk("rgba(37,244,238,0.46)", "rgba(197,244,51,0.5)") : "rgba(6,10,16,0.58)"}
         style={[styles.modeChip, active ? styles.modeChipActive : null]}
       >
         <Text style={[styles.modeChipText, active ? styles.modeChipTextActive : null]}>{label}</Text>
@@ -1185,7 +1186,7 @@ const FeedSlide = memo(function FeedSlide({
         {stageChipLabel ? (
           <LiveGlassSurface
             effect="clear"
-            tintColor="rgba(37,244,238,0.16)"
+            tintColor={sk("rgba(37,244,238,0.16)", "rgba(197,244,51,0.16)")}
             style={[styles.metaChip, styles.metaChipAccent]}
           >
             <Text style={[styles.metaChipText, styles.metaChipAccentText]}>{stageChipLabel}</Text>
@@ -1195,7 +1196,7 @@ const FeedSlide = memo(function FeedSlide({
         {showTemporaryReplayHint ? (
           <LiveGlassSurface
             effect="clear"
-            tintColor="rgba(37,244,238,0.16)"
+            tintColor={sk("rgba(37,244,238,0.16)", "rgba(197,244,51,0.16)")}
             style={[styles.metaChip, styles.metaChipAccent]}
           >
             <Text style={[styles.metaChipText, styles.metaChipAccentText]}>Đang phát bản tạm</Text>
@@ -1210,7 +1211,7 @@ const FeedSlide = memo(function FeedSlide({
           style={[styles.infoColumn, IOS_26_LIQUID_GLASS_ENABLED && styles.infoGlassPanel]}
         >
           <View style={styles.creatorRow}>
-            <View style={[styles.avatarFallback, !tournamentImage ? { backgroundColor: "rgba(37,244,238,0.24)" } : null]}>
+            <View style={[styles.avatarFallback, !tournamentImage ? { backgroundColor: sk("rgba(37,244,238,0.24)", "rgba(197,244,51,0.24)") } : null]}>
               {tournamentImage ? (
                 <ExpoImage
                   source={{ uri: tournamentImage }}
@@ -1276,7 +1277,7 @@ const FeedSlide = memo(function FeedSlide({
             >
               <LiveGlassSurface
                 interactive={canOpenViewer}
-                tintColor="rgba(37,244,238,0.46)"
+                tintColor={sk("rgba(37,244,238,0.46)", "rgba(197,244,51,0.5)")}
                 style={styles.detailPill}
               >
                 <Ionicons name="open-outline" size={14} color="#07111a" />
@@ -2433,7 +2434,7 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: "#25f4ee",
+    backgroundColor: sk("#25f4ee", "#C5F433"),
   },
   topGradient: {
     position: "absolute",
@@ -2509,8 +2510,8 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.14)",
   },
   modeChipActive: {
-    backgroundColor: "#25f4ee",
-    borderColor: "rgba(37,244,238,0.7)",
+    backgroundColor: sk("#25f4ee", "#C5F433"),
+    borderColor: sk("rgba(37,244,238,0.7)", "rgba(197,244,51,0.7)"),
   },
   modeChipText: {
     color: "#ffffff",
@@ -2573,7 +2574,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.14)",
   },
   metaChipAccent: {
-    borderColor: "rgba(37,244,238,0.24)",
+    borderColor: sk("rgba(37,244,238,0.24)", "rgba(197,244,51,0.3)"),
   },
   metaChipText: {
     color: "#ffffff",
@@ -2581,7 +2582,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   metaChipAccentText: {
-    color: "#25f4ee",
+    color: sk("#25f4ee", "#D6FA4D"),
   },
   bottomOverlay: {
     position: "absolute",
@@ -2617,7 +2618,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "rgba(37,244,238,0.9)",
+    borderColor: sk("rgba(37,244,238,0.9)", "rgba(197,244,51,0.9)"),
     backgroundColor: "rgba(14,18,26,0.92)",
   },
   avatarImage: {
@@ -2673,7 +2674,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tagText: {
-    color: "#25f4ee",
+    color: sk("#25f4ee", "#D6FA4D"),
     fontSize: 11,
     fontWeight: "800",
   },
@@ -2706,7 +2707,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: "#25f4ee",
+    backgroundColor: sk("#25f4ee", "#C5F433"),
   },
   detailPillDisabled: {
     opacity: 0.45,

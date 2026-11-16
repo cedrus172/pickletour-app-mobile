@@ -1,5 +1,5 @@
 // app/(tabs)/user-stats.tsx
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -68,29 +68,29 @@ const safeArr = <T,>(arr: T[] | undefined | null, fallback: T[]): T[] =>
 
 function useThemeColors() {
   const scheme = useColorScheme() ?? "light";
-  const v2 = useUiVersion() === "v2";
-  const isDark = v2 || scheme === "dark";
+  const v2 = useUiVersion() === "v2" || IS_V3;
+  const isDark = (v2 && !IS_V3) || scheme === "dark";
   return {
     isDark,
-    bg: v2 ? "#040E20" : isDark ? "#0f1115" : "#F5F7FA",
+    bg: v2 ? sk("#040E20", "#F2F6FC") : isDark ? "#0f1115" : "#F5F7FA",
     bgGradient: v2
-      ? ["#040E20", "#0A1B34", "#040E20"]
+      ? sk(["#040E20", "#0A1B34", "#040E20"], ["#F7FAFF", "#F2F6FC", "#EEF4FC"])
       : isDark
       ? ["#0f1115", "#181a20", "#0f1115"]
       : ["#F5F7FA", "#FFFFFF", "#F5F7FA"],
-    text: v2 ? "#EAF3FF" : isDark ? "#f8fafc" : "#0f172a",
-    subText: v2 ? "#8CA6C8" : isDark ? "#848E9C" : "#6B7280",
-    cardBg: isDark ? "rgba(24,26,32,0.72)" : "rgba(255,255,255,0.74)",
-    cardBorder: isDark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.72)",
+    text: v2 ? sk("#EAF3FF", "#0B1B3A") : isDark ? "#f8fafc" : "#0f172a",
+    subText: v2 ? sk("#8CA6C8", "#5F6F8A") : isDark ? "#848E9C" : "#6B7280",
+    cardBg: isDark ? "rgba(24,26,32,0.72)" : sk("rgba(255,255,255,0.74)", "#FFFFFF"),
+    cardBorder: isDark ? "rgba(255,255,255,0.14)" : sk("rgba(255,255,255,0.72)", "rgba(16,42,92,0.10)"),
     cardGradient: isDark
       ? ["rgba(255,255,255,0.08)", "rgba(255,255,255,0.01)"]
       : ["rgba(255,255,255,0.82)", "rgba(255,255,255,0.18)"],
     blurTint: (isDark ? "dark" : "light") as "dark" | "light" | "default",
-    chartGrid: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
-    chartText: isDark ? "#94a3b8" : "#64748b",
-    iconBg: isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.68)",
-    kpiBg: isDark ? "rgba(32,35,43,0.62)" : "rgba(255,255,255,0.7)",
-    segmentBg: isDark ? "rgba(24,26,32,0.72)" : "rgba(255,255,255,0.74)",
+    chartGrid: isDark ? "rgba(255,255,255,0.1)" : sk("rgba(0,0,0,0.06)", "rgba(16,42,92,0.08)"),
+    chartText: isDark ? "#94a3b8" : sk("#64748b", "#5F6F8A"),
+    iconBg: isDark ? "rgba(255,255,255,0.12)" : sk("rgba(255,255,255,0.68)", "#EEF3FA"),
+    kpiBg: isDark ? "rgba(32,35,43,0.62)" : sk("rgba(255,255,255,0.7)", "#F5F8FD"),
+    segmentBg: isDark ? "rgba(24,26,32,0.72)" : sk("rgba(255,255,255,0.74)", "#EEF3FA"),
     tooltipBg: isDark ? "#181a20" : "#ffffff",
   };
 }
@@ -603,7 +603,7 @@ function InteractiveDonut({ data, centerTitle, theme }: any) {
               donut
               radius={70}
               innerRadius={55}
-              innerCircleColor={theme.isDark ? "#1e293b" : "#f1f5f9"}
+              innerCircleColor={theme.isDark ? "#1e293b" : sk("#f1f5f9", "#EEF3FA")}
               strokeWidth={2}
               strokeColor={theme.cardBg}
               animate
@@ -852,7 +852,7 @@ export default function UserStatsScreen() {
                       isActive && {
                         backgroundColor: T.isDark
                           ? "rgba(99, 102, 241, 0.22)"
-                          : "rgba(255,255,255,0.74)",
+                          : sk("rgba(255,255,255,0.74)", "#FFFFFF"),
                       },
                       isActive && IOS_26_LIQUID_GLASS_ENABLED && styles.innerGlass,
                       isActive && !T.isDark && styles.shadowSm,
@@ -1290,21 +1290,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   glassControl: {
-    borderColor: "rgba(255,255,255,0.28)",
-    shadowColor: "#000",
+    borderColor: sk("rgba(255,255,255,0.28)", "rgba(16,42,92,0.10)"),
+    shadowColor: sk("#000", "#1B3A7A"),
     shadowOpacity: 0.12,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
   },
   liquidCard: {
-    borderColor: "rgba(255,255,255,0.26)",
-    shadowColor: "#000",
-    shadowOpacity: 0.14,
+    borderColor: sk("rgba(255,255,255,0.26)", "rgba(16,42,92,0.10)"),
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.14, 0.1),
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
   },
   innerGlass: {
-    borderColor: "rgba(255,255,255,0.22)",
+    borderColor: sk("rgba(255,255,255,0.22)", "rgba(16,42,92,0.08)"),
   },
   sectionTitle: {
     fontSize: 12,
@@ -1385,7 +1385,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
   },
-  oppVal: { color: "#818cf8", fontSize: 11, fontWeight: "700" },
+  oppVal: { color: sk("#818cf8", "#6366f1"), fontSize: 11, fontWeight: "700" },
   radarTooltip: {
     position: "absolute",
     top: "40%",

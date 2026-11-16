@@ -19,6 +19,7 @@ import { useTheme } from "@react-navigation/native";
 import RefereeModalSurface, { modalStyles, refereeModalColors as M } from "./RefereeModalSurface";
 
 import AppModal from "@/components/ui/AppModal";
+import { IS_V3 } from "@/hooks/uiVersion";
 /* ---------- Theme tokens (nhẹ hơn bản full) ---------- */
 function useTokens() {
   const navTheme = useTheme?.() || {};
@@ -33,7 +34,7 @@ function useTokens() {
   const background =
     navTheme?.colors?.background ?? (dark ? "#0b0d10" : "#f5f7fb");
 
-  const sport = (navTheme as any).version === "v2";
+  const sport = (navTheme as any).version === "v2" || IS_V3;
   return {
     dark, sport,
     colors: sport ? { primary: M.primary, text: M.text, card: M.card, border: M.border, background: M.surface } : { primary, text, card, border, background },

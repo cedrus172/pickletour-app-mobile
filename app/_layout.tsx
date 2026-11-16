@@ -144,6 +144,14 @@ if (__DEV__ && process.env.EXPO_PUBLIC_HIDE_LOGBOX === "1") {
   } catch {}
 }
 
+// V3 luôn nền sáng: ép color scheme ngay khi nạp module để khung hình đầu tiên không bị tối
+// (V2 vẫn ép "dark" trong effect như cũ).
+if (IS_V3) {
+  try {
+    Appearance.setColorScheme("light");
+  } catch {}
+}
+
 // ===== V3 Fresh: hiệu ứng chuyển trang =====
 // Trang mới trượt vào (kiểu iOS) + nội dung mờ dần và nhích lên nhẹ khi xuất hiện.
 const V3_STACK_TRANSITION = {

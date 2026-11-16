@@ -4,6 +4,7 @@ import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { Ionicons } from "@expo/vector-icons";
 import MapboxGL, { mapboxAvailable } from "@/utils/mapbox";
+import { sk } from "@/hooks/uiVersion";
 
 const DEFAULT_CENTER = [105.8342, 21.0278]; // Hà Nội
 
@@ -37,7 +38,7 @@ export default function CourtsMapView({ venues = [], myLocation, onPick, C }: an
           onSelected={() => onPick?.(v)}
         >
           <View style={styles.pin}>
-            <Ionicons name="tennisball" size={14} color="#0a0e1a" />
+            <Ionicons name="tennisball" size={14} color={sk("#0a0e1a", "#FFFFFF")} />
           </View>
         </MapboxGL.PointAnnotation>
       ))}
@@ -47,6 +48,6 @@ export default function CourtsMapView({ venues = [], myLocation, onPick, C }: an
 
 const styles = StyleSheet.create({
   fallback: { flex: 1, alignItems: "center", justifyContent: "center" },
-  pin: { width: 30, height: 30, borderRadius: 15, backgroundColor: "#4dd0e1", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#fff" },
-  me: { width: 18, height: 18, borderRadius: 9, backgroundColor: "#3b82f6", borderWidth: 3, borderColor: "#fff" },
+  pin: { width: 30, height: 30, borderRadius: 15, backgroundColor: sk("#4dd0e1", "#1466F2"), alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#fff" },
+  me: { width: 18, height: 18, borderRadius: 9, backgroundColor: sk("#3b82f6", "#C5F433"), borderWidth: 3, borderColor: sk("#fff", "#0B1B3A") },
 });

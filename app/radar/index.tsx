@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 import React, {
   useCallback,
   useEffect,
@@ -158,11 +158,11 @@ const RadarLoading = ({ isDark }) => (
   <View
     style={[
       styles.centerFill,
-      { backgroundColor: isDark ? "#020617" : "#F8FAFC" },
+      { backgroundColor: isDark ? "#020617" : sk("#F8FAFC", "#F2F6FC") },
     ]}
   >
     <ActivityIndicator size="large" color={THEME_COLOR} />
-    <Text style={[styles.loadingText, { color: isDark ? "#FFF" : "#333" }]}>
+    <Text style={[styles.loadingText, { color: isDark ? "#FFF" : sk("#333", "#0B1B3A") }]}>
       Đang tải radar...
     </Text>
   </View>
@@ -248,7 +248,7 @@ const RadarUnavailable = ({ isDark, onBack }) => (
       styles.centerFill,
       {
         paddingHorizontal: 24,
-        backgroundColor: isDark ? "#020617" : "#F8FAFC",
+        backgroundColor: isDark ? "#020617" : sk("#F8FAFC", "#F2F6FC"),
       },
     ]}
   >
@@ -263,7 +263,7 @@ const RadarUnavailable = ({ isDark, onBack }) => (
         fontSize: 22,
         fontWeight: "800",
         textAlign: "center",
-        color: isDark ? "#FFF" : "#0F172A",
+        color: isDark ? "#FFF" : sk("#0F172A", "#0B1B3A"),
       }}
     >
       Radar chưa chạy được trên Expo Go
@@ -274,7 +274,7 @@ const RadarUnavailable = ({ isDark, onBack }) => (
         fontSize: 14,
         lineHeight: 22,
         textAlign: "center",
-        color: isDark ? "#CBD5E1" : "#475569",
+        color: isDark ? "#CBD5E1" : sk("#475569", "#5F6F8A"),
       }}
     >
       Màn này dùng Mapbox native. Bạn cần chạy development build hoặc rebuild app
@@ -313,8 +313,8 @@ const RadarUnavailable = ({ isDark, onBack }) => (
 export default function PickleRadarScreen() {
   const router = useRouter();
   const theme = useColorScheme();
-  const v2 = useUiVersion() === "v2";
-  const isDark = v2 || theme === "dark";
+  const v2 = useUiVersion() === "v2" || IS_V3;
+  const isDark = (v2 && !IS_V3) || theme === "dark";
   const mapboxAvailable = !!MapboxGL;
 
   // State
@@ -519,10 +519,10 @@ export default function PickleRadarScreen() {
   const dynamicStyles = {
     container: { backgroundColor: isDark ? "#020617" : "#FFF" },
     cardBg: isDark ? "rgba(15, 23, 42, 0.9)" : "rgba(255, 255, 255, 0.95)",
-    cardBorder: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
-    textMain: isDark ? "#FFF" : "#1F2937",
-    textSub: isDark ? "#94A3B8" : "#6B7280",
-    chipBg: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+    cardBorder: isDark ? "rgba(255,255,255,0.1)" : sk("rgba(0,0,0,0.05)", "rgba(16,42,92,0.08)"),
+    textMain: isDark ? "#FFF" : sk("#1F2937", "#0B1B3A"),
+    textSub: isDark ? "#94A3B8" : sk("#6B7280", "#5F6F8A"),
+    chipBg: isDark ? "rgba(255,255,255,0.1)" : sk("rgba(0,0,0,0.05)", "rgba(16,42,92,0.05)"),
     pillBg: isDark ? "rgba(30, 41, 59, 0.9)" : "rgba(255, 255, 255, 0.95)",
     modalBg: isDark ? "rgba(15, 23, 42, 0.95)" : "rgba(255,255,255, 0.95)",
   };
@@ -771,7 +771,7 @@ export default function PickleRadarScreen() {
                 <TouchableOpacity
                   style={[
                     styles.btnAction,
-                    { backgroundColor: isPinged ? "#374151" : THEME_COLOR },
+                    { backgroundColor: isPinged ? sk("#374151", "#E6ECF5") : THEME_COLOR },
                   ]}
                   onPress={() => handlePing(item)}
                   disabled={isPinged}

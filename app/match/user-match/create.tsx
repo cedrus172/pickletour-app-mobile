@@ -30,6 +30,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 
 // --- CẤU HÌNH THEME & RESPONSIVE ---
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -70,6 +71,22 @@ const THEME = {
     placeholder: "#6B7280",
     modalOverlay: "rgba(0,0,0,0.7)",
   },
+};
+
+// V3 Fresh: nền sáng, xanh dương theo logo mới.
+const THEME_V3: typeof THEME.light = {
+  primary: "#1466F2",
+  primaryDark: "#0B3FB8",
+  secondary: "#D97706",
+  background: "#F2F6FC",
+  card: "#FFFFFF",
+  text: "#0B1B3A",
+  textSub: "#5F6F8A",
+  border: "rgba(16,42,92,0.10)",
+  inputBg: "#EEF3FA",
+  cardSub: "#F5F8FD",
+  placeholder: "#97A3B8",
+  modalOverlay: "rgba(11,27,58,0.45)",
 };
 
 const ADDRESS_API_BASE = process.env.EXPO_PUBLIC_BASE_URL + "/v1/address";
@@ -473,7 +490,7 @@ export default function CreateUserMatchScreen() {
   // --- THEME SETUP ---
   const systemScheme = useColorScheme();
   const theme = systemScheme === "dark" ? "dark" : "light";
-  const colors = THEME[theme];
+  const colors = IS_V3 ? THEME_V3 : THEME[theme];
 
   const [matchDate, setMatchDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -1231,9 +1248,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     padding: IS_SMALL_SCREEN ? 12 : 16,
     borderRadius: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.05, 0.1),
+    shadowRadius: sk(10, 14),
     elevation: 2,
   },
   teamCol: { flex: 1, gap: 8 },
@@ -1250,7 +1267,7 @@ const styles = StyleSheet.create({
   },
   vsText: {
     fontWeight: "900",
-    color: "#E5E7EB",
+    color: sk("#E5E7EB", "#B8C4D8"),
     fontSize: IS_SMALL_SCREEN ? 16 : 20,
     fontStyle: "italic",
   },

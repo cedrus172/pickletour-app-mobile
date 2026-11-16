@@ -8,6 +8,7 @@ import { Chip } from "@/components/ui/Chip";
 import type { Club } from "@/types/club.types";
 import { Image as ExpoImage } from "expo-image";
 import { normalizeUrl } from "@/utils/normalizeUri";
+import { sk } from "@/hooks/uiVersion";
 // 1. Import Theme Hook
 
 interface ClubCardProps {
@@ -17,12 +18,12 @@ interface ClubCardProps {
 
 export default function ClubCard({ club, onPress }: ClubCardProps) {
   const colors = {
-    cardBg: "#0b2842",
-    textPrimary: "#fff",
-    textSecondary: "#b0c5dc",
-    textTertiary: "#d2e6f7",
-    badgeBg: "#123b57",
-    avatarBorder: "#0b2842",
+    cardBg: sk("#0b2842", "#FFFFFF"),
+    textPrimary: sk("#fff", "#0B1B3A"),
+    textSecondary: sk("#b0c5dc", "#5F6F8A"),
+    textTertiary: sk("#d2e6f7", "#243450"),
+    badgeBg: sk("#123b57", "rgba(20,102,242,0.10)"),
+    avatarBorder: sk("#0b2842", "#FFFFFF"),
   };
 
   const cover =
@@ -152,7 +153,7 @@ export default function ClubCard({ club, onPress }: ClubCardProps) {
                 <MaterialCommunityIcons
                   name="account-group"
                   size={16}
-                  color="#0bd2ec"
+                  color={sk("#0bd2ec", "#1466F2")}
                 />
                 <Text style={[styles.statText, { color: colors.textTertiary }]}>
                   {memberCount} thành viên
@@ -175,7 +176,10 @@ export default function ClubCard({ club, onPress }: ClubCardProps) {
 
         {/* Bottom Gradient Accent */}
         <LinearGradient
-          colors={["rgba(102, 126, 234, 0)", "rgba(102, 126, 234, 0.1)"]}
+          colors={sk<[string, string]>(
+            ["rgba(102, 126, 234, 0)", "rgba(102, 126, 234, 0.1)"],
+            ["rgba(20,102,242,0)", "rgba(20,102,242,0.08)"]
+          )}
           style={styles.bottomAccent}
         />
       </Animated.View>
@@ -190,16 +194,17 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 16,
     overflow: "hidden",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    elevation: sk(4, 3),
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOffset: { width: 0, height: sk(2, 5) },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowRadius: sk(8, 14),
+    ...sk({}, { borderWidth: 1, borderColor: "rgba(16,42,92,0.08)" }),
   },
   coverContainer: {
     width: "100%",
     height: 140,
-    backgroundColor: "#e0e0e0",
+    backgroundColor: sk("#e0e0e0", "#E9F0FA"),
   },
   cover: {
     width: "100%",
@@ -309,7 +314,7 @@ const styles = StyleSheet.create({
   },
   shortCodeText: {
     fontSize: 11,
-    color: "#667eea",
+    color: sk("#667eea", "#1466F2"),
     fontWeight: "600",
   },
   bottomAccent: {

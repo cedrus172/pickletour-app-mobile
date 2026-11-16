@@ -312,8 +312,8 @@ function ActBtn({ C, icon, label, onPress, primary, color }: any) {
   const c = color || C.accent;
   return (
     <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[styles.act, primary ? { backgroundColor: c } : { backgroundColor: `${c}1a` }]}>
-      <Ionicons name={icon} size={14} color={primary ? "#06111f" : c} />
-      <Text style={{ color: primary ? "#06111f" : c, fontWeight: "700", fontSize: 12 }}>{label}</Text>
+      <Ionicons name={icon} size={14} color={primary ? sk("#06111f", "#FFFFFF") : c} />
+      <Text style={{ color: primary ? sk("#06111f", "#FFFFFF") : c, fontWeight: "700", fontSize: 12 }}>{label}</Text>
     </TouchableOpacity>
   );
 }

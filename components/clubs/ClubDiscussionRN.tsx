@@ -30,6 +30,7 @@ import {
   useDeletePostCommentMutation,
 } from "@/slices/clubsApiSlice";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { sk } from "@/hooks/uiVersion";
 
 const pickUrl = (res: any) =>
   res?.url || res?.secure_url || res?.data?.url || res?.path || "";
@@ -54,7 +55,7 @@ function GradLightCard({
   return (
     <View style={[styles.card, style]}>
       <LinearGradient
-        colors={["rgba(8,188,215,0.06)", "rgba(7,141,180,0.06)"]}
+        colors={sk<[string, string]>(["rgba(8,188,215,0.06)", "rgba(7,141,180,0.06)"], ["rgba(47,139,255,0.04)", "rgba(20,102,242,0.04)"])}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -319,7 +320,7 @@ function PostItem({
           <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
             <TouchableOpacity style={styles.primaryBtn} onPress={saveEdit}>
               <LinearGradient
-                colors={["#08bcd7", "#078db4"]}
+                colors={sk<[string, string]>(["#08bcd7", "#078db4"], ["#2F8BFF", "#1466F2"])}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
@@ -496,7 +497,7 @@ export default function ClubDiscussionRN({
               disabled={posting || uploadingImg}
             >
               <LinearGradient
-                colors={["#08bcd7", "#078db4"]}
+                colors={sk<[string, string]>(["#08bcd7", "#078db4"], ["#2F8BFF", "#1466F2"])}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
@@ -551,8 +552,8 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     backgroundColor: C.card,
     borderWidth: 1,
     borderColor: C.border,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.06, 0.1),
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 10,
     elevation: 3,
@@ -677,7 +678,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#08bcd7",
+    backgroundColor: sk("#08bcd7", "#1466F2"),
     alignItems: "center",
     justifyContent: "center",
   },

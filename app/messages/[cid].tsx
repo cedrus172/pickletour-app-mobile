@@ -65,6 +65,7 @@ import {
 } from "@/slices/messagesApiSlice";
 import { socket } from "@/lib/socket";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { sk } from "@/hooks/uiVersion";
 
 const authorName = (u?: any) => u?.nickname || u?.name || "Người dùng";
 
@@ -119,7 +120,7 @@ function AudioMessage({ url, durationSec, isMine }: { url: string; durationSec?:
       <Ionicons
         name={playing ? "pause-circle" : "play-circle"}
         size={30}
-        color={isMine ? "#fff" : "#0066FF"}
+        color={isMine ? "#fff" : sk("#0066FF", "#1466F2")}
       />
       <View
         style={{
@@ -233,13 +234,13 @@ function ListingChatCardRN({ listing, isMine }: { listing: any; isMine: boolean 
           )}
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={{ fontSize: 10.5, fontWeight: "700", color: isMine ? "rgba(255,255,255,0.9)" : "#0066FF" }}>
+          <Text style={{ fontSize: 10.5, fontWeight: "700", color: isMine ? "rgba(255,255,255,0.9)" : sk("#0066FF", "#1466F2") }}>
             🛍️ Sản phẩm trên Chợ
           </Text>
           <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "700", color: isMine ? "#fff" : C.text }}>
             {listing.title}
           </Text>
-          <Text style={{ fontSize: 13.5, fontWeight: "900", color: isMine ? "#fff" : "#0066FF" }}>
+          <Text style={{ fontSize: 13.5, fontWeight: "900", color: isMine ? "#fff" : sk("#0066FF", "#1466F2") }}>
             {sold ? "Đã bán" : formatPrice(listing.price, listing.type)}
           </Text>
         </View>
@@ -248,7 +249,7 @@ function ListingChatCardRN({ listing, isMine }: { listing: any; isMine: boolean 
         style={{
           paddingVertical: 6,
           alignItems: "center",
-          backgroundColor: isMine ? "rgba(255,255,255,0.25)" : "#0066FF",
+          backgroundColor: isMine ? "rgba(255,255,255,0.25)" : sk("#0066FF", "#1466F2"),
         }}
       >
         <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>Xem sản phẩm →</Text>
@@ -1083,7 +1084,7 @@ export default function ChatWindow() {
                       style={{
                         fontSize: 11.5,
                         fontWeight: "700",
-                        color: "#0066FF",
+                        color: sk("#0066FF", "#1466F2"),
                         marginBottom: 2,
                       }}
                     >
@@ -1096,7 +1097,7 @@ export default function ChatWindow() {
                         borderLeftWidth: 3,
                         borderLeftColor: isMine
                           ? "rgba(255,255,255,0.7)"
-                          : "#1877F2",
+                          : sk("#1877F2", "#1466F2"),
                         paddingLeft: 6,
                         marginBottom: 4,
                         opacity: 0.9,
@@ -1106,7 +1107,7 @@ export default function ChatWindow() {
                         style={{
                           fontSize: 11,
                           fontWeight: "800",
-                          color: isMine ? "#DBEAFE" : "#1877F2",
+                          color: isMine ? "#DBEAFE" : sk("#1877F2", "#1466F2"),
                         }}
                         numberOfLines={1}
                       >
@@ -1192,7 +1193,7 @@ export default function ChatWindow() {
                         styles.msgText,
                         { color: isMine ? "#fff" : C.text },
                       ]}
-                      mentionColor={isMine ? "#DBEAFE" : "#1877F2"}
+                      mentionColor={isMine ? "#DBEAFE" : sk("#1877F2", "#1466F2")}
                     />
                   )}
                   {item.linkedTournament && (
@@ -1237,7 +1238,7 @@ export default function ChatWindow() {
                           borderRadius: 999,
                           backgroundColor: g.mine ? C.primarySoft : C.border,
                           borderWidth: 1,
-                          borderColor: g.mine ? "#1877F2" : "transparent",
+                          borderColor: g.mine ? sk("#1877F2", "#1466F2") : "transparent",
                         }}
                       >
                         <Text style={{ fontSize: 12 }}>{g.emoji}</Text>
@@ -1281,14 +1282,14 @@ export default function ChatWindow() {
                 paddingHorizontal: 10,
                 paddingVertical: 6,
                 borderLeftWidth: 3,
-                borderLeftColor: "#1877F2",
+                borderLeftColor: sk("#1877F2", "#1466F2"),
                 backgroundColor: C.field,
                 borderRadius: 8,
                 marginBottom: 6,
               }}
             >
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ fontSize: 11, fontWeight: "800", color: "#1877F2" }}>
+                <Text style={{ fontSize: 11, fontWeight: "800", color: sk("#1877F2", "#1466F2") }}>
                   Đang trả lời{" "}
                   {replyTarget.sender?.nickname || replyTarget.sender?.name || ""}
                 </Text>
@@ -1427,7 +1428,7 @@ export default function ChatWindow() {
           ) : (
             <View style={styles.composerRow}>
               <Pressable onPress={pickMedia} style={styles.iconBtn}>
-                <Ionicons name="image-outline" size={22} color="#0066FF" />
+                <Ionicons name="image-outline" size={22} color={sk("#0066FF", "#1466F2")} />
               </Pressable>
               <Pressable
                 onPress={() => setTournamentPickerOpen(true)}
@@ -2035,7 +2036,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     paddingVertical: 8,
   },
   bubbleMine: {
-    backgroundColor: "#0066FF",
+    backgroundColor: sk("#0066FF", "#1466F2"),
     borderBottomRightRadius: 4,
   },
   bubbleTheir: {
@@ -2101,7 +2102,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#0066FF",
+    backgroundColor: sk("#0066FF", "#1466F2"),
     alignItems: "center",
     justifyContent: "center",
   },

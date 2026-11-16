@@ -1,5 +1,5 @@
 import { t } from "@/utils/i18n";
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 // app/(auth)/register.jsx
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import {
@@ -324,12 +324,12 @@ function validateAll(form, avatarUrl, accepted, requireOptional, emailOptional) 
 export default function RegisterScreen() {
   const authWide = useAuthWide();
   const scheme = useColorScheme() ?? "light";
-  const isDark = useUiVersion() === "v2" || scheme === "dark";
-  const tint = isDark ? "#12B6F3" : "#0a84ff";
+  const isDark = (useUiVersion() === "v2" && !IS_V3) || scheme === "dark";
+  const tint = isDark ? "#12B6F3" : sk("#0a84ff", "#1466F2");
   const cardBg = isDark ? "#061d33" : "#ffffff";
-  const textPrimary = isDark ? "#fff" : "#111";
-  const textSecondary = isDark ? "#c9c9c9" : "#444";
-  const border = isDark ? "#2e2f33" : "#dfe3ea";
+  const textPrimary = isDark ? "#fff" : sk("#111", "#0B1B3A");
+  const textSecondary = isDark ? "#c9c9c9" : sk("#444", "#5F6F8A");
+  const border = isDark ? "#2e2f33" : sk("#dfe3ea", "rgba(16,42,92,0.14)");
   const danger = "#e53935";
   // 👇 1. Tạo Ref cho ScrollView
   const scrollRef = useRef(null);
@@ -505,7 +505,7 @@ export default function RegisterScreen() {
       />
       <KeyboardAvoidingView
         behavior={Platform.select({ ios: "padding", android: undefined })}
-        style={{ flex: 1, backgroundColor: "#031429" }}
+        style={{ flex: 1, backgroundColor: sk("#031429", "#F2F6FC") }}
       >
         {/* QUAN TRỌNG: keyboardShouldPersistTaps="handled" để bấm được nút khi phím đang hiện */}
         <ScrollView
@@ -548,7 +548,7 @@ export default function RegisterScreen() {
                     styles.avatarWrap,
                     IOS_26_LIQUID_GLASS_ENABLED && styles.glassControl,
                     {
-                      backgroundColor: isDark ? "#22252a" : "#f3f5f9",
+                      backgroundColor: isDark ? "#22252a" : sk("#f3f5f9", "#EEF3FA"),
                       borderColor: border,
                     },
                   ]}
@@ -574,7 +574,7 @@ export default function RegisterScreen() {
                       <MaterialIcons
                         name="person"
                         size={34}
-                        color={isDark ? "#909399" : "#9aa0a6"}
+                        color={isDark ? "#909399" : sk("#9aa0a6", "#97A3B8")}
                       />
                     </View>
                   )}
@@ -604,7 +604,7 @@ export default function RegisterScreen() {
                       IOS_26_LIQUID_GLASS_ENABLED && styles.glassButton,
                       {
                         borderColor: border,
-                        backgroundColor: isDark ? "#22252a" : "#f3f5f9",
+                        backgroundColor: isDark ? "#22252a" : sk("#f3f5f9", "#EEF3FA"),
                       },
                     ]}
                   >
@@ -1329,7 +1329,7 @@ function SelectTrigger({
             IOS_26_LIQUID_GLASS_ENABLED && styles.glassInput,
             {
               borderColor: error ? danger : border,
-              backgroundColor: isDark ? "#1f2228" : "#ffffff",
+              backgroundColor: isDark ? "#1f2228" : sk("#ffffff", "#F5F8FD"),
             },
           ]}
         >
@@ -1514,7 +1514,7 @@ function Field({
             IOS_26_LIQUID_GLASS_ENABLED && styles.glassInput,
             {
               borderColor: error ? danger : border,
-              backgroundColor: isDark ? "#1f2228" : "#ffffff",
+              backgroundColor: isDark ? "#1f2228" : sk("#ffffff", "#F5F8FD"),
             },
           ]}
         >
@@ -1865,9 +1865,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 16,
     padding: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.06, 0.12),
+    shadowRadius: sk(10, 16),
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 import {
   View,
   Pressable,
@@ -117,13 +117,13 @@ export default function LoginScreen() {
   }>();
   const insets = useSafeAreaInsets();
   const scheme = useColorScheme() ?? "light";
-  const v2 = useUiVersion() === "v2";
-  const isDark = v2 || scheme === "dark";
-  const tint = v2 ? "#12B6F3" : isDark ? "#7cc0ff" : "#0a84ff";
-  const textPrimary = v2 ? "#EAF3FF" : isDark ? "#fff" : "#111";
-  const textSecondary = v2 ? "#8CA6C8" : isDark ? "#c9c9c9" : "#444";
-  const border = v2 ? "rgba(92,180,255,0.16)" : isDark ? "#2e2f33" : "#dfe3ea";
-  const logoBg = v2 ? "#0E2244" : isDark ? "#202329" : "#f3f5f9";
+  const v2 = useUiVersion() === "v2" || IS_V3;
+  const isDark = (v2 && !IS_V3) || scheme === "dark";
+  const tint = v2 ? sk("#12B6F3", "#1466F2") : isDark ? "#7cc0ff" : "#0a84ff";
+  const textPrimary = v2 ? sk("#EAF3FF", "#0B1B3A") : isDark ? "#fff" : "#111";
+  const textSecondary = v2 ? sk("#8CA6C8", "#5F6F8A") : isDark ? "#c9c9c9" : "#444";
+  const border = v2 ? sk("rgba(92,180,255,0.16)", "rgba(16,42,92,0.14)") : isDark ? "#2e2f33" : "#dfe3ea";
+  const logoBg = v2 ? sk("#0E2244", "#EEF3FA") : isDark ? "#202329" : "#f3f5f9";
 
   const dispatch = useDispatch();
   const userInfo = useSelector((s) => s.auth?.userInfo);
@@ -224,7 +224,7 @@ export default function LoginScreen() {
   ) : (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={{ flex: 1, backgroundColor: "#031429" }}>
+      <View style={{ flex: 1, backgroundColor: sk("#031429", "#F2F6FC") }}>
         <LoginCourtBackground />
         {false && SHOULD_RENDER_NATIVE_LOTTIE ? (
           <LottieView
@@ -274,11 +274,11 @@ export default function LoginScreen() {
                 style={[
                   styles.card,
                   IOS_26_LIQUID_GLASS_ENABLED && styles.glassPanel,
-                  { backgroundColor: "#08223c", borderColor: "#215477", borderWidth: 1, shadowColor: "#000", shadowOpacity: 0.4, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 8, overflow: "hidden", width: authWide ? "54%" : "100%", maxWidth: authWide ? 520 : 460, alignSelf: "center" },
+                  { backgroundColor: sk("#08223c", "#FFFFFF"), borderColor: sk("#215477", "rgba(16,42,92,0.08)"), borderWidth: 1, shadowColor: sk("#000", "#1B3A7A"), shadowOpacity: sk(0.4, 0.14), shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: sk(8, 4), overflow: "hidden", width: authWide ? "54%" : "100%", maxWidth: authWide ? 520 : 460, alignSelf: "center" },
                 ]}
               >
-                <LinearGradient pointerEvents="none" colors={["#103c5b", "#071d35", "#06172d"]} style={StyleSheet.absoluteFillObject} />
-                <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 24, right: 24, height: 2, backgroundColor: "#24c8ee", opacity: 0.8 }} />
+                <LinearGradient pointerEvents="none" colors={sk(["#103c5b", "#071d35", "#06172d"], ["#FFFFFF", "#FFFFFF", "#F7FAFF"])} style={StyleSheet.absoluteFillObject} />
+                <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 24, right: 24, height: 2, backgroundColor: sk("#24c8ee", "#1466F2"), opacity: 0.8 }} />
                 {false && <AuthGlassSurface
                   isDark={isDark}
                   tintColor={
@@ -327,7 +327,7 @@ export default function LoginScreen() {
                     style={[
                       styles.inputShell,
                       IOS_26_LIQUID_GLASS_ENABLED && styles.glassInput,
-                      { borderColor: focusedField === "login" ? "#16c5ed" : "#285475", backgroundColor: "#061a30" },
+                      { borderColor: focusedField === "login" ? sk("#16c5ed", "#1466F2") : sk("#285475", "rgba(16,42,92,0.16)"), backgroundColor: sk("#061a30", "#F5F8FD") },
                     ]}
                   >
                     <TextInput
@@ -336,7 +336,7 @@ export default function LoginScreen() {
                       onFocus={() => setFocusedField("login")}
                       onBlur={() => setFocusedField(null)}
                       placeholder="Email / Số điện thoại"
-                      placeholderTextColor="#9aa0a6"
+                      placeholderTextColor={sk("#9aa0a6", "#97A3B8")}
                       style={[styles.inputInside, { color: textPrimary }]}
                       autoCapitalize="none"
                       autoCorrect={false}
@@ -368,7 +368,7 @@ export default function LoginScreen() {
                     style={[
                       styles.inputShell,
                       IOS_26_LIQUID_GLASS_ENABLED && styles.glassInput,
-                      { borderColor: focusedField === "password" ? "#16c5ed" : "#285475", backgroundColor: "#061a30" },
+                      { borderColor: focusedField === "password" ? sk("#16c5ed", "#1466F2") : sk("#285475", "rgba(16,42,92,0.16)"), backgroundColor: sk("#061a30", "#F5F8FD") },
                     ]}
                   >
                     <TextInput
@@ -378,7 +378,7 @@ export default function LoginScreen() {
                       onFocus={() => setFocusedField("password")}
                       onBlur={() => setFocusedField(null)}
                       placeholder="••••••••"
-                      placeholderTextColor="#9aa0a6"
+                      placeholderTextColor={sk("#9aa0a6", "#97A3B8")}
                       style={[styles.inputInside, { color: textPrimary, paddingRight: 48 }]}
                       secureTextEntry={!showPassword}
                       textContentType="password"
@@ -403,7 +403,7 @@ export default function LoginScreen() {
                       style={[
                         styles.btnSolid,
                         IOS_26_LIQUID_GLASS_ENABLED && styles.glassPrimaryBtn,
-                        { backgroundColor: tint, borderBottomWidth: 4, borderBottomColor: "#087da6", shadowColor: "#00c8ff", shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
+                        { backgroundColor: tint, borderBottomWidth: 4, borderBottomColor: sk("#087da6", "#0B3FB8"), shadowColor: sk("#00c8ff", "#1466F2"), shadowOpacity: sk(0.35, 0.28), shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
                       ]}
                     >
                       {isLoading ? (
@@ -436,7 +436,7 @@ export default function LoginScreen() {
                 {
                   borderColor: border,
                   opacity: pressed ? 0.92 : 1,
-                  backgroundColor: "#0a2944",
+                  backgroundColor: sk("#0a2944", "#F5F8FD"),
                   borderBottomWidth: pressed ? 1 : 3,
                   transform: [{ translateY: pressed ? 2 : 0 }],
                 },
@@ -455,7 +455,7 @@ export default function LoginScreen() {
                   borderColor: tint,
                   opacity: pressed ? 0.92 : 1,
                   marginTop: 0,
-                  backgroundColor: "#083249",
+                  backgroundColor: sk("#083249", "rgba(20,102,242,0.08)"),
                   borderBottomWidth: pressed ? 1 : 3,
                   transform: [{ translateY: pressed ? 2 : 0 }],
                 },

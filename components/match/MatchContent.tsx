@@ -1,5 +1,5 @@
 // app/screens/PickleBall/match/MatchContent.native.jsx
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 import React, {
   useEffect,
   useMemo,
@@ -75,22 +75,22 @@ import { formatKnockoutRoundLabelByMatchCount } from "@/utils/tournamentRoundLab
  * ===================================== */
 function useThemeTokens() {
   const scheme = useColorScheme() ?? "light";
-  const v2 = useUiVersion() === "v2";
+  const v2 = useUiVersion() === "v2" || IS_V3;
 
   return useMemo(() => {
-    const isDark = v2 || scheme === "dark";
+    const isDark = (v2 && !IS_V3) || scheme === "dark";
     // Modern colors palette
-    const tint = v2 ? "#12B6F3" : isDark ? "#60a5fa" : "#2563eb"; // Blue 500/600 modernized
-    const textPrimary = v2 ? "#EAF3FF" : isDark ? "#f8fafc" : "#1e293b"; // Slate 50/800
-    const textSecondary = v2 ? "#8CA6C8" : isDark ? "#94a3b8" : "#64748b"; // Slate 400/500
+    const tint = v2 ? sk("#12B6F3", "#1466F2") : isDark ? "#60a5fa" : "#2563eb"; // Blue 500/600 modernized
+    const textPrimary = v2 ? sk("#EAF3FF", "#0B1B3A") : isDark ? "#f8fafc" : "#1e293b"; // Slate 50/800
+    const textSecondary = v2 ? sk("#8CA6C8", "#5F6F8A") : isDark ? "#94a3b8" : "#64748b"; // Slate 400/500
 
-    const pageBg = v2 ? "#040E20" : isDark ? "#0f172a" : "#f8fafc"; // Slate 900 / 50
-    const cardBg = v2 ? "#0A1B34" : isDark ? "#1e293b" : "#ffffff";
-    const cardBorder = v2 ? "rgba(92,180,255,0.16)" : isDark ? "#334155" : "#e2e8f0"; // Subtle border
+    const pageBg = v2 ? sk("#040E20", "#F2F6FC") : isDark ? "#0f172a" : "#f8fafc"; // Slate 900 / 50
+    const cardBg = v2 ? sk("#0A1B34", "#FFFFFF") : isDark ? "#1e293b" : "#ffffff";
+    const cardBorder = v2 ? sk("rgba(92,180,255,0.16)", "rgba(16,42,92,0.10)") : isDark ? "#334155" : "#e2e8f0"; // Subtle border
 
-    const softBg = v2 ? "#0E2244" : isDark ? "#334155" : "#f1f5f9";
-    const softBg2 = isDark ? "#0f172a" : "#f8fafc";
-    const softBorder = isDark ? "#475569" : "#cbd5e1";
+    const softBg = v2 ? sk("#0E2244", "#EEF3FA") : isDark ? "#334155" : "#f1f5f9";
+    const softBg2 = IS_V3 ? "#F5F8FD" : isDark ? "#0f172a" : "#f8fafc";
+    const softBorder = IS_V3 ? "rgba(16,42,92,0.16)" : isDark ? "#475569" : "#cbd5e1";
 
     const banner = {
       live: {
@@ -139,10 +139,10 @@ function useThemeTokens() {
       danger,
       // Shadow style chung
       shadow: {
-        shadowColor: "#000",
+        shadowColor: sk("#000", "#1B3A7A"),
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: isDark ? 0.3 : 0.05,
-        shadowRadius: 12,
+        shadowOpacity: IS_V3 ? 0.1 : isDark ? 0.3 : 0.05,
+        shadowRadius: sk(12, 14),
         elevation: 3,
       },
     };

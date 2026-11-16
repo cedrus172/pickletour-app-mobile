@@ -12,6 +12,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import LottieView from "lottie-react-native";
 import { SHOULD_RENDER_NATIVE_LOTTIE } from "@/utils/runtimeSafety";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
+import { sk } from "@/hooks/uiVersion";
 export const Section = ({ title, subtitle, children }: any) => (
   <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
     <Text style={styles.sectionTitle}>{title}</Text>
@@ -25,11 +26,11 @@ export const GlassCard = ({ children, style }: any) => (
   <View style={[styles.glass, style]}>
     <AppleLiquidGlassView
       intensity={Platform.OS === "ios" ? 30 : 20}
-      tint="dark"
+      tint={sk("dark", "light")}
       style={StyleSheet.absoluteFill}
     />
     <LinearGradient
-      colors={["#0b1220AA", "#0b122055"]}
+      colors={sk<[string, string]>(["#0b1220AA", "#0b122055"], ["#FFFFFFF2", "#FFFFFFE0"])}
       style={StyleSheet.absoluteFill}
     />
     <View style={{ padding: 12 }}>{children}</View>
@@ -44,7 +45,7 @@ export const PrimaryBtn = ({ title, onPress, small, style, disabled }: any) => (
     style={[styles.pBtn, small && styles.pBtnSmall, style]}
   >
     <LinearGradient
-      colors={["#4ECDC4", "#45B7D1"]}
+      colors={sk<[string, string]>(["#4ECDC4", "#45B7D1"], ["#2F8BFF", "#1466F2"])}
       style={StyleSheet.absoluteFill}
     />
     <Text style={styles.pBtnText}>{title}</Text>
@@ -107,10 +108,10 @@ export const EmptyState = ({
       <MaterialCommunityIcons
         name={icon as any}
         size={Math.min(size, 96)}
-        color="#7f92b3"
+        color={sk("#7f92b3", "#97A3B8")}
       />
     ) : null}
-    <Text style={{ color: "#7f92b3", marginTop: 6 }}>{label}</Text>
+    <Text style={{ color: sk("#7f92b3", "#5F6F8A"), marginTop: 6 }}>{label}</Text>
   </View>
 );
 
@@ -126,13 +127,13 @@ export const ProgressBar = ({ progress }: { progress: number }) => (
 );
 
 const styles = StyleSheet.create({
-  sectionTitle: { color: "#93a9c9", fontWeight: "800", fontSize: 18 },
-  sectionSub: { color: "#93a9c9", marginTop: 2 },
+  sectionTitle: { color: sk("#93a9c9", "#0B1B3A"), fontWeight: "800", fontSize: 18 },
+  sectionSub: { color: sk("#93a9c9", "#5F6F8A"), marginTop: 2 },
   glass: {
     borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#253046",
+    borderColor: sk("#253046", "rgba(16,42,92,0.10)"),
   },
   pBtn: {
     minWidth: 140,
@@ -143,47 +144,47 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   pBtnSmall: { minWidth: 96, height: 34 },
-  pBtnText: { color: "#06101a", fontWeight: "800" },
+  pBtnText: { color: sk("#06101a", "#FFFFFF"), fontWeight: "800" },
   sBtn: {
     minWidth: 120,
     height: 42,
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#122036",
+    backgroundColor: sk("#122036", "#EEF3FA"),
     borderWidth: 1,
-    borderColor: "#263551",
+    borderColor: sk("#263551", "rgba(16,42,92,0.10)"),
     paddingHorizontal: 16,
   },
   sBtnSmall: { minWidth: 96, height: 34 },
-  sBtnText: { color: "#cce9ff", fontWeight: "700" },
+  sBtnText: { color: sk("#cce9ff", "#243450"), fontWeight: "700" },
   dBtn: {
     minWidth: 120,
     height: 42,
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#2a0f15",
+    backgroundColor: sk("#2a0f15", "rgba(220,38,38,0.08)"),
     borderWidth: 1,
-    borderColor: "#652d34",
+    borderColor: sk("#652d34", "rgba(220,38,38,0.30)"),
     paddingHorizontal: 16,
   },
   dBtnSmall: { minWidth: 96, height: 34 },
-  dBtnText: { color: "#ffb4bd", fontWeight: "700" },
+  dBtnText: { color: sk("#ffb4bd", "#DC2626"), fontWeight: "700" },
   badge: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: "#0b1220AA",
+    backgroundColor: sk("#0b1220AA", "rgba(20,102,242,0.08)"),
     borderWidth: 1,
-    borderColor: "#2a3447",
+    borderColor: sk("#2a3447", "rgba(20,102,242,0.16)"),
   },
-  badgeText: { color: "#bfe6ff", fontSize: 12 },
+  badgeText: { color: sk("#bfe6ff", "#1466F2"), fontSize: 12 },
   progressWrap: {
     height: 6,
     borderRadius: 999,
-    backgroundColor: "#1a2334",
+    backgroundColor: sk("#1a2334", "#E9F0FA"),
     overflow: "hidden",
   },
-  progressFill: { height: 6, backgroundColor: "#45B7D1" },
+  progressFill: { height: 6, backgroundColor: sk("#45B7D1", "#1466F2") },
 });

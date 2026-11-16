@@ -25,6 +25,7 @@ import {
   useDeletePhotoMutation,
 } from "@/slices/clubsApiSlice";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { sk } from "@/hooks/uiVersion";
 
 const getApiErrMsg = (e: any) =>
   e?.data?.message ||
@@ -120,7 +121,7 @@ export default function ClubGalleryRN({
           disabled={uploading}
         >
           <LinearGradient
-            colors={["#667eea", "#764ba2"]}
+            colors={sk<[string, string]>(["#667eea", "#764ba2"], ["#2F8BFF", "#1466F2"])}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}

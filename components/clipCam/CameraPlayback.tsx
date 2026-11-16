@@ -5,6 +5,7 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { setAudioModeAsync } from "expo-audio";
 import { Text } from "@/components/ui/i18nText";
 import type { ThemeTokens } from "@/hooks/useThemeTokens";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 import { cameraCanSeekLocally, cameraFrameTime } from "@/utils/clipPlayback";
 
 export type CameraPlaybackHandle = { currentTimeMs: () => number; seekToTime: (timeMs: number) => boolean; toggle: () => void };
@@ -41,10 +42,10 @@ const CameraPlayback = forwardRef<CameraPlaybackHandle, Props>(function CameraPl
   const date = new Date(time), pad = (n: number) => String(n).padStart(2, "0");
   return (
     <View testID="camera-playback-video" style={styles.frame}>
-      <VideoView ref={video} player={player} style={StyleSheet.absoluteFill} nativeControls={fullscreen || !C.isV2} contentFit="contain" onFullscreenEnter={() => setFullscreen(true)} onFullscreenExit={() => setFullscreen(false)} />
-      <View pointerEvents="none" style={[styles.pill, { left: 10, top: 10 }]}><View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.primary }} /><Text style={{ color: C.primary, fontSize: 12, fontWeight: "700" }}>{mode === "playback" ? "Đang xem lại" : "Trực tiếp"}</Text></View>
+      <VideoView ref={video} player={player} style={StyleSheet.absoluteFill} nativeControls={fullscreen || !(C.isV2 || IS_V3)} contentFit="contain" onFullscreenEnter={() => setFullscreen(true)} onFullscreenExit={() => setFullscreen(false)} />
+      <View pointerEvents="none" style={[styles.pill, { left: 10, top: 10 }]}><View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: sk(C.primary, "#6FB1FF") }} /><Text style={{ color: sk(C.primary, "#6FB1FF"), fontSize: 12, fontWeight: "700" }}>{mode === "playback" ? "Đang xem lại" : "Trực tiếp"}</Text></View>
       <View pointerEvents="none" style={[styles.pill, { left: 10, bottom: 10 }]}><Text style={{ color: "#F0F6FF", fontSize: 12, fontWeight: "600" }}>{`${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())} · ${pad(date.getDate())}/${pad(date.getMonth() + 1)}`}</Text></View>
-      {C.isV2 && <Pressable accessibilityRole="button" accessibilityLabel="Xem toàn màn hình" onPress={() => { void video.current?.enterFullscreen().catch(() => {}); }} style={[styles.pill, { right: 8, bottom: 8, width: 44, height: 44, justifyContent: "center" }]}><Ionicons name="scan-outline" size={23} color="#F0F6FF" /></Pressable>}
+      {(C.isV2 || IS_V3) && <Pressable accessibilityRole="button" accessibilityLabel="Xem toàn màn hình" onPress={() => { void video.current?.enterFullscreen().catch(() => {}); }} style={[styles.pill, { right: 8, bottom: 8, width: 44, height: 44, justifyContent: "center" }]}><Ionicons name="scan-outline" size={23} color="#F0F6FF" /></Pressable>}
     </View>
   );
 });

@@ -1,5 +1,5 @@
 // app/(auth)/reset-password-otp.jsx
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 import React, {
   useCallback,
   useEffect,
@@ -174,19 +174,19 @@ export default function ResetPasswordOtpScreen() {
   };
 
   const colorScheme = useColorScheme();
-  const v2 = useUiVersion() === "v2";
-  const isDark = v2 || colorScheme === "dark";
+  const v2 = useUiVersion() === "v2" || IS_V3;
+  const isDark = (v2 && !IS_V3) || colorScheme === "dark";
   const themed = useMemo(
     () => ({
-      bg: v2 ? "#040E20" : isDark ? "#0b0b0c" : "#f5f7fb",
-      cardBg: v2 ? "#0A1B34" : isDark ? "#16181d" : "#ffffff",
-      text: v2 ? "#EAF3FF" : isDark ? "#e6e6e9" : "#0f172a",
-      subtext: v2 ? "#8CA6C8" : isDark ? "#a1a1aa" : "#475569",
-      border: v2 ? "rgba(92,180,255,0.16)" : isDark ? "#2a2d33" : "#e5e7eb",
-      primary: v2 ? "#12B6F3" : "#2563eb",
+      bg: v2 ? sk("#040E20", "#F2F6FC") : isDark ? "#0b0b0c" : "#f5f7fb",
+      cardBg: v2 ? sk("#0A1B34", "#FFFFFF") : isDark ? "#16181d" : "#ffffff",
+      text: v2 ? sk("#EAF3FF", "#0B1B3A") : isDark ? "#e6e6e9" : "#0f172a",
+      subtext: v2 ? sk("#8CA6C8", "#5F6F8A") : isDark ? "#a1a1aa" : "#475569",
+      border: v2 ? sk("rgba(92,180,255,0.16)", "rgba(16,42,92,0.14)") : isDark ? "#2a2d33" : "#e5e7eb",
+      primary: v2 ? sk("#12B6F3", "#1466F2") : "#2563eb",
       danger: "#dc2626",
-      primaryText: v2 ? "#04121f" : "#ffffff",
-      muted: v2 ? "#0E2244" : isDark ? "#2b2f36" : "#f1f5f9",
+      primaryText: v2 ? sk("#04121f", "#FFFFFF") : "#ffffff",
+      muted: v2 ? sk("#0E2244", "#EEF3FA") : isDark ? "#2b2f36" : "#f1f5f9",
     }),
     [isDark, v2]
   );
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     borderWidth: StyleSheet.hairlineWidth,
-    shadowColor: "#000",
+    shadowColor: sk("#000", "#1B3A7A"),
     shadowOpacity: 0.1,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },

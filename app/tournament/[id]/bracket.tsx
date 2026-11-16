@@ -76,6 +76,7 @@ import { ModernBracketToggle } from "@/components/bracket/ModernBracketShared";
 import CourtStatusBar from "@/components/bracket/CourtStatusBar";
 import KnockoutPodium, { type PodiumTeam } from "@/components/bracket/KnockoutPodium";
 import { getKnockoutPodium } from "@/utils/knockoutPodium";
+import { sk } from "@/hooks/uiVersion";
 
 const BRACKET_UI_VERSION_KEY = "pickletour:tournament-bracket:uiVersion";
 
@@ -97,23 +98,23 @@ function useTokens() {
     dark,
     colors: { primary, text, card, border, background },
 
-    muted: dark ? "#9aa0a6" : "#6b7280",
-    subtext: dark ? "#c9c9c9" : "#555",
-    skeletonBase: dark ? "#22262c" : "#e9eef5",
-    headerBg: dark ? "#101418" : "#eef3f7",
-    divider: dark ? "#2a2e33" : "#e5e7eb",
+    muted: dark ? "#9aa0a6" : sk("#6b7280", "#5F6F8A"),
+    subtext: dark ? "#c9c9c9" : sk("#555", "#243450"),
+    skeletonBase: dark ? "#22262c" : sk("#e9eef5", "#E3EAF5"),
+    headerBg: dark ? "#101418" : sk("#eef3f7", "#EEF3FA"),
+    divider: dark ? "#2a2e33" : sk("#e5e7eb", "rgba(16,42,92,0.10)"),
 
-    chipInfoBg: dark ? "#1f2937" : "#eef2f7",
-    chipInfoFg: dark ? "#e5e7eb" : "#263238",
-    chipInfoBd: dark ? "#334155" : "#e2e8f0",
+    chipInfoBg: dark ? "#1f2937" : sk("#eef2f7", "#EEF3FA"),
+    chipInfoFg: dark ? "#e5e7eb" : sk("#263238", "#243450"),
+    chipInfoBd: dark ? "#334155" : sk("#e2e8f0", "rgba(16,42,92,0.10)"),
 
     chipErrBg: dark ? "#3b0d0d" : "#fee2e2",
     chipErrFg: dark ? "#fecaca" : "#991b1b",
     chipErrBd: dark ? "#7f1d1d" : "#fecaca",
 
-    chipInfo2Bg: dark ? "#0f2536" : "#e0f2fe",
-    chipInfo2Fg: dark ? "#93c5fd" : "#075985",
-    chipInfo2Bd: dark ? "#1e3a5f" : "#bae6fd",
+    chipInfo2Bg: dark ? "#0f2536" : sk("#e0f2fe", "#E6EFFE"),
+    chipInfo2Fg: dark ? "#93c5fd" : sk("#075985", "#1466F2"),
+    chipInfo2Bd: dark ? "#1e3a5f" : sk("#bae6fd", "rgba(20,102,242,0.28)"),
 
     success: dark ? "#22c55e" : "#16a34a",
   };
@@ -1949,7 +1950,7 @@ const TabsBar = ({ items, value, onChange, t }) => (
                   color: active
                     ? t.dark
                       ? t.chipInfo2Fg
-                      : "#0d47a1"
+                      : sk("#0d47a1", "#1466F2")
                     : t.colors.text,
                 },
                 active && styles.tabTextActive,

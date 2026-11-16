@@ -24,6 +24,7 @@ import { Text } from "@/components/ui/i18nText";
 import { TextInput } from "@/components/ui/i18nTextInput";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import AppModal, { useModalTopInset } from "@/components/ui/AppModal";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 import {
   useCreateRegistrationAiPosterMutation,
   useGetRegistrationAiPosterQuery,
@@ -93,15 +94,17 @@ function Body({
   legacyPosterEnabled,
   onTemplateChanged,
 }: Omit<Props, "open">) {
-  const dark = useColorScheme() === "dark";
+  const scheme = useColorScheme();
+  // V3 Fresh luôn nền sáng (app/_layout cũng ép sáng) → không theo chế độ tối của máy.
+  const dark = !IS_V3 && scheme === "dark";
   const C = {
-    bg: dark ? "#071226" : "#f8fafc",
+    bg: dark ? "#071226" : sk("#f8fafc", "#F2F6FC"),
     card: dark ? "#0D1B36" : "#ffffff",
-    border: dark ? "#1E3560" : "#e2e8f0",
-    text: dark ? "#EAF3FF" : "#0f172a",
-    sub: dark ? "#8CA6C8" : "#64748b",
+    border: dark ? "#1E3560" : sk("#e2e8f0", "rgba(16,42,92,0.12)"),
+    text: dark ? "#EAF3FF" : sk("#0f172a", "#0B1B3A"),
+    sub: dark ? "#8CA6C8" : sk("#64748b", "#5F6F8A"),
     tint: "#F59E0B",
-    primary: "#0EA5E9",
+    primary: sk("#0EA5E9", "#1466F2"),
   };
   const top = useModalTopInset(12);
   const regId = String(registration?._id || registration?.id || "");
@@ -471,7 +474,7 @@ function Body({
                   <Text style={{ color: C.text, fontWeight: "700", flex: 1 }}>{progress.label}</Text>
                   <Text style={{ color: C.tint, fontWeight: "800" }}>{Math.round(progress.value)}%</Text>
                 </View>
-                <View style={[s.progressTrack, { backgroundColor: dark ? "#1E3560" : "#e2e8f0" }]}>
+                <View style={[s.progressTrack, { backgroundColor: dark ? "#1E3560" : sk("#e2e8f0", "#E3EAF5") }]}>
                   <View style={[s.progressFill, { width: `${progress.value}%`, backgroundColor: C.tint }]} />
                 </View>
                 <Text style={{ color: C.sub, fontSize: 11 }}>

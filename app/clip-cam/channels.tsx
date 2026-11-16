@@ -6,6 +6,7 @@ import { Stack, router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/i18nText";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
+import { IS_V3 } from "@/hooks/uiVersion";
 import { cameraAccessActive, cameraScopeFor, useClipCameraAccess, useClipCameraPreviews } from "@/hooks/useClipCameraPreviews";
 import CameraPreviewGrid, { cameraPreviewColors } from "@/components/clipCam/CameraPreviewGrid";
 import type { Channel } from "@/utils/pickclip";
@@ -33,7 +34,7 @@ export default function ClipCamChannelsScreen() {
         title: venue?.venueName || String(venueName || "Cắt Cam Sân"), headerShown: true,
         headerStyle: { backgroundColor: P.card }, headerTintColor: P.text, headerTitleAlign: "center",
         headerTitleStyle: { fontSize: 17, fontWeight: "700" }, headerShadowVisible: false,
-        ...(C.isV2 ? { headerBackVisible: false, headerLeft: () => <Pressable accessibilityRole="button" accessibilityLabel="Quay lại" onPress={() => router.back()} style={headerButton}><Ionicons name="chevron-back" size={24} color={P.text} /></Pressable> } : {}),
+        ...((C.isV2 || IS_V3) ? { headerBackVisible: false, headerLeft: () => <Pressable accessibilityRole="button" accessibilityLabel="Quay lại" onPress={() => router.back()} style={headerButton}><Ionicons name="chevron-back" size={24} color={P.text} /></Pressable> } : {}),
         headerRight: () => <Pressable accessibilityRole="button" accessibilityLabel="Làm mới camera" onPress={refresh} disabled={state.refreshing || access.isFetching || !access.userId} style={headerButton}>{state.refreshing ? <ActivityIndicator size="small" color={P.primary} /> : <Ionicons name="refresh-outline" size={23} color={P.text} />}</Pressable>,
       }} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 28, width: "100%", maxWidth: 1180, alignSelf: "center" }} refreshControl={<RefreshControl refreshing={state.refreshing} onRefresh={refresh} tintColor={P.primary} />}>

@@ -23,8 +23,9 @@ import Svg, {
 import { Text } from "@/components/ui/i18nText";
 import { TextInput } from "@/components/ui/i18nTextInput";
 import { normalizeUrl } from "@/utils/normalizeUri";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 
-export const RANKING_COLORS = {
+const RANKING_COLORS_V2 = {
   background: "#020B1C",
   backgroundAlt: "#06152B",
   surface: "rgba(8, 29, 55, 0.88)",
@@ -38,6 +39,26 @@ export const RANKING_COLORS = {
   textMuted: "#8FA8C7",
   border: "rgba(120,180,230,0.25)",
 } as const;
+
+// V3 Fresh: cùng bộ khoá màu nhưng trên nền sáng.
+const RANKING_COLORS_V3: { [K in keyof typeof RANKING_COLORS_V2]: string } = {
+  background: "#F7FAFF",
+  backgroundAlt: "#EEF4FC",
+  surface: "#FFFFFF",
+  surfaceStrong: "#FFFFFF",
+  primary: "#1466F2",
+  secondary: "#2F8BFF",
+  success: "#16A34A",
+  score: "#E08A00",
+  text: "#0B1B3A",
+  textSoft: "#243450",
+  textMuted: "#5F6F8A",
+  border: "rgba(16,42,92,0.10)",
+};
+
+export const RANKING_COLORS: { [K in keyof typeof RANKING_COLORS_V2]: string } = IS_V3
+  ? RANKING_COLORS_V3
+  : RANKING_COLORS_V2;
 
 export const RankingPage = memo(function RankingPage({
   children,
@@ -78,9 +99,9 @@ const GradientTitle = memo(function GradientTitle({ availableWidth }: { availabl
       >
         <Defs>
           <SvgLinearGradient id="rankingTitleGradient" x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0" stopColor="#4DE1FF" />
-            <Stop offset="0.52" stopColor="#00BFFF" />
-            <Stop offset="1" stopColor="#1677FF" />
+            <Stop offset="0" stopColor={sk("#4DE1FF", "#2F8BFF")} />
+            <Stop offset="0.52" stopColor={sk("#00BFFF", "#1466F2")} />
+            <Stop offset="1" stopColor={sk("#1677FF", "#0B3FB8")} />
           </SvgLinearGradient>
         </Defs>
         <SvgText
@@ -114,7 +135,7 @@ export const RankingHeader = memo(function RankingHeader({
         <MaterialCommunityIcons
           name="table-tennis"
           size={112}
-          color="rgba(82, 203, 255, 0.12)"
+          color={sk("rgba(82, 203, 255, 0.12)", "rgba(20,102,242,0.10)")}
           style={styles.paddleIcon}
         />
         <View style={styles.ball}>
@@ -134,7 +155,7 @@ export const RankingHeader = memo(function RankingHeader({
               onPress={onBack}
               style={styles.backButton}
             >
-              <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+              <Ionicons name="chevron-back" size={22} color={sk("#FFFFFF", "#0B1B3A")} />
             </Pressable>
           ) : null}
           <View style={styles.headerCopy} onLayout={({ nativeEvent }) => setTitleWidth(nativeEvent.layout.width)}>
@@ -161,12 +182,12 @@ export const RankingSearch = memo(function RankingSearch({
 }) {
   return (
     <View style={styles.search}>
-      <Ionicons name="search" size={23} color="#91B7DA" />
+      <Ionicons name="search" size={23} color={sk("#91B7DA", "#5F6F8A")} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder="Tìm kiếm tên, số điện thoại..."
-        placeholderTextColor="#7895B5"
+        placeholderTextColor={sk("#7895B5", "#97A3B8")}
         returnKeyType="search"
         style={styles.searchInput}
       />
@@ -177,7 +198,7 @@ export const RankingSearch = memo(function RankingSearch({
           hitSlop={10}
           onPress={onClear}
         >
-          <Ionicons name="close-circle" size={19} color="#8FA8C7" />
+          <Ionicons name="close-circle" size={19} color={sk("#8FA8C7", "#97A3B8")} />
         </TouchableOpacity>
       ) : null}
     </View>
@@ -216,7 +237,7 @@ export const RankingFilters = memo(function RankingFilters({
               {active ? (
                 <LinearGradient
                   pointerEvents="none"
-                  colors={["#00C8FF", "#1677FF"]}
+                  colors={sk(["#00C8FF", "#1677FF"], ["#2F8BFF", "#1466F2"])}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={StyleSheet.absoluteFill}
@@ -241,7 +262,7 @@ export const RankingFilters = memo(function RankingFilters({
         onPress={onToggleFilters}
         style={[styles.filterButton, expanded && styles.filterButtonActive]}
       >
-        <Ionicons name="options-outline" size={18} color="#D7E5F5" />
+        <Ionicons name="options-outline" size={18} color={sk("#D7E5F5", "#243450")} />
         <Text style={styles.filterButtonText}>Bộ lọc</Text>
       </TouchableOpacity>
     </View>
@@ -309,7 +330,7 @@ export const RankBadge = memo(function RankBadge({
         ? ["#F4FAFF", "#AFC7DC", "#60778E"]
         : medal === "bronze"
           ? ["#FFD0A7", "#C77B45", "#704022"]
-          : ["#3E6B91", "#214662", "#132E46"];
+          : sk(["#3E6B91", "#214662", "#132E46"], ["#EDF3FB", "#E1EAF6", "#D5E1F1"]);
   const topThree = Boolean(medal);
 
   return (
@@ -318,7 +339,7 @@ export const RankBadge = memo(function RankBadge({
         <MaterialCommunityIcons
           name="crown"
           size={18}
-          color={palette[0]}
+          color={sk(palette[0], palette[1])}
           style={styles.rankCrown}
         />
       ) : null}
@@ -353,7 +374,7 @@ export const PlayerAvatar = memo(function PlayerAvatar({
         ? "#AFCDE8"
         : medal === "bronze"
           ? "#D88A55"
-          : "#1CAFE8";
+          : sk("#1CAFE8", "#1466F2");
   return (
     <TouchableOpacity activeOpacity={0.86} onPress={onPress}>
       <View style={[styles.avatarRing, { borderColor: ring }]}>
@@ -400,7 +421,7 @@ export const PlayerScore = memo(function PlayerScore({
           <Text
             style={[
               styles.playerScoreDelta,
-              { color: Number(delta) > 0 ? RANKING_COLORS.success : "#FF5C68" },
+              { color: Number(delta) > 0 ? RANKING_COLORS.success : sk("#FF5C68", "#DC2626") },
             ]}
           >
             {Number(delta) > 0 ? "▲" : "▼"} {Number(delta) > 0 ? "+" : ""}
@@ -475,25 +496,25 @@ export const PremiumRankingCard = memo(function PremiumRankingCard({
     medal === "gold"
       ? {
           border: "#F6C94D",
-          colors: ["rgba(92,67,15,0.78)", "rgba(8,30,52,0.97)", "rgba(8,24,43,0.99)"],
+          colors: sk(["rgba(92,67,15,0.78)", "rgba(8,30,52,0.97)", "rgba(8,24,43,0.99)"], ["#FFF3CC", "#FFFDF5", "#FFFFFF"]),
           shadow: "#FFCC40",
         }
       : medal === "silver"
         ? {
-            border: "#83A9CB",
-            colors: ["rgba(43,76,104,0.72)", "rgba(8,30,52,0.97)", "rgba(8,24,43,0.99)"],
+            border: sk("#83A9CB", "#B5CADF"),
+            colors: sk(["rgba(43,76,104,0.72)", "rgba(8,30,52,0.97)", "rgba(8,24,43,0.99)"], ["#E6EFF8", "#FAFCFF", "#FFFFFF"]),
             shadow: "#8FC7EF",
           }
         : medal === "bronze"
           ? {
-              border: "#B87346",
-              colors: ["rgba(91,51,30,0.7)", "rgba(8,30,52,0.97)", "rgba(8,24,43,0.99)"],
+              border: sk("#B87346", "#DBA783"),
+              colors: sk(["rgba(91,51,30,0.7)", "rgba(8,30,52,0.97)", "rgba(8,24,43,0.99)"], ["#FBE7D8", "#FFFBF8", "#FFFFFF"]),
               shadow: "#C98558",
             }
           : {
               border: RANKING_COLORS.border,
-              colors: ["rgba(13,38,65,0.96)", "rgba(5,22,42,0.98)"],
-              shadow: "#000000",
+              colors: sk(["rgba(13,38,65,0.96)", "rgba(5,22,42,0.98)"], ["#FFFFFF", "#FFFFFF"]),
+              shadow: sk("#000000", "#1B3A7A"),
             };
   return (
     <LinearGradient
@@ -512,7 +533,7 @@ export const PremiumRankingCard = memo(function PremiumRankingCard({
           pointerEvents="none"
           name="crown"
           size={118}
-          color={medal === "gold" ? "rgba(255,204,64,0.07)" : "rgba(220,236,250,0.045)"}
+          color={medal === "gold" ? sk("rgba(255,204,64,0.07)", "rgba(214,158,0,0.10)") : sk("rgba(220,236,250,0.045)", "rgba(16,42,92,0.05)")}
           style={styles.cardWatermark}
         />
       ) : null}
@@ -530,7 +551,7 @@ const styles = StyleSheet.create({
     width: 310,
     height: 310,
     borderRadius: 155,
-    backgroundColor: "rgba(0,191,255,0.12)",
+    backgroundColor: sk("rgba(0,191,255,0.12)", "rgba(20,102,242,0.07)"),
   },
   ambientSide: {
     position: "absolute",
@@ -539,7 +560,7 @@ const styles = StyleSheet.create({
     width: 230,
     height: 420,
     borderRadius: 120,
-    backgroundColor: "rgba(22,119,255,0.07)",
+    backgroundColor: sk("rgba(22,119,255,0.07)", "rgba(47,139,255,0.05)"),
   },
   header: {
     minHeight: 104,
@@ -563,63 +584,63 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(174,255,55,0.18)",
+    backgroundColor: sk("rgba(174,255,55,0.18)", "rgba(197,244,51,0.55)"),
     borderWidth: 1,
-    borderColor: "rgba(191,255,82,0.3)",
+    borderColor: sk("rgba(191,255,82,0.3)", "rgba(143,203,16,0.55)"),
   },
-  ballHole: { position: "absolute", width: 5, height: 5, borderRadius: 3, backgroundColor: "rgba(2,11,28,0.65)" },
+  ballHole: { position: "absolute", width: 5, height: 5, borderRadius: 3, backgroundColor: sk("rgba(2,11,28,0.65)", "rgba(18,48,10,0.32)") },
   headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 45 },
   headerTitleRow: { flex: 1, flexDirection: "row", alignItems: "center", minWidth: 0 },
   headerCopy: { flex: 1, minWidth: 0 },
   titleLine: { height: 42, flexDirection: "row", alignItems: "center", flexWrap: "nowrap" },
-  titleWhite: { color: "#FFFFFF", fontSize: 31, lineHeight: 38, fontWeight: "900", letterSpacing: -0.9 },
+  titleWhite: { color: sk("#FFFFFF", "#0B1B3A"), fontSize: 31, lineHeight: 38, fontWeight: "900", letterSpacing: -0.9 },
   titleGradientSvg: { marginLeft: 7, flexShrink: 0 },
-  subtitle: { color: "#9DB9D6", fontSize: 12.5, lineHeight: 17, fontWeight: "500", marginTop: 1, paddingRight: 76 },
-  backButton: { width: 38, height: 38, marginRight: 8, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(10,35,64,0.78)", borderWidth: 1, borderColor: RANKING_COLORS.border },
+  subtitle: { color: sk("#9DB9D6", "#5F6F8A"), fontSize: 12.5, lineHeight: 17, fontWeight: "500", marginTop: 1, paddingRight: 76 },
+  backButton: { width: 38, height: 38, marginRight: 8, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: sk("rgba(10,35,64,0.78)", "#FFFFFF"), borderWidth: 1, borderColor: RANKING_COLORS.border },
   headerAccessory: { marginLeft: 7, zIndex: 2 },
-  search: { height: 54, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, borderRadius: 17, backgroundColor: "rgba(7,27,52,0.84)", borderWidth: 1, borderColor: "rgba(111,182,234,0.42)", shadowColor: "#00BFFF", shadowOpacity: 0.1, shadowRadius: 16, shadowOffset: { width: 0, height: 6 } },
-  searchInput: { flex: 1, height: "100%", marginLeft: 11, color: "#FFFFFF", fontSize: 15.5, fontWeight: "500" },
+  search: { height: 54, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, borderRadius: 17, backgroundColor: sk("rgba(7,27,52,0.84)", "#FFFFFF"), borderWidth: 1, borderColor: sk("rgba(111,182,234,0.42)", "rgba(16,42,92,0.10)"), shadowColor: sk("#00BFFF", "#1B3A7A"), shadowOpacity: sk(0.1, 0.08), shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, ...(IS_V3 ? { elevation: 2 } : null) },
+  searchInput: { flex: 1, height: "100%", marginLeft: 11, color: sk("#FFFFFF", "#0B1B3A"), fontSize: 15.5, fontWeight: "500" },
   filtersRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 14 },
   segment: { flex: 1, minWidth: 0, flexDirection: "row", gap: 6 },
-  segmentButton: { flex: 1, height: 38, minWidth: 0, alignItems: "center", justifyContent: "center", overflow: "hidden", borderRadius: 19, borderWidth: 1, borderColor: "rgba(84,151,204,0.42)", backgroundColor: "rgba(3,18,38,0.65)" },
-  segmentButtonActive: { borderColor: "rgba(82,214,255,0.92)", shadowColor: "#00BFFF", shadowOpacity: 0.28, shadowRadius: 8 },
-  segmentLabel: { color: "#91A9C7", fontSize: 13, fontWeight: "700" },
+  segmentButton: { flex: 1, height: 38, minWidth: 0, alignItems: "center", justifyContent: "center", overflow: "hidden", borderRadius: 19, borderWidth: 1, borderColor: sk("rgba(84,151,204,0.42)", "rgba(16,42,92,0.12)"), backgroundColor: sk("rgba(3,18,38,0.65)", "#FFFFFF") },
+  segmentButtonActive: { borderColor: sk("rgba(82,214,255,0.92)", "#1466F2"), shadowColor: sk("#00BFFF", "#1466F2"), shadowOpacity: 0.28, shadowRadius: 8 },
+  segmentLabel: { color: sk("#91A9C7", "#5F6F8A"), fontSize: 13, fontWeight: "700" },
   segmentLabelActive: { color: "#FFFFFF", fontWeight: "900" },
-  filterButton: { height: 38, minWidth: 91, paddingHorizontal: 11, borderRadius: 19, borderWidth: 1, borderColor: "rgba(111,171,218,0.5)", backgroundColor: "rgba(10,31,56,0.88)", flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center" },
-  filterButtonActive: { borderColor: "rgba(0,191,255,0.72)", backgroundColor: "rgba(12,48,80,0.94)" },
-  filterButtonText: { color: "#D7E5F5", fontSize: 12, fontWeight: "800" },
+  filterButton: { height: 38, minWidth: 91, paddingHorizontal: 11, borderRadius: 19, borderWidth: 1, borderColor: sk("rgba(111,171,218,0.5)", "rgba(16,42,92,0.12)"), backgroundColor: sk("rgba(10,31,56,0.88)", "#FFFFFF"), flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center" },
+  filterButtonActive: { borderColor: sk("rgba(0,191,255,0.72)", "rgba(20,102,242,0.55)"), backgroundColor: sk("rgba(12,48,80,0.94)", "rgba(20,102,242,0.08)") },
+  filterButtonText: { color: sk("#D7E5F5", "#243450"), fontSize: 12, fontWeight: "800" },
   rangeSection: { marginTop: 12 },
   rangeTitleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", minHeight: 20 },
-  rangeTitle: { color: "#D7E5F5", fontSize: 13, fontWeight: "800" },
-  rangeClear: { color: "#00BFFF", fontSize: 12, fontWeight: "800" },
+  rangeTitle: { color: sk("#D7E5F5", "#243450"), fontSize: 13, fontWeight: "800" },
+  rangeClear: { color: sk("#00BFFF", "#1466F2"), fontSize: 12, fontWeight: "800" },
   rangeSlider: { marginTop: 1, marginHorizontal: -2 },
   rangeValues: { marginTop: -2, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 2 },
-  rangeValue: { color: "#E8F4FF", fontSize: 12, fontWeight: "800", fontVariant: ["tabular-nums"] },
-  legend: { marginTop: 10, minHeight: 48, flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", rowGap: 7, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 15, borderWidth: 1, borderColor: RANKING_COLORS.border, backgroundColor: "rgba(9,33,61,0.82)" },
+  rangeValue: { color: sk("#E8F4FF", "#0B1B3A"), fontSize: 12, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  legend: { marginTop: 10, minHeight: 48, flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", rowGap: 7, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 15, borderWidth: 1, borderColor: RANKING_COLORS.border, backgroundColor: sk("rgba(9,33,61,0.82)", "#FFFFFF") },
   legendItem: { width: "48%", flexDirection: "row", alignItems: "center" },
   legendDot: { width: 8, height: 8, borderRadius: 4, marginRight: 7, shadowOpacity: 0.5, shadowRadius: 4 },
-  legendLabel: { color: "#A9C0D9", fontSize: 11.5, fontWeight: "600" },
+  legendLabel: { color: sk("#A9C0D9", "#5F6F8A"), fontSize: 11.5, fontWeight: "600" },
   rankBadgeWrap: { width: 43, alignItems: "center", marginRight: 9, paddingTop: 2 },
   rankBadgePlainWrap: { justifyContent: "center", paddingTop: 8 },
   rankCrown: { marginBottom: -4, zIndex: 2 },
   rankBadge: { width: 39, minHeight: 53, alignItems: "center", justifyContent: "center", borderTopLeftRadius: 8, borderTopRightRadius: 8 },
   rankBadgePlain: { minHeight: 39, borderRadius: 20 },
   rankNumber: { color: "#FFFFFF", fontSize: 20, lineHeight: 24, fontWeight: "900", textShadowColor: "rgba(0,0,0,0.4)", textShadowRadius: 3 },
-  rankNumberPlain: { fontSize: 15 },
+  rankNumberPlain: { fontSize: 15, ...(IS_V3 ? { color: "#243450", textShadowColor: "transparent" } : null) },
   rankNotch: { width: 0, height: 0, borderLeftWidth: 19.5, borderRightWidth: 19.5, borderTopWidth: 10, borderLeftColor: "transparent", borderRightColor: "transparent" },
-  avatarRing: { width: 74, height: 74, borderRadius: 37, padding: 3, borderWidth: 2, backgroundColor: "rgba(2,11,28,0.86)", shadowColor: "#00BFFF", shadowOpacity: 0.18, shadowRadius: 9 },
+  avatarRing: { width: 74, height: 74, borderRadius: 37, padding: 3, borderWidth: 2, backgroundColor: sk("rgba(2,11,28,0.86)", "#FFFFFF"), shadowColor: sk("#00BFFF", "#1B3A7A"), shadowOpacity: sk(0.18, 0.12), shadowRadius: 9 },
   avatar: { width: "100%", height: "100%", borderRadius: 33 },
   playerBadges: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
   playerScore: { flex: 1, minWidth: 0, paddingVertical: 10, paddingHorizontal: 11 },
-  playerScoreLabel: { color: "#91AFCE", fontSize: 10.5, fontWeight: "800", letterSpacing: 0.35 },
+  playerScoreLabel: { color: sk("#91AFCE", "#5F6F8A"), fontSize: 10.5, fontWeight: "800", letterSpacing: 0.35 },
   playerScoreValueRow: { flexDirection: "row", alignItems: "baseline", gap: 7, marginTop: 3 },
-  playerScoreValue: { flexShrink: 1, color: "#FFAA00", fontSize: 25, lineHeight: 29, fontWeight: "900", fontVariant: ["tabular-nums"] },
+  playerScoreValue: { flexShrink: 1, color: sk("#FFAA00", "#E08A00"), fontSize: 25, lineHeight: 29, fontWeight: "900", fontVariant: ["tabular-nums"] },
   playerScoreDelta: { flexShrink: 0, fontSize: 11.5, fontWeight: "900", fontVariant: ["tabular-nums"] },
-  actions: { flexDirection: "row", alignItems: "center", gap: 6, paddingTop: 10, marginTop: 11, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(120,180,230,0.2)" },
-  action: { flex: 1, minWidth: 0, height: 34, paddingHorizontal: 5, borderRadius: 17, flexDirection: "row", gap: 4, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(10,34,60,0.72)", borderWidth: 1, borderColor: "rgba(103,169,218,0.25)" },
+  actions: { flexDirection: "row", alignItems: "center", gap: 6, paddingTop: 10, marginTop: 11, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sk("rgba(120,180,230,0.2)", "rgba(16,42,92,0.08)") },
+  action: { flex: 1, minWidth: 0, height: 34, paddingHorizontal: 5, borderRadius: 17, flexDirection: "row", gap: 4, alignItems: "center", justifyContent: "center", backgroundColor: sk("rgba(10,34,60,0.72)", "#F5F8FD"), borderWidth: 1, borderColor: sk("rgba(103,169,218,0.25)", "rgba(16,42,92,0.08)") },
   actionDisabled: { opacity: 0.45 },
-  actionLabel: { flexShrink: 1, color: "#D7E5F5", fontSize: 10.5, fontWeight: "700" },
-  rankingCard: { position: "relative", overflow: "hidden", borderRadius: 22, borderWidth: 1, padding: 14, marginBottom: 13, shadowOpacity: 0.16, shadowRadius: 15, shadowOffset: { width: 0, height: 7 }, elevation: 4 },
-  rankingCardHero: { borderWidth: 1.5, shadowOpacity: 0.28, shadowRadius: 20 },
+  actionLabel: { flexShrink: 1, color: sk("#D7E5F5", "#243450"), fontSize: 10.5, fontWeight: "700" },
+  rankingCard: { position: "relative", overflow: "hidden", borderRadius: 22, borderWidth: 1, padding: 14, marginBottom: 13, shadowOpacity: sk(0.16, 0.1), shadowRadius: 15, shadowOffset: { width: 0, height: sk(7, 5) }, elevation: sk(4, 3) },
+  rankingCardHero: { borderWidth: 1.5, shadowOpacity: sk(0.28, 0.2), shadowRadius: sk(20, 16) },
   cardWatermark: { position: "absolute", right: -15, bottom: -18, transform: [{ rotate: "-7deg" }] },
 });

@@ -51,6 +51,7 @@ import {
   type TournamentAction,
   type TournamentFilterKey,
 } from "@/components/tournaments/TournamentDesign";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 
 // Nhóm Zalo cộng đồng — fallback khi giải chưa đặt link Zalo riêng.
 const DEFAULT_ZALO_GROUP = "https://zalo.me/g/yarnhm129";
@@ -104,9 +105,10 @@ function fromDateId(id) {
 function useModernTheme() {
   const scheme = useColorScheme() || "light";
   const navTheme = useTheme() as any;
-  const v2 = navTheme?.version === "v2";
+  // V3 Fresh đi theo bố cục V2 nhưng nền sáng.
+  const v2 = navTheme?.version === "v2" || IS_V3;
   // V2 Modern luôn nền tối navy; nếu không, theo nav theme (dark/light).
-  const isDark = v2 || !!navTheme?.dark || scheme === "dark";
+  const isDark = (v2 && !IS_V3) || !!navTheme?.dark || scheme === "dark";
   const primaryColor = navTheme?.colors?.primary ?? "#3b82f6";
 
   return {
@@ -120,14 +122,14 @@ function useModernTheme() {
       primary: v2 ? TOURNAMENT_COLORS.primary : primaryColor,
       success: "#10b981",
       warning: "#f97316",
-      inputBg: v2 ? "rgba(255,255,255,0.06)" : isDark ? "#20232b" : "#f1f5f9",
+      inputBg: v2 ? sk("rgba(255,255,255,0.06)", "#EEF3FA") : isDark ? "#20232b" : "#f1f5f9",
     },
     cardShadow: {
-      shadowColor: isDark ? "#000" : "#1e293b",
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: isDark ? 0.5 : 0.15,
-      shadowRadius: 16,
-      elevation: 8,
+      shadowColor: isDark ? "#000" : sk("#1e293b", "#1B3A7A"),
+      shadowOffset: { width: 0, height: sk(8, 5) },
+      shadowOpacity: isDark ? 0.5 : sk(0.15, 0.1),
+      shadowRadius: sk(16, 14),
+      elevation: sk(8, 3),
     },
     btnShadow: {
       shadowColor: primaryColor,
@@ -180,7 +182,7 @@ function usePulse() {
 function SkeletonBlock({ style }) {
   const theme = useModernTheme();
   const opacity = usePulse();
-  const bg = theme.isDark ? "#334155" : "#cbd5e1";
+  const bg = theme.isDark ? "#334155" : sk("#cbd5e1", "#E3EAF5");
   return (
     <Animated.View
       style={[{ backgroundColor: bg, opacity, borderRadius: 6 }, style]}
@@ -804,7 +806,7 @@ export default function TournamentDashboardScreen({ isBack = false }) {
                   marked[start] = {
                     startingDay: true,
                     endingDay: true,
-                    color: "#0ea5e9",
+                    color: sk("#0ea5e9", "#1466F2"),
                     textColor: "#fff",
                   };
                   return marked;
@@ -814,7 +816,7 @@ export default function TournamentDashboardScreen({ isBack = false }) {
                     marked[start] = {
                       startingDay: true,
                       endingDay: true,
-                      color: "#0ea5e9",
+                      color: sk("#0ea5e9", "#1466F2"),
                       textColor: "#fff",
                     };
                     return marked;
@@ -831,19 +833,19 @@ export default function TournamentDashboardScreen({ isBack = false }) {
                     if (id === start) {
                       marked[id] = {
                         startingDay: true,
-                        color: "#0ea5e9",
+                        color: sk("#0ea5e9", "#1466F2"),
                         textColor: "#fff",
                       };
                     } else if (id === end) {
                       marked[id] = {
                         endingDay: true,
-                        color: "#0ea5e9",
+                        color: sk("#0ea5e9", "#1466F2"),
                         textColor: "#fff",
                       };
                     } else {
                       marked[id] = {
-                        color: "#bae6fd",
-                        textColor: "#0f172a",
+                        color: sk("#bae6fd", "rgba(20,102,242,0.14)"),
+                        textColor: sk("#0f172a", "#0B1B3A"),
                       };
                     }
                   }

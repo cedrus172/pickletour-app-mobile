@@ -67,10 +67,13 @@ import { formatMatchElapsed, matchTimestamp } from "@/utils/refereeElapsedTime";
 import { CoinFace, DrawCard, DrawColorPair, TwoTeamWheel, DRAW_BLUE, DRAW_RED, DRAW_GOLD } from "./ServeDrawVisuals.native";
 
 import AppModal from "@/components/ui/AppModal";
+import { AppV2NavTheme, IS_V3 } from "@/hooks/uiVersion";
 const VOICE_API_URL = `${BASE_URL}/api/voice/parse`;
 /* ---------- Theme tokens ---------- */
 function useTokens() {
-  const navTheme = useTheme?.() || {};
+  const liveNavTheme = useTheme?.() || {};
+  // V3 Fresh: bảng chấm điểm giữ nguyên giao diện tối như V2 (không theo nav theme sáng).
+  const navTheme: typeof liveNavTheme = IS_V3 ? AppV2NavTheme : liveNavTheme;
   const scheme = useColorScheme?.() || "light";
   const dark =
     typeof navTheme.dark === "boolean" ? navTheme.dark : scheme === "dark";
@@ -1711,7 +1714,7 @@ function CourtAssignModalFull({
   onUnassignCourt,
 }) {
   const t = useTokens();
-  const sport = (useTheme() as any).version === "v2";
+  const sport = (useTheme() as any).version === "v2" || IS_V3;
   const ModalRoot = sport ? View : SafeAreaView;
   const [courts, setCourts] = useState([]);
   const [courtsLoaded, setCourtsLoaded] = useState(false);
@@ -2296,7 +2299,7 @@ const normalizeRefereeLayout = (layout) =>
 
 export default function RefereeJudgePanel({ matchId, initialMatch = null, onToggleOrientation = null }) {
   const params = useLocalSearchParams();
-  const modalSport = (useTheme() as any).version === "v2";
+  const modalSport = (useTheme() as any).version === "v2" || IS_V3;
   const { userMatch } = params;
   useUserMatchHeader(userMatch && "user");
   const isUserMatch = String(userMatch) === "true";

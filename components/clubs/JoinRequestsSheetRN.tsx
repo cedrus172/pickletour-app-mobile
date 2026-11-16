@@ -15,6 +15,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
+import { sk } from "@/hooks/uiVersion";
 
 export default function JoinRequestsSheetRN({
   clubId,
@@ -49,11 +50,11 @@ export default function JoinRequestsSheetRN({
               style={{ width: 40, height: 40, borderRadius: 20 }}
             />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: "#dbeafe", fontWeight: "600" }}>
+              <Text style={{ color: sk("#dbeafe", "#0B1B3A"), fontWeight: "600" }}>
                 {r.user?.fullName || r.user?.nickname || r.user?.email}
               </Text>
               {!!r.message && (
-                <Text style={{ color: "#9fb4d3", marginTop: 2 }}>
+                <Text style={{ color: sk("#9fb4d3", "#5F6F8A"), marginTop: 2 }}>
                   {r.message}
                 </Text>
               )}
@@ -69,10 +70,10 @@ export default function JoinRequestsSheetRN({
                 borderRadius: 18,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: "#34d399",
+                backgroundColor: sk("#34d399", "#16A34A"),
               }}
             >
-              <MaterialCommunityIcons name="check" size={18} color="#0b1220" />
+              <MaterialCommunityIcons name="check" size={18} color={sk("#0b1220", "#FFFFFF")} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={async () => {
@@ -85,10 +86,10 @@ export default function JoinRequestsSheetRN({
                 borderRadius: 18,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: "#f87171",
+                backgroundColor: sk("#f87171", "#DC2626"),
               }}
             >
-              <MaterialCommunityIcons name="close" size={18} color="#0b1220" />
+              <MaterialCommunityIcons name="close" size={18} color={sk("#0b1220", "#FFFFFF")} />
             </TouchableOpacity>
           </View>
         </GlassCard>

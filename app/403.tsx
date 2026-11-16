@@ -1,5 +1,5 @@
 // app/403.jsx
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 import React, { useMemo } from "react";
 import {
   SafeAreaView,
@@ -22,10 +22,10 @@ function Btn({
   children: React.ReactNode;
 }) {
   const bg =
-    variant === "contained" ? "#2563eb" : variant === "outlined" ? "transparent" : "transparent";
-  const color = variant === "contained" ? "#fff" : "#2563eb";
+    variant === "contained" ? sk("#2563eb", "#1466F2") : variant === "outlined" ? "transparent" : "transparent";
+  const color = variant === "contained" ? "#fff" : sk("#2563eb", "#1466F2");
   const borderW = variant === "outlined" ? 1 : 0;
-  const borderC = variant === "outlined" ? "#2563eb" : "transparent";
+  const borderC = variant === "outlined" ? sk("#2563eb", "#1466F2") : "transparent";
 
   return (
     <Pressable
@@ -43,13 +43,13 @@ function Btn({
 
 export default function Forbidden403() {
   const scheme = useColorScheme() ?? "light";
-  const v2 = useUiVersion() === "v2";
-  const isDark = v2 || scheme === "dark";
-  const bg = v2 ? "#040E20" : isDark ? "#0b0d12" : "#f7f9fc";
-  const card = v2 ? "#0A1B34" : isDark ? "#12151b" : "#ffffff";
-  const text = v2 ? "#EAF3FF" : isDark ? "#ffffff" : "#111827";
-  const sub = v2 ? "#8CA6C8" : isDark ? "#cbd5e1" : "#4b5563";
-  const error = "#ef4444";
+  const v2 = useUiVersion() === "v2" || IS_V3;
+  const isDark = (v2 && !IS_V3) || scheme === "dark";
+  const bg = v2 ? sk("#040E20", "#F2F6FC") : isDark ? "#0b0d12" : "#f7f9fc";
+  const card = v2 ? sk("#0A1B34", "#FFFFFF") : isDark ? "#12151b" : "#ffffff";
+  const text = v2 ? sk("#EAF3FF", "#0B1B3A") : isDark ? "#ffffff" : "#111827";
+  const sub = v2 ? sk("#8CA6C8", "#5F6F8A") : isDark ? "#cbd5e1" : "#4b5563";
+  const error = sk("#ef4444", "#DC2626");
 
   // nhận ?from=/duong-dan-cu nếu có
   const { from } = useLocalSearchParams<{ from?: string }>();
@@ -128,11 +128,13 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
     paddingHorizontal: 20,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.06, 0.1),
+    shadowRadius: sk(12, 16),
     shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    elevation: sk(2, 3),
+    borderWidth: sk(0, 1),
+    borderColor: sk("transparent", "rgba(16,42,92,0.08)"),
   },
   code: {
     fontWeight: "800",

@@ -15,6 +15,7 @@ import {
 import { Text } from "@/components/ui/i18nText";
 import { Image } from "expo-image";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { sk } from "@/hooks/uiVersion";
 
 interface ChipProps {
   label: string;
@@ -49,8 +50,8 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     backgroundColor: C.field,
   },
   chipSelected: {
-    backgroundColor: "#667eea",
-    borderColor: "#667eea",
+    backgroundColor: sk("#667eea", "#1466F2"),
+    borderColor: sk("#667eea", "#1466F2"),
   },
   chipText: {
     fontSize: 12,
@@ -81,11 +82,12 @@ const mk_cardStyles = (C: ThemeTokens) => StyleSheet.create({
     backgroundColor: C.card,
     borderRadius: 16,
     padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOffset: { width: 0, height: sk(2, 5) },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: sk(8, 14),
+    elevation: sk(4, 3),
+    ...sk({}, { borderWidth: 1, borderColor: "rgba(16,42,92,0.08)" }),
   },
 });
 

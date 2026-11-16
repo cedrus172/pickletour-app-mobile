@@ -45,6 +45,7 @@ import { normalizeUrl } from "@/utils/normalizeUri";
 import { useSocket } from "@/context/SocketContext";
 import { useSocketRoomSet } from "@/hooks/useSocketRoomSet";
 import { useTheme } from "@react-navigation/native";
+import { sk } from "@/hooks/uiVersion";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
 import { IOS_26_LIQUID_GLASS_ENABLED } from "@/utils/nativeTabs";
@@ -71,9 +72,10 @@ function useThemeTokens() {
 
   const primary = navTheme?.colors?.primary ?? (isDark ? "#7cc0ff" : "#0a84ff");
   const text = navTheme?.colors?.text ?? (isDark ? "#f7f7f7" : "#0b1220");
-  const cardBg = isDark ? "#11161c" : "rgba(255,255,255,0.88)";
-  const border = isDark ? "#212a33" : "#DDE5EF";
-  const bg = isDark ? "#0b0f14" : "#F6F8FC";
+  // V2 luôn đi nhánh tối (nav theme dark); V3 Fresh đi nhánh sáng với bảng màu V3.
+  const cardBg = isDark ? "#11161c" : sk("rgba(255,255,255,0.88)", "#FFFFFF");
+  const border = isDark ? "#212a33" : sk("#DDE5EF", "rgba(16,42,92,0.10)");
+  const bg = isDark ? "#0b0f14" : sk("#F6F8FC", "#F2F6FC");
 
   return {
     isDark,
@@ -87,24 +89,24 @@ function useThemeTokens() {
     },
 
     // text phụ & nền phụ
-    sub: isDark ? "#b9c1cc" : "#586174",
-    muted: isDark ? "#0f141a" : "#f3f6fb",
-    inputBg: isDark ? "#0f141a" : "rgba(255,255,255,0.84)",
+    sub: isDark ? "#b9c1cc" : sk("#586174", "#5F6F8A"),
+    muted: isDark ? "#0f141a" : sk("#f3f6fb", "#F5F8FD"),
+    inputBg: isDark ? "#0f141a" : sk("rgba(255,255,255,0.84)", "#FFFFFF"),
 
     // chips
-    chipBg: isDark ? "#121a22" : "#eef2f7",
+    chipBg: isDark ? "#121a22" : sk("#eef2f7", "#EEF3FA"),
 
     // accents
     tint: primary,
-    success: "#22c55e",
-    danger: "#ef4444",
-    warning: "#f59e0b",
-    shadow: "rgba(16,24,40,0.08)",
+    success: sk("#22c55e", "#16A34A"),
+    danger: sk("#ef4444", "#DC2626"),
+    warning: sk("#f59e0b", "#D97706"),
+    shadow: sk("rgba(16,24,40,0.08)", "rgba(27,58,122,0.55)"),
 
     // info chips (xanh nhạt)
-    chipInfoBg: isDark ? "#1f2937" : "#eef2f7",
-    chipInfoFg: isDark ? "#e5e7eb" : "#263238",
-    chipInfoBd: isDark ? "#334155" : "#e2e8f0",
+    chipInfoBg: isDark ? "#1f2937" : sk("#eef2f7", "#EEF3FA"),
+    chipInfoFg: isDark ? "#e5e7eb" : sk("#263238", "#243450"),
+    chipInfoBd: isDark ? "#334155" : sk("#e2e8f0", "rgba(16,42,92,0.10)"),
   };
 }
 function toneColor(tone, tokens) {
@@ -891,7 +893,7 @@ function Banner({ t, tokens, collapsed, onToggle }) {
           />
         ) : (
           <View
-            style={[StyleSheet.absoluteFill, { backgroundColor: "#11161c" }]}
+            style={[StyleSheet.absoluteFill, { backgroundColor: sk("#11161c", "#0B2A6B") }]}
           />
         )}
 
@@ -1099,7 +1101,7 @@ function TournamentCard({ t, onOpenMatch, tokens }) {
                 borderColor: IOS_26_LIQUID_GLASS_ENABLED
                   ? tokens.isDark
                     ? "rgba(255,255,255,0.24)"
-                    : "#DDE5EF"
+                    : sk("#DDE5EF", "rgba(16,42,92,0.10)")
                   : tokens.colors.border,
               },
             ]}
@@ -1552,7 +1554,7 @@ export default function MyTournament() {
               borderColor: IOS_26_LIQUID_GLASS_ENABLED
                 ? tokens.isDark
                   ? "rgba(255,255,255,0.24)"
-                  : "#DDE5EF"
+                  : sk("#DDE5EF", "rgba(16,42,92,0.10)")
                 : tokens.colors.border,
             },
           ]}
@@ -1603,7 +1605,7 @@ export default function MyTournament() {
         ],
         IOS_26_LIQUID_GLASS_ENABLED && {
           backgroundColor: tokens.colors.card,
-          borderColor: tokens.isDark ? "rgba(255,255,255,0.24)" : "#DDE5EF",
+          borderColor: tokens.isDark ? "rgba(255,255,255,0.24)" : sk("#DDE5EF", "rgba(16,42,92,0.10)"),
         },
       ]}
     >
@@ -1809,7 +1811,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    backgroundColor: "#11161c",
+    backgroundColor: sk("#11161c", "#0B2A6B"),
   },
   bannerInner: {
     flex: 1,

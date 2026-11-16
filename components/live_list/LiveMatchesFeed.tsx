@@ -19,6 +19,7 @@ import {
 import { TextInput } from "@/components/ui/i18nTextInput";
 import { Text } from "@/components/ui/i18nText";
 import { useTheme } from "@react-navigation/native";
+import { sk } from "@/hooks/uiVersion";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -50,11 +51,11 @@ function useThemeTokens() {
     isDark,
     tint: navTheme?.colors?.primary ?? (isDark ? "#6ee7d8" : "#0f766e"),
     textPrimary: navTheme?.colors?.text ?? (isDark ? "#ffffff" : "#102a26"),
-    textSecondary: isDark ? "#b8c4c2" : "#5b6f6a",
+    textSecondary: isDark ? "#b8c4c2" : sk("#5b6f6a", "#5F6F8A"),
     pageBg: navTheme?.colors?.background ?? (isDark ? "#091513" : "#f5f3ec"),
     cardBg: navTheme?.colors?.card ?? (isDark ? "#10201d" : "#fffdf8"),
     border: navTheme?.colors?.border ?? (isDark ? "#25423d" : "#d9e7e2"),
-    softBg: isDark ? "#17312d" : "#eef6f3",
+    softBg: isDark ? "#17312d" : sk("#eef6f3", "#EEF3FA"),
   };
 }
 
@@ -542,6 +543,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 12,
+    ...sk({}, { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 }),
   },
   statLabel: {
     fontSize: 11,

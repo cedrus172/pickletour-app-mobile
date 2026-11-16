@@ -479,7 +479,7 @@ function ProButton({ onPress, children, colors, style, icon }) {
 function AnimatedStatusChip({ status = "upcoming" }: { status?: string }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const isFocused = useIsFocused();
-  const v2 = useUiVersion() === "v2";
+  const v2 = useUiVersion() === "v2" || IS_V3;
   const statusText = status === "ongoing" ? "Đang diễn ra" : "Sắp diễn ra";
   useEffect(() => {
     if (!isFocused || v2) {
@@ -1023,7 +1023,7 @@ function FeatureItem({ item, theme, colWidth }) {
             <HomeFeatureIcon id={item.id} />
             {item.isNew ? (
               <View style={[styles.newBadge, styles.newBadgeV2, hot && styles.newBadgeV2Hot]} pointerEvents="none">
-                <Text style={[styles.newBadgeText, hot && { color: "#04121f" }]}>
+                <Text style={[styles.newBadgeText, hot && { color: sk("#04121f", "#12300A") }]}>
                   {hot ? "HOT" : "Mới"}
                 </Text>
               </View>
@@ -1151,7 +1151,7 @@ const TournamentCard = React.memo(function TournamentCard({
   cardWidth,
 }) {
   const isDark = !!theme?.dark;
-  const v2 = useUiVersion() === "v2";
+  const v2 = useUiVersion() === "v2" || IS_V3;
   const bg = v2 ? HOME_COLORS.surfaceStrong : theme?.colors?.card ?? (isDark ? "#1a1d23" : "#ffffff");
   const text = v2 ? HOME_COLORS.text : theme?.colors?.text ?? (isDark ? "#ffffff" : "#111111");
   const subtext = v2 ? HOME_COLORS.textMuted : isDark ? "#b0b0b0" : "#666666";
@@ -1231,13 +1231,13 @@ const TournamentCard = React.memo(function TournamentCard({
 
           <View style={styles.tournamentMetaRow}>
             <View style={styles.metaItem}>
-              <Ionicons name="calendar" size={16} color="#4ECDC4" />
+              <Ionicons name="calendar" size={16} color={sk("#4ECDC4", "#1466F2")} />
               <Text style={[styles.metaText, { color: subtext }]}>
                 {formatDate(rep.startDate)}
               </Text>
             </View>
             <View style={styles.metaItem}>
-              <Ionicons name="location" size={16} color="#FF6B6B" />
+              <Ionicons name="location" size={16} color={sk("#FF6B6B", "#EF3B3B")} />
               <Text
                 style={[styles.metaText, { color: subtext }]}
                 numberOfLines={1}
@@ -1295,7 +1295,7 @@ const TournamentCard = React.memo(function TournamentCard({
                   <Text style={[styles.homeGroupSubCount, { color: full ? "#F2555A" : subtext }]}>
                     {cap > 0 ? `${reg}/${cap}` : `${reg}`}
                   </Text>
-                  <Ionicons name="chevron-forward" size={15} color="#4ECDC4" />
+                  <Ionicons name="chevron-forward" size={15} color={sk("#4ECDC4", "#1466F2")} />
                 </View>
                 {cap > 0 ? (
                   <View style={styles.homeGroupSubTrack}>
@@ -1320,7 +1320,7 @@ const TournamentCard = React.memo(function TournamentCard({
         <View style={styles.tournamentActions}>
           <ProButton
             onPress={() => router.push(`/tournament/${rep._id}/register`)}
-            colors={["#FF9F43", "#EE5A24"]}
+            colors={sk(["#FF9F43", "#EE5A24"], ["#2F8BFF", "#1466F2"])}
             icon={<Ionicons name="trophy-outline" size={20} color="#FFFFFF" />}
           >
             <Text style={styles.proButtonText}>ĐĂNG KÝ NGAY</Text>
@@ -1349,7 +1349,7 @@ function TournamentsSection() {
   const flatListRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const isDark = !!theme?.dark;
-  const v2 = useUiVersion() === "v2";
+  const v2 = useUiVersion() === "v2" || IS_V3;
 
   const { data: tournaments, isLoading } = useGetTournamentsQuery(
     { sportType: "2", groupId: "0" },
@@ -1426,7 +1426,7 @@ function TournamentsSection() {
               style={styles.navArrowGradient}
             >
               <LinearGradient
-                colors={["#4ECDC4", "#45B7D1"]}
+                colors={sk<[string, string]>(["#4ECDC4", "#45B7D1"], ["#2F8BFF", "#1466F2"])}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 pointerEvents="none"
@@ -1436,7 +1436,7 @@ function TournamentsSection() {
             </AppleLiquidGlassView>
           ) : (
             <LinearGradient
-              colors={["#4ECDC4", "#45B7D1"]}
+              colors={sk<[string, string]>(["#4ECDC4", "#45B7D1"], ["#2F8BFF", "#1466F2"])}
               style={styles.navArrowGradient}
             >
               <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
@@ -1457,7 +1457,7 @@ function TournamentsSection() {
               style={styles.navArrowGradient}
             >
               <LinearGradient
-                colors={["#4ECDC4", "#45B7D1"]}
+                colors={sk<[string, string]>(["#4ECDC4", "#45B7D1"], ["#2F8BFF", "#1466F2"])}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 pointerEvents="none"
@@ -1467,7 +1467,7 @@ function TournamentsSection() {
             </AppleLiquidGlassView>
           ) : (
             <LinearGradient
-              colors={["#4ECDC4", "#45B7D1"]}
+              colors={sk<[string, string]>(["#4ECDC4", "#45B7D1"], ["#2F8BFF", "#1466F2"])}
               style={styles.navArrowGradient}
             >
               <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
@@ -1545,7 +1545,7 @@ function TournamentsSection() {
 const NewsCard = React.memo(function NewsCard({ news, theme, cardWidth }) {
   const [imageError, setImageError] = useState(false);
   const isDark = !!theme?.dark;
-  const v2 = useUiVersion() === "v2";
+  const v2 = useUiVersion() === "v2" || IS_V3;
   const bg = v2 ? HOME_COLORS.surfaceStrong : theme?.colors?.card ?? (isDark ? "#1a1d23" : "#ffffff");
   const text = v2 ? HOME_COLORS.text : theme?.colors?.text ?? (isDark ? "#ffffff" : "#111111");
   const subtext = v2 ? HOME_COLORS.textMuted : isDark ? "#b0b0b0" : "#666666";
@@ -1689,7 +1689,7 @@ function NewsSection() {
 function ContactCard() {
   const theme = useTheme();
   const isDark = !!theme?.dark;
-  const v2 = useUiVersion() === "v2";
+  const v2 = useUiVersion() === "v2" || IS_V3;
   const bg = v2
     ? HOME_COLORS.surfaceStrong
     : theme?.colors?.card ?? (isDark ? "#14171c" : "#ffffff");
@@ -1717,7 +1717,7 @@ function ContactCard() {
       tint={isDark ? "dark" : "light"}
       glassTintColor={
         v2
-          ? "rgba(8,31,58,0.56)"
+          ? sk("rgba(8,31,58,0.56)", "rgba(255, 255, 255, 0.38)")
           : isDark
             ? "rgba(20, 23, 28, 0.48)"
             : "rgba(255, 255, 255, 0.38)"
@@ -2188,7 +2188,7 @@ const styles = StyleSheet.create({
   },
   featureV2IconWrap: { position: "relative", marginBottom: 8 },
   newBadgeV2: { top: -6, right: -8 },
-  newBadgeV2Hot: { backgroundColor: "#CDE818", borderColor: "rgba(255,255,255,0.92)" },
+  newBadgeV2Hot: { backgroundColor: sk("#CDE818", "#C5F433"), borderColor: "rgba(255,255,255,0.92)" },
   v2RoleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 1 },
   v2RoleDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: "#12B6F3" },
   v2RoleText: {
@@ -2708,15 +2708,15 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(90,180,230,0.28)",
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
+    borderColor: sk("rgba(90,180,230,0.28)", "rgba(16,42,92,0.08)"),
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.15, 0.1),
+    shadowRadius: sk(20, 16),
+    shadowOffset: { width: 0, height: sk(8, 6) },
+    elevation: sk(10, 3),
   },
   tournamentImageContainer: { position: "relative" },
-  tournamentImage: { width: "100%", height: 190, backgroundColor: "#f0f0f0" },
+  tournamentImage: { width: "100%", height: 190, backgroundColor: sk("#f0f0f0", "#E9F0FA") },
   tournamentImageGradient: {
     position: "absolute",
     bottom: 0,
@@ -2778,7 +2778,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     height: 48,
   },
-  separator: { height: 1, backgroundColor: "rgba(0,0,0,0.05)", width: "100%" },
+  separator: { height: 1, backgroundColor: sk("rgba(0,0,0,0.05)", "rgba(16,42,92,0.08)"), width: "100%" },
   tournamentMetaRow: { gap: 8 },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 8 },
   metaText: { fontSize: 14, flex: 1, fontWeight: "500" },
@@ -2803,14 +2803,14 @@ const styles = StyleSheet.create({
   homeGroupSubHead: { flexDirection: "row", alignItems: "center", gap: 8 },
   homeGroupSubText: { flex: 1, fontSize: 13, fontWeight: "700" },
   homeGroupSubCount: { fontSize: 12, fontWeight: "700" },
-  homeGroupSubTrack: { height: 4, borderRadius: 99, backgroundColor: "rgba(127,127,127,0.25)", overflow: "hidden" },
+  homeGroupSubTrack: { height: 4, borderRadius: 99, backgroundColor: sk("rgba(127,127,127,0.25)", "rgba(16,42,92,0.10)"), overflow: "hidden" },
   homeGroupSubFill: { height: "100%", borderRadius: 99 },
   homeGroupSubMore: { fontSize: 12, textAlign: "center", marginTop: 2 },
 
   /* 💎 PRO BUTTON STYLES */
   proButtonContainer: {
     borderRadius: 18,
-    shadowColor: "#EE5A24",
+    shadowColor: sk("#EE5A24", "#1466F2"),
     shadowOpacity: 0.3,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
@@ -2825,7 +2825,7 @@ const styles = StyleSheet.create({
   proButtonGlass: {
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.55)",
-    shadowColor: "#EE5A24",
+    shadowColor: sk("#EE5A24", "#1466F2"),
     shadowOpacity: 0.34,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
@@ -2878,12 +2878,12 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     gap: 12,
     borderWidth: 1,
-    borderColor: "rgba(8,189,245,0.32)",
-    backgroundColor: "rgba(7,27,52,0.86)",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
+    borderColor: sk("rgba(8,189,245,0.32)", "rgba(16,42,92,0.10)"),
+    backgroundColor: sk("rgba(7,27,52,0.86)", "#FFFFFF"),
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.05, 0.1),
+    shadowRadius: sk(5, 12),
+    shadowOffset: { width: 0, height: sk(2, 4) },
     elevation: 2,
   },
   viewAllTextNew: { fontSize: 14, fontWeight: "800", color: HOME_COLORS.textSoft },
@@ -2916,16 +2916,16 @@ const styles = StyleSheet.create({
   seeMoreButtonNew: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(8,189,245,0.09)",
+    backgroundColor: sk("rgba(8,189,245,0.09)", "rgba(20,102,242,0.08)"),
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 12,
     gap: 4,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(8,189,245,0.26)",
+    borderColor: sk("rgba(8,189,245,0.26)", "rgba(20,102,242,0.16)"),
     shadowColor: HOME_COLORS.primary,
-    shadowOpacity: 0.16,
+    shadowOpacity: sk(0.16, 0.08),
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
   },
@@ -2938,14 +2938,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(90,180,230,0.25)",
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 15,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    borderColor: sk("rgba(90,180,230,0.25)", "rgba(16,42,92,0.08)"),
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.12, 0.1),
+    shadowRadius: sk(15, 14),
+    shadowOffset: { width: 0, height: sk(6, 5) },
+    elevation: sk(8, 3),
   },
-  newsImage: { width: "100%", height: 150, backgroundColor: "#f0f0f0" },
+  newsImage: { width: "100%", height: 150, backgroundColor: sk("#f0f0f0", "#E9F0FA") },
   newsInfo: { padding: 14, gap: 8 },
   newsTitle: { fontSize: 15, fontWeight: "700", lineHeight: 20, height: 60 },
   newsMetaRow: { flexDirection: "row", alignItems: "center", gap: 6 },
@@ -2964,11 +2964,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 24,
     padding: 24,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.08, 0.1),
+    shadowRadius: sk(20, 16),
     shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    elevation: sk(4, 3),
   },
   contactHeader: {
     flexDirection: "row",
@@ -2977,21 +2977,21 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
+    borderBottomColor: sk("rgba(0,0,0,0.05)", "rgba(16,42,92,0.08)"),
   },
   contactTitle: { fontSize: 20, fontWeight: "800", letterSpacing: 0.3 },
   socialContainer: {
     marginTop: 20,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)",
+    borderTopColor: sk("rgba(0,0,0,0.05)", "rgba(16,42,92,0.08)"),
   },
   socialLabel: { fontSize: 14, fontWeight: "600", marginBottom: 12 },
   socialButtons: { flexDirection: "row", gap: 16, flexWrap: "wrap" },
   newsImageContainer: {
     borderRadius: 20,
     overflow: "hidden",
-    backgroundColor: "#f5f5f5", // Background nhẹ khi loading
+    backgroundColor: sk("#f5f5f5", "#EEF3FA"), // Background nhẹ khi loading
   },
 
   fallbackImageContainer: {
@@ -2999,7 +2999,7 @@ const styles = StyleSheet.create({
     height: 150,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f8f9fa", // Hoặc màu nền nhẹ khác
+    backgroundColor: sk("#f8f9fa", "#EEF3FA"), // Hoặc màu nền nhẹ khác
   },
   fallbackLogo: {
     width: 120,

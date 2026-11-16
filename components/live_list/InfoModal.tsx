@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { useTheme } from "@react-navigation/native";
+import { sk } from "@/hooks/uiVersion";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   BottomSheetBackdrop,
@@ -37,11 +38,11 @@ function useThemeTokens() {
     isDark,
     tint: navTheme?.colors?.primary ?? (isDark ? "#6ee7d8" : "#0f766e"),
     textPrimary: navTheme?.colors?.text ?? (isDark ? "#ffffff" : "#102a26"),
-    textSecondary: isDark ? "#b8c4c2" : "#536865",
+    textSecondary: isDark ? "#b8c4c2" : sk("#536865", "#5F6F8A"),
     sheetBg: navTheme?.colors?.card ?? (isDark ? "#10201d" : "#fffdf8"),
     border: navTheme?.colors?.border ?? (isDark ? "#23403a" : "#dce8e4"),
-    softBg: isDark ? "#18302c" : "#f1f7f5",
-    handle: isDark ? "#4e6b65" : "#b3c8c3",
+    softBg: isDark ? "#18302c" : sk("#f1f7f5", "#EEF3FA"),
+    handle: isDark ? "#4e6b65" : sk("#b3c8c3", "#C5D0E0"),
   };
 }
 
@@ -66,7 +67,7 @@ function InfoGlassSurface({
   effect = "regular",
   interactive = false,
   style,
-  tintColor = "rgba(12,22,24,0.58)",
+  tintColor = sk("rgba(12,22,24,0.58)", "rgba(255,255,255,0.58)"),
 }: {
   children?: React.ReactNode;
   effect?: "regular" | "clear";
@@ -77,7 +78,7 @@ function InfoGlassSurface({
   return (
     <AppleLiquidGlassView
       fallback="view"
-      glassColorScheme="dark"
+      glassColorScheme={sk("dark", "light")}
       glassEffectStyle={effect}
       glassTintColor={tintColor}
       isInteractive={interactive}
@@ -134,7 +135,7 @@ export default function InfoModal({
         styles.sheet,
         {
           backgroundColor: IOS_26_LIQUID_GLASS_ENABLED
-            ? "rgba(7,10,14,0.72)"
+            ? sk("rgba(7,10,14,0.72)", "rgba(255,255,255,0.86)")
             : T.sheetBg,
           borderTopColor: T.border,
         },
@@ -168,7 +169,7 @@ export default function InfoModal({
       >
         <InfoGlassSurface
           effect="clear"
-          tintColor="rgba(26,55,49,0.44)"
+          tintColor={sk("rgba(26,55,49,0.44)", "rgba(238,243,250,0.62)")}
           style={[styles.panel, { backgroundColor: T.softBg, borderColor: T.border }]}
         >
           <InfoRow
@@ -201,7 +202,7 @@ export default function InfoModal({
                 <InfoGlassSurface
                   key={key || label}
                   effect="clear"
-                  tintColor="rgba(26,55,49,0.42)"
+                  tintColor={sk("rgba(26,55,49,0.42)", "rgba(238,243,250,0.6)")}
                   style={[styles.sessionCard, { backgroundColor: T.softBg, borderColor: T.border }]}
                 >
                   <View style={{ flex: 1 }}>
@@ -225,7 +226,7 @@ export default function InfoModal({
                       >
                         <InfoGlassSurface
                           interactive
-                          tintColor="rgba(7,10,14,0.42)"
+                          tintColor={sk("rgba(7,10,14,0.42)", "rgba(255,255,255,0.7)")}
                           style={[styles.actionBtn, { borderColor: T.border, backgroundColor: T.sheetBg }]}
                         >
                           <Ionicons name="open-outline" size={16} color={T.textPrimary} />
@@ -239,7 +240,7 @@ export default function InfoModal({
                       >
                         <InfoGlassSurface
                           interactive
-                          tintColor="rgba(7,10,14,0.42)"
+                          tintColor={sk("rgba(7,10,14,0.42)", "rgba(255,255,255,0.7)")}
                           style={[styles.actionBtn, { borderColor: T.border, backgroundColor: T.sheetBg }]}
                         >
                           <Ionicons name="copy-outline" size={16} color={T.textPrimary} />
@@ -253,7 +254,7 @@ export default function InfoModal({
           ) : (
             <InfoGlassSurface
               effect="clear"
-              tintColor="rgba(26,55,49,0.42)"
+              tintColor={sk("rgba(26,55,49,0.42)", "rgba(238,243,250,0.6)")}
               style={[styles.emptyBox, { backgroundColor: T.softBg, borderColor: T.border }]}
             >
               <Text style={[styles.emptyText, { color: T.textSecondary }]}>

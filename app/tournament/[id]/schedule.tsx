@@ -1,7 +1,7 @@
 import { ScheduleHero, ScheduleMatchTeams } from "@/components/tournament/ScheduleDesign";
 import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // app/tournament/[id]/EnhancedSchedule.jsx
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 /* eslint-disable react/prop-types */
 import {
   Ionicons,
@@ -513,24 +513,24 @@ const scheduleMatchStageChipLabel = (match, matchesOfBracket = []) => {
 
 function useThemeTokens() {
   const scheme = useColorScheme() ?? "light";
-  const v2 = useUiVersion() === "v2";
-  const isDark = v2 || scheme === "dark";
+  const v2 = useUiVersion() === "v2" || IS_V3;
+  const isDark = (v2 && !IS_V3) || scheme === "dark";
   return useMemo(
     () => ({
       scheme,
       isDark, v2,
       // Base (Tối giản hơn)
-      bg: v2 ? "#041329" : isDark ? "#080a0e" : "#f5f8fa", // Nền tổng thể rất nhạt
-      cardBg: v2 ? "#082138" : isDark ? "#101317" : "#ffffff", // Thẻ nền sạch
-      softBg: v2 ? "#0C2945" : isDark ? "#1b1e22" : "#f0f4f7",
-      border: v2 ? "#174A6C" : isDark ? "#2a2f36" : "#e2e8ec", // Viền mỏng
-      text: v2 ? "#F0F6FF" : isDark ? "#eef1f5" : "#1e293b",
-      textSecondary: v2 ? "#A9C2D9" : isDark ? "#cbd5e1" : "#475569",
-      muted: v2 ? "#94B3D0" : isDark ? "#94a3b8" : "#64748b",
-      icon: v2 ? "#A9C2D9" : isDark ? "#d1d5db" : "#334155",
+      bg: v2 ? sk("#041329", "#F2F6FC") : isDark ? "#080a0e" : "#f5f8fa", // Nền tổng thể rất nhạt
+      cardBg: v2 ? sk("#082138", "#FFFFFF") : isDark ? "#101317" : "#ffffff", // Thẻ nền sạch
+      softBg: v2 ? sk("#0C2945", "#EEF3FA") : isDark ? "#1b1e22" : "#f0f4f7",
+      border: v2 ? sk("#174A6C", "rgba(16,42,92,0.10)") : isDark ? "#2a2f36" : "#e2e8ec", // Viền mỏng
+      text: v2 ? sk("#F0F6FF", "#0B1B3A") : isDark ? "#eef1f5" : "#1e293b",
+      textSecondary: v2 ? sk("#A9C2D9", "#243450") : isDark ? "#cbd5e1" : "#475569",
+      muted: v2 ? sk("#94B3D0", "#5F6F8A") : isDark ? "#94a3b8" : "#64748b",
+      icon: v2 ? sk("#A9C2D9", "#5F6F8A") : isDark ? "#d1d5db" : "#334155",
       // Primary/Accent
-      tint: v2 ? "#12C8EC" : isDark ? "#63b3ed" : "#1a73e8", // Xanh dương hiện đại
-      accentBg: v2 ? "rgba(18,182,243,0.16)" : isDark ? "rgba(99, 179, 237, 0.15)" : "#e6f0ff",
+      tint: v2 ? sk("#12C8EC", "#1466F2") : isDark ? "#63b3ed" : "#1a73e8", // Xanh dương hiện đại
+      accentBg: v2 ? sk("rgba(18,182,243,0.16)", "rgba(20,102,242,0.10)") : isDark ? "rgba(99, 179, 237, 0.15)" : "#e6f0ff",
       // Status Colors
       live: "#e65100", // Cam cháy (Live) - Mạnh mẽ hơn
       liveSoft: isDark ? "rgba(230,81,0,0.15)" : "#fff8e6",
@@ -547,12 +547,12 @@ function useThemeTokens() {
       infoText: isDark ? "#a0c4ff" : "#1a73e8",
       tabBg: isDark ? "#1c1e22" : "#f8fafc",
       tabBd: isDark ? "#2a2f36" : "#e2e8f0",
-      tabActiveBg: v2 ? "rgba(18,182,243,0.18)" : isDark ? "rgba(99, 179, 237, 0.15)" : "#e6f0ff",
-      tabActiveBd: v2 ? "#12C8EC" : isDark ? "#63b3ed" : "#90caf9",
-      tabText: v2 ? "#94B3D0" : isDark ? "#d1d5db" : "#334155",
-      tabTextActive: v2 ? "#5CD6FF" : isDark ? "#cde9ff" : "#1a73e8",
+      tabActiveBg: v2 ? sk("rgba(18,182,243,0.18)", "rgba(20,102,242,0.10)") : isDark ? "rgba(99, 179, 237, 0.15)" : "#e6f0ff",
+      tabActiveBd: v2 ? sk("#12C8EC", "#1466F2") : isDark ? "#63b3ed" : "#90caf9",
+      tabText: v2 ? sk("#94B3D0", "#5F6F8A") : isDark ? "#d1d5db" : "#334155",
+      tabTextActive: v2 ? sk("#5CD6FF", "#1466F2") : isDark ? "#cde9ff" : "#1a73e8",
       // Skeleton
-      skeleton: v2 ? "rgba(92,180,255,0.12)" : isDark ? "rgba(255,255,255,0.08)" : "#e5e7eb",
+      skeleton: v2 ? sk("rgba(92,180,255,0.12)", "rgba(16,42,92,0.08)") : isDark ? "rgba(255,255,255,0.08)" : "#e5e7eb",
     }),
     [scheme, v2]
   );
@@ -2541,7 +2541,7 @@ export default function TournamentScheduleNative() {
           title: T.v2 ? "Lịch thi đấu" : `Lịch thi đấu${
             tournament?.name ? ` – ${tournament.name}` : ""
           }`,
-          headerStyle: { backgroundColor: T.v2 ? "#061D33" : T.cardBg },
+          headerStyle: { backgroundColor: T.v2 ? sk("#061D33", "#FFFFFF") : T.cardBg },
           headerTitleStyle: { color: T.text, ...(T.v2 ? { fontSize: 18, fontWeight: "800" } : {}) },
           ...(T.v2 ? { headerTitleAlign: "center" } : {}),
           headerShadowVisible: false,
@@ -3055,11 +3055,14 @@ const stylesNew = StyleSheet.create({
   alertErrorText: { fontSize: 14 },
 });
 
+const V3_CARD_SHADOW = { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 };
+
 const D = StyleSheet.create({
-  headerBack: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: "#174A6C", backgroundColor: "#061D33", alignItems: "center", justifyContent: "center" },
-  matchCard: { padding: 12, paddingLeft: 14, borderRadius: 16 },
+  headerBack: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: sk("#174A6C", "rgba(16,42,92,0.10)"), backgroundColor: sk("#061D33", "#F5F8FD"), alignItems: "center", justifyContent: "center" },
+  // V3: thẻ trắng có bóng mềm (V2 giữ nguyên, không bóng).
+  matchCard: { padding: 12, paddingLeft: 14, borderRadius: 16, ...(IS_V3 ? V3_CARD_SHADOW : null) },
   courtsPanel: { padding: 0, borderWidth: 0 },
   courtGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  courtCard: { flexBasis: "100%", flexGrow: 1, maxWidth: "100%", minWidth: 0 },
+  courtCard: { flexBasis: "100%", flexGrow: 1, maxWidth: "100%", minWidth: 0, ...(IS_V3 ? V3_CARD_SHADOW : null) },
   idleCourt: { flexBasis: "45%", flexGrow: 1, minWidth: 120 },
 });

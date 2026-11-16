@@ -9,6 +9,8 @@ import { Text } from "@/components/ui/i18nText";
 import { Image } from "expo-image";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
+import { LinearGradient } from "expo-linear-gradient";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 
 // Global flag: splash chỉ hiện đúng 1 lần duy nhất trong session
 let __splashAlreadyShown__ = false;
@@ -21,7 +23,8 @@ interface AppBootSplashProps {
 export default function AppBootSplash({ isAppReady }: AppBootSplashProps) {
   const window = useWindowDimensions();
   const [frame, setFrame] = useState({ width: window.width, height: window.height });
-  const [loadedArtwork, setLoadedArtwork] = useState(0);
+  // V3 không dùng ảnh nền (thay bằng gradient sáng) nên đặt sẵn bit 1 để vẫn đạt giá trị 3.
+  const [loadedArtwork, setLoadedArtwork] = useState(IS_V3 ? 1 : 0);
   const [isAnimationComplete, setIsAnimationComplete] = useState(
     __splashAlreadyShown__,
   );
@@ -29,8 +32,10 @@ export default function AppBootSplash({ isAppReady }: AppBootSplashProps) {
   const loadingMotion = useRef(new Animated.Value(0)).current;
   const { width, height } = frame;
   const landscape = width > height;
-  const logoWidth = Math.min(width * 0.79, height * (landscape ? 0.5 : 0.4));
-  const logoHeight = logoWidth * (1080 / 1238);
+  const logoWidth = IS_V3
+    ? Math.min(width * 0.7, 420)
+    : Math.min(width * 0.79, height * (landscape ? 0.5 : 0.4));
+  const logoHeight = IS_V3 ? logoWidth * (191 / 900) : logoWidth * (1080 / 1238);
   const brandTop = height * (landscape ? 0.38 : 0.396) - logoHeight / 2;
   const loaderWidth = Math.min(width * 0.3, 160);
 
@@ -94,17 +99,26 @@ export default function AppBootSplash({ isAppReady }: AppBootSplashProps) {
         }
       }}
     >
-      <StatusBar style="light" />
-      <Image
-        source={require("../assets/images/splash-premium-v1/background.png")}
-        style={StyleSheet.absoluteFillObject}
-        contentFit="fill"
-        accessible={false}
-        onLoadEnd={() => setLoadedArtwork((loaded) => loaded | 1)}
-      />
+      <StatusBar style={sk("light", "dark")} />
+      {IS_V3 ? (
+        <LinearGradient
+          colors={["#F7FAFF", "#EEF4FC"]}
+          style={StyleSheet.absoluteFillObject}
+        />
+      ) : (
+        <Image
+          source={require("../assets/images/splash-premium-v1/background.png")}
+          style={StyleSheet.absoluteFillObject}
+          contentFit="fill"
+          accessible={false}
+          onLoadEnd={() => setLoadedArtwork((loaded) => loaded | 1)}
+        />
+      )}
       <View style={[s.content, { top: brandTop }]} testID="boot-splash-brand">
         <Image
-          source={require("../assets/images/logo-v2-badge.png")}
+          source={IS_V3
+            ? require("../assets/images/v3/logo-lockup.png")
+            : require("../assets/images/logo-v2-badge.png")}
           style={{ width: logoWidth, height: logoHeight }}
           contentFit="contain"
           accessibilityLabel="PickleTour"
@@ -152,7 +166,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     elevation: 99999,
-    backgroundColor: "#040f20",
+    backgroundColor: sk("#040f20", "#F7FAFF"),
     overflow: "hidden",
   },
   content: {
@@ -162,7 +176,7 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   sloganText: {
-    color: "#b8d2f5",
+    color: sk("#b8d2f5", "#5F6F8A"),
     textAlign: "center",
     fontWeight: "400",
   },
@@ -174,17 +188,17 @@ const s = StyleSheet.create({
   loadingTrack: {
     height: 3,
     borderRadius: 2,
-    backgroundColor: "#223f66",
+    backgroundColor: sk("#223f66", "rgba(16,42,92,0.10)"),
     overflow: "hidden",
   },
   loadingSegment: {
     height: 3,
     borderRadius: 2,
-    backgroundColor: "#06bdec",
+    backgroundColor: sk("#06bdec", "#1466F2"),
   },
   loadingText: {
     marginTop: 12,
-    color: "#7e9fc9",
+    color: sk("#7e9fc9", "#5F6F8A"),
     fontSize: 12,
     lineHeight: 18,
     textAlign: "center",

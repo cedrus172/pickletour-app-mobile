@@ -73,6 +73,7 @@ import { useLiquidGlassEnabled } from "@/context/GlassAppearanceContext";
 import { IOS_26_LIQUID_GLASS_ENABLED } from "@/utils/nativeTabs";
 import PlayerNameText from "@/components/PlayerNameText";
 import RangeSlider from "@/components/RangeSlider";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 import {
   PlayerActions,
   PlayerAvatar,
@@ -94,14 +95,14 @@ import {
 /* ================= Config ================= */
 const PLACE = "https://dummyimage.com/100x100/cccccc/ffffff&text=?";
 const COLORS = {
-  gold: "#f59e0b",
-  silver: "#C0C0C0",
-  bronze: "#CD7F32",
-  kycVerified: "#22c55e",
-  kycPending: "#f59e0b",
+  gold: sk("#f59e0b", "#E08A00"),
+  silver: sk("#C0C0C0", "#7C8CA3"),
+  bronze: sk("#CD7F32", "#B8692A"),
+  kycVerified: sk("#22c55e", "#16A34A"),
+  kycPending: sk("#f59e0b", "#D97706"),
   scoreBlue: "#2563EB",
-  scoreRed: "#ef4444",
-  scoreGrey: "#94a3b8",
+  scoreRed: sk("#ef4444", "#DC2626"),
+  scoreGrey: sk("#94a3b8", "#7C8CA3"),
 };
 const SCORE_STALE_MONTHS = 4;
 const ACHIEVEMENT_VISIBLE_LIMIT = 3;
@@ -170,9 +171,9 @@ const CustomImageComponent = (props) => (
 function useThemeColors() {
   const navTheme = useTheme() as any;
   const sysScheme = useColorScheme?.() || "light";
-  const v2 = navTheme?.version === "v2";
+  const v2 = navTheme?.version === "v2" || IS_V3;
   const isDark =
-    v2 || (typeof navTheme?.dark === "boolean" ? navTheme.dark : sysScheme === "dark");
+    (v2 && !IS_V3) || (typeof navTheme?.dark === "boolean" ? navTheme.dark : sysScheme === "dark");
 
   return useMemo(() => {
     const bg = v2 ? RANKING_COLORS.background : isDark ? "#0f1115" : "#F5F7FA";
@@ -181,7 +182,7 @@ function useThemeColors() {
     const subText = v2 ? RANKING_COLORS.textMuted : isDark ? "#848E9C" : "#6B7280";
     const border = v2 ? RANKING_COLORS.border : isDark ? "#262932" : "#E5E7EB";
     const primary = v2 ? RANKING_COLORS.primary : isDark ? "#3B82F6" : "#2563EB";
-    const inputBg = v2 ? RANKING_COLORS.surface : isDark ? "#20232b" : "#F3F4F6";
+    const inputBg = v2 ? sk(RANKING_COLORS.surface, "#EEF3FA") : isDark ? "#20232b" : "#F3F4F6";
 
     return {
       isDark,
@@ -1486,7 +1487,7 @@ const RankingCard = memo(
             </View>
             {u?.province ? (
               <View style={styles.premiumLocationRow}>
-                <Ionicons name="location" size={14} color="#8FB8DE" />
+                <Ionicons name="location" size={14} color={sk("#8FB8DE", "#5F6F8A")} />
                 <Text style={styles.premiumProvince} numberOfLines={1}>
                   {u.province}
                 </Text>
@@ -1504,7 +1505,7 @@ const RankingCard = memo(
               style={styles.premiumGradeButton}
               accessibilityLabel="Chấm trình"
             >
-              <Ionicons name="chevron-forward" size={20} color="#D7E5F5" />
+              <Ionicons name="chevron-forward" size={20} color={sk("#D7E5F5", "#243450")} />
             </TouchableOpacity>
           )}
         </View>
@@ -2092,9 +2093,9 @@ export default function RankingListScreen({ isBack = false }) {
                   values={range}
                   onChange={setLiveRange}
                   onCommit={commitRange}
-                  trackColor="rgba(120,180,230,0.28)"
+                  trackColor={sk("rgba(120,180,230,0.28)", "rgba(16,42,92,0.14)")}
                   activeColor={RANKING_COLORS.primary}
-                  thumbColor="#F4FBFF"
+                  thumbColor={sk("#F4FBFF", "#FFFFFF")}
                   thumbBorder={RANKING_COLORS.primary}
                 />
               </ScoreRange>
@@ -2131,7 +2132,7 @@ export default function RankingListScreen({ isBack = false }) {
                         <Text
                           style={[
                             styles.genderChipText,
-                            { color: active ? "#04121f" : theme.subText },
+                            { color: active ? sk("#04121f", "#FFFFFF") : theme.subText },
                           ]}
                         >
                           {o.l}
@@ -2173,7 +2174,7 @@ export default function RankingListScreen({ isBack = false }) {
                         <Text
                           style={[
                             styles.genderChipText,
-                            { color: active ? "#04121f" : theme.subText },
+                            { color: active ? sk("#04121f", "#FFFFFF") : theme.subText },
                           ]}
                         >
                           {o.l}
@@ -2206,12 +2207,12 @@ export default function RankingListScreen({ isBack = false }) {
                   <Ionicons
                     name="location-outline"
                     size={14}
-                    color={provinceFilter ? "#04121f" : theme.subText}
+                    color={provinceFilter ? sk("#04121f", "#FFFFFF") : theme.subText}
                   />
                   <Text
                     style={[
                       styles.genderChipText,
-                      { color: provinceFilter ? "#04121f" : theme.subText },
+                      { color: provinceFilter ? sk("#04121f", "#FFFFFF") : theme.subText },
                     ]}
                   >
                     {provinceFilter || "Tất cả"}
@@ -2267,7 +2268,7 @@ export default function RankingListScreen({ isBack = false }) {
                       backgroundColor: theme.primary,
                     }}
                   >
-                    <Text style={{ color: "#04121f", fontWeight: "800" }}>Xong</Text>
+                    <Text style={{ color: sk("#04121f", "#FFFFFF"), fontWeight: "800" }}>Xong</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -2559,7 +2560,7 @@ const styles = StyleSheet.create({
   },
   premiumNickname: {
     flexShrink: 1,
-    color: "#FFFFFF",
+    color: sk("#FFFFFF", "#0B1B3A"),
     fontSize: 19,
     lineHeight: 23,
     fontWeight: "900",
@@ -2573,7 +2574,7 @@ const styles = StyleSheet.create({
   },
   premiumProvince: {
     flexShrink: 1,
-    color: "#9DB8D4",
+    color: sk("#9DB8D4", "#5F6F8A"),
     fontSize: 12.5,
     fontWeight: "600",
   },
@@ -2586,8 +2587,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 17,
     borderWidth: 1,
-    borderColor: "rgba(135,190,232,0.45)",
-    backgroundColor: "rgba(8,31,56,0.7)",
+    borderColor: sk("rgba(135,190,232,0.45)", "rgba(16,42,92,0.12)"),
+    backgroundColor: sk("rgba(8,31,56,0.7)", "#F5F8FD"),
   },
   premiumPodiumBadge: {
     maxWidth: 142,
@@ -2622,14 +2623,14 @@ const styles = StyleSheet.create({
     marginTop: 2,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(120,180,230,0.18)",
-    backgroundColor: "rgba(255,255,255,0.045)",
+    borderColor: sk("rgba(120,180,230,0.18)", "rgba(16,42,92,0.08)"),
+    backgroundColor: sk("rgba(255,255,255,0.045)", "#F5F8FD"),
     overflow: "hidden",
   },
   premiumScoreDivider: {
     width: StyleSheet.hairlineWidth,
     height: 45,
-    backgroundColor: "rgba(120,180,230,0.42)",
+    backgroundColor: sk("rgba(120,180,230,0.42)", "rgba(16,42,92,0.14)"),
   },
   topBar: {
     flexDirection: "row",

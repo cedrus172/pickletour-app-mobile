@@ -1,5 +1,5 @@
 import { t } from "@/utils/i18n";
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 import {
   Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
@@ -45,19 +45,19 @@ const CRASH_UPLOAD_FOLDER = "support-crash";
 export default function CrashFeedbackModal() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
-  const v2 = useUiVersion() === "v2";
-  const isDark = v2 || colorScheme === "dark";
+  const v2 = useUiVersion() === "v2" || IS_V3;
+  const isDark = (v2 && !IS_V3) || colorScheme === "dark";
   const colors = React.useMemo(
     () => ({
       backdrop: "rgba(2, 8, 20, 0.6)",
-      card: v2 ? "#0A1B34" : isDark ? "#111827" : "#ffffff",
-      input: v2 ? "rgba(255,255,255,0.06)" : isDark ? "#1f2937" : "#f8fafc",
-      text: v2 ? "#EAF3FF" : isDark ? "#f8fafc" : "#0f172a",
-      sub: v2 ? "#8CA6C8" : isDark ? "#cbd5e1" : "#64748b",
-      border: v2 ? "rgba(92,180,255,0.16)" : isDark ? "#334155" : "#e2e8f0",
-      primary: v2 ? "#12B6F3" : "#2563eb",
-      primarySoft: v2 ? "rgba(18,182,243,0.18)" : isDark ? "rgba(37,99,235,0.18)" : "#eff6ff",
-      danger: "#ef4444",
+      card: v2 ? sk("#0A1B34", "#FFFFFF") : isDark ? "#111827" : "#ffffff",
+      input: v2 ? sk("rgba(255,255,255,0.06)", "#F5F8FD") : isDark ? "#1f2937" : "#f8fafc",
+      text: v2 ? sk("#EAF3FF", "#0B1B3A") : isDark ? "#f8fafc" : "#0f172a",
+      sub: v2 ? sk("#8CA6C8", "#5F6F8A") : isDark ? "#cbd5e1" : "#64748b",
+      border: v2 ? sk("rgba(92,180,255,0.16)", "rgba(16,42,92,0.12)") : isDark ? "#334155" : "#e2e8f0",
+      primary: v2 ? sk("#12B6F3", "#1466F2") : "#2563eb",
+      primarySoft: v2 ? sk("rgba(18,182,243,0.18)", "rgba(20,102,242,0.10)") : isDark ? "rgba(37,99,235,0.18)" : "#eff6ff",
+      danger: sk("#ef4444", "#DC2626"),
     }),
     [isDark, v2],
   );

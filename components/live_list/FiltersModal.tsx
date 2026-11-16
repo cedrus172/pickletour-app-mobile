@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { useTheme } from "@react-navigation/native";
+import { sk } from "@/hooks/uiVersion";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   BottomSheetBackdrop,
@@ -43,11 +44,11 @@ function useThemeTokens() {
     isDark,
     tint: navTheme?.colors?.primary ?? (isDark ? "#6ee7d8" : "#0f766e"),
     textPrimary: navTheme?.colors?.text ?? (isDark ? "#ffffff" : "#102a26"),
-    textSecondary: isDark ? "#b8c4c2" : "#5a6f6a",
+    textSecondary: isDark ? "#b8c4c2" : sk("#5a6f6a", "#5F6F8A"),
     sheetBg: navTheme?.colors?.card ?? (isDark ? "#10201d" : "#fffdf8"),
     border: navTheme?.colors?.border ?? (isDark ? "#23403a" : "#dce8e4"),
-    softBg: isDark ? "#18302c" : "#f1f7f5",
-    handle: isDark ? "#4e6b65" : "#b3c8c3",
+    softBg: isDark ? "#18302c" : sk("#f1f7f5", "#EEF3FA"),
+    handle: isDark ? "#4e6b65" : sk("#b3c8c3", "#C5D0E0"),
   };
 }
 
@@ -281,7 +282,7 @@ const FiltersBottomSheet = forwardRef(function FiltersBottomSheet(
             <Switch
               value={excludeFinished}
               onValueChange={setExcludeFinished}
-              trackColor={{ false: T.border, true: T.tint }}
+              trackColor={{ false: sk(T.border, "#D5DEEB"), true: T.tint }}
               thumbColor={excludeFinished ? "#ffffff" : T.isDark ? "#1d2d29" : "#f8fafc"}
             />
           </View>
@@ -299,7 +300,7 @@ const FiltersBottomSheet = forwardRef(function FiltersBottomSheet(
             <Switch
               value={autoRefresh}
               onValueChange={setAutoRefresh}
-              trackColor={{ false: T.border, true: T.tint }}
+              trackColor={{ false: sk(T.border, "#D5DEEB"), true: T.tint }}
               thumbColor={autoRefresh ? "#ffffff" : T.isDark ? "#1d2d29" : "#f8fafc"}
             />
           </View>

@@ -23,6 +23,7 @@ import {
 } from "@/slices/userMatchesApiSlice";
 import { ScrollView } from "react-native-gesture-handler";
 import { buildRefereeMatchRoute } from "@/utils/refereeMatchRoute";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 
 /* ====== Utils ====== */
 const RANGE_OPTIONS = [
@@ -142,7 +143,7 @@ function MatchCard({ item, onPress }) {
   const isDark = !!theme?.dark;
   const bg = theme?.colors?.card ?? (isDark ? "#1f2933" : "#ffffff");
   const text = theme?.colors?.text ?? (isDark ? "#f9fafb" : "#111827");
-  const sub = isDark ? "#9CA3AF" : "#6B7280";
+  const sub = IS_V3 ? "#5F6F8A" : isDark ? "#9CA3AF" : "#6B7280";
   const border = theme?.colors?.border ?? (isDark ? "#374151" : "#E5E7EB");
   const primaryColor = theme?.colors?.primary ?? "#2563EB";
 
@@ -325,7 +326,7 @@ export default function MatchesStackScreen() {
   const text = theme?.colors?.text ?? (isDark ? "#F9FAFB" : "#111827");
   const primaryColor = theme?.colors?.primary ?? "#2563EB";
   const cardBg = theme?.colors?.card ?? (isDark ? "#020617" : "#FFFFFF");
-  const textSec = isDark ? "#9CA3AF" : "#6B7280";
+  const textSec = IS_V3 ? "#5F6F8A" : isDark ? "#9CA3AF" : "#6B7280";
 
   const [search, setSearch] = useState("");
   const [rangeKey, setRangeKey] = useState("30d");
@@ -471,21 +472,21 @@ export default function MatchesStackScreen() {
               styles.searchInputWrapper,
               {
                 backgroundColor: cardBg,
-                borderColor: isDark ? "#1F2937" : "#E5E7EB",
+                borderColor: IS_V3 ? "rgba(16,42,92,0.10)" : isDark ? "#1F2937" : "#E5E7EB",
               },
             ]}
           >
             <Ionicons
               name="search"
               size={18}
-              color={isDark ? "#9CA3AF" : "#9CA3AF"}
+              color={IS_V3 ? "#97A3B8" : isDark ? "#9CA3AF" : "#9CA3AF"}
               style={{ marginRight: 8 }}
             />
             <TextInput
               value={search}
               onChangeText={setSearch}
               placeholder="Tìm theo tiêu đề, địa điểm..."
-              placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+              placeholderTextColor={IS_V3 ? "#97A3B8" : isDark ? "#6B7280" : "#9CA3AF"}
               style={[styles.searchInput, { color: text }]}
               returnKeyType="search"
               onSubmitEditing={handleRefresh}
@@ -590,7 +591,7 @@ export default function MatchesStackScreen() {
           <Text
             style={[
               styles.listCount,
-              { color: isDark ? "#9CA3AF" : "#6B7280" },
+              { color: IS_V3 ? "#5F6F8A" : isDark ? "#9CA3AF" : "#6B7280" },
             ]}
           >
             ({total})
@@ -619,12 +620,12 @@ export default function MatchesStackScreen() {
                 <Ionicons
                   name="tennisball-outline"
                   size={32}
-                  color={isDark ? "#4B5563" : "#D1D5DB"}
+                  color={IS_V3 ? "#97A3B8" : isDark ? "#4B5563" : "#D1D5DB"}
                 />
                 <Text
                   style={[
                     styles.emptyText,
-                    { color: isDark ? "#9CA3AF" : "#6B7280" },
+                    { color: IS_V3 ? "#5F6F8A" : isDark ? "#9CA3AF" : "#6B7280" },
                   ]}
                 >
                   Bạn chưa tạo trận nào trong khoảng thời gian này
@@ -699,7 +700,7 @@ export default function MatchesStackScreen() {
                   marked[start] = {
                     startingDay: true,
                     endingDay: true,
-                    color: "#0ea5e9",
+                    color: sk("#0ea5e9", "#1466F2"),
                     textColor: "#fff",
                   };
                   return marked;
@@ -710,7 +711,7 @@ export default function MatchesStackScreen() {
                     marked[start] = {
                       startingDay: true,
                       endingDay: true,
-                      color: "#0ea5e9",
+                      color: sk("#0ea5e9", "#1466F2"),
                       textColor: "#fff",
                     };
                     return marked;
@@ -728,18 +729,18 @@ export default function MatchesStackScreen() {
                     if (id === start) {
                       marked[id] = {
                         startingDay: true,
-                        color: "#0ea5e9",
+                        color: sk("#0ea5e9", "#1466F2"),
                         textColor: "#fff",
                       };
                     } else if (id === end) {
                       marked[id] = {
                         endingDay: true,
-                        color: "#0ea5e9",
+                        color: sk("#0ea5e9", "#1466F2"),
                         textColor: "#fff",
                       };
                     } else {
                       marked[id] = {
-                        color: "#bae6fd",
+                        color: sk("#bae6fd", "#DCE8FE"),
                         textColor: "#0f172a",
                       };
                     }
@@ -839,7 +840,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "rgba(148,163,184,0.4)",
+    borderColor: sk("rgba(148,163,184,0.4)", "rgba(16,42,92,0.14)"),
+    ...(IS_V3 ? { backgroundColor: "#FFFFFF" } : null),
   },
   rangeChipText: {
     fontSize: 12,
@@ -877,6 +879,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     padding: 12,
+    // V3 Fresh: thẻ trắng có bóng mềm
+    ...(IS_V3
+      ? {
+          shadowColor: "#1B3A7A",
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 3,
+        }
+      : null),
   },
   cardHeaderRow: {
     flexDirection: "row",

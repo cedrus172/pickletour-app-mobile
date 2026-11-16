@@ -1,6 +1,6 @@
 import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 import { t } from "@/utils/i18n";
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 // app/(app)/tournament/[id]/referee.jsx
 import React, {
   useEffect,
@@ -55,20 +55,20 @@ import AppModal, { ModalTopInset } from "@/components/ui/AppModal";
 /* ---------------- THEME ---------------- */
 function useThemeTokens() {
   const scheme = useColorScheme() ?? "light";
-  const v2 = useUiVersion() === "v2";
-  const dark = v2 || scheme === "dark";
+  const v2 = useUiVersion() === "v2" || IS_V3;
+  const dark = (v2 && !IS_V3) || scheme === "dark";
   return useMemo(
     () => ({
       scheme,
       // base
-      bg: v2 ? "#040E20" : dark ? "#0b0d10" : "#f6f8fc",
-      cardBg: v2 ? "#0A1B34" : dark ? "#111214" : "#ffffff",
-      border: v2 ? "rgba(92,180,255,0.16)" : dark ? "#2a2f36" : "#e4e8ef",
-      text: v2 ? "#EAF3FF" : dark ? "#e5e7eb" : "#111111",
-      subtext: v2 ? "#C4D6EC" : dark ? "#cbd5e1" : "#444444",
-      muted: v2 ? "#8CA6C8" : dark ? "#94a3b8" : "#9aa0a6",
-      icon: v2 ? "#C4D6EC" : dark ? "#d1d5db" : "#334155",
-      tint: v2 ? "#12B6F3" : dark ? "#7cc0ff" : "#0a84ff",
+      bg: v2 ? sk("#040E20", "#F2F6FC") : dark ? "#0b0d10" : "#f6f8fc",
+      cardBg: v2 ? sk("#0A1B34", "#FFFFFF") : dark ? "#111214" : "#ffffff",
+      border: v2 ? sk("rgba(92,180,255,0.16)", "rgba(16,42,92,0.10)") : dark ? "#2a2f36" : "#e4e8ef",
+      text: v2 ? sk("#EAF3FF", "#0B1B3A") : dark ? "#e5e7eb" : "#111111",
+      subtext: v2 ? sk("#C4D6EC", "#243450") : dark ? "#cbd5e1" : "#444444",
+      muted: v2 ? sk("#8CA6C8", "#5F6F8A") : dark ? "#94a3b8" : "#9aa0a6",
+      icon: v2 ? sk("#C4D6EC", "#243450") : dark ? "#d1d5db" : "#334155",
+      tint: v2 ? sk("#12B6F3", "#1466F2") : dark ? "#7cc0ff" : "#0a84ff",
 
       // pills / chips
       pillDefaultBg: dark ? "#1e293b" : "#eef2f7",
@@ -102,7 +102,7 @@ function useThemeTokens() {
       errText: dark ? "#fecaca" : "#991b1b",
 
       // tabs
-      tabBd: dark ? "#2a2f36" : "#e4e8ef",
+      tabBd: IS_V3 ? "rgba(16,42,92,0.12)" : dark ? "#2a2f36" : "#e4e8ef",
 
       // buttons
       btnDisabledBg: dark ? "#475569" : "#94a3b8",
@@ -1092,7 +1092,7 @@ export default function RefereeCenterScreen() {
         onPress={() => openMatch(m._id)}
         style={({ pressed }) => [
           styles.matchRow,
-          { borderColor: T.border, backgroundColor: T.cardBg },
+          { borderColor: T.border, backgroundColor: IS_V3 ? "#F5F8FD" : T.cardBg },
           pressed && { opacity: 0.95 },
         ]}
       >
@@ -1879,7 +1879,21 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
 
-  card: { borderWidth: 1, borderRadius: 14, padding: 12 },
+  card: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    // V3 Fresh: thẻ trắng có bóng mềm
+    ...(IS_V3
+      ? {
+          shadowColor: "#1B3A7A",
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 3,
+        }
+      : null),
+  },
   bracketTitle: { fontSize: 16, fontWeight: "700" },
 
   /* match row */
@@ -1930,7 +1944,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 6,
     paddingHorizontal: 6,
-    shadowColor: "#000",
+    shadowColor: sk("#000", "#1B3A7A"),
     shadowOpacity: 0.15,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 6 },

@@ -3,6 +3,7 @@ import { ActivityIndicator, Image, Pressable, StyleSheet, View } from "react-nat
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/i18nText";
 import type { ThemeTokens } from "@/hooks/useThemeTokens";
+import { sk } from "@/hooks/uiVersion";
 import type { CameraPreview, CameraPreviewState } from "@/utils/clipCameraCache";
 import type { Channel } from "@/utils/pickclip";
 
@@ -70,7 +71,7 @@ const styles = StyleSheet.create({
   heading: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 18 },
   info: { borderWidth: 1, borderRadius: 12, minHeight: 40, paddingHorizontal: 13, paddingVertical: 10, flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 14 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 14 },
-  card: { borderWidth: 1, borderRadius: 14, padding: 3, overflow: "hidden" },
+  card: { borderWidth: 1, borderRadius: 14, padding: 3, overflow: "hidden", ...sk({}, { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 }) },
   imageWrap: { aspectRatio: 16 / 9, borderRadius: 11, overflow: "hidden" },
   placeholder: { flex: 1, alignItems: "center", justifyContent: "center", padding: 15 },
   imagePill: { position: "absolute", backgroundColor: "rgba(2,14,29,0.78)", borderRadius: 10, paddingHorizontal: 9, paddingVertical: 5, flexDirection: "row", alignItems: "center", gap: 5 },

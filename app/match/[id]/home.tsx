@@ -1,6 +1,6 @@
 import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // app/match/[id]/home.tsx
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 import React, { useEffect, useMemo, useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -30,16 +30,16 @@ import {
 /* ---------- theme tokens ---------- */
 function useThemeTokens() {
   const scheme = useColorScheme() ?? "light";
-  const v2 = useUiVersion() === "v2";
-  const dark = v2 || scheme === "dark";
+  const v2 = useUiVersion() === "v2" || IS_V3;
+  const dark = (v2 && !IS_V3) || scheme === "dark";
   return {
     scheme,
-    bg: v2 ? "#040E20" : dark ? "#0b0d10" : "#f6f8fc",
-    cardBg: v2 ? "#0A1B34" : dark ? "#111214" : "#ffffff",
-    border: v2 ? "rgba(92,180,255,0.16)" : dark ? "#2a2f36" : "#cbd5e1",
-    text: v2 ? "#EAF3FF" : dark ? "#e5e7eb" : "#0f172a",
-    subtext: v2 ? "#8CA6C8" : dark ? "#cbd5e1" : "#64748b",
-    tint: v2 ? "#12B6F3" : dark ? "#7cc0ff" : "#0a84ff",
+    bg: v2 ? sk("#040E20", "#F2F6FC") : dark ? "#0b0d10" : "#f6f8fc",
+    cardBg: v2 ? sk("#0A1B34", "#FFFFFF") : dark ? "#111214" : "#ffffff",
+    border: v2 ? sk("rgba(92,180,255,0.16)", "rgba(16,42,92,0.10)") : dark ? "#2a2f36" : "#cbd5e1",
+    text: v2 ? sk("#EAF3FF", "#0B1B3A") : dark ? "#e5e7eb" : "#0f172a",
+    subtext: v2 ? sk("#8CA6C8", "#5F6F8A") : dark ? "#cbd5e1" : "#64748b",
+    tint: v2 ? sk("#12B6F3", "#1466F2") : dark ? "#7cc0ff" : "#0a84ff",
     errBg: dark ? "rgba(239,68,68,0.12)" : "#fee2e2",
     errBd: dark ? "#fca5a5" : "#fecaca",
     errText: dark ? "#fecaca" : "#b91c1c",

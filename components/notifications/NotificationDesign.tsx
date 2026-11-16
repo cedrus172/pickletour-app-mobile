@@ -5,13 +5,14 @@ import { Pressable, StyleSheet, View } from "react-native";
 
 import { FEED_COLORS } from "@/components/feed/FeedDesign";
 import { Text } from "@/components/ui/i18nText";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 
 export const NOTIFICATION_COLORS = {
   ...FEED_COLORS,
   purple: "#8B5CF6",
-  green: "#22D879",
-  gold: "#FFB000",
-  coral: "#FF4D67",
+  green: sk("#22D879", "#16A34A"),
+  gold: sk("#FFB000", "#D97706"),
+  coral: sk("#FF4D67", "#EF3B3B"),
 } as const;
 
 export const NotificationsPage = memo(function NotificationsPage({
@@ -48,12 +49,12 @@ export const NotificationsHeader = memo(function NotificationsHeader({
           <View style={[styles.ballHole, styles.ballHoleThree]} />
         </View>
         <LinearGradient
-          colors={["#14C9FF", "#2765FF", "#7547E8"]}
+          colors={sk<[string, string, string]>(["#14C9FF", "#2765FF", "#7547E8"], ["#2F8BFF", "#1466F2", "#0B3FB8"])}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.bellCircle}
         >
-          <Ionicons name="notifications" size={50} color="#EAF8FF" />
+          <Ionicons name="notifications" size={50} color={sk("#EAF8FF", "#FFFFFF")} />
         </LinearGradient>
         {unreadCount > 0 ? (
           <View style={styles.unreadBadge}>
@@ -134,7 +135,7 @@ const styles = StyleSheet.create({
     width: 320,
     height: 320,
     borderRadius: 160,
-    backgroundColor: "rgba(8,189,245,0.09)",
+    backgroundColor: sk("rgba(8,189,245,0.09)", "rgba(20,102,242,0.07)"),
   },
   ambientBottom: {
     position: "absolute",
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
     width: 320,
     height: 320,
     borderRadius: 160,
-    backgroundColor: "rgba(139,92,246,0.04)",
+    backgroundColor: sk("rgba(139,92,246,0.04)", "rgba(197,244,51,0.10)"),
   },
   header: {
     height: 196,
@@ -166,8 +167,8 @@ const styles = StyleSheet.create({
     lineHeight: 44,
     fontWeight: "900",
     letterSpacing: -1.25,
-    textShadowColor: "rgba(8,189,245,0.28)",
-    textShadowRadius: 9,
+    textShadowColor: sk("rgba(8,189,245,0.28)", "transparent"),
+    textShadowRadius: sk(9, 0),
   },
   subtitle: {
     color: NOTIFICATION_COLORS.textSoft,
@@ -195,9 +196,9 @@ const styles = StyleSheet.create({
     width: 132,
     height: 132,
     borderRadius: 66,
-    backgroundColor: "rgba(22,119,255,0.13)",
+    backgroundColor: sk("rgba(22,119,255,0.13)", "rgba(20,102,242,0.09)"),
     shadowColor: NOTIFICATION_COLORS.primary,
-    shadowOpacity: 0.38,
+    shadowOpacity: sk(0.38, 0.16),
     shadowRadius: 22,
   },
   bellCircle: {
@@ -210,7 +211,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(188,235,255,0.48)",
+    borderColor: sk("rgba(188,235,255,0.48)", "rgba(255,255,255,0.7)"),
     transform: [{ rotate: "9deg" }],
   },
   ball: {
@@ -220,9 +221,9 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#A6E92E",
-    shadowColor: "#75D20B",
-    shadowOpacity: 0.38,
+    backgroundColor: sk("#A6E92E", "#C5F433"),
+    shadowColor: sk("#75D20B", "#8FCB10"),
+    shadowOpacity: sk(0.38, 0.3),
     shadowRadius: 8,
   },
   ballHole: {
@@ -230,7 +231,7 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: "#315E13",
+    backgroundColor: sk("#315E13", "#5E9C00"),
   },
   ballHoleOne: { top: 8, left: 16 },
   ballHoleTwo: { top: 23, right: 7 },
@@ -247,9 +248,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: NOTIFICATION_COLORS.coral,
     borderWidth: 2,
-    borderColor: "#FFB0BD",
+    borderColor: sk("#FFB0BD", "#FFFFFF"),
     shadowColor: NOTIFICATION_COLORS.coral,
-    shadowOpacity: 0.48,
+    shadowOpacity: sk(0.48, 0.28),
     shadowRadius: 8,
   },
   unreadBadgeText: { color: "#FFFFFF", fontSize: 14, fontWeight: "900" },
@@ -276,9 +277,9 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 10,
     borderRadius: 999,
-    backgroundColor: "rgba(8,35,64,0.8)",
+    backgroundColor: sk("rgba(8,35,64,0.8)", "#FFFFFF"),
     borderWidth: 1,
-    borderColor: "rgba(8,189,245,0.28)",
+    borderColor: sk("rgba(8,189,245,0.28)", "rgba(20,102,242,0.20)"),
   },
   markAllText: {
     color: NOTIFICATION_COLORS.textMuted,
@@ -295,17 +296,26 @@ const styles = StyleSheet.create({
     gap: 11,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "rgba(90,180,230,0.14)",
-    backgroundColor: "rgba(7,28,53,0.75)",
+    borderColor: sk("rgba(90,180,230,0.14)", "rgba(16,42,92,0.08)"),
+    backgroundColor: sk("rgba(7,28,53,0.75)", "#FFFFFF"),
+    ...(IS_V3
+      ? {
+          shadowColor: "#1B3A7A",
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 3,
+        }
+      : null),
   },
   skeletonIcon: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "rgba(92,125,161,0.15)",
+    backgroundColor: sk("rgba(92,125,161,0.15)", "rgba(16,42,92,0.08)"),
   },
   skeletonCopy: { flex: 1, gap: 7 },
-  skeletonTitle: { width: "64%", height: 12, borderRadius: 6, backgroundColor: "rgba(143,170,200,0.2)" },
-  skeletonBody: { width: "88%", height: 10, borderRadius: 5, backgroundColor: "rgba(143,170,200,0.13)" },
-  skeletonTime: { width: "28%", height: 8, borderRadius: 4, backgroundColor: "rgba(143,170,200,0.1)" },
+  skeletonTitle: { width: "64%", height: 12, borderRadius: 6, backgroundColor: sk("rgba(143,170,200,0.2)", "rgba(16,42,92,0.10)") },
+  skeletonBody: { width: "88%", height: 10, borderRadius: 5, backgroundColor: sk("rgba(143,170,200,0.13)", "rgba(16,42,92,0.07)") },
+  skeletonTime: { width: "28%", height: 8, borderRadius: 4, backgroundColor: sk("rgba(143,170,200,0.1)", "rgba(16,42,92,0.05)") },
 });

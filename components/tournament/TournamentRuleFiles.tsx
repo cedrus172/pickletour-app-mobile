@@ -13,6 +13,17 @@ import {
 } from "@/slices/tournamentRuleFilesApiSlice";
 
 import AppModal from "@/components/ui/AppModal";
+import { IS_V3, sk } from "@/hooks/uiVersion";
+
+// V3 Fresh: trang chọn tệp (WebView) đổi sang nền sáng. Không sửa utils/tournamentRuleFiles.ts vì
+// scripts/test-rule-files-ripple.cjs nạp file đó độc lập (không có require) nên không import được ở đó.
+const PICKER_HTML = IS_V3
+  ? RULE_FILE_PICKER_HTML
+      .replace("background:#0b2035;color:#eaf3ff", "background:#F2F6FC;color:#0B1B3A")
+      .replace("background:#0bbfe7;color:#032235", "background:#1466F2;color:#FFFFFF")
+      .replace("color:#9db4cc", "color:#5F6F8A")
+  : RULE_FILE_PICKER_HTML;
+const DANGER = sk("#FB7185", "#DC2626");
 type RuleFile = { _id: string; name: string; mimeType: string; size: number; url: string };
 
 export default function TournamentRuleFiles({ tournamentId, canManage = false }: { tournamentId: string; canManage?: boolean }) {
@@ -81,7 +92,7 @@ export default function TournamentRuleFiles({ tournamentId, canManage = false }:
       {items.map((file) => <View key={file._id} style={[styles.fileRow, { borderColor: C.border }]}>
         <Pressable accessibilityRole="button" accessibilityLabel={`Xem ${file.name}`} onPress={() => viewFile(file)} style={styles.openFile}>
           {file.mimeType.startsWith("image/") ? <Image source={{ uri: file.url }} style={styles.thumbnail} contentFit="cover" /> :
-            <View style={[styles.thumbnail, styles.pdf]}><Ionicons name="document-text-outline" size={28} color="#FB7185" /><Text style={styles.pdfLabel}>PDF</Text></View>}
+            <View style={[styles.thumbnail, styles.pdf]}><Ionicons name="document-text-outline" size={28} color={DANGER} /><Text style={styles.pdfLabel}>PDF</Text></View>}
           <View style={styles.fileInfo}>
             <Text style={{ color: C.text, fontWeight: "700", fontSize: 13 }}>{file.name}</Text>
             <Text style={{ color: C.sub, fontSize: 12, marginTop: 4 }}>{(file.size / 1024 / 1024).toFixed(1)} MB · {file.mimeType.startsWith("image/") ? "Xem ảnh" : "Mở PDF"}</Text>
@@ -89,7 +100,7 @@ export default function TournamentRuleFiles({ tournamentId, canManage = false }:
           <Ionicons name="open-outline" size={18} color={C.primary} />
         </Pressable>
         {canManage && <Pressable disabled={busy || deleting} onPress={() => deleteFile(file)} accessibilityRole="button" accessibilityLabel={`Xóa ${file.name}`} style={styles.delete}>
-          <Ionicons name="trash-outline" size={19} color="#FB7185" />
+          <Ionicons name="trash-outline" size={19} color={DANGER} />
         </Pressable>}
       </View>)}
       <AppModal visible={picking} animationType="slide" onRequestClose={() => setPicking(false)}>
@@ -98,7 +109,7 @@ export default function TournamentRuleFiles({ tournamentId, canManage = false }:
             <Text style={[styles.title, { color: C.text }]}>Chọn tệp điều lệ</Text>
             <Pressable onPress={() => setPicking(false)} accessibilityLabel="Đóng chọn tệp" accessibilityRole="button" style={styles.delete}><Ionicons name="close" size={25} color={C.text} /></Pressable>
           </View>
-          <WebView source={{ html: RULE_FILE_PICKER_HTML }} style={{ flex: 1, backgroundColor: "#0B2035" }}
+          <WebView source={{ html: PICKER_HTML }} style={{ flex: 1, backgroundColor: sk("#0B2035", "#F2F6FC") }}
             originWhitelist={["about:blank"]} javaScriptEnabled
             onShouldStartLoadWithRequest={(request) => request.url === "about:blank"}
             onMessage={(event) => receiveFile(event.nativeEvent.data)} />
@@ -120,7 +131,7 @@ export default function TournamentRuleFiles({ tournamentId, canManage = false }:
 }
 
 const styles = StyleSheet.create({
-  panel: { borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 18 },
+  panel: { borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 18, ...(IS_V3 ? { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 } : null) },
   heading: { flexDirection: "row", alignItems: "center", gap: 8 },
   title: { fontSize: 16, fontWeight: "800", flexShrink: 1 },
   hint: { fontSize: 12, marginTop: 6, marginBottom: 12 },
@@ -128,11 +139,11 @@ const styles = StyleSheet.create({
   fileRow: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderRadius: 12, marginTop: 12, overflow: "hidden" },
   openFile: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10, padding: 10 },
   thumbnail: { width: 52, height: 58, borderRadius: 6 },
-  pdf: { alignItems: "center", justifyContent: "center", backgroundColor: "rgba(251,113,133,.1)" },
-  pdfLabel: { fontSize: 10, fontWeight: "800", color: "#FB7185" },
+  pdf: { alignItems: "center", justifyContent: "center", backgroundColor: sk("rgba(251,113,133,.1)", "rgba(220,38,38,0.08)") },
+  pdfLabel: { fontSize: 10, fontWeight: "800", color: DANGER },
   fileInfo: { flex: 1, minWidth: 0 },
   delete: { width: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
-  error: { color: "#FB7185", fontSize: 13, marginTop: 10 },
+  error: { color: DANGER, fontSize: 13, marginTop: 10 },
   modal: { flex: 1 },
   modalHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, paddingHorizontal: 16, paddingVertical: 10 },
 });

@@ -38,6 +38,7 @@ import {
 import { useChatKeyboard } from "@/hooks/useChatKeyboard";
 import EventLiveChat from "@/components/EventLiveChat";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { sk } from "@/hooks/uiVersion";
 
 // Origin THẬT để YouTube cho phép nhúng (baseUrl=youtube.com khiến YT coi như
 // tự-nhúng-vào-chính-mình -> lỗi 152 cho MỌI video). Dùng pickletour.vn.
@@ -340,8 +341,8 @@ export default function EventLiveScreen() {
             )}
             {viewerCount > 0 && (
               <View style={styles.liveDotRow}>
-                <Ionicons name="eye" size={13} color="#60a5fa" />
-                <Text style={[styles.hMeta, { color: "#60a5fa" }]}>{viewerCount} đang xem</Text>
+                <Ionicons name="eye" size={13} color={sk("#60a5fa", "#1466F2")} />
+                <Text style={[styles.hMeta, { color: sk("#60a5fa", "#1466F2") }]}>{viewerCount} đang xem</Text>
               </View>
             )}
           </View>
@@ -889,21 +890,22 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     borderColor: C.border,
     padding: 12,
     marginBottom: 12,
+    ...sk({}, { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 }),
   },
   cardHead: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
   cardTitle: { color: C.text, fontSize: 15, fontWeight: "800", flex: 1 },
   miniLive: { flexDirection: "row", alignItems: "center", gap: 5 },
-  miniLiveText: { color: "#ff6b6b", fontSize: 11, fontWeight: "800" },
+  miniLiveText: { color: sk("#ff6b6b", "#DC2626"), fontSize: 11, fontWeight: "800" },
   matchBox: {
     marginBottom: 10,
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.03)",
+    backgroundColor: sk("rgba(255,255,255,0.03)", "#F5F8FD"),
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.07)",
+    borderColor: sk("rgba(255,255,255,0.07)", "rgba(16,42,92,0.08)"),
   },
-  matchStage: { color: "#fbbf24", fontSize: 11, fontWeight: "700", textAlign: "center", marginBottom: 3 },
+  matchStage: { color: sk("#fbbf24", "#D97706"), fontSize: 11, fontWeight: "700", textAlign: "center", marginBottom: 3 },
   matchScoreRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   matchTeam: { flex: 1, color: C.text, fontSize: 12.5, fontWeight: "600" },
   matchScoreBox: {
@@ -913,12 +915,12 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
-    backgroundColor: "#0b1220",
+    backgroundColor: sk("#0b1220", "rgba(20,102,242,0.08)"),
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: sk("rgba(255,255,255,0.12)", "rgba(20,102,242,0.16)"),
   },
-  matchScore: { color: "#fff", fontSize: 15, fontWeight: "900", minWidth: 14, textAlign: "center" },
-  matchColon: { color: "#64748b", fontSize: 13, fontWeight: "700" },
+  matchScore: { color: sk("#fff", "#0B1B3A"), fontSize: 15, fontWeight: "900", minWidth: 14, textAlign: "center" },
+  matchColon: { color: sk("#64748b", "#97A3B8"), fontSize: 13, fontWeight: "700" },
   matchGames: { color: C.sub, fontSize: 10.5, textAlign: "center", marginTop: 3 },
   angleWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   angleBtn: {

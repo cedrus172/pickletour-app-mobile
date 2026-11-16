@@ -1,5 +1,5 @@
 import { t } from "@/utils/i18n";
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 // src/screens/settings/FacebookLiveSettingsScreen.jsx
 import React, { useCallback, useState } from "react";
 import {
@@ -29,7 +29,7 @@ import { normalizeUrl } from "@/utils/normalizeUri";
 import AppModal from "@/components/ui/AppModal";
 // 🔹 CẤU HÌNH MÀU SẮC
 const THEME_COLORS = {
-  light: {
+  light: sk({
     background: "#f9fafb",
     cardBg: "#ffffff",
     text: "#111827",
@@ -42,7 +42,21 @@ const THEME_COLORS = {
     loadingBg: "#ffffff",
     modalHeaderBorder: "#e5e7eb",
     iconDefault: "#d1d5db",
-  },
+  }, {
+    // V3 Fresh: nền sáng theo bảng màu mới
+    background: "#F2F6FC",
+    cardBg: "#FFFFFF",
+    text: "#0B1B3A",
+    subText: "#5F6F8A",
+    border: "rgba(16,42,92,0.10)",
+    infoBg: "rgba(20,102,242,0.08)",
+    infoText: "#0B3FB8",
+    headerBg: "#FFFFFF",
+    headerTint: "#0B1B3A",
+    loadingBg: "#FFFFFF",
+    modalHeaderBorder: "rgba(16,42,92,0.10)",
+    iconDefault: "#C3CDDD",
+  }),
   dark: {
     background: "#111827",
     cardBg: "#1f2937",
@@ -62,8 +76,8 @@ const THEME_COLORS = {
 const FacebookLiveSettingsScreen = () => {
   // 🔹 Detect theme
   const colorScheme = useColorScheme();
-  const v2 = useUiVersion() === "v2";
-  const isDark = v2 || colorScheme === "dark";
+  const v2 = useUiVersion() === "v2" || IS_V3;
+  const isDark = (v2 && !IS_V3) || colorScheme === "dark";
   const theme = THEME_COLORS[isDark ? "dark" : "light"];
 
   const router = useRouter();
@@ -237,7 +251,7 @@ const FacebookLiveSettingsScreen = () => {
     if (isLoading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3b82f6" />
+          <ActivityIndicator size="large" color={sk("#3b82f6", "#1466F2")} />
           <Text style={[styles.loadingText, { color: theme.subText }]}>
             Đang tải danh sách fanpage...
           </Text>
@@ -323,7 +337,7 @@ const FacebookLiveSettingsScreen = () => {
 
       {/* Info */}
       <View style={[styles.infoBox, { backgroundColor: theme.infoBg }]}>
-        <Ionicons name="information-circle" size={20} color={isDark ? "#3b82f6" : "#3b82f6"} />
+        <Ionicons name="information-circle" size={20} color={isDark ? "#3b82f6" : sk("#3b82f6", "#1466F2")} />
         <Text style={[styles.infoText, { color: theme.infoText }]}>
           Bấm &quot;Kết nối Facebook&quot; để cấp quyền quản lý livestream trên
           fanpage của bạn.
@@ -469,7 +483,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: "#3b82f6",
+    backgroundColor: sk("#3b82f6", "#1466F2"),
     paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 8,
@@ -503,11 +517,11 @@ const styles = StyleSheet.create({
     padding: 16,
     flexDirection: "row",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOffset: { width: 0, height: sk(1, 4) },
+    shadowOpacity: sk(0.05, 0.1),
+    shadowRadius: sk(2, 12),
+    elevation: sk(2, 3),
   },
   pageAvatar: {
     width: 50,
@@ -532,8 +546,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   defaultBadge: {
-    backgroundColor: "#dbeafe",
-    borderColor: "#3b82f6",
+    backgroundColor: sk("#dbeafe", "rgba(20,102,242,0.10)"),
+    borderColor: sk("#3b82f6", "#1466F2"),
     borderWidth: 1,
     borderRadius: 4,
     paddingHorizontal: 8,
@@ -541,7 +555,7 @@ const styles = StyleSheet.create({
   },
   defaultBadgeText: {
     fontSize: 12,
-    color: "#1e40af",
+    color: sk("#1e40af", "#0B3FB8"),
     fontWeight: "500",
   },
   pageCategory: {

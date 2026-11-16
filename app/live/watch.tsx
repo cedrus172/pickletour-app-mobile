@@ -28,6 +28,7 @@ import {
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { sk } from "@/hooks/uiVersion";
 import { WebView } from "react-native-webview";
 
 import {
@@ -251,7 +252,7 @@ export default function LiveWatchScreen() {
         startInLoadingState
         renderLoading={() => (
           <View style={[StyleSheet.absoluteFill, styles.centerBox]}>
-            <ActivityIndicator size="large" color="#25f4ee" />
+            <ActivityIndicator size="large" color={sk("#25f4ee", "#C5F433")} />
           </View>
         )}
       />
@@ -459,8 +460,8 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   sourceChipActive: {
-    backgroundColor: "rgba(37,244,238,0.92)",
-    borderColor: "rgba(37,244,238,0.92)",
+    backgroundColor: sk("rgba(37,244,238,0.92)", "rgba(197,244,51,0.95)"),
+    borderColor: sk("rgba(37,244,238,0.92)", "rgba(197,244,51,0.95)"),
   },
   sourceChipText: { color: "#fff", fontWeight: "700", fontSize: 12 },
   sourceChipTextActive: { color: "#06222a" },

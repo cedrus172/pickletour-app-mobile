@@ -70,6 +70,7 @@ import { AspectImage } from "@/components/feed/AspectImage";
 import { AuthorAvatar } from "@/components/social/AuthorAvatar";
 import PlayerNameText from "@/components/PlayerNameText";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { sk } from "@/hooks/uiVersion";
 import { useResponsive } from "@/hooks/useResponsive";
 import { useDuoSideNavigationActive } from "@/hooks/useDuoSideNavigation";
 import {
@@ -207,12 +208,12 @@ function ScoreBadges({
     <View style={scoreStyles.wrap}>
       {s > 0 && (
         <View style={[sizeStyle, scoreStyles.singleBadge]}>
-          <Text style={[txtStyle, { color: "#A9DCFF" }]}>Đơn {fmt(s)}</Text>
+          <Text style={[txtStyle, { color: sk("#A9DCFF", "#1466F2") }]}>Đơn {fmt(s)}</Text>
         </View>
       )}
       {d > 0 && (
         <View style={[sizeStyle, scoreStyles.doubleBadge]}>
-          <Text style={[txtStyle, { color: "#D8B4FE" }]}>Đôi {fmt(d)}</Text>
+          <Text style={[txtStyle, { color: sk("#D8B4FE", "#7C3AED") }]}>Đôi {fmt(d)}</Text>
         </View>
       )}
     </View>
@@ -239,12 +240,12 @@ const scoreStyles = StyleSheet.create({
     borderWidth: 1,
   },
   singleBadge: {
-    backgroundColor: "rgba(22,119,255,0.2)",
-    borderColor: "rgba(80,170,255,0.26)",
+    backgroundColor: sk("rgba(22,119,255,0.2)", "rgba(20,102,242,0.09)"),
+    borderColor: sk("rgba(80,170,255,0.26)", "rgba(20,102,242,0.20)"),
   },
   doubleBadge: {
-    backgroundColor: "rgba(139,61,219,0.24)",
-    borderColor: "rgba(185,112,255,0.25)",
+    backgroundColor: sk("rgba(139,61,219,0.24)", "rgba(124,58,237,0.09)"),
+    borderColor: sk("rgba(185,112,255,0.25)", "rgba(124,58,237,0.20)"),
   },
   textSm: { fontSize: 10, fontWeight: "800", letterSpacing: 0.2 },
   textMd: { fontSize: 12, fontWeight: "800", letterSpacing: 0.2 },
@@ -696,7 +697,7 @@ function Composer({ onPosted }: { onPosted: () => void }) {
                   setPollDraft((p: any) => ({ ...p, options: [...p.options, ""] }))
                 }
               >
-                <Text style={{ color: "#0066FF", fontWeight: "700" }}>
+                <Text style={{ color: sk("#0066FF", "#1466F2"), fontWeight: "700" }}>
                   + Thêm lựa chọn
                 </Text>
               </Pressable>
@@ -708,7 +709,7 @@ function Composer({ onPosted }: { onPosted: () => void }) {
                 paddingHorizontal: 10,
                 paddingVertical: 5,
                 borderRadius: 999,
-                backgroundColor: pollDraft.multi ? "#0066FF" : C.border,
+                backgroundColor: pollDraft.multi ? sk("#0066FF", "#1466F2") : C.border,
               }}
             >
               <Text
@@ -726,7 +727,7 @@ function Composer({ onPosted }: { onPosted: () => void }) {
       )}
       <View style={styles.composerActions}>
         <Pressable onPress={pickMedia} style={styles.iconBtn}>
-          <Ionicons name="images-outline" size={22} color="#0066FF" />
+          <Ionicons name="images-outline" size={22} color={sk("#0066FF", "#1466F2")} />
           <Text style={styles.iconBtnLabel}>Ảnh / Video</Text>
         </Pressable>
         <Pressable
@@ -1057,7 +1058,7 @@ function PostMedia({
         accessibilityRole="button"
         accessibilityLabel={`Xem ảnh ${index + 1} trên ${media.length}`}
         onPress={() => onOpenViewer(index)}
-        style={[{ overflow: "hidden", backgroundColor: "#0b1220" }, style]}
+        style={[{ overflow: "hidden", backgroundColor: sk("#0b1220", "#E9F0FA") }, style]}
       >
         <ExpoImage source={{ uri: media[index].url }} contentFit="cover" style={StyleSheet.absoluteFillObject} />
         {index === 3 && media.length > 4 && (
@@ -1155,7 +1156,7 @@ function PollBlockRN({ poll, onVote }: { poll: any; onVote: (id: string) => void
               marginBottom: 6,
               borderRadius: 8,
               borderWidth: 1,
-              borderColor: o.voted ? "#0066FF" : C.border,
+              borderColor: o.voted ? sk("#0066FF", "#1466F2") : C.border,
               overflow: "hidden",
               backgroundColor: C.card,
             }}
@@ -1219,7 +1220,7 @@ function SharedMatchCardRN({ sm }: { sm: any }) {
           gap: 6,
           paddingHorizontal: 12,
           paddingVertical: 6,
-          backgroundColor: "#0066FF",
+          backgroundColor: sk("#0066FF", "#1466F2"),
         }}
       >
         <Ionicons name="podium-outline" size={17} color="#FFFFFF" />
@@ -1320,14 +1321,14 @@ function SharedListingCardRN({ sl }: { sl: any }) {
       <View style={{ flex: 1, padding: 10, gap: 3 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
           <Ionicons name="bag-handle-outline" size={14} color={FEED_COLORS.primary} />
-          <Text style={{ color: "#0066FF", fontWeight: "700", fontSize: 12 }}>
+          <Text style={{ color: sk("#0066FF", "#1466F2"), fontWeight: "700", fontSize: 12 }}>
             Sản phẩm trên Chợ
           </Text>
         </View>
         <Text numberOfLines={2} style={{ fontWeight: "700", fontSize: 14, color: C.text }}>
           {sl.title || "Sản phẩm"}
         </Text>
-        <Text style={{ color: "#0066FF", fontWeight: "900", fontSize: 16 }}>
+        <Text style={{ color: sk("#0066FF", "#1466F2"), fontWeight: "900", fontSize: 16 }}>
           {formatPrice(sl.price, sl.type)}
         </Text>
         <View
@@ -1347,7 +1348,7 @@ function SharedListingCardRN({ sl }: { sl: any }) {
               paddingHorizontal: 12,
               paddingVertical: 5,
               borderRadius: 999,
-              backgroundColor: sold ? C.border : "#0066FF",
+              backgroundColor: sold ? C.border : sk("#0066FF", "#1466F2"),
             }}
           >
             <Text style={{ color: sold ? C.muted : "#fff", fontWeight: "700", fontSize: 12 }}>
@@ -1477,7 +1478,7 @@ function SharedEventCardRN({ se }: { se: any }) {
             colors={
               !ended && left > 0
                 ? ["#FF315F", "#E91E63"]
-                : ["#33445B", "#25364D"]
+                : sk<[string, string]>(["#33445B", "#25364D"], ["#97A3B8", "#7C8AA3"])
             }
             style={styles.eventCta}
           >
@@ -1708,7 +1709,7 @@ function PostCard({ post, me }: { post: any; me: any }) {
                 }
               }}
               disabled={savingEdit}
-              style={{ marginTop: 14, height: 48, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#0066FF" }}
+              style={{ marginTop: 14, height: 48, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: sk("#0066FF", "#1466F2") }}
             >
               <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>{savingEdit ? "Đang lưu…" : "Lưu"}</Text>
             </TouchableOpacity>
@@ -2276,9 +2277,9 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "rgba(148,163,184,0.15)",
   },
-  feedTabBtnActive: { backgroundColor: "#4dd0e1" },
+  feedTabBtnActive: { backgroundColor: sk("#4dd0e1", "#1466F2") },
   feedTabText: { fontSize: 13, fontWeight: "700", color: C.sub },
-  feedTabTextActive: { color: "#0a0e1a" },
+  feedTabTextActive: { color: sk("#0a0e1a", "#FFFFFF") },
   composer: {
     backgroundColor: FEED_COLORS.surface,
     padding: 13,
@@ -2286,8 +2287,8 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     marginBottom: 14,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: "rgba(8,189,245,0.38)",
-    shadowColor: FEED_COLORS.primary,
+    borderColor: sk("rgba(8,189,245,0.38)", "rgba(16,42,92,0.08)"),
+    shadowColor: sk(FEED_COLORS.primary, "#1B3A7A"),
     shadowOpacity: 0.1,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
@@ -2298,7 +2299,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#0066FF",
+    backgroundColor: sk("#0066FF", "#1466F2"),
     alignItems: "center",
     justifyContent: "center",
   },
@@ -2315,7 +2316,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: FEED_COLORS.border,
-    backgroundColor: "rgba(3,18,37,0.62)",
+    backgroundColor: sk("rgba(3,18,37,0.62)", "#EEF3FA"),
     textAlignVertical: "top",
   },
   mediaPreview: {
@@ -2383,12 +2384,12 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     borderRadius: 22,
     padding: 12,
     borderWidth: 1,
-    borderColor: "rgba(8,189,245,0.28)",
-    shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 7 },
-    elevation: 5,
+    borderColor: sk("rgba(8,189,245,0.28)", "rgba(16,42,92,0.08)"),
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.18, 0.1),
+    shadowRadius: sk(12, 14),
+    shadowOffset: { width: 0, height: sk(7, 5) },
+    elevation: sk(5, 3),
   },
   postHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 2 },
   postAuthor: {
@@ -2456,12 +2457,12 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
   },
   previewBubble: {
     flex: 1,
-    backgroundColor: "rgba(13,42,70,0.68)",
+    backgroundColor: sk("rgba(13,42,70,0.68)", "#F5F8FD"),
     borderRadius: 14,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: "rgba(90,180,230,0.16)",
+    borderColor: sk("rgba(90,180,230,0.16)", "rgba(16,42,92,0.06)"),
   },
   previewAuthor: { fontWeight: "700", color: C.text, fontSize: 12 },
   previewContent: { color: C.text, fontSize: 13, marginTop: 1 },
@@ -2475,7 +2476,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 6,
     flexDirection: "row",
-    shadowColor: "#000",
+    shadowColor: sk("#000", "#1B3A7A"),
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 5,
@@ -2487,11 +2488,11 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     marginTop: 12,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "rgba(8,189,245,0.34)",
+    borderColor: sk("rgba(8,189,245,0.34)", "rgba(16,42,92,0.10)"),
     overflow: "hidden",
-    backgroundColor: "rgba(4,22,43,0.94)",
+    backgroundColor: sk("rgba(4,22,43,0.94)", "#FFFFFF"),
   },
-  eventImage: { width: "100%", aspectRatio: 16 / 8.6, backgroundColor: "#071A30" },
+  eventImage: { width: "100%", aspectRatio: 16 / 8.6, backgroundColor: sk("#071A30", "#E9F0FA") },
   eventStatus: {
     minHeight: 38,
     flexDirection: "row",

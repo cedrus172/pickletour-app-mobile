@@ -35,6 +35,7 @@ import { Ionicons } from "@expo/vector-icons";
 import ClubCreateModal from "@/components/clubs/ClubCreateModal";
 // 🆕 Import Theme Hook
 import { useTheme } from "@react-navigation/native";
+import { sk } from "@/hooks/uiVersion";
 
 const { width } = Dimensions.get("window");
 
@@ -47,7 +48,7 @@ const ClubSkeleton = () => {
 
   // Màu sắc dựa trên theme
   const cardBg = dark ? "#1E1E1E" : "#fff";
-  const shapeBg = dark ? "#333" : "#e1e4e8";
+  const shapeBg = dark ? "#333" : sk("#e1e4e8", "#E9F0FA");
 
   useEffect(() => {
     opacity.value = withRepeat(
@@ -138,12 +139,12 @@ export default function ClubsListScreen() {
   const renderHeader = () => (
     <Animated.View style={[styles.headerContainer, headerStyle]}>
       <LinearGradient
-        colors={["#06182d", "#082b49"]}
+        colors={sk<[string, string]>(["#06182d", "#082b49"], ["#FFFFFF", "#F7FAFF"])}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
-        <StatusBar barStyle="light-content" />
+        <StatusBar barStyle={sk("light-content", "dark-content")} />
         <View style={styles.headerContent}>
           <View style={styles.headerTopRow}>
             <TouchableOpacity
@@ -151,7 +152,7 @@ export default function ClubsListScreen() {
               style={styles.backBtn}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="chevron-back" size={24} color="#fff" />
+              <Ionicons name="chevron-back" size={24} color={sk("#fff", "#0B1B3A")} />
             </TouchableOpacity>
 
             <Text style={styles.headerTitle}>Câu lạc bộ</Text>
@@ -164,13 +165,13 @@ export default function ClubsListScreen() {
 
         <View style={styles.searchContainer}>
           <View style={styles.searchInput}>
-          <MaterialCommunityIcons name="magnify" size={20} color="#9ab2cc" />
+          <MaterialCommunityIcons name="magnify" size={20} color={sk("#9ab2cc", "#5F6F8A")} />
           <RNTextInput
             placeholder="Tìm kiếm câu lạc bộ..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            style={{ color: "#fff", flex: 1, paddingVertical: 12, fontSize: 15 }}
-            placeholderTextColor="#9ab2cc"
+            style={{ color: sk("#fff", "#0B1B3A"), flex: 1, paddingVertical: 12, fontSize: 15 }}
+            placeholderTextColor={sk("#9ab2cc", "#97A3B8")}
           />
           </View>
         </View>
@@ -183,7 +184,7 @@ export default function ClubsListScreen() {
             <Text
               style={[
                 styles.tabText,
-                tab === "all" && { color: "#031829" },
+                tab === "all" && { color: sk("#031829", "#FFFFFF") },
               ]}
             >
               Tất cả
@@ -196,7 +197,7 @@ export default function ClubsListScreen() {
             <Text
               style={[
                 styles.tabText,
-                tab === "mine" && { color: "#031829" },
+                tab === "mine" && { color: sk("#031829", "#FFFFFF") },
               ]}
             >
               CLB của tôi
@@ -222,11 +223,11 @@ export default function ClubsListScreen() {
                   marginRight: 8,
                   // Tùy chỉnh chip trên nền gradient nếu cần
                   backgroundColor:
-                    selectedSport === sport ? "#fff" : "rgba(255,255,255,0.2)",
+                    selectedSport === sport ? sk("#fff", "#1466F2") : sk("rgba(255,255,255,0.2)", "#EEF3FA"),
                   borderColor: "transparent",
                 }}
                 labelStyle={{
-                  color: selectedSport === sport ? "#667eea" : "#fff",
+                  color: selectedSport === sport ? sk("#667eea", "#FFFFFF") : sk("#fff", "#243450"),
                 }}
               />
             ))}
@@ -286,7 +287,7 @@ export default function ClubsListScreen() {
   };
 
   // Màu nền chính của màn hình
-  const mainBackgroundColor = "#031225";
+  const mainBackgroundColor = sk("#031225", "#F2F6FC");
 
   return (
     <>
@@ -312,8 +313,8 @@ export default function ClubsListScreen() {
             <RefreshControl
               refreshing={isFetching && !isLoading}
               onRefresh={refetch}
-              colors={["#667eea"]}
-              tintColor={dark ? "#fff" : "#667eea"} // Spinner màu trắng trên nền tối
+              colors={sk(["#667eea"], ["#1466F2"])}
+              tintColor={dark ? "#fff" : sk("#667eea", "#1466F2")} // Spinner màu trắng trên nền tối
             />
           }
           ListEmptyComponent={renderEmpty}
@@ -363,6 +364,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     borderBottomLeftRadius: 18,
     borderBottomRightRadius: 18,
+    ...sk({}, { borderBottomWidth: 1, borderColor: "rgba(16,42,92,0.08)", shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 3 }),
   },
   headerContent: {
     paddingHorizontal: 20,
@@ -371,12 +373,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "#fff",
+    color: sk("#fff", "#0B1B3A"),
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.9)",
+    color: sk("rgba(255,255,255,0.9)", "#5F6F8A"),
   },
   searchContainer: {
     paddingHorizontal: 20,
@@ -389,8 +391,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#315a79",
-    backgroundColor: "#071d34",
+    borderColor: sk("#315a79", "rgba(16,42,92,0.10)"),
+    backgroundColor: sk("#071d34", "#EEF3FA"),
   },
   tabsContainer: {
     flexDirection: "row",
@@ -402,14 +404,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: "#173a59",
+    backgroundColor: sk("#173a59", "#EEF3FA"),
     alignItems: "center",
   },
   tabActive: {
-    backgroundColor: "#0ed0e9",
+    backgroundColor: sk("#0ed0e9", "#1466F2"),
   },
   tabText: {
-    color: "#fff",
+    color: sk("#fff", "#5F6F8A"),
     fontWeight: "600",
     fontSize: 14,
   },

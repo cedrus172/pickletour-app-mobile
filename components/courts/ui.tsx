@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/i18nText";
 import { pal, WEEKDAYS_SHORT, weekdayOf } from "@/utils/courtFormat";
+import { sk } from "@/hooks/uiVersion";
 
 export type Pal = ReturnType<typeof pal>;
 
@@ -14,8 +15,8 @@ export const SP = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28 };
 export const shadow = (dark: boolean, level: 1 | 2 | 3 = 1): ViewStyle =>
   Platform.select<ViewStyle>({
     ios: {
-      shadowColor: dark ? "#000" : "#0f172a",
-      shadowOpacity: dark ? [0.35, 0.45, 0.55][level - 1] : [0.06, 0.1, 0.16][level - 1],
+      shadowColor: dark ? "#000" : sk("#0f172a", "#1B3A7A"),
+      shadowOpacity: dark ? [0.35, 0.45, 0.55][level - 1] : sk([0.06, 0.1, 0.16], [0.08, 0.11, 0.16])[level - 1],
       shadowRadius: [8, 14, 24][level - 1],
       shadowOffset: { width: 0, height: [3, 6, 10][level - 1] },
     },
@@ -153,8 +154,8 @@ export function SheetHandle({ C }: { C: Pal }) {
 
 const styles = StyleSheet.create({
   hero: { borderRadius: R.xl, padding: SP.xl, overflow: "hidden" },
-  glowA: { position: "absolute", width: 220, height: 220, borderRadius: 110, backgroundColor: "rgba(34,193,214,0.22)", top: -90, right: -60 },
-  glowB: { position: "absolute", width: 160, height: 160, borderRadius: 80, backgroundColor: "rgba(245,179,1,0.10)", bottom: -70, left: -40 },
+  glowA: { position: "absolute", width: 220, height: 220, borderRadius: 110, backgroundColor: sk("rgba(34,193,214,0.22)", "rgba(47,139,255,0.30)"), top: -90, right: -60 },
+  glowB: { position: "absolute", width: 160, height: 160, borderRadius: 80, backgroundColor: sk("rgba(245,179,1,0.10)", "rgba(197,244,51,0.14)"), bottom: -70, left: -40 },
   sectionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: SP.xl, marginBottom: SP.md },
   tile: { width: "31.2%", borderRadius: R.lg, borderWidth: StyleSheet.hairlineWidth, paddingVertical: 14, alignItems: "center" },
   tileIcon: { width: 46, height: 46, borderRadius: 16, alignItems: "center", justifyContent: "center" },

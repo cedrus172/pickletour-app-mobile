@@ -26,6 +26,7 @@ import {
   useSessionStatsQuery,
 } from "@/slices/clubsApiSlice";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { sk } from "@/hooks/uiVersion";
 
 const getApiErrMsg = (e: any) =>
   e?.data?.message ||
@@ -182,7 +183,7 @@ export default function ClubSessionsRN({
             <View style={styles.card}>
               {!showForm ? (
                 <TouchableOpacity style={styles.addBtn} onPress={() => { resetForm(); setShowForm(true); }}>
-                  <LinearGradient colors={["#667eea", "#764ba2"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
+                  <LinearGradient colors={sk<[string, string]>(["#667eea", "#764ba2"], ["#2F8BFF", "#1466F2"])} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
                   <MaterialCommunityIcons name="plus" size={15} color="#fff" />
                   <Text style={styles.addBtnText}>Tạo buổi tập</Text>
                 </TouchableOpacity>
@@ -207,7 +208,7 @@ export default function ClubSessionsRN({
                   <TextInput style={[styles.input, { minHeight: 50, textAlignVertical: "top" }]} value={note} onChangeText={setNote} multiline placeholderTextColor={C.muted} />
                   <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
                     <TouchableOpacity style={styles.primaryBtn} onPress={submit} disabled={creating || updating}>
-                      <LinearGradient colors={["#667eea", "#764ba2"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
+                      <LinearGradient colors={sk<[string, string]>(["#667eea", "#764ba2"], ["#2F8BFF", "#1466F2"])} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
                       <Text style={styles.primaryBtnText}>{editId ? "Lưu" : "Tạo"}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.lightBtn} onPress={resetForm}>
@@ -264,7 +265,7 @@ export default function ClubSessionsRN({
 const mk_styles = (C: ThemeTokens) => StyleSheet.create({
   viewToggle: { flexDirection: "row", gap: 8, marginBottom: 10 },
   viewBtn: { flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 10, backgroundColor: C.field, borderWidth: 1, borderColor: C.border },
-  viewBtnActive: { backgroundColor: "#667eea", borderColor: "#667eea" },
+  viewBtnActive: { backgroundColor: sk("#667eea", "#1466F2"), borderColor: sk("#667eea", "#1466F2") },
   viewBtnText: { color: C.text2, fontWeight: "800", fontSize: 13.5 },
 
   card: { backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: 14, padding: 12, marginBottom: 10 },

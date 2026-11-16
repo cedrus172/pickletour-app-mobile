@@ -28,6 +28,7 @@ import {
 } from "@/slices/notificationCenterApiSlice";
 import { socket } from "@/lib/socket";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 import {
   NOTIFICATION_COLORS,
   NotificationSectionHeader,
@@ -62,14 +63,14 @@ const COLORS: Record<string, string> = {
   CHAT_MESSAGE_NEW: "#8B5CF6",
   FRIEND_REQUEST_NEW: "#10B981",
   FRIEND_ACCEPTED: "#10B981",
-  TOURNAMENT_UPDATE: "#F59E0B",
-  TOURNAMENT_INVITE: "#F59E0B",
-  BOOKING_NEW: "#08BDF5",
-  COURT_BOOKING_NEW: "#08BDF5",
-  PAYMENT_NEW: "#16B8FF",
-  PAYMENT_PROOF_NEW: "#16B8FF",
+  TOURNAMENT_UPDATE: sk("#F59E0B", "#D97706"),
+  TOURNAMENT_INVITE: sk("#F59E0B", "#D97706"),
+  BOOKING_NEW: sk("#08BDF5", "#1466F2"),
+  COURT_BOOKING_NEW: sk("#08BDF5", "#1466F2"),
+  PAYMENT_NEW: sk("#16B8FF", "#0284C7"),
+  PAYMENT_PROOF_NEW: sk("#16B8FF", "#0284C7"),
   ATTACHMENT_NEW: "#8B5CF6",
-  CLUB_UPDATE: "#22D879",
+  CLUB_UPDATE: sk("#22D879", "#16A34A"),
   SYSTEM: "#64748B",
 };
 
@@ -155,7 +156,7 @@ function NotifRow({
           <Ionicons
             name="chevron-forward"
             size={20}
-            color={n.isRead ? "#67829F" : NOTIFICATION_COLORS.primary}
+            color={n.isRead ? sk("#67829F", "#97A3B8") : NOTIFICATION_COLORS.primary}
           />
         )}
       </View>
@@ -332,15 +333,25 @@ const mk_styles = (_C: ThemeTokens) => StyleSheet.create({
     alignItems: "center",
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "rgba(90,180,230,0.18)",
-    backgroundColor: "rgba(5,25,49,0.82)",
+    borderColor: sk("rgba(90,180,230,0.18)", "rgba(16,42,92,0.08)"),
+    backgroundColor: sk("rgba(5,25,49,0.82)", "#FFFFFF"),
+    // V3 Fresh: thẻ trắng có bóng mềm.
+    ...(IS_V3
+      ? {
+          shadowColor: "#1B3A7A",
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 3,
+        }
+      : null),
   },
   rowUnread: {
-    backgroundColor: "rgba(7,39,70,0.92)",
-    borderColor: "rgba(8,189,245,0.38)",
-    shadowColor: NOTIFICATION_COLORS.primary,
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
+    backgroundColor: sk("rgba(7,39,70,0.92)", "#EEF5FF"),
+    borderColor: sk("rgba(8,189,245,0.38)", "rgba(20,102,242,0.28)"),
+    shadowColor: sk(NOTIFICATION_COLORS.primary as string, "#1466F2"),
+    shadowOpacity: sk(0.08, 0.12),
+    shadowRadius: sk(10, 12),
     shadowOffset: { width: 0, height: 5 },
   },
   rowPressed: { opacity: 0.78 },
@@ -362,14 +373,14 @@ const mk_styles = (_C: ThemeTokens) => StyleSheet.create({
   },
   titleRead: { color: NOTIFICATION_COLORS.textSoft, fontWeight: "700" },
   body: {
-    color: "#A8BDD5",
+    color: sk("#A8BDD5", "#5F6F8A"),
     fontSize: 14,
     lineHeight: 19,
     marginTop: 3,
   },
-  bodyRead: { color: "#829CB8" },
+  bodyRead: { color: sk("#829CB8", "#7A889F") },
   time: {
-    color: "#6F89A8",
+    color: sk("#6F89A8", "#97A3B8"),
     fontSize: 12.5,
     lineHeight: 17,
     marginTop: 4,

@@ -37,6 +37,7 @@ import { useLazySearchUserQuery } from "@/slices/usersApiSlice";
 import { useGetTournamentQuery } from "@/slices/tournamentsApiSlice";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 
 const STATUS_COLOR: Record<string, string> = {
   pending: "#F59E0B",
@@ -759,7 +760,7 @@ function TeamFormModal({
                             <Ionicons
                               name="add-circle"
                               size={22}
-                              color="#0066FF"
+                              color={sk("#0066FF", "#1466F2")}
                             />
                           </Pressable>
                         );
@@ -963,7 +964,7 @@ function TeamFormModal({
                   disabled={!canSubmit || creating || updating}
                   style={[
                     styles.actionBtn,
-                    { backgroundColor: "#0066FF", flex: 1 },
+                    { backgroundColor: sk("#0066FF", "#1466F2"), flex: 1 },
                     (!canSubmit || creating || updating) && { opacity: 0.4 },
                   ]}
                 >
@@ -1041,7 +1042,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#0066FF",
+    backgroundColor: sk("#0066FF", "#1466F2"),
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -1063,6 +1064,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     marginBottom: 8,
     backgroundColor: C.card,
     borderRadius: 12,
+    ...(IS_V3 ? { borderWidth: 1, borderColor: C.border, shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 } : null),
   },
   cardMine: { borderWidth: 2, borderColor: "#10B981" },
   mineBadge: {
@@ -1152,7 +1154,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     width: 22,
     textAlign: "center",
     fontWeight: "900",
-    color: "#0066FF",
+    color: sk("#0066FF", "#1466F2"),
   },
   rosterName: { fontSize: 13, color: C.text, fontWeight: "700" },
   rosterSub: { fontSize: 10, color: C.muted },

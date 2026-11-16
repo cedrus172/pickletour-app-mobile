@@ -11,6 +11,7 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native"; // Import useTheme
 import { normalizeUrl } from "@/utils/normalizeUri";
+import { sk } from "@/hooks/uiVersion";
 
 const VI = {
   visibility: { public: "Công khai", private: "Riêng tư", hidden: "Ẩn" },
@@ -59,13 +60,13 @@ export default function ClubHeaderRN({ club }: { club: any }) {
   const dynamicColors = useMemo(() => {
     return {
       pill: {
-        bg: isDark ? "rgba(30, 41, 59, 0.85)" : "rgba(255, 255, 255, 0.9)",
-        border: isDark ? "rgba(255,255,255,0.15)" : "#E6E8F5",
-        text: isDark ? "#E2E8F0" : "#41466A",
+        bg: isDark ? "rgba(30, 41, 59, 0.85)" : sk("rgba(255, 255, 255, 0.9)", "#F5F8FD"),
+        border: isDark ? "rgba(255,255,255,0.15)" : sk("#E6E8F5", "rgba(16,42,92,0.10)"),
+        text: isDark ? "#E2E8F0" : sk("#41466A", "#243450"),
       },
       placeholder: {
-        bg: isDark ? "#1E293B" : "#F3F4F6", // Màu nền chỗ logo fallback
-        icon: isDark ? "#A78BFA" : "#764ba2", // Màu icon logo fallback
+        bg: isDark ? "#1E293B" : sk("#F3F4F6", "#EEF3FA"), // Màu nền chỗ logo fallback
+        icon: isDark ? "#A78BFA" : sk("#764ba2", "#1466F2"), // Màu icon logo fallback
       },
     };
   }, [isDark]);
@@ -87,7 +88,7 @@ export default function ClubHeaderRN({ club }: { club: any }) {
           <Ionicons
             name="images-outline"
             size={64}
-            color="rgba(255,255,255,0.25)"
+            color={sk("rgba(255,255,255,0.25)", "rgba(20,102,242,0.28)")}
           />
         </View>
       )}
@@ -101,7 +102,7 @@ export default function ClubHeaderRN({ club }: { club: any }) {
             // Dark mode thì viền tối hơn chút hoặc giữ trắng cho nổi trên nền gradient
             {
               backgroundColor: dynamicColors.placeholder.bg,
-              borderColor: "rgba(255,255,255,0.8)",
+              borderColor: sk("rgba(255,255,255,0.8)", "#FFFFFF"),
             },
           ]}
         >
@@ -169,13 +170,13 @@ export default function ClubHeaderRN({ club }: { club: any }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { borderRadius: 20, overflow: "hidden", margin: 16, backgroundColor: "#061a30" },
+  wrap: { borderRadius: 20, overflow: "hidden", margin: 16, backgroundColor: sk("#061a30", "#FFFFFF"), ...sk({}, { borderWidth: 1, borderColor: "rgba(16,42,92,0.08)", shadowColor: "#1B3A7A", shadowOpacity: 0.1, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 3 }) },
 
   cover: { width: "100%", height: 220 },
   coverPlaceholder: {
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "transparent",
+    backgroundColor: sk("transparent", "#E9F0FA"),
   },
 
   info: {
@@ -204,7 +205,7 @@ const styles = StyleSheet.create({
   },
 
   name: {
-    color: "#FFFFFF",
+    color: sk("#FFFFFF", "#0B1B3A"),
     fontSize: 20,
     fontWeight: "800",
     textAlign: "left",
@@ -212,7 +213,7 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  location: { color: "#b0c5dc", marginTop: 6, fontSize: 13 },
+  location: { color: sk("#b0c5dc", "#5F6F8A"), marginTop: 6, fontSize: 13 },
 
   badges: {
     flexDirection: "row",
@@ -242,7 +243,7 @@ const styles = StyleSheet.create({
   },
 
   desc: {
-    color: "#f1f6ff",
+    color: sk("#f1f6ff", "#243450"),
     marginTop: 6,
     textAlign: "left",
     opacity: 0.9,

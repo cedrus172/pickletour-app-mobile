@@ -37,6 +37,7 @@ import { normalizeUrl } from "@/utils/normalizeUri";
 import { useTheme } from "@react-navigation/native";
 
 import AppModal, { ModalTopInset } from "@/components/ui/AppModal";
+import { sk } from "@/hooks/uiVersion";
 type ClubCreateModalProps = {
   visible: boolean;
   onClose: (changed?: boolean) => void;
@@ -108,13 +109,13 @@ export default function ClubCreateModal({
 
   const colors = useMemo(
     () => ({
-      bg: "#03172d",
-      card: "#0a2943",
-      text: "#FFF",
-      subText: "#a9bfd6",
-      border: "#31536e",
-      placeholder: "#91a9bf",
-      inputBg: "#0a2139",
+      bg: sk("#03172d", "#F2F6FC"),
+      card: sk("#0a2943", "#FFFFFF"),
+      text: sk("#FFF", "#0B1B3A"),
+      subText: sk("#a9bfd6", "#5F6F8A"),
+      border: sk("#31536e", "rgba(16,42,92,0.12)"),
+      placeholder: sk("#91a9bf", "#97A3B8"),
+      inputBg: sk("#0a2139", "#FFFFFF"),
       switchOff: isDark ? "#444" : "#d1d5db",
       sheetHandle: isDark ? "#444" : "#e5e7eb",
       divider: isDark ? "#333" : "#eee",
@@ -246,11 +247,11 @@ export default function ClubCreateModal({
       onRequestClose={() => onClose?.(false)}
     >
 <ModalTopInset>{(modalTop) => (<>
-      <StatusBar style="light" translucent backgroundColor="transparent" />
+      <StatusBar style={sk("light", "dark")} translucent backgroundColor="transparent" />
       <View style={[styles.modalRoot, { backgroundColor: colors.bg }]}>
         <View style={{ paddingTop: Math.max(modalTop, 12), paddingHorizontal: 16, paddingBottom: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
           <TouchableOpacity onPress={() => onClose?.(false)} accessibilityRole="button" accessibilityLabel="Đóng">
-            <MaterialCommunityIcons name="chevron-left" size={28} color="#fff" />
+            <MaterialCommunityIcons name="chevron-left" size={28} color={sk("#fff", "#0B1B3A")} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { flex: 1 }]}>{isEdit ? "Sửa câu lạc bộ" : "Tạo câu lạc bộ"}</Text>
         </View>
@@ -518,7 +519,7 @@ export default function ClubCreateModal({
             <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
               {(["logoUrl", "coverUrl"] as const).map((field) => (
                 <TouchableOpacity key={field} onPress={() => pickImage(field)} disabled={uploading} style={{ flex: 1, height: 110, borderWidth: 1, borderColor: colors.border, borderStyle: "dashed", borderRadius: 14, alignItems: "center", justifyContent: "center", overflow: "hidden", backgroundColor: colors.card }}>
-                  {form[field] ? <Image source={{ uri: normalizeUrl(form[field]) }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <MaterialCommunityIcons name="image-plus" size={28} color="#a9bfd6" />}
+                  {form[field] ? <Image source={{ uri: normalizeUrl(form[field]) }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <MaterialCommunityIcons name="image-plus" size={28} color={sk("#a9bfd6", "#5F6F8A")} />}
                   {!form[field] && <Text style={{ color: colors.text, marginTop: 8 }}>{field === "logoUrl" ? "Chọn ảnh đại diện" : "Chọn ảnh bìa"}</Text>}
                 </TouchableOpacity>
               ))}
@@ -586,7 +587,7 @@ export default function ClubCreateModal({
                       styles.sheetItem,
                       { borderBottomColor: colors.divider },
                       form.province === p && {
-                        backgroundColor: isDark ? "#333" : "#eef2ff", // Highlight item
+                        backgroundColor: isDark ? "#333" : sk("#eef2ff", "rgba(20,102,242,0.08)"), // Highlight item
                       },
                     ]}
                     onPress={() => {
@@ -608,7 +609,7 @@ export default function ClubCreateModal({
                       <MaterialCommunityIcons
                         name="check"
                         size={18}
-                        color="#667eea"
+                        color={sk("#667eea", "#1466F2")}
                       />
                     )}
                   </TouchableOpacity>
@@ -671,10 +672,10 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-    color: "#fff",
+    color: sk("#fff", "#0B1B3A"),
     fontSize: 18,
     fontWeight: "700",
-    textShadowColor: "rgba(0,0,0,0.3)",
+    textShadowColor: sk("rgba(0,0,0,0.3)", "transparent"),
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
@@ -748,7 +749,7 @@ const styles = StyleSheet.create({
     padding: 3,
     alignItems: "flex-start",
   },
-  switchOn: { backgroundColor: "#667eea" },
+  switchOn: { backgroundColor: sk("#667eea", "#1466F2") },
   switchDot: {
     width: 20,
     height: 20,
@@ -764,8 +765,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.1, 0.06),
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
@@ -803,21 +804,21 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   sheetItemText: { fontSize: 14 },
-  sheetItemTextActive: { color: "#4f46e5", fontWeight: "700" },
+  sheetItemTextActive: { color: sk("#4f46e5", "#1466F2"), fontWeight: "700" },
   inputContainer: {
     borderRadius: 12,
     borderWidth: 1,
     paddingHorizontal: 12,
     minHeight: 48,
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
+    shadowColor: sk("#000", "#1B3A7A"),
+    shadowOpacity: sk(0.1, 0.06),
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
   inputFocus: {
-    borderColor: "#667eea",
+    borderColor: sk("#667eea", "#1466F2"),
     shadowOpacity: 0.16,
     shadowRadius: 14,
     elevation: 4,

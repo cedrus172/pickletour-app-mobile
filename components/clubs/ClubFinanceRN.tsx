@@ -28,6 +28,7 @@ import {
   useUnpayDuesMutation,
 } from "@/slices/clubsApiSlice";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { sk } from "@/hooks/uiVersion";
 
 const getApiErrMsg = (e: any) =>
   e?.data?.message ||
@@ -169,7 +170,7 @@ function DuesView({ club, canManage }: { club: any; canManage: boolean }) {
               : "Chưa bật thu phí hội viên"}
           </Text>
           <TouchableOpacity onPress={() => setCfgOpen((v) => !v)}>
-            <Text style={{ color: "#667eea", fontWeight: "700" }}>{cfgOpen ? "Đóng" : "Cấu hình"}</Text>
+            <Text style={{ color: sk("#667eea", "#1466F2"), fontWeight: "700" }}>{cfgOpen ? "Đóng" : "Cấu hình"}</Text>
           </TouchableOpacity>
         </View>
         {cfgOpen && (
@@ -202,13 +203,13 @@ function DuesView({ club, canManage }: { club: any; canManage: boolean }) {
               <MaterialCommunityIcons
                 name={active ? "checkbox-marked" : "checkbox-blank-outline"}
                 size={20}
-                color={active ? "#667eea" : C.muted}
+                color={active ? sk("#667eea", "#1466F2") : C.muted}
               />
               <Text style={{ color: C.text2 }}>Bật thu phí hội viên</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.primaryBtn, { marginTop: 12, alignSelf: "flex-start" }]} onPress={saveCfg}>
               <LinearGradient
-                colors={["#667eea", "#764ba2"]}
+                colors={sk<[string, string]>(["#667eea", "#764ba2"], ["#2F8BFF", "#1466F2"])}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
@@ -418,7 +419,7 @@ function FinanceBookRN({
             }}
           >
             <LinearGradient
-              colors={["#667eea", "#764ba2"]}
+              colors={sk<[string, string]>(["#667eea", "#764ba2"], ["#2F8BFF", "#1466F2"])}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
@@ -521,7 +522,7 @@ function FinanceBookRN({
           <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
             <TouchableOpacity style={styles.primaryBtn} onPress={submit} disabled={creating || updating}>
               <LinearGradient
-                colors={["#667eea", "#764ba2"]}
+                colors={sk<[string, string]>(["#667eea", "#764ba2"], ["#2F8BFF", "#1466F2"])}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
@@ -674,7 +675,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
   },
-  viewBtnActive: { backgroundColor: "#667eea", borderColor: "#667eea" },
+  viewBtnActive: { backgroundColor: sk("#667eea", "#1466F2"), borderColor: sk("#667eea", "#1466F2") },
   viewBtnText: { color: C.text2, fontWeight: "800", fontSize: 13.5 },
 
   navRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 14, marginBottom: 8 },
@@ -734,7 +735,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
   },
-  filterChipActive: { backgroundColor: "#667eea", borderColor: "#667eea" },
+  filterChipActive: { backgroundColor: sk("#667eea", "#1466F2"), borderColor: sk("#667eea", "#1466F2") },
   filterChipText: { color: C.text2, fontWeight: "700", fontSize: 13 },
   addBtn: {
     flexDirection: "row",
@@ -786,7 +787,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
   },
-  catChipActive: { backgroundColor: C.field, borderColor: "#667eea" },
+  catChipActive: { backgroundColor: C.field, borderColor: sk("#667eea", "#1466F2") },
   catChipText: { color: C.text3, fontSize: 12, fontWeight: "600" },
 
   primaryBtn: {

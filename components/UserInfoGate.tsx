@@ -14,6 +14,7 @@ import { useFocusEffect } from "@react-navigation/native";
 // NOTE: chỉnh path slice này cho khớp repo của bạn
 import { useGetProfileQuery } from "@/slices/usersApiSlice";
 import { resolveAuxiliaryTabPath } from "@/utils/nativeTabs";
+import { sk } from "@/hooks/uiVersion";
 
 /** Helper: lấy safely các field phổ biến trong repo của bạn */
 function pickAvatar(u) {
@@ -193,8 +194,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#1f2937",
   },
-  title: { fontSize: 18, fontWeight: "800", color: "#0f172a" },
-  desc: { marginTop: 8, color: "#374151" },
+  title: { fontSize: 18, fontWeight: "800", color: sk("#0f172a", "#0B1B3A") },
+  desc: { marginTop: 8, color: sk("#374151", "#243450") },
   missingWrap: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -212,11 +213,11 @@ const styles = StyleSheet.create({
   chipText: { color: "#b91c1c", fontWeight: "700", fontSize: 12 },
   btnPrimary: {
     marginTop: 16,
-    backgroundColor: "#2563eb",
+    backgroundColor: sk("#2563eb", "#1466F2"),
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
   },
   btnPrimaryText: { color: "#fff", fontWeight: "800" },
-  note: { marginTop: 10, fontSize: 12, color: "#6b7280" },
+  note: { marginTop: 10, fontSize: 12, color: sk("#6b7280", "#5F6F8A") },
 });

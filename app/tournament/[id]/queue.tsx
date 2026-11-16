@@ -9,6 +9,7 @@ import {
 import { Text } from "@/components/ui/i18nText";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useTheme } from "@react-navigation/native";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 import {
   useGetTournamentQuery,
   useListPublicMatchesByTournamentQuery,
@@ -101,7 +102,7 @@ export default function TournamentCourtQueueMobile() {
   const border = C.border || "#e2e8ec";
   const cardBg = C.card || "#fff";
   const textPrimary = C.text || "#0f172a";
-  const muted = "#94a3b8";
+  const muted = sk("#94a3b8", "#5F6F8A");
 
   return (
     <View style={{ flex: 1, backgroundColor: C.background }}>
@@ -138,6 +139,7 @@ export default function TournamentCourtQueueMobile() {
                   borderColor: border,
                   backgroundColor: cardBg,
                   overflow: "hidden",
+                  ...(IS_V3 ? { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 } : null),
                 }}
               >
                 <View
@@ -147,7 +149,7 @@ export default function TournamentCourtQueueMobile() {
                     justifyContent: "space-between",
                     paddingHorizontal: 14,
                     paddingVertical: 10,
-                    backgroundColor: "#1877F2",
+                    backgroundColor: sk("#1877F2", "#1466F2"),
                   }}
                 >
                   <Text
@@ -243,7 +245,7 @@ function MatchLine({
           {code || "Trận"}
         </Text>
         {time ? (
-          <Text style={{ color: "#2563EB", fontSize: 12, fontWeight: "800" }}>
+          <Text style={{ color: sk("#2563EB", "#1466F2"), fontSize: 12, fontWeight: "800" }}>
             {time}
           </Text>
         ) : null}

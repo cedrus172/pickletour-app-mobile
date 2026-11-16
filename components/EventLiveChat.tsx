@@ -19,6 +19,7 @@ import {
   useGetEventLiveCommentsQuery,
   usePostEventLiveCommentMutation,
 } from "@/slices/eventLiveApiSlice";
+import { sk } from "@/hooks/uiVersion";
 
 const MAX_LEN = 500;
 const HEARTBEAT_INTERVAL = 30_000;
@@ -212,7 +213,7 @@ export default function EventLiveChat() {
             <TextInput
               style={styles.input}
               placeholder="Nhập bình luận…"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={sk("rgba(255,255,255,0.4)", "#97A3B8")}
               value={input}
               onChangeText={(t) => setInput(t.length <= MAX_LEN ? t : t.slice(0, MAX_LEN))}
               onSubmitEditing={doSend}
@@ -244,33 +245,34 @@ export default function EventLiveChat() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: sk("rgba(0,0,0,0.3)", "#FFFFFF"),
     borderRadius: 12,
     overflow: "hidden",
+    ...sk({}, { borderWidth: 1, borderColor: "rgba(16,42,92,0.08)" }),
   },
   header: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.1)",
+    borderBottomColor: sk("rgba(255,255,255,0.1)", "rgba(16,42,92,0.10)"),
   },
-  headerText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  headerText: { color: sk("#fff", "#0B1B3A"), fontWeight: "700", fontSize: 14 },
   list: { flex: 1 },
   listContent: { padding: 10, paddingBottom: 4 },
   msgRow: { flexDirection: "row", marginBottom: 8, gap: 8 },
   avatar: { width: 26, height: 26, borderRadius: 13, marginTop: 2 },
   avatarPlaceholder: {
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: sk("rgba(255,255,255,0.15)", "rgba(20,102,242,0.12)"),
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  avatarText: { color: sk("#fff", "#1466F2"), fontSize: 12, fontWeight: "700" },
   msgBody: { flex: 1 },
   msgHeader: { flexDirection: "row", alignItems: "baseline", gap: 4 },
-  userName: { color: "#4dd0e1", fontWeight: "700", fontSize: 12 },
-  time: { color: "rgba(255,255,255,0.35)", fontSize: 10 },
+  userName: { color: sk("#4dd0e1", "#1466F2"), fontWeight: "700", fontSize: 12 },
+  time: { color: sk("rgba(255,255,255,0.35)", "#97A3B8"), fontSize: 10 },
   content: {
-    color: "rgba(255,255,255,0.9)",
+    color: sk("rgba(255,255,255,0.9)", "#243450"),
     fontSize: 13,
     lineHeight: 18,
   },
@@ -280,30 +282,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.1)",
+    borderTopColor: sk("rgba(255,255,255,0.1)", "rgba(16,42,92,0.10)"),
     gap: 8,
   },
   input: {
     flex: 1,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    color: "#fff",
+    backgroundColor: sk("rgba(255,255,255,0.08)", "#EEF3FA"),
+    color: sk("#fff", "#0B1B3A"),
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 13,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    borderColor: sk("rgba(255,255,255,0.15)", "rgba(16,42,92,0.10)"),
   },
   sendBtn: {
-    backgroundColor: "#4dd0e1",
+    backgroundColor: sk("#4dd0e1", "#1466F2"),
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
   },
   sendBtnDisabled: { opacity: 0.4 },
-  sendBtnText: { color: "#000", fontWeight: "700", fontSize: 13 },
+  sendBtnText: { color: sk("#000", "#FFFFFF"), fontWeight: "700", fontSize: 13 },
   loginHint: {
-    color: "rgba(255,255,255,0.5)",
+    color: sk("rgba(255,255,255,0.5)", "#5F6F8A"),
     textAlign: "center",
     flex: 1,
     fontSize: 13,

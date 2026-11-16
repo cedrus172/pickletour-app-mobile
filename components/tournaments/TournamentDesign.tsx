@@ -18,8 +18,9 @@ import { TextInput } from "@/components/ui/i18nTextInput";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import { tournamentDateLabel, tournamentDateParts } from "@/utils/tournamentPresentation";
 import { NotificationHeaderActions } from "@/components/GlobalNotificationShell";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 
-export const TOURNAMENT_COLORS = {
+const TOURNAMENT_COLORS_V2 = {
   background: "#041021",
   backgroundAlt: "#051A2D",
   surface: "#071D31",
@@ -32,6 +33,25 @@ export const TOURNAMENT_COLORS = {
   textMuted: "#91AECE",
   border: "rgba(80,170,230,0.25)",
 } as const;
+
+type TournamentColors = { [K in keyof typeof TOURNAMENT_COLORS_V2]: string };
+
+// V3 Fresh: cùng bộ khoá màu nhưng trên nền sáng.
+const TOURNAMENT_COLORS_V3: TournamentColors = {
+  background: "#F7FAFF",
+  backgroundAlt: "#EEF4FC",
+  surface: "#FFFFFF",
+  surfaceStrong: "#FFFFFF",
+  primary: "#1466F2",
+  secondary: "#2F8BFF",
+  success: "#16A34A",
+  text: "#0B1B3A",
+  textSoft: "#243450",
+  textMuted: "#5F6F8A",
+  border: "rgba(16,42,92,0.10)",
+};
+
+export const TOURNAMENT_COLORS: TournamentColors = IS_V3 ? TOURNAMENT_COLORS_V3 : TOURNAMENT_COLORS_V2;
 
 export type TournamentFilterKey = "upcoming" | "ongoing" | "finished";
 export type TournamentAction = {
@@ -55,7 +75,7 @@ export const TournamentHeader = memo(function TournamentHeader({ isBack, onBack 
   return (
     <View style={styles.header}>
       <Svg pointerEvents="none" width={118} height={94} viewBox="0 0 118 94" style={styles.heroArtwork} accessible={false} focusable={false}>
-        <G stroke="#08CDF5" fill="none">
+        <G stroke={sk("#08CDF5", "#1466F2")} fill="none">
           <Path d="m6 93 89-89M24 94 111 7M48 94l69-69" strokeWidth={7} opacity={0.06} />
           <Path d="M68 22h27v15c0 11-5 17-13.5 17S68 48 68 37Zm0 4H57v6c0 11 7 15 14 15m24-21h11v6c0 11-7 15-14 15M82 54v14m-10 5h20v5H72Z" strokeWidth={2.4} strokeLinejoin="round" />
         </G>
@@ -63,7 +83,7 @@ export const TournamentHeader = memo(function TournamentHeader({ isBack, onBack 
       <View style={styles.headerTitleRow}>
         {isBack ? (
           <Pressable accessibilityRole="button" accessibilityLabel="Quay lại" onPress={onBack} style={styles.backButton}>
-            <Ionicons name="chevron-back" size={23} color="#FFFFFF" />
+            <Ionicons name="chevron-back" size={23} color={sk("#FFFFFF", "#0B1B3A")} />
           </Pressable>
         ) : null}
         <Text accessibilityRole="header" style={styles.title}>Giải đấu</Text>
@@ -82,7 +102,7 @@ export const TournamentSearch = memo(function TournamentSearch({ value, onChange
 }) {
   return (
     <View style={styles.search}>
-      <Ionicons name="search-outline" size={23} color="#A0BEDF" />
+      <Ionicons name="search-outline" size={23} color={sk("#A0BEDF", "#5F6F8A")} />
       <TextInput testID="tournament-search" accessibilityLabel="Tìm kiếm giải đấu" value={value} onChangeText={onChangeText} returnKeyType="search" placeholder="Tìm kiếm giải đấu..." placeholderTextColor={TOURNAMENT_COLORS.textMuted} style={styles.searchInput} />
       {value.length > 0 ? (
         <Pressable accessibilityRole="button" accessibilityLabel="Xóa tìm kiếm" onPress={onClear} style={styles.searchClear}>
@@ -91,7 +111,7 @@ export const TournamentSearch = memo(function TournamentSearch({ value, onChange
       ) : null}
       {onFilter ? (
         <Pressable accessibilityRole="button" accessibilityLabel="Lọc theo ngày" onPress={onFilter} style={styles.searchFilter}>
-          <Ionicons name="options-outline" size={22} color="#A0BEDF" />
+          <Ionicons name="options-outline" size={22} color={sk("#A0BEDF", "#5F6F8A")} />
         </Pressable>
       ) : null}
     </View>
@@ -141,7 +161,7 @@ export const DateFilter = memo(function DateFilter({ label, active, onPress, onC
 
 export const TournamentCard = memo(function TournamentCard({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   return (
-    <LinearGradient colors={["#082139", "#051B2D"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.card, style]}>
+    <LinearGradient colors={sk(["#082139", "#051B2D"], ["#FFFFFF", "#FFFFFF"])} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.card, style]}>
       {children}
     </LinearGradient>
   );
@@ -221,12 +241,14 @@ type DisplayAction = TournamentAction & { accessibilityLabel?: string };
 function TournamentActionButton({ action, columns }: { action: DisplayAction; columns: number }) {
   const isDetails = action.key === "details";
   const isBracket = action.key === "bracket";
-  const iconColor = isDetails ? "#9EBAD5" : isBracket ? "#A6CDFF" : "#38D4F3";
+  const iconColor = isDetails ? sk("#9EBAD5", "#5F6F8A") : isBracket ? sk("#A6CDFF", "#2F8BFF") : sk("#38D4F3", "#1466F2");
+  // V3: nút chính nền xanh dương → chữ trắng; nút cảnh báo (nền vàng) giữ chữ tối.
+  const primaryInk = action.warning ? "#031526" : sk("#031526", "#FFFFFF");
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={action.accessibilityLabel || action.label} testID={`tournament-action-${action.key}`} onPress={action.onPress} style={({ pressed }) => [styles.actionPressable, columns === 3 ? styles.actionThird : columns === 1 ? styles.actionFull : styles.actionHalf, pressed && styles.pressed]}>
       {action.primary ? (
-        <LinearGradient colors={action.warning ? ["#FFB547", "#F59E0B"] : ["#11D3F3", "#00C3E8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.actionPrimary, { borderColor: action.warning ? "#FFD17C" : "#54E0F5" }]}>
-          <Ionicons name={action.icon} size={18} color="#031526" /><Text numberOfLines={2} style={styles.actionTextPrimary}>{action.label}</Text>
+        <LinearGradient colors={action.warning ? ["#FFB547", "#F59E0B"] : sk(["#11D3F3", "#00C3E8"], ["#2F8BFF", "#1466F2"])} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.actionPrimary, { borderColor: action.warning ? "#FFD17C" : sk("#54E0F5", "#1466F2") }]}>
+          <Ionicons name={action.icon} size={18} color={primaryInk} /><Text numberOfLines={2} style={[styles.actionTextPrimary, { color: primaryInk }]}>{action.label}</Text>
         </LinearGradient>
       ) : (
         <View style={[styles.actionSecondary, isBracket && styles.actionBracket, isDetails && styles.actionDetails]}>
@@ -275,7 +297,7 @@ export const TournamentEventRow = memo(function TournamentEventRow({ id, title, 
         </Pressable>
         <Text style={styles.capacity}><Text style={full ? styles.capacityFull : styles.capacityCurrent}>{registered}</Text>{capacity > 0 ? `/${capacity}` : ""}<Text style={styles.capacityUnit}> {kind === "Đấu đơn" ? "VĐV" : "đội"}</Text></Text>
       </View>
-      {capacity > 0 ? <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: capacity, now: Math.min(registered, capacity) }} aria-valuemin={0} aria-valuemax={capacity} aria-valuenow={Math.min(registered, capacity)} style={styles.track}><View style={[styles.fill, { width: `${pct}%`, backgroundColor: full ? "#FF7781" : TOURNAMENT_COLORS.primary }]} /></View> : null}
+      {capacity > 0 ? <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: capacity, now: Math.min(registered, capacity) }} aria-valuemin={0} aria-valuemax={capacity} aria-valuenow={Math.min(registered, capacity)} style={styles.track}><View style={[styles.fill, { width: `${pct}%`, backgroundColor: full ? sk("#FF7781", "#DC2626") : TOURNAMENT_COLORS.primary }]} /></View> : null}
       <TournamentActionGrid actions={[...actions, { key: "details", label: "Chi tiết", accessibilityLabel: `Chi tiết ${title}`, icon: "chevron-forward", onPress: onDetails }]} />
     </View>
   );
@@ -295,16 +317,16 @@ const styles = StyleSheet.create({
   heroArtwork: { position: "absolute", top: 0, right: 48 },
   headerTitleRow: { flexDirection: "row", alignItems: "center" },
   backButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginRight: 4 },
-  title: { color: "#FFFFFF", fontSize: 34, lineHeight: 43, fontWeight: "900", letterSpacing: -0.9 },
+  title: { color: sk("#FFFFFF", "#0B1B3A"), fontSize: 34, lineHeight: 43, fontWeight: "900", letterSpacing: -0.9 },
   subtitle: { color: TOURNAMENT_COLORS.textMuted, fontSize: 13, lineHeight: 19, marginTop: 2, paddingRight: 35 },
-  search: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: 9, paddingLeft: 14, borderRadius: 12, borderWidth: 1, borderColor: "#285171", backgroundColor: "#061B30", marginBottom: 10 },
+  search: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: 9, paddingLeft: 14, borderRadius: 12, borderWidth: 1, borderColor: sk("#285171", "rgba(16,42,92,0.10)"), backgroundColor: sk("#061B30", "#FFFFFF"), marginBottom: 10, ...(IS_V3 ? { shadowColor: "#1B3A7A", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 1 } : null) },
   searchInput: { flex: 1, minWidth: 0, minHeight: 48, paddingVertical: 8, color: TOURNAMENT_COLORS.text, fontSize: 14.5 },
   searchClear: { width: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
-  searchFilter: { width: 48, minHeight: 44, borderLeftWidth: 1, borderLeftColor: "#163C57", alignItems: "center", justifyContent: "center" },
-  filters: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#204661" },
+  searchFilter: { width: 48, minHeight: 44, borderLeftWidth: 1, borderLeftColor: sk("#163C57", "rgba(16,42,92,0.10)"), alignItems: "center", justifyContent: "center" },
+  filters: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: sk("#204661", "rgba(16,42,92,0.10)") },
   filterPressable: { flex: 1, minWidth: 0, minHeight: 48, justifyContent: "center", paddingVertical: 8 },
   filterContent: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 5 },
-  filterDivider: { borderRightWidth: 1, borderRightColor: "#173A52" },
+  filterDivider: { borderRightWidth: 1, borderRightColor: sk("#173A52", "rgba(16,42,92,0.10)") },
   filterText: { color: TOURNAMENT_COLORS.textMuted, fontSize: 13, fontWeight: "600", flexShrink: 1 },
   filterTextActive: { color: TOURNAMENT_COLORS.primary, fontWeight: "800" },
   filterUnderline: { position: "absolute", bottom: -1, left: 0, right: 8, height: 2.5, backgroundColor: TOURNAMENT_COLORS.primary, borderRadius: 2 },
@@ -312,8 +334,8 @@ const styles = StyleSheet.create({
   dateFilter: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 7, maxWidth: "100%", flexShrink: 1 },
   dateFilterText: { color: TOURNAMENT_COLORS.textMuted, fontSize: 13, flexShrink: 1 },
   dateClear: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  card: { borderRadius: 17, overflow: "hidden" },
-  cover: { position: "relative", width: "100%", aspectRatio: 2.55, backgroundColor: "#081B33" },
+  card: { borderRadius: 17, overflow: "hidden", ...(IS_V3 ? { borderWidth: 1, borderColor: "rgba(16,42,92,0.08)", shadowColor: "#1B3A7A", shadowOpacity: 0.1, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 3 } : null) },
+  cover: { position: "relative", width: "100%", aspectRatio: 2.55, backgroundColor: sk("#081B33", "#E9F0FA") },
   coverImage: { width: "100%", height: "100%" },
   coverPressed: { opacity: 0.92 },
   statusBadge: { position: "absolute", top: 10, left: 10, flexDirection: "row", alignItems: "center", gap: 7, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 18, backgroundColor: "rgba(2,11,28,0.78)" },
@@ -321,11 +343,11 @@ const styles = StyleSheet.create({
   statusText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
   modeBadge: { position: "absolute", top: 10, right: 10, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 6, borderRadius: 14, backgroundColor: "rgba(35,26,2,0.8)" },
   modeText: { color: "#FFE071", fontSize: 11, fontWeight: "800" },
-  dateBadge: { position: "absolute", bottom: 5, left: 12, minWidth: 48, alignItems: "center", paddingHorizontal: 9, paddingVertical: 5, borderWidth: 1, borderColor: "#276486", borderLeftWidth: 3, borderLeftColor: TOURNAMENT_COLORS.primary, borderRadius: 7, backgroundColor: "#071F34" },
-  dateDay: { color: "#FFFFFF", fontSize: 24, lineHeight: 28, fontWeight: "900" },
-  dateMonth: { color: "#A0BEDF", fontSize: 10, lineHeight: 13, fontWeight: "700" },
+  dateBadge: { position: "absolute", bottom: 5, left: 12, minWidth: 48, alignItems: "center", paddingHorizontal: 9, paddingVertical: 5, borderWidth: 1, borderColor: sk("#276486", "rgba(16,42,92,0.12)"), borderLeftWidth: 3, borderLeftColor: TOURNAMENT_COLORS.primary, borderRadius: 7, backgroundColor: sk("#071F34", "#FFFFFF") },
+  dateDay: { color: sk("#FFFFFF", "#0B1B3A"), fontSize: 24, lineHeight: 28, fontWeight: "900" },
+  dateMonth: { color: sk("#A0BEDF", "#5F6F8A"), fontSize: 10, lineHeight: 13, fontWeight: "700" },
   titlePressable: { paddingHorizontal: 14, paddingTop: 13, paddingBottom: 9 },
-  cardTitle: { color: "#FFFFFF", fontSize: 24, lineHeight: 29, fontWeight: "900", letterSpacing: -0.4, textTransform: "uppercase" },
+  cardTitle: { color: sk("#FFFFFF", "#0B1B3A"), fontSize: 24, lineHeight: 29, fontWeight: "900", letterSpacing: -0.4, textTransform: "uppercase" },
   info: { paddingHorizontal: 14, paddingBottom: 11 },
   infoFields: { flexDirection: "row", flexWrap: "wrap", columnGap: 12, rowGap: 8 },
   infoField: { flexDirection: "row", alignItems: "flex-start", gap: 7, flexGrow: 1, minWidth: 0 },
@@ -338,7 +360,7 @@ const styles = StyleSheet.create({
   infoSummary: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 12, marginTop: 10 },
   summaryItem: { flexDirection: "row", alignItems: "center", gap: 7 },
   summaryText: { color: TOURNAMENT_COLORS.textMuted, fontSize: 12, lineHeight: 17 },
-  summaryDivider: { width: 1, height: 15, backgroundColor: "#25465D" },
+  summaryDivider: { width: 1, height: 15, backgroundColor: sk("#25465D", "rgba(16,42,92,0.14)") },
   actions: { paddingHorizontal: 14, paddingBottom: 8 },
   actionGrid: { width: "100%", flexDirection: "row", flexWrap: "wrap", alignItems: "stretch", gap: 8 },
   actionPressable: { minHeight: 48, minWidth: 0, flexGrow: 1, flexShrink: 1 },
@@ -346,28 +368,28 @@ const styles = StyleSheet.create({
   actionThird: { flexBasis: "30%" },
   actionFull: { flexBasis: "100%" },
   actionPrimary: { flex: 1, minHeight: 48, paddingHorizontal: 10, paddingVertical: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 10, borderWidth: 1 },
-  actionSecondary: { flex: 1, minHeight: 48, paddingHorizontal: 10, paddingVertical: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 10, borderWidth: 1, borderColor: "#23667F", backgroundColor: "#0A2B43" },
-  actionBracket: { borderColor: "#365F89", backgroundColor: "#122D49" },
-  actionDetails: { borderColor: "#2A4C68", backgroundColor: "#0A2136" },
+  actionSecondary: { flex: 1, minHeight: 48, paddingHorizontal: 10, paddingVertical: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 10, borderWidth: 1, borderColor: sk("#23667F", "rgba(20,102,242,0.18)"), backgroundColor: sk("#0A2B43", "rgba(20,102,242,0.08)") },
+  actionBracket: { borderColor: sk("#365F89", "rgba(16,42,92,0.12)"), backgroundColor: sk("#122D49", "#F5F8FD") },
+  actionDetails: { borderColor: sk("#2A4C68", "rgba(16,42,92,0.12)"), backgroundColor: sk("#0A2136", "#FFFFFF") },
   actionTextPrimary: { flexShrink: 1, textAlign: "center", color: "#031526", fontSize: 13.5, lineHeight: 18, fontWeight: "800" },
-  actionText: { flexShrink: 1, textAlign: "center", color: "#D8ECFC", fontSize: 13, lineHeight: 18, fontWeight: "700" },
-  actionDetailsText: { color: "#AEC8E0" },
-  eventRow: { marginHorizontal: 14, paddingHorizontal: 6, paddingTop: 12, paddingBottom: 11, borderTopWidth: 1, borderTopColor: "#21475F" },
+  actionText: { flexShrink: 1, textAlign: "center", color: sk("#D8ECFC", "#0B2A6B"), fontSize: 13, lineHeight: 18, fontWeight: "700" },
+  actionDetailsText: { color: sk("#AEC8E0", "#5F6F8A") },
+  eventRow: { marginHorizontal: 14, paddingHorizontal: 6, paddingTop: 12, paddingBottom: 11, borderTopWidth: 1, borderTopColor: sk("#21475F", "rgba(16,42,92,0.10)") },
   eventHeading: { flexDirection: "row", alignItems: "center", gap: 8 },
   eventTitleTouch: { flex: 1, minHeight: 44, minWidth: 0, justifyContent: "center" },
-  eventTitle: { color: "#FFFFFF", fontSize: 16, lineHeight: 21, fontWeight: "800" },
+  eventTitle: { color: sk("#FFFFFF", "#0B1B3A"), fontSize: 16, lineHeight: 21, fontWeight: "800" },
   eventKindRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 2 },
   eventKind: { color: TOURNAMENT_COLORS.textMuted, fontSize: 11.5, lineHeight: 16 },
-  fullLabel: { color: "#FF8891", fontSize: 11.5, lineHeight: 16, fontWeight: "700" },
-  capacity: { color: "#BCD2EB", fontSize: 14, fontWeight: "700", flexShrink: 1, textAlign: "right" },
+  fullLabel: { color: sk("#FF8891", "#DC2626"), fontSize: 11.5, lineHeight: 16, fontWeight: "700" },
+  capacity: { color: sk("#BCD2EB", "#243450"), fontSize: 14, fontWeight: "700", flexShrink: 1, textAlign: "right" },
   capacityCurrent: { color: TOURNAMENT_COLORS.primary, fontWeight: "900", fontSize: 16 },
-  capacityFull: { color: "#FF8891", fontWeight: "900", fontSize: 16 },
+  capacityFull: { color: sk("#FF8891", "#DC2626"), fontWeight: "900", fontSize: 16 },
   capacityUnit: { color: TOURNAMENT_COLORS.textMuted, fontSize: 11, fontWeight: "500" },
-  track: { height: 5, borderRadius: 3, backgroundColor: "#203C52", overflow: "hidden", marginTop: 8, marginBottom: 8 },
+  track: { height: 5, borderRadius: 3, backgroundColor: sk("#203C52", "#E3EAF5"), overflow: "hidden", marginTop: 8, marginBottom: 8 },
   fill: { height: "100%", borderRadius: 3 },
-  zaloButton: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 14, paddingVertical: 10, borderTopWidth: 1, borderTopColor: "#21475F" },
+  zaloButton: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 14, paddingVertical: 10, borderTopWidth: 1, borderTopColor: sk("#21475F", "rgba(16,42,92,0.10)") },
   zaloMark: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "#168AFF" },
   zaloMarkText: { color: "#FFFFFF", fontSize: 9, fontWeight: "900", letterSpacing: -0.4 },
-  zaloText: { flex: 1, color: "#FFFFFF", fontSize: 14, lineHeight: 19, fontWeight: "700" },
+  zaloText: { flex: 1, color: sk("#FFFFFF", "#0B1B3A"), fontSize: 14, lineHeight: 19, fontWeight: "700" },
   pressed: { opacity: 0.78 },
 });

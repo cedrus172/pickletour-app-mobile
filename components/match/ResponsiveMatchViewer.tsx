@@ -31,7 +31,7 @@ import {
   useListTournamentBracketsQuery,
 } from "@/slices/tournamentsApiSlice";
 import MatchContent from "./MatchContent";
-import { useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
 
 /* =========================
  * Helpers: V/T (+B cho vòng bảng)
@@ -377,19 +377,19 @@ function useThemeTokens() {
   const scheme = useColorScheme() ?? "light";
   // V2 modern (navy) ưu tiên như MatchContent — nếu không, sheet trắng chỏi với
   // các card navy bên trong khi máy đang light mode nhưng app bật V2.
-  const v2 = useUiVersion() === "v2";
-  const isDark = v2 || scheme === "dark";
+  const v2 = useUiVersion() === "v2" || IS_V3;
+  const isDark = (v2 && !IS_V3) || scheme === "dark";
 
   // màu chính + văn bản
-  const tint = v2 ? "#12B6F3" : isDark ? "#7cc0ff" : "#0a84ff";
-  const textPrimary = v2 ? "#EAF3FF" : isDark ? "#ffffff" : "#0f172a";
-  const textSecondary = v2 ? "#8CA6C8" : isDark ? "#d1d1d1" : "#334155";
+  const tint = v2 ? sk("#12B6F3", "#1466F2") : isDark ? "#7cc0ff" : "#0a84ff";
+  const textPrimary = v2 ? sk("#EAF3FF", "#0B1B3A") : isDark ? "#ffffff" : "#0f172a";
+  const textSecondary = v2 ? sk("#8CA6C8", "#5F6F8A") : isDark ? "#d1d1d1" : "#334155";
 
   // nền sheet + viền mềm + handle (V2 dùng cùng nền trang navy của MatchContent)
-  const sheetBg = v2 ? "#040E20" : isDark ? "#111214" : "#ffffff";
-  const softBg = v2 ? "#0E2244" : isDark ? "#1e1f23" : "#eef1f6";
-  const softBorder = v2 ? "rgba(92,180,255,0.16)" : isDark ? "#3a3b40" : "#cbd5e1";
-  const handle = v2 ? "#3A5A82" : isDark ? "#475569" : "#94a3b8";
+  const sheetBg = v2 ? sk("#040E20", "#F2F6FC") : isDark ? "#111214" : "#ffffff";
+  const softBg = v2 ? sk("#0E2244", "#EEF3FA") : isDark ? "#1e1f23" : "#eef1f6";
+  const softBorder = v2 ? sk("rgba(92,180,255,0.16)", "rgba(16,42,92,0.10)") : isDark ? "#3a3b40" : "#cbd5e1";
+  const handle = v2 ? sk("#3A5A82", "#C3CEDF") : isDark ? "#475569" : "#94a3b8";
   const backdrop = isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.45)";
 
   // Pills (status)

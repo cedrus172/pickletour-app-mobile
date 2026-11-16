@@ -20,6 +20,7 @@ import {
   useUnblockUserMutation,
 } from "@/slices/friendsApiSlice";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import { sk } from "@/hooks/uiVersion";
 
 export function FriendActions({
   userId,
@@ -200,7 +201,7 @@ const mk_styles = (C: ThemeTokens, profile = false) => StyleSheet.create({
     padding: 0,
     justifyContent: "center",
   },
-  btnPrimary: { backgroundColor: profile ? "#0BBFE7" : "#0066FF" },
+  btnPrimary: { backgroundColor: profile ? sk("#0BBFE7", "#1466F2") : "#0066FF" },
   btnPrimaryText: { color: "#fff", fontWeight: "600", fontSize: 13, flexShrink: 1 },
   btnOutline: {
     backgroundColor: C.field,

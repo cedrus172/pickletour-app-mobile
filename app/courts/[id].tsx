@@ -30,6 +30,7 @@ import { useGetReviewSummaryQuery } from "@/slices/reviewApiSlice";
 import { useListVenuePackagesQuery, usePurchasePackageMutation, useMyPackagesQuery } from "@/slices/packagesApiSlice";
 import { LinearGradient } from "expo-linear-gradient";
 import VenueMiniMap from "@/components/courts/VenueMiniMap";
+import { sk } from "@/hooks/uiVersion";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { fmtVND, pal, toDateInput, addDays, weekdayOf } from "@/utils/courtFormat";
 import { DateStrip, SectionHeader, SheetHandle, shadow, R, SP } from "@/components/courts/ui";
@@ -531,7 +532,7 @@ export default function VenueDetailScreen() {
               </TouchableOpacity>
             </View>
             {promoInfo && (
-              <Text style={{ color: promoInfo.ok ? "#22c55e" : "#ef4444", fontSize: 12, marginBottom: 8 }}>
+              <Text style={{ color: promoInfo.ok ? sk("#22c55e", "#16A34A") : sk("#ef4444", "#DC2626"), fontSize: 12, marginBottom: 8 }}>
                 {promoInfo.ok ? `Đã áp mã · giảm ${fmtVND(promoInfo.discount)}` : promoInfo.reason}
               </Text>
             )}
@@ -567,7 +568,7 @@ export default function VenueDetailScreen() {
               <Text style={{ color: C.sub }}>Thanh toán</Text>
               <View style={{ alignItems: "flex-end" }}>
                 {usePkg ? (
-                  <Text style={{ color: "#22c55e", fontWeight: "900", fontSize: 18 }}>Dùng gói</Text>
+                  <Text style={{ color: sk("#22c55e", "#16A34A"), fontWeight: "900", fontSize: 18 }}>Dùng gói</Text>
                 ) : (
                   <>
                     {discount > 0 && <Text style={{ color: C.sub, fontSize: 13, textDecorationLine: "line-through" }}>{fmtVND(total)}</Text>}

@@ -21,17 +21,19 @@ import {
   useUpsertReviewMutation,
   useDeleteMyReviewMutation,
 } from "@/slices/reviewApiSlice";
+import { IS_V3, sk } from "@/hooks/uiVersion";
 
 const ACCENT = "#f59e0b";
 
 function pal(dark: boolean) {
   return {
-    bg: dark ? "#0a0e1a" : "#f5f7fb",
+    // V2 luôn đi nhánh tối (nav theme dark); V3 Fresh đi nhánh sáng với bảng màu V3.
+    bg: dark ? "#0a0e1a" : sk("#f5f7fb", "#F2F6FC"),
     card: dark ? "#121829" : "#ffffff",
-    border: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
-    text: dark ? "#f8fafc" : "#0f172a",
-    sub: dark ? "#94a3b8" : "#64748b",
-    inputBg: dark ? "rgba(255,255,255,0.06)" : "#f1f5f9",
+    border: dark ? "rgba(255,255,255,0.08)" : sk("rgba(0,0,0,0.08)", "rgba(16,42,92,0.10)"),
+    text: dark ? "#f8fafc" : sk("#0f172a", "#0B1B3A"),
+    sub: dark ? "#94a3b8" : sk("#64748b", "#5F6F8A"),
+    inputBg: dark ? "rgba(255,255,255,0.06)" : sk("#f1f5f9", "#EEF3FA"),
   };
 }
 
@@ -309,7 +311,7 @@ export default function TournamentReviewsScreen() {
                     onPress={onSubmit}
                     disabled={saving}
                   >
-                    <Text style={{ color: "#0a0e1a", fontWeight: "800" }}>
+                    <Text style={{ color: sk("#0a0e1a", "#FFFFFF"), fontWeight: "800" }}>
                       {saving ? "Đang gửi…" : "Gửi đánh giá"}
                     </Text>
                   </TouchableOpacity>
@@ -327,7 +329,7 @@ export default function TournamentReviewsScreen() {
                       <Ionicons name="create-outline" size={20} color={C.sub} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={onDelete}>
-                      <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                      <Ionicons name="trash-outline" size={20} color={sk("#ef4444", "#DC2626")} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -405,6 +407,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 14,
     marginBottom: 12,
+    ...(IS_V3 ? { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 } : null),
   },
   bigScore: { fontSize: 40, fontWeight: "900", lineHeight: 44 },
   subText: { fontSize: 12 },
@@ -434,7 +437,7 @@ const styles = StyleSheet.create({
   },
   btnPrimary: {
     flex: 1,
-    backgroundColor: ACCENT,
+    backgroundColor: sk(ACCENT, "#1466F2"),
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: "center",
@@ -453,10 +456,10 @@ const styles = StyleSheet.create({
   avatarPh: { backgroundColor: "#6366f1", alignItems: "center", justifyContent: "center" },
   uname: { fontSize: 14, fontWeight: "700" },
   verifiedChip: {
-    backgroundColor: "rgba(34,197,94,0.15)",
+    backgroundColor: sk("rgba(34,197,94,0.15)", "rgba(22,163,74,0.12)"),
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 6,
   },
-  verifiedText: { color: "#22c55e", fontSize: 10, fontWeight: "700" },
+  verifiedText: { color: sk("#22c55e", "#16A34A"), fontSize: 10, fontWeight: "700" },
 });

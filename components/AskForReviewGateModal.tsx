@@ -12,8 +12,9 @@ import {
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import * as StoreReview from "expo-store-review";
+import { sk } from "@/hooks/uiVersion";
 
-const PRIMARY = "#2563EB";
+const PRIMARY = sk("#2563EB", "#1466F2");
 const ANDROID_STORE_URL =
   "https://play.google.com/store/apps/details?id=com.pkt.pickletour";
 
@@ -29,12 +30,12 @@ const DARK_PALETTE = {
 };
 
 const LIGHT_PALETTE = {
-  backdrop: "rgba(15,23,42,0.25)",
+  backdrop: sk("rgba(15,23,42,0.25)", "rgba(11,27,58,0.45)"),
   cardBg: "#FFFFFF",
-  title: "#111827",
-  subtitle: "#4B5563",
-  secondaryText: "#374151",
-  border: "#E5E7EB",
+  title: sk("#111827", "#0B1B3A"),
+  subtitle: sk("#4B5563", "#5F6F8A"),
+  secondaryText: sk("#374151", "#243450"),
+  border: sk("#E5E7EB", "rgba(16,42,92,0.14)"),
   primary: PRIMARY,
   primaryText: "#FFFFFF",
 };

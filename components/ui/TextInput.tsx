@@ -11,6 +11,7 @@ import { Text } from "@/components/ui/i18nText";
 import { useLang, translate } from "@/utils/i18n";
 // 1. Import Theme Hook
 import { useTheme } from '@react-navigation/native';
+import { sk } from "@/hooks/uiVersion";
 
 interface TextInputProps extends RNTextInputProps {
   label?: string;
@@ -35,10 +36,10 @@ export default function TextInput({
 
   // 3. Định nghĩa màu sắc dynamic
   const colors = useMemo(() => ({
-    label: dark ? '#A0A0A0' : '#666', // Label sáng hơn chút ở dark mode
-    inputBg: dark ? '#2C2C2E' : '#f5f5f5', // Nền input tối
-    text: dark ? '#FFFFFF' : '#333', // Chữ trắng
-    placeholder: dark ? '#666' : '#999', // Placeholder tối hơn
+    label: dark ? '#A0A0A0' : sk('#666', '#5F6F8A'), // Label sáng hơn chút ở dark mode
+    inputBg: dark ? '#2C2C2E' : sk('#f5f5f5', '#EEF3FA'), // Nền input tối
+    text: dark ? '#FFFFFF' : sk('#333', '#0B1B3A'), // Chữ trắng
+    placeholder: dark ? '#666' : sk('#999', '#97A3B8'), // Placeholder tối hơn
     border: dark ? '#333' : 'transparent', // Viền nhẹ ở dark mode để tách biệt
   }), [dark]);
 

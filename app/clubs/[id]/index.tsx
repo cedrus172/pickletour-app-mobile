@@ -38,6 +38,7 @@ import JoinRequestsSheetRN from "@/components/clubs/JoinRequestsSheetRN";
 import ClubCreateModal from "@/components/clubs/ClubCreateModal";
 import { SHOULD_RENDER_NATIVE_LOTTIE } from "@/utils/runtimeSafety";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
+import { sk } from "@/hooks/uiVersion";
 
 const { width: W } = Dimensions.get("window");
 const TABS = ["news", "discussion", "events", "polls", "gallery", "sessions", "matches", "finance"] as const;
@@ -79,7 +80,7 @@ function GradientCard({
   return (
     <View style={[styles.gradCard, style]}>
       <LinearGradient
-        colors={["#0a2943", "#092038"]}
+        colors={sk<[string, string]>(["#0a2943", "#092038"], ["#FFFFFF", "#FFFFFF"])}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -196,7 +197,7 @@ export default function ClubDetailPageRN() {
 
         <View style={styles.centered}>
           <GradientCard>
-            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>
+            <Text style={{ color: sk("#fff", "#0B1B3A"), fontWeight: "700", fontSize: 16 }}>
               Không tìm thấy CLB
             </Text>
           </GradientCard>
@@ -217,7 +218,7 @@ export default function ClubDetailPageRN() {
         style={[styles.fabBtn, { right: 94 }]}
       >
         <LinearGradient
-          colors={["#0aaec8", "#087ba6"]}
+          colors={sk<[string, string]>(["#0aaec8", "#087ba6"], ["#2F8BFF", "#1466F2"])}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
@@ -232,7 +233,7 @@ export default function ClubDetailPageRN() {
         style={[styles.fabBtn, { right: 16 }]}
       >
         <LinearGradient
-          colors={["#0aaec8", "#087ba6"]}
+          colors={sk<[string, string]>(["#0aaec8", "#087ba6"], ["#2F8BFF", "#1466F2"])}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
@@ -314,10 +315,10 @@ export default function ClubDetailPageRN() {
                   ]}
                 >
                   <LinearGradient
-                    colors={[
+                    colors={sk<[string, string]>([
                       "#09d1ea",
                       "#09d1ea",
-                    ]}
+                    ], ["#2F8BFF", "#1466F2"])}
                     style={StyleSheet.absoluteFill}
                     pointerEvents="none"
                   />
@@ -381,7 +382,7 @@ export default function ClubDetailPageRN() {
               ) : (
                 <View style={{ paddingHorizontal: OUT_PAD }}>
                   <GradientCard>
-                    <Text style={{ color: "#fff" }}>
+                    <Text style={{ color: sk("#fff", "#243450") }}>
                       {memberGuardMessage(club)}
                     </Text>
                   </GradientCard>
@@ -458,13 +459,13 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(0,0,0,0.06)",
-    shadowColor: "#000",
+    borderColor: sk("rgba(0,0,0,0.06)", "rgba(16,42,92,0.10)"),
+    shadowColor: sk("#000", "#1B3A7A"),
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 14,
-    elevation: 6,
-    backgroundColor: "transparent",
+    elevation: sk(6, 3),
+    backgroundColor: sk("transparent", "#FFFFFF"),
   },
 
   // segmented
@@ -472,7 +473,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: "hidden",
     padding: 2,
-    backgroundColor: "rgba(255,255,255,0.16)",
+    backgroundColor: sk("rgba(255,255,255,0.16)", "#EEF3FA"),
   },
   indicator: {
     position: "absolute",
@@ -491,8 +492,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   // chữ mặc định sáng để nổi trên gradient, active thì đậm tối để không "mất chữ" trên nền trắng
-  tabText: { color: "#ffffffd9", fontWeight: "700" },
-  tabTextActive: { color: "#031829", fontWeight: "800" },
+  tabText: { color: sk("#ffffffd9", "#5F6F8A"), fontWeight: "700" },
+  tabTextActive: { color: sk("#031829", "#FFFFFF"), fontWeight: "800" },
 
   // FAB
   fabWrap: {
