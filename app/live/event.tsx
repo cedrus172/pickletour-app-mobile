@@ -203,9 +203,17 @@ export default function EventLiveScreen() {
   const C = useThemeTokens();
   const styles = useMemo(() => mk_styles(C), [C]);
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const playerW = width;
-  const playerH = Math.round((playerW * 9) / 16);
+  const { width, height } = useWindowDimensions();
+  // Màn rộng mà thấp (iPhone Duo mở ra, máy tính bảng, xoay ngang): video 16:9 phủ hết bề
+  // ngang sẽ đẩy danh sách sân ra khỏi màn hình → chia 2 cột: video bên trái, danh sách /
+  // xem lại / chat bên phải. Màn dọc thông thường giữ bố cục 1 cột như cũ.
+  const availH = height - insets.top - insets.bottom;
+  const twoPane = width >= 600 && availH - Math.round((width * 9) / 16) < 330;
+  const sideW = twoPane ? Math.max(300, Math.min(440, Math.round(width * 0.38))) : 0;
+  const playerW = twoPane ? width - sideW : width;
+  const playerH = twoPane
+    ? Math.max(160, Math.min(Math.round((playerW * 9) / 16), availH - 56 - 40))
+    : Math.round((playerW * 9) / 16);
 
   const params = useLocalSearchParams<{ slug?: string }>();
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug || "";
@@ -293,7 +301,8 @@ export default function EventLiveScreen() {
   }, [live.length, replays.length]);
 
   const { paneRef, measurePane, keyboardOpen, keyboardOverlap } = useChatKeyboard();
-  const hidePlayer = tab === "chat" && keyboardOpen;
+  // 2 cột: video nằm cạnh khung chat nên không cần ẩn khi bàn phím hiện.
+  const hidePlayer = tab === "chat" && keyboardOpen && !twoPane;
 
   const eventName = data?.eventName || "Giải đấu trực tiếp";
 
@@ -342,6 +351,8 @@ export default function EventLiveScreen() {
         </Pressable>
       </View>
 
+      <View style={[{ flex: 1 }, twoPane && { flexDirection: "row" }]}>
+      <View style={twoPane ? { width: playerW } : undefined}>
       {/* Player — ẩn khi keyboard hiện ở tab chat để nhường chỗ */}
       {!hidePlayer && (
         <View style={{ width: playerW, height: playerH, backgroundColor: "#000" }}>
@@ -478,6 +489,13 @@ export default function EventLiveScreen() {
         </View>
       ) : null}
 
+      </View>
+      <View
+        style={[
+          { flex: 1, minWidth: 0 },
+          twoPane && { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: C.border },
+        ]}
+      >
       {/* Tabs */}
       <View style={styles.tabs}>
         <TabBtn
@@ -559,6 +577,8 @@ export default function EventLiveScreen() {
           )}
         </ScrollView>
       )}
+      </View>
+      </View>
     </View>
   );
 }
