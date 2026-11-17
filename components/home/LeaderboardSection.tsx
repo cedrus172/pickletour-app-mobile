@@ -16,7 +16,7 @@ import { normalizeUrl } from "@/utils/normalizeUri";
 import { SHOULD_RENDER_NATIVE_LOTTIE } from "@/utils/runtimeSafety";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
 import { IOS_26_LIQUID_GLASS_ENABLED } from "@/utils/nativeTabs";
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 import { HOME_COLORS } from "@/components/home/HomeDesign";
 
 const BG_3D = SHOULD_RENDER_NATIVE_LOTTIE
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     overflow: "hidden",
     borderRadius: 24,
-    ...(IS_V3 ? { borderWidth: 1, borderColor: "rgba(16,42,92,0.08)" } : null),
+    ...(IS_V3_LIGHT ? { borderWidth: 1, borderColor: "rgba(16,42,92,0.08)" } : null),
   },
   leaderboardOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   leaderboardCardGradient: {
     borderRadius: 16,
     padding: 2,
-    ...(IS_V3
+    ...(IS_V3_LIGHT
       ? {
           shadowColor: "#1B3A7A",
           shadowOpacity: 0.1,

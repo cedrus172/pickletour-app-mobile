@@ -21,7 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useGetNewsQuery } from "@/slices/newsApiSlice";
 import { normalizeUrl } from "@/utils/normalizeUri";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 const FALLBACK_IMG =
   "https://dummyimage.com/600x400/A29BFE/ffffff&text=Pickleball+News";
@@ -100,7 +100,7 @@ function NewsCardSkeleton({ theme }) {
       ]}
     >
       <Shimmer
-        style={[{ height: 170 }, IS_V3 && styles.coverRoundV3]}
+        style={[{ height: 170 }, IS_V3_LIGHT && styles.coverRoundV3]}
         base={base}
         radius={0}
       />
@@ -169,7 +169,7 @@ function NewsListItem({ item, theme }) {
   const sub = isDark ? "#b0b0b0" : sk("#666666", "#5F6F8A");
   const border = theme?.colors?.border ?? (isDark ? "#2a2e35" : "#e0e0e0");
   // V3: bài không có ảnh → bìa dự phòng gradient xanh dương (thay ảnh tím của V2)
-  const useV3Cover = IS_V3 && !(item.thumbImageUrl || item.heroImageUrl);
+  const useV3Cover = IS_V3_LIGHT && !(item.thumbImageUrl || item.heroImageUrl);
 
   return (
     <TouchableOpacity
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
   imageWrap: {
     position: "relative",
     height: 170,
-    ...(IS_V3
+    ...(IS_V3_LIGHT
       ? {
           borderTopLeftRadius: 19,
           borderTopRightRadius: 19,

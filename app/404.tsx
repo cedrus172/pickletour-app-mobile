@@ -1,5 +1,5 @@
 import { t } from "@/utils/i18n";
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -15,7 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export default function NotFound() {
   const scheme0 = useColorScheme() ?? "light";
   const v2 = useUiVersion() === "v2" || IS_V3;
-  const scheme = v2 && !IS_V3 ? "dark" : IS_V3 ? "light" : scheme0;
+  const scheme = v2 && !IS_V3_LIGHT ? "dark" : IS_V3_LIGHT ? "light" : scheme0;
   const textPrimary = scheme === "dark" ? "#fff" : sk("#111", "#0B1B3A");
   const textSecondary = scheme === "dark" ? "#c9c9c9" : sk("#444", "#5F6F8A");
   const border = scheme === "dark" ? "#2e2f33" : sk("#e5e9f0", "rgba(16,42,92,0.10)");

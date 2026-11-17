@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 
 import { FEED_COLORS } from "@/components/feed/FeedDesign";
 import { Text } from "@/components/ui/i18nText";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 export const NOTIFICATION_COLORS = {
   ...FEED_COLORS,
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: sk("rgba(90,180,230,0.14)", "rgba(16,42,92,0.08)"),
     backgroundColor: sk("rgba(7,28,53,0.75)", "#FFFFFF"),
-    ...(IS_V3
+    ...(IS_V3_LIGHT
       ? {
           shadowColor: "#1B3A7A",
           shadowOpacity: 0.08,

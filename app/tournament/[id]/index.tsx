@@ -1,6 +1,6 @@
 import TournamentSponsors from "@/components/tournament/TournamentSponsors";
 import { t } from "@/utils/i18n";
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 /* eslint-disable react/prop-types */
 // app/tournament/[id]/index.jsx
 import React, {
@@ -167,7 +167,7 @@ function useTokens() {
   const scheme = useColorScheme() ?? "light";
   // V3 Fresh: bố cục của V2, bảng màu sáng.
   const v2 = useUiVersion() === "v2" || IS_V3;
-  const dark = (v2 && !IS_V3) || scheme === "dark";
+  const dark = (v2 && !IS_V3_LIGHT) || scheme === "dark";
   return useMemo(
     () => ({
       scheme,
@@ -1657,10 +1657,10 @@ const O = StyleSheet.create({
   heroLocation: { flex: 1, minWidth: 0, fontSize: 12, lineHeight: 19, color: sk("#B4CCE2", "rgba(255,255,255,0.90)"), fontWeight: "500" },
   heroDate: { flexShrink: 1, fontSize: 13, lineHeight: 20 },
   shortcutsWrap: { flexWrap: "wrap", gap: 10, marginTop: 18 },
-  shortcut: { flexBasis: "30%", flexGrow: 1, flexShrink: 0, minWidth: 0, minHeight: 54, paddingVertical: 12, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: sk("#07233B", "#FFFFFF"), borderColor: sk("#1A6086", "#FFFFFF"), borderRadius: 12, ...(IS_V3 ? { shadowColor: "#0B2A6B", shadowOpacity: 0.14, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 } : null) },
+  shortcut: { flexBasis: "30%", flexGrow: 1, flexShrink: 0, minWidth: 0, minHeight: 54, paddingVertical: 12, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: sk("#07233B", "#FFFFFF"), borderColor: sk("#1A6086", "#FFFFFF"), borderRadius: 12, ...(IS_V3_LIGHT ? { shadowColor: "#0B2A6B", shadowOpacity: 0.14, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 } : null) },
   shortcutPrimary: { backgroundColor: sk("#12C8EC", "#C5F433"), borderColor: sk("#0AAAD4", "#C5F433") },
   shortcutIcon: { width: 24, height: 26, borderRadius: 0, backgroundColor: "transparent" },
-  shortcutText: { fontSize: 12, lineHeight: 17, fontWeight: "800", flexShrink: 1, ...(IS_V3 ? { color: "#0B1B3A" } : null) },
+  shortcutText: { fontSize: 12, lineHeight: 17, fontWeight: "800", flexShrink: 1, ...(IS_V3_LIGHT ? { color: "#0B1B3A" } : null) },
   statCard: { minHeight: 86, padding: 12, gap: 10 },
   statIcon: { width: 40, height: 44, borderRadius: 12 },
   statLabel: { fontSize: 10.5, lineHeight: 14 },

@@ -10,7 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { Text } from "@/components/ui/i18nText";
 import { TextInput } from "@/components/ui/i18nTextInput";
-import { V3 } from "@/hooks/uiVersion";
+import { IS_V3_DARK, V3 } from "@/hooks/uiVersion";
 
 export type HomeFeature = { id: number; title: string; link?: string };
 
@@ -45,7 +45,7 @@ const GROUPS: { key: string; title: string; icon: keyof typeof Ionicons.glyphMap
   { key: "utils", title: "Tiện ích", icon: "grid-outline", ids: [19, 5, 4, 10] },
 ];
 
-const TINTS = ["#E8F1FF", "#ECF8E1", "#EFEBFF"];
+const TINTS = V3.tints;
 
 /** Bỏ dấu tiếng Việt + viết thường để tìm không phân biệt dấu. */
 function fold(text: string) {
@@ -205,9 +205,9 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(20,102,242,0.08)",
+    backgroundColor: V3.blueSoft,
     borderWidth: 1,
-    borderColor: "rgba(20,102,242,0.2)",
+    borderColor: V3.blueSoftBorder,
   },
   countText: { color: V3.blue, fontSize: 12, fontWeight: "800" },
 
@@ -219,9 +219,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 15,
     borderRadius: 23,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: V3.card,
     borderWidth: 1,
-    borderColor: "rgba(16,42,92,0.08)",
+    borderColor: V3.border,
     shadowColor: V3.shadow,
     shadowOpacity: 0.06,
     shadowRadius: 10,
@@ -236,12 +236,12 @@ const styles = StyleSheet.create({
 
   card: {
     borderRadius: 22,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: V3.card,
     paddingHorizontal: 7,
     paddingTop: 10,
     paddingBottom: 4,
     borderWidth: 1,
-    borderColor: "rgba(16,42,92,0.05)",
+    borderColor: IS_V3_DARK ? V3.border : "rgba(16,42,92,0.05)",
     shadowColor: V3.shadow,
     shadowOpacity: 0.08,
     shadowRadius: 14,

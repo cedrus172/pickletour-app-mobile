@@ -8,7 +8,7 @@
 // và trong component: `const styles = useMemo(() => mkStyles(C), [C]);`
 import { useMemo } from "react";
 import { pal } from "@/utils/courtFormat";
-import { IS_V3, V2, V3 } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, V2, V3 } from "@/hooks/uiVersion";
 
 /** Token cho giao diện V2 Modern (navy/cyan/volt theo logo). */
 const themeTokensV2 = () => {
@@ -89,7 +89,7 @@ const themeTokensV3 = (): ThemeTokens => {
   };
 };
 
-export const themeTokens: () => ThemeTokens = IS_V3 ? themeTokensV3 : themeTokensV2;
+export const themeTokens: () => ThemeTokens = IS_V3_LIGHT ? themeTokensV3 : themeTokensV2;
 
 export function useThemeTokens(): ThemeTokens {
   return useMemo(themeTokens, []);

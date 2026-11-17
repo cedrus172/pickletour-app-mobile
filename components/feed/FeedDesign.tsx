@@ -5,7 +5,7 @@ import React, { memo, type ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { Text } from "@/components/ui/i18nText";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 const FEED_COLORS_V2 = {
   background: "#020B1C",
@@ -42,7 +42,7 @@ const FEED_COLORS_V3: FeedColors = {
   border: "rgba(16,42,92,0.10)",
 };
 
-export const FEED_COLORS: FeedColors = IS_V3 ? FEED_COLORS_V3 : FEED_COLORS_V2;
+export const FEED_COLORS: FeedColors = IS_V3_LIGHT ? FEED_COLORS_V3 : FEED_COLORS_V2;
 
 export const FeedPage = memo(function FeedPage({ children }: { children: ReactNode }) {
   return (

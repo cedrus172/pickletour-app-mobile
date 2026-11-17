@@ -28,7 +28,7 @@ import {
 } from "@/slices/notificationCenterApiSlice";
 import { socket } from "@/lib/socket";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 import {
   NOTIFICATION_COLORS,
   NotificationSectionHeader,
@@ -336,7 +336,7 @@ const mk_styles = (_C: ThemeTokens) => StyleSheet.create({
     borderColor: sk("rgba(90,180,230,0.18)", "rgba(16,42,92,0.08)"),
     backgroundColor: sk("rgba(5,25,49,0.82)", "#FFFFFF"),
     // V3 Fresh: thẻ trắng có bóng mềm.
-    ...(IS_V3
+    ...(IS_V3_LIGHT
       ? {
           shadowColor: "#1B3A7A",
           shadowOpacity: 0.08,

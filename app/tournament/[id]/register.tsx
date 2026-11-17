@@ -5,7 +5,7 @@ import TournamentSponsors from "@/components/tournament/TournamentSponsors";
 import OverviewHeroArt from "@/components/tournament/OverviewHeroArt";
 import TournamentRuleFiles from "@/components/tournament/TournamentRuleFiles";
 import { t } from "@/utils/i18n";
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 // app/screens/TournamentRegistrationScreen.tsx
 import {
   Stack,
@@ -97,7 +97,7 @@ function useThemeColors() {
   const scheme = useColorScheme() ?? "light";
   const v2 = useUiVersion() === "v2" || IS_V3;
   return useMemo(() => {
-    const isDark = (v2 && !IS_V3) || scheme === "dark";
+    const isDark = (v2 && !IS_V3_LIGHT) || scheme === "dark";
     return {
       // scheme HIỆU LỰC = theo isDark (gồm cả V2), KHÔNG để nguyên scheme hệ thống.
       // Nếu để scheme hệ thống (light) mà nội dung lại tô theo isDark (V2→tối) thì

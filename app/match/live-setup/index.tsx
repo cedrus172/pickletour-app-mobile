@@ -1,5 +1,5 @@
 // app/matches/live-setup/index.tsx
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
@@ -145,8 +145,8 @@ export default function UserMatchLiveSetupScreen() {
   const colorScheme = useColorScheme();
   const v2 = useUiVersion() === "v2" || IS_V3;
   const insets = useSafeAreaInsets(); // ✅ Lấy safe area để xử lý footer
-  const isDark = (v2 && !IS_V3) || colorScheme === "dark";
-  const theme = THEME_COLORS[IS_V3 ? "v3" : isDark ? "dark" : "light"];
+  const isDark = (v2 && !IS_V3_LIGHT) || colorScheme === "dark";
+  const theme = THEME_COLORS[IS_V3_LIGHT ? "v3" : isDark ? "dark" : "light"];
 
   // State Form
   const [selectedResolutionId, setSelectedResolutionId] = useState<
@@ -350,7 +350,7 @@ export default function UserMatchLiveSetupScreen() {
             modalStyles.tCard,
             { backgroundColor: theme.cardBg, borderColor: theme.inputBorder },
             isActive && {
-              borderColor: IS_V3 ? "#1466F2" : isDark ? "#60a5fa" : "#2563EB",
+              borderColor: IS_V3_LIGHT ? "#1466F2" : isDark ? "#60a5fa" : "#2563EB",
               borderWidth: 1.5,
             },
           ]}
@@ -410,13 +410,13 @@ export default function UserMatchLiveSetupScreen() {
             <View
               style={[
                 modalStyles.checkBadge,
-                { backgroundColor: IS_V3 ? "rgba(20,102,242,0.12)" : isDark ? "#0c4a6e" : "#dbeafe" },
+                { backgroundColor: IS_V3_LIGHT ? "rgba(20,102,242,0.12)" : isDark ? "#0c4a6e" : "#dbeafe" },
               ]}
             >
               <Ionicons
                 name="checkmark"
                 size={14}
-                color={IS_V3 ? "#1466F2" : isDark ? "#38bdf8" : "#2563EB"}
+                color={IS_V3_LIGHT ? "#1466F2" : isDark ? "#38bdf8" : "#2563EB"}
               />
             </View>
           ) : (
@@ -713,14 +713,14 @@ export default function UserMatchLiveSetupScreen() {
                             style={[
                               styles.badge,
                               {
-                                backgroundColor: IS_V3 ? "rgba(20,102,242,0.10)" : isDark ? "#0c4a6e" : "#e0f2fe",
+                                backgroundColor: IS_V3_LIGHT ? "rgba(20,102,242,0.10)" : isDark ? "#0c4a6e" : "#e0f2fe",
                               },
                             ]}
                           >
                             <Text
                               style={[
                                 styles.badgeText,
-                                { color: IS_V3 ? "#1466F2" : isDark ? "#38bdf8" : "#0369a1" },
+                                { color: IS_V3_LIGHT ? "#1466F2" : isDark ? "#38bdf8" : "#0369a1" },
                               ]}
                             >
                               Mặc định
@@ -937,7 +937,7 @@ export default function UserMatchLiveSetupScreen() {
                     <Ionicons
                       name="trophy-outline"
                       size={36}
-                      color={IS_V3 ? "#97A3B8" : isDark ? "#4b5563" : "#cbd5e1"}
+                      color={IS_V3_LIGHT ? "#97A3B8" : isDark ? "#4b5563" : "#cbd5e1"}
                     />
                     <Text
                       style={[modalStyles.centerText, { color: theme.subText }]}
@@ -1002,7 +1002,7 @@ export default function UserMatchLiveSetupScreen() {
                     opacity: pickedTournament ? 1 : 0.5,
                     backgroundColor: pickedTournament
                       ? "#ef4444"
-                      : IS_V3
+                      : IS_V3_LIGHT
                       ? "#97A3B8"
                       : theme.inputBorder,
                   },

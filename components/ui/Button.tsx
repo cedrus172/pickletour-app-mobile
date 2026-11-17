@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { LinearGradient } from "expo-linear-gradient";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 interface ButtonProps {
   title: string;
@@ -68,7 +68,7 @@ export default function Button({
           <Text
             style={[
               styles.text,
-              variant === "secondary" && IS_V3 && styles.textSecondaryV3,
+              variant === "secondary" && IS_V3_LIGHT && styles.textSecondaryV3,
               variant === "outline" && styles.textOutline,
               variant === "ghost" && styles.textGhost,
               textSizes[size],

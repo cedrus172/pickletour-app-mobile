@@ -67,7 +67,7 @@ import Toast from "react-native-toast-message";
 import analytics from "@/utils/analytics";
 import { t, initLang } from "@/utils/i18n";
 import * as SecureStore from "expo-secure-store";
-import { AppNavTheme, IS_V3 } from "@/hooks/uiVersion";
+import { AppNavTheme, IS_V3, IS_V3_LIGHT } from "@/hooks/uiVersion";
 import {
   increaseLaunchCountAndGet,
   initInstallDateIfNeeded,
@@ -146,7 +146,7 @@ if (__DEV__ && process.env.EXPO_PUBLIC_HIDE_LOGBOX === "1") {
 
 // V3 luôn nền sáng: ép color scheme ngay khi nạp module để khung hình đầu tiên không bị tối
 // (V2 vẫn ép "dark" trong effect như cũ).
-if (IS_V3) {
+if (IS_V3_LIGHT) {
   try {
     Appearance.setColorScheme("light");
   } catch {}
@@ -1408,12 +1408,12 @@ function RootLayout() {
   const resolvedScheme =
     prefTheme === "system" ? systemScheme : (prefTheme as "light" | "dark");
   // V3 Fresh luôn nền sáng; V2 giữ nguyên cách xác định cũ.
-  const isDark = IS_V3 ? false : resolvedScheme === "dark";
+  const isDark = IS_V3_LIGHT ? false : resolvedScheme === "dark";
 
   // V2 dùng nền tối, V3 dùng nền sáng; đồng bộ các thành phần đọc trực tiếp color scheme.
   React.useEffect(() => {
     try {
-      Appearance.setColorScheme(IS_V3 ? "light" : "dark");
+      Appearance.setColorScheme(IS_V3_LIGHT ? "light" : "dark");
     } catch {}
   }, []);
 

@@ -1,7 +1,7 @@
 import { ScheduleHero, ScheduleMatchTeams } from "@/components/tournament/ScheduleDesign";
 import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // app/tournament/[id]/EnhancedSchedule.jsx
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 /* eslint-disable react/prop-types */
 import {
   Ionicons,
@@ -514,7 +514,7 @@ const scheduleMatchStageChipLabel = (match, matchesOfBracket = []) => {
 function useThemeTokens() {
   const scheme = useColorScheme() ?? "light";
   const v2 = useUiVersion() === "v2" || IS_V3;
-  const isDark = (v2 && !IS_V3) || scheme === "dark";
+  const isDark = (v2 && !IS_V3_LIGHT) || scheme === "dark";
   return useMemo(
     () => ({
       scheme,
@@ -3060,9 +3060,9 @@ const V3_CARD_SHADOW = { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadi
 const D = StyleSheet.create({
   headerBack: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: sk("#174A6C", "rgba(16,42,92,0.10)"), backgroundColor: sk("#061D33", "#F5F8FD"), alignItems: "center", justifyContent: "center" },
   // V3: thẻ trắng có bóng mềm (V2 giữ nguyên, không bóng).
-  matchCard: { padding: 12, paddingLeft: 14, borderRadius: 16, ...(IS_V3 ? V3_CARD_SHADOW : null) },
+  matchCard: { padding: 12, paddingLeft: 14, borderRadius: 16, ...(IS_V3_LIGHT ? V3_CARD_SHADOW : null) },
   courtsPanel: { padding: 0, borderWidth: 0 },
   courtGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  courtCard: { flexBasis: "100%", flexGrow: 1, maxWidth: "100%", minWidth: 0, ...(IS_V3 ? V3_CARD_SHADOW : null) },
+  courtCard: { flexBasis: "100%", flexGrow: 1, maxWidth: "100%", minWidth: 0, ...(IS_V3_LIGHT ? V3_CARD_SHADOW : null) },
   idleCourt: { flexBasis: "45%", flexGrow: 1, minWidth: 120 },
 });

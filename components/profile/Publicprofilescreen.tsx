@@ -56,7 +56,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
 import { IOS_26_LIQUID_GLASS_ENABLED } from "@/utils/nativeTabs";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 import { FriendActions } from "@/components/social/FriendActions";
 import { OpenMessageButton } from "@/components/social/OpenMessageButton";
 import { UserActionsMenu } from "@/components/social/UserActionsMenu";
@@ -3534,7 +3534,7 @@ const styles = StyleSheet.create({
     shadowOpacity: sk(0.05, 0.09),
     shadowRadius: sk(4, 14),
     elevation: sk(2, 3),
-    ...(IS_V3 ? { borderWidth: 1 } : null),
+    ...(IS_V3_LIGHT ? { borderWidth: 1 } : null),
   },
   sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 16 },
   bioText: { fontSize: 14, lineHeight: 22 },
@@ -3650,7 +3650,7 @@ const styles = StyleSheet.create({
     shadowOpacity: sk(0.05, 0.08),
     shadowRadius: sk(2, 12),
     elevation: sk(1, 3),
-    ...(IS_V3 ? { borderWidth: 1 } : null),
+    ...(IS_V3_LIGHT ? { borderWidth: 1 } : null),
     position: "relative",
   },
   ratingAdminActions: {

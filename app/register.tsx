@@ -1,5 +1,5 @@
 import { t } from "@/utils/i18n";
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 // app/(auth)/register.jsx
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import {
@@ -324,7 +324,7 @@ function validateAll(form, avatarUrl, accepted, requireOptional, emailOptional) 
 export default function RegisterScreen() {
   const authWide = useAuthWide();
   const scheme = useColorScheme() ?? "light";
-  const isDark = (useUiVersion() === "v2" && !IS_V3) || scheme === "dark";
+  const isDark = (useUiVersion() === "v2" && !IS_V3_LIGHT) || scheme === "dark";
   const tint = isDark ? "#12B6F3" : sk("#0a84ff", "#1466F2");
   const cardBg = isDark ? "#061d33" : "#ffffff";
   const textPrimary = isDark ? "#fff" : sk("#111", "#0B1B3A");

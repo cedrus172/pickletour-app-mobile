@@ -2,7 +2,7 @@ import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Text } from "@/components/ui/i18nText";
 import { PlayerAvatar, type BracketPlayer } from "./ModernBracketShared";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 export type PodiumTeam = { name: string; players: BracketPlayer[] };
 type Placement = { rank: number; team: PodiumTeam };
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: sk("#3b5b80", "rgba(16,42,92,0.10)"), borderRadius: 12,
     marginBottom: 12, padding: 10,
     // V3: bục nền trắng có bóng mềm (V2 giữ nguyên).
-    ...(IS_V3 ? { shadowColor: "#1B3A7A", shadowOpacity: 0.1, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 3 } : null),
+    ...(IS_V3_LIGHT ? { shadowColor: "#1B3A7A", shadowOpacity: 0.1, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 3 } : null),
   },
   title: {
     textAlign: "center", color: sk("#eef6ff", "#0B1B3A"), fontSize: 19, fontWeight: "800", marginBottom: 8,

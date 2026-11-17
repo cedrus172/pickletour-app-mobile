@@ -8,7 +8,7 @@ import { NotificationHeaderActions } from "@/components/GlobalNotificationShell"
 import { useDuoSideNavigation } from "@/hooks/useDuoSideNavigation";
 
 import { Text } from "@/components/ui/i18nText";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 const HOME_COLORS_V2 = {
   background: "#020B1C",
@@ -41,7 +41,7 @@ const HOME_COLORS_V3: typeof HOME_COLORS_V2 = {
   border: "rgba(16,42,92,0.10)",
 };
 
-export const HOME_COLORS = IS_V3 ? HOME_COLORS_V3 : HOME_COLORS_V2;
+export const HOME_COLORS = IS_V3_LIGHT ? HOME_COLORS_V3 : HOME_COLORS_V2;
 
 export const HomePage = memo(function HomePage({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();

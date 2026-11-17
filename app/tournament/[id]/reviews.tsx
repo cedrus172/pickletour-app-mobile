@@ -21,7 +21,7 @@ import {
   useUpsertReviewMutation,
   useDeleteMyReviewMutation,
 } from "@/slices/reviewApiSlice";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 const ACCENT = "#f59e0b";
 
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 14,
     marginBottom: 12,
-    ...(IS_V3 ? { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 } : null),
+    ...(IS_V3_LIGHT ? { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 } : null),
   },
   bigScore: { fontSize: 40, fontWeight: "900", lineHeight: 44 },
   subText: { fontSize: 12 },

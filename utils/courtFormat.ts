@@ -1,5 +1,5 @@
 // utils/courtFormat.ts — helper hiển thị cho đặt sân (mobile)
-import { IS_V3, V3 } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, V3 } from "@/hooks/uiVersion";
 const tz = { timeZone: "Asia/Ho_Chi_Minh" as const };
 
 export const fmtVND = (n: any) => `${(Number(n) || 0).toLocaleString("vi-VN")}đ`;
@@ -66,7 +66,7 @@ const palBase = (dark: boolean) => ({
 // Giao diện V3 Fresh: bảng sáng đổi sang xanh dương thương hiệu (thay teal của V1/V2).
 export const pal = (dark: boolean) => {
   const base = palBase(dark);
-  if (!IS_V3 || dark) return base;
+  if (!IS_V3_LIGHT || dark) return base;
   return {
     ...base,
     bg: V3.bg,

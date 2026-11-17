@@ -80,7 +80,7 @@ import CccdQrModal from "@/components/CccdQrModal";
 import PhoneActivationCard from "@/components/auth/PhoneActivationCard";
 import apiSlice from "@/slices/apiSlice";
 import { useTheme } from "@react-navigation/native";
-import { applyUiVersion, IS_V3, sk, UI_VERSION, type UiVersion } from "@/hooks/uiVersion";
+import { IS_V3, sk, UI_VERSION, type UiVersion, IS_V3_DARK, IS_V3_LIGHT, UI_THEME, applyUiAppearance, type UiTheme } from "@/hooks/uiVersion";
 import { buildLoginHref, runMobileLogoutFlow } from "@/services/authSession";
 import { DEVICE_ID_KEY } from "@/services/deviceIdentity";
 import { triggerCrashFeedbackTestCrash } from "@/services/crashFeedbackService";
@@ -298,7 +298,7 @@ const fmtScore = (v) => {
 
 /* ---------- Theme ---------- */
 // V3 Fresh: bóng mềm cho thẻ nền trắng (V2 không có bóng → null).
-const V3_CARD_SHADOW = IS_V3
+const V3_CARD_SHADOW = IS_V3_LIGHT
   ? {
       shadowColor: "#1B3A7A",
       shadowOpacity: 0.08,
@@ -314,7 +314,7 @@ function useTokens() {
   // V3 Fresh đi theo bố cục V2 nhưng dùng bảng màu sáng.
   const v2 = navTheme?.version === "v2" || IS_V3;
   const dark =
-    (v2 && !IS_V3) ||
+    (v2 && !IS_V3_LIGHT) ||
     (typeof navTheme.dark === "boolean" ? navTheme.dark : scheme === "dark");
   if (v2) {
     return {
@@ -1840,20 +1840,28 @@ export default function ProfileScreen({ isBack = false }) {
                       thumbColor="#fff"
                     />
                   </View>
-                  {/* Phiên bản giao diện: V2 Modern (tối) ↔ V3 Fresh (sáng). Đổi xong app tự nạp lại. */}
+                  {/* Giao diện: V3 sáng / V3 tối (bố cục V3, màu V2) / V2 cũ. Đổi xong app tự nạp lại. */}
                   <ThemeOption
-                    label="Phiên bản V2 Modern (nền tối)"
-                    selected={!IS_V3}
-                    onPress={() => confirmUiVersion("v2")}
-                    icon="layers"
+                    label="Giao diện V3 — Sáng"
+                    selected={IS_V3_LIGHT}
+                    onPress={() => confirmUiAppearance("v3", "light")}
+                    icon="sun"
                     t={t}
                     last={false}
                   />
                   <ThemeOption
-                    label="Phiên bản V3 Fresh (nền sáng)"
-                    selected={IS_V3}
-                    onPress={() => confirmUiVersion("v3")}
-                    icon="droplet"
+                    label="Giao diện V3 — Tối"
+                    selected={IS_V3_DARK}
+                    onPress={() => confirmUiAppearance("v3", "dark")}
+                    icon="moon"
+                    t={t}
+                    last={false}
+                  />
+                  <ThemeOption
+                    label="Giao diện V2 (cũ, nền tối)"
+                    selected={!IS_V3}
+                    onPress={() => confirmUiAppearance("v2", UI_THEME)}
+                    icon="layers"
                     t={t}
                     last={false}
                   />
@@ -3285,17 +3293,19 @@ const CccdPreview = ({ uri, label, onPress, t }) => (
   </View>
 );
 
-// Hỏi lại rồi đổi phiên bản giao diện (app tự nạp lại để áp dụng).
-function confirmUiVersion(next: UiVersion) {
-  if (next === UI_VERSION) return;
+// Hỏi lại rồi đổi giao diện (app tự nạp lại để áp dụng).
+function confirmUiAppearance(version: UiVersion, theme: UiTheme) {
+  if (version === UI_VERSION && (version === "v2" || theme === UI_THEME)) return;
   Alert.alert(
     "Đổi giao diện",
-    next === "v3"
-      ? "Chuyển sang giao diện V3 (nền sáng, phong cách mới)? Ứng dụng sẽ tự nạp lại."
-      : "Chuyển về giao diện V2 (nền tối)? Ứng dụng sẽ tự nạp lại.",
+    version === "v2"
+      ? "Chuyển về giao diện V2 (cũ, nền tối)? Ứng dụng sẽ tự nạp lại."
+      : theme === "dark"
+        ? "Chuyển sang giao diện V3 tông tối? Ứng dụng sẽ tự nạp lại."
+        : "Chuyển sang giao diện V3 tông sáng? Ứng dụng sẽ tự nạp lại.",
     [
       { text: "Huỷ", style: "cancel" },
-      { text: "Đổi ngay", onPress: () => void applyUiVersion(next) },
+      { text: "Đổi ngay", onPress: () => void applyUiAppearance(version, theme) },
     ],
   );
 }

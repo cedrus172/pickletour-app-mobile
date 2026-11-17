@@ -30,7 +30,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 // --- CẤU HÌNH THEME & RESPONSIVE ---
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -490,7 +490,7 @@ export default function CreateUserMatchScreen() {
   // --- THEME SETUP ---
   const systemScheme = useColorScheme();
   const theme = systemScheme === "dark" ? "dark" : "light";
-  const colors = IS_V3 ? THEME_V3 : THEME[theme];
+  const colors = IS_V3_LIGHT ? THEME_V3 : THEME[theme];
 
   const [matchDate, setMatchDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);

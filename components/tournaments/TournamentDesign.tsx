@@ -18,7 +18,7 @@ import { TextInput } from "@/components/ui/i18nTextInput";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import { tournamentDateLabel, tournamentDateParts } from "@/utils/tournamentPresentation";
 import { NotificationHeaderActions } from "@/components/GlobalNotificationShell";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 const TOURNAMENT_COLORS_V2 = {
   background: "#041021",
@@ -51,7 +51,7 @@ const TOURNAMENT_COLORS_V3: TournamentColors = {
   border: "rgba(16,42,92,0.10)",
 };
 
-export const TOURNAMENT_COLORS: TournamentColors = IS_V3 ? TOURNAMENT_COLORS_V3 : TOURNAMENT_COLORS_V2;
+export const TOURNAMENT_COLORS: TournamentColors = IS_V3_LIGHT ? TOURNAMENT_COLORS_V3 : TOURNAMENT_COLORS_V2;
 
 export type TournamentFilterKey = "upcoming" | "ongoing" | "finished";
 export type TournamentAction = {
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   backButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginRight: 4 },
   title: { color: sk("#FFFFFF", "#0B1B3A"), fontSize: 34, lineHeight: 43, fontWeight: "900", letterSpacing: -0.9 },
   subtitle: { color: TOURNAMENT_COLORS.textMuted, fontSize: 13, lineHeight: 19, marginTop: 2, paddingRight: 35 },
-  search: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: 9, paddingLeft: 14, borderRadius: 12, borderWidth: 1, borderColor: sk("#285171", "rgba(16,42,92,0.10)"), backgroundColor: sk("#061B30", "#FFFFFF"), marginBottom: 10, ...(IS_V3 ? { shadowColor: "#1B3A7A", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 1 } : null) },
+  search: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: 9, paddingLeft: 14, borderRadius: 12, borderWidth: 1, borderColor: sk("#285171", "rgba(16,42,92,0.10)"), backgroundColor: sk("#061B30", "#FFFFFF"), marginBottom: 10, ...(IS_V3_LIGHT ? { shadowColor: "#1B3A7A", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 1 } : null) },
   searchInput: { flex: 1, minWidth: 0, minHeight: 48, paddingVertical: 8, color: TOURNAMENT_COLORS.text, fontSize: 14.5 },
   searchClear: { width: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
   searchFilter: { width: 48, minHeight: 44, borderLeftWidth: 1, borderLeftColor: sk("#163C57", "rgba(16,42,92,0.10)"), alignItems: "center", justifyContent: "center" },
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   dateFilter: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 7, maxWidth: "100%", flexShrink: 1 },
   dateFilterText: { color: TOURNAMENT_COLORS.textMuted, fontSize: 13, flexShrink: 1 },
   dateClear: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  card: { borderRadius: 17, overflow: "hidden", ...(IS_V3 ? { borderWidth: 1, borderColor: "rgba(16,42,92,0.08)", shadowColor: "#1B3A7A", shadowOpacity: 0.1, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 3 } : null) },
+  card: { borderRadius: 17, overflow: "hidden", ...(IS_V3_LIGHT ? { borderWidth: 1, borderColor: "rgba(16,42,92,0.08)", shadowColor: "#1B3A7A", shadowOpacity: 0.1, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 3 } : null) },
   cover: { position: "relative", width: "100%", aspectRatio: 2.55, backgroundColor: sk("#081B33", "#E9F0FA") },
   coverImage: { width: "100%", height: "100%" },
   coverPressed: { opacity: 0.92 },

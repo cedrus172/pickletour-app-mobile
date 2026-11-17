@@ -13,11 +13,11 @@ import {
 } from "@/slices/tournamentRuleFilesApiSlice";
 
 import AppModal from "@/components/ui/AppModal";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 // V3 Fresh: trang chọn tệp (WebView) đổi sang nền sáng. Không sửa utils/tournamentRuleFiles.ts vì
 // scripts/test-rule-files-ripple.cjs nạp file đó độc lập (không có require) nên không import được ở đó.
-const PICKER_HTML = IS_V3
+const PICKER_HTML = IS_V3_LIGHT
   ? RULE_FILE_PICKER_HTML
       .replace("background:#0b2035;color:#eaf3ff", "background:#F2F6FC;color:#0B1B3A")
       .replace("background:#0bbfe7;color:#032235", "background:#1466F2;color:#FFFFFF")
@@ -131,7 +131,7 @@ export default function TournamentRuleFiles({ tournamentId, canManage = false }:
 }
 
 const styles = StyleSheet.create({
-  panel: { borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 18, ...(IS_V3 ? { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 } : null) },
+  panel: { borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 18, ...(IS_V3_LIGHT ? { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 } : null) },
   heading: { flexDirection: "row", alignItems: "center", gap: 8 },
   title: { fontSize: 16, fontWeight: "800", flexShrink: 1 },
   hint: { fontSize: 12, marginTop: 6, marginBottom: 12 },

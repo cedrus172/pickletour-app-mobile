@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Text } from "@/components/ui/i18nText";
-import { V3 } from "@/hooks/uiVersion";
+import { IS_V3_DARK, V3 } from "@/hooks/uiVersion";
 
 type Props = BottomTabBarProps & { visibleRoutes: BottomTabBarProps["state"]["routes"] };
 
@@ -30,8 +30,8 @@ export function FreshTabIcon({ name, color, size = 24, filled = false }: { name:
         <G fill="none" stroke={color} strokeWidth={2.1} strokeLinejoin="round" strokeLinecap="round">
           <Path d="M9 6V4h19v21a3 3 0 0 1-3 3" />
           <Rect x={4} y={8} width={19} height={20} rx={2.5} fill={filled ? color : "none"} />
-          <Path d="M8.5 13h10M8.5 23h10M14.5 18h4" stroke={filled ? "#fff" : color} />
-          <Rect x={8.5} y={16.4} width={3.4} height={3.4} rx={0.6} stroke={filled ? "#fff" : color} />
+          <Path d="M8.5 13h10M8.5 23h10M14.5 18h4" stroke={filled ? V3.blue : color} />
+          <Rect x={8.5} y={16.4} width={3.4} height={3.4} rx={0.6} stroke={filled ? V3.blue : color} />
         </G>
       );
       break;
@@ -119,7 +119,7 @@ function FreshTab({
         >
           <LinearGradient colors={V3.gradBlue} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
         </Animated.View>
-        <FreshTabIcon name={name} color={focused ? "#FFFFFF" : "#51607B"} size={focused ? 22 : 23} filled={focused} />
+        <FreshTabIcon name={name} color={focused ? V3.onBlue : V3.tabIdle} size={focused ? 22 : 23} filled={focused} />
       </View>
       <Text
         numberOfLines={1}
@@ -177,7 +177,7 @@ export default function FreshBottomBar({ state, descriptors, navigation, visible
               >
                 <View testID="raised-tournament-button" style={styles.centerRing}>
                   <LinearGradient colors={V3.gradLime} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={styles.centerButton}>
-                    <FreshTabIcon name="tournaments" color={V3.ink} size={32} />
+                    <FreshTabIcon name="tournaments" color={V3.onLime} size={32} />
                   </LinearGradient>
                 </View>
                 <Text numberOfLines={1} maxFontSizeMultiplier={1.2} style={[styles.label, styles.centerLabel, focused ? { color: V3.blue } : null]}>
@@ -217,9 +217,9 @@ const styles = StyleSheet.create({
     top: DOCK_TOP,
     height: DOCK_HEIGHT,
     borderRadius: 26,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: V3.card,
     borderWidth: 1,
-    borderColor: "rgba(16,42,92,0.06)",
+    borderColor: IS_V3_DARK ? V3.line : "rgba(16,42,92,0.06)",
     shadowColor: V3.shadow,
     shadowOpacity: 0.16,
     shadowRadius: 18,
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   tab: { flex: 1, minWidth: 0, height: DOCK_HEIGHT, marginTop: DOCK_TOP, alignItems: "center", justifyContent: "center", gap: 3 },
   iconSlot: { width: 58, height: 32, alignItems: "center", justifyContent: "center" },
   pill: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0, borderRadius: 16, overflow: "hidden" },
-  label: { width: "100%", paddingHorizontal: 2, textAlign: "center", fontSize: 11, lineHeight: 15, fontWeight: "500", color: "#51607B" },
+  label: { width: "100%", paddingHorizontal: 2, textAlign: "center", fontSize: 11, lineHeight: 15, fontWeight: "500", color: V3.tabIdle },
   labelActive: { color: V3.blue, fontWeight: "800" },
   centerTab: { flex: 1, minWidth: 0, height: FLOATING_TAB_BAR_HEIGHT, alignItems: "center" },
   centerRing: {
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     padding: 4,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: V3.card,
     shadowColor: "#6FA800",
     shadowOpacity: 0.35,
     shadowRadius: 10,

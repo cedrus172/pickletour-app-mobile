@@ -1,5 +1,5 @@
 import { t } from "@/utils/i18n";
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 // app/contact/index.jsx  (hoặc src/screens/ContactScreen.jsx)
 import {
   useGetContactContentQuery } from "@/slices/cmsApiSlice";
@@ -104,7 +104,7 @@ function SocialButton({ onPress, children, bg }) {
 export default function ContactScreen() {
   const scheme = useColorScheme() ?? "light";
   const v2 = useUiVersion() === "v2" || IS_V3;
-  const isDark = (v2 && !IS_V3) || scheme === "dark";
+  const isDark = (v2 && !IS_V3_LIGHT) || scheme === "dark";
 
   const bg = v2 ? sk("#040E20", "#F2F6FC") : isDark ? "#0f1115" : "#ffffff";
   const cardBg = v2 ? sk("#0A1B34", "#FFFFFF") : isDark ? "#14171c" : "#ffffff";

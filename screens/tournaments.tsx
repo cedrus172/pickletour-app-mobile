@@ -51,7 +51,7 @@ import {
   type TournamentAction,
   type TournamentFilterKey,
 } from "@/components/tournaments/TournamentDesign";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 // Nhóm Zalo cộng đồng — fallback khi giải chưa đặt link Zalo riêng.
 const DEFAULT_ZALO_GROUP = "https://zalo.me/g/yarnhm129";
@@ -108,7 +108,7 @@ function useModernTheme() {
   // V3 Fresh đi theo bố cục V2 nhưng nền sáng.
   const v2 = navTheme?.version === "v2" || IS_V3;
   // V2 Modern luôn nền tối navy; nếu không, theo nav theme (dark/light).
-  const isDark = (v2 && !IS_V3) || !!navTheme?.dark || scheme === "dark";
+  const isDark = (v2 && !IS_V3_LIGHT) || !!navTheme?.dark || scheme === "dark";
   const primaryColor = navTheme?.colors?.primary ?? "#3b82f6";
 
   return {

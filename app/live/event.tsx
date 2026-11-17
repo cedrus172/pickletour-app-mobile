@@ -38,7 +38,8 @@ import {
 import { useChatKeyboard } from "@/hooks/useChatKeyboard";
 import EventLiveChat from "@/components/EventLiveChat";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
-import { sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, V3, sk } from "@/hooks/uiVersion";
+import { LinearGradient } from "expo-linear-gradient";
 
 // Origin THẬT để YouTube cho phép nhúng (baseUrl=youtube.com khiến YT coi như
 // tự-nhúng-vào-chính-mình -> lỗi 152 cho MỌI video). Dùng pickletour.vn.
@@ -307,6 +308,38 @@ export default function EventLiveScreen() {
 
   const eventName = data?.eventName || "Giải đấu trực tiếp";
 
+  const headerContent = (
+    <>
+      <Pressable onPress={() => router.back()} hitSlop={12} style={styles.iconBtn}>
+        <Ionicons name="chevron-back" size={24} color={IS_V3_LIGHT ? "#FFFFFF" : C.text} />
+      </Pressable>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={styles.hTitle} numberOfLines={1}>
+          {eventName}
+        </Text>
+        <View style={styles.hMetaRow}>
+          {liveCamCount > 0 ? (
+            <View style={styles.liveDotRow}>
+              <View style={styles.liveDot} />
+              <Text style={styles.hMeta}>{liveCamCount} cam trực tiếp</Text>
+            </View>
+          ) : (
+            <Text style={styles.hMeta}>Chưa có luồng trực tiếp</Text>
+          )}
+          {viewerCount > 0 && (
+            <View style={styles.liveDotRow}>
+              <Ionicons name="eye" size={13} color={sk("#60a5fa", "#E6FF8F")} />
+              <Text style={[styles.hMeta, { color: sk("#60a5fa", "#E6FF8F") }]}>{viewerCount} đang xem</Text>
+            </View>
+          )}
+        </View>
+      </View>
+      <Pressable onPress={() => refetch()} hitSlop={12} style={styles.iconBtn}>
+        <Ionicons name="refresh" size={20} color={IS_V3_LIGHT ? "rgba(255,255,255,0.88)" : C.sub} />
+      </Pressable>
+    </>
+  );
+
   return (
     <View
       ref={paneRef}
@@ -321,36 +354,14 @@ export default function EventLiveScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar style={C.statusBar} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.iconBtn}>
-          <Ionicons name="chevron-back" size={24} color={C.text} />
-        </Pressable>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.hTitle} numberOfLines={1}>
-            {eventName}
-          </Text>
-          <View style={styles.hMetaRow}>
-            {liveCamCount > 0 ? (
-              <View style={styles.liveDotRow}>
-                <View style={styles.liveDot} />
-                <Text style={styles.hMeta}>{liveCamCount} cam trực tiếp</Text>
-              </View>
-            ) : (
-              <Text style={styles.hMeta}>Chưa có luồng trực tiếp</Text>
-            )}
-            {viewerCount > 0 && (
-              <View style={styles.liveDotRow}>
-                <Ionicons name="eye" size={13} color={sk("#60a5fa", "#1466F2")} />
-                <Text style={[styles.hMeta, { color: sk("#60a5fa", "#1466F2") }]}>{viewerCount} đang xem</Text>
-              </View>
-            )}
-          </View>
-        </View>
-        <Pressable onPress={() => refetch()} hitSlop={12} style={styles.iconBtn}>
-          <Ionicons name="refresh" size={20} color={C.sub} />
-        </Pressable>
-      </View>
+      {/* Header — V3: dải xanh dương bo góc như trang xem live trên web */}
+      {IS_V3_LIGHT ? (
+        <LinearGradient colors={V3.gradBlue} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
+          {headerContent}
+        </LinearGradient>
+      ) : (
+        <View style={styles.header}>{headerContent}</View>
+      )}
 
       <View style={[{ flex: 1 }, twoPane && { flexDirection: "row" }]}>
       <View style={twoPane ? { width: playerW } : undefined}>
@@ -625,7 +636,7 @@ function CourtCard({
   return (
     <View style={styles.card}>
       <View style={styles.cardHead}>
-        <Ionicons name="tennisball-outline" size={16} color={RED} />
+        <Ionicons name="tennisball-outline" size={16} color={sk(RED, "#1466F2")} />
         <Text style={styles.cardTitle}>{court.courtLabel}</Text>
         <View style={styles.miniLive}>
           <View style={styles.liveDot} />
@@ -782,11 +793,12 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     gap: 8,
     paddingHorizontal: 8,
     paddingVertical: 8,
+    ...sk({}, { marginHorizontal: 12, marginTop: 4, marginBottom: 10, paddingVertical: 11, borderRadius: 18, overflow: "hidden" as const }),
   },
   iconBtn: { padding: 4 },
-  hTitle: { color: C.text, fontSize: 16, fontWeight: "800" },
+  hTitle: { color: sk(C.text, "#FFFFFF"), fontSize: 16, fontWeight: "800" },
   hMetaRow: { marginTop: 2, flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" },
-  hMeta: { color: C.sub, fontSize: 12 },
+  hMeta: { color: sk(C.sub, "rgba(255,255,255,0.9)"), fontSize: 12 },
   liveDotRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   liveDot: {
     width: 8,
@@ -905,7 +917,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     borderWidth: 1,
     borderColor: sk("rgba(255,255,255,0.07)", "rgba(16,42,92,0.08)"),
   },
-  matchStage: { color: sk("#fbbf24", "#D97706"), fontSize: 11, fontWeight: "700", textAlign: "center", marginBottom: 3 },
+  matchStage: { color: sk("#fbbf24", "#1466F2"), fontSize: 11, fontWeight: "700", textAlign: "center", marginBottom: 3 },
   matchScoreRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   matchTeam: { flex: 1, color: C.text, fontSize: 12.5, fontWeight: "600" },
   matchScoreBox: {
@@ -915,12 +927,12 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
-    backgroundColor: sk("#0b1220", "rgba(20,102,242,0.08)"),
+    backgroundColor: sk("#0b1220", "#0B2A6B"),
     borderWidth: 1,
-    borderColor: sk("rgba(255,255,255,0.12)", "rgba(20,102,242,0.16)"),
+    borderColor: sk("rgba(255,255,255,0.12)", "#0B2A6B"),
   },
-  matchScore: { color: sk("#fff", "#0B1B3A"), fontSize: 15, fontWeight: "900", minWidth: 14, textAlign: "center" },
-  matchColon: { color: sk("#64748b", "#97A3B8"), fontSize: 13, fontWeight: "700" },
+  matchScore: { color: sk("#fff", "#FFFFFF"), fontSize: 15, fontWeight: "900", minWidth: 14, textAlign: "center" },
+  matchColon: { color: sk("#64748b", "rgba(255,255,255,0.55)"), fontSize: 13, fontWeight: "700" },
   matchGames: { color: C.sub, fontSize: 10.5, textAlign: "center", marginTop: 3 },
   angleWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   angleBtn: {

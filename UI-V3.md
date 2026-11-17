@@ -19,7 +19,7 @@ Thử nhanh trên simulator: `EXPO_PUBLIC_FORCE_UI_VERSION=v3 EXPO_PUBLIC_HIDE_L
    nhánh V2; chỗ nào `v2` dùng để chọn *màu tối* thì V3 lấy màu sáng.
    - `const v2 = useUiVersion() === "v2"` → `const v2 = useUiVersion() === "v2" || IS_V3;`
      (tương tự với `theme.version === "v2"`).
-   - `const isDark = v2 || scheme === "dark"` → `const isDark = (v2 && !IS_V3) || scheme === "dark";`
+   - `const isDark = v2 || scheme === "dark"` → `const isDark = (v2 && !IS_V3_LIGHT) || scheme === "dark";`
 3. Màn dùng `useThemeTokens()` / `pal()` / `useTheme()` đã tự sáng ở V3 — chỉ cần sửa màu viết cứng.
 4. Lớp phủ tối trên ảnh/video, chữ trắng trên ảnh, bảng điểm trọng tài, bàn game, màn camera/live studio:
    **giữ nguyên** (tối có chủ đích).
@@ -47,3 +47,24 @@ Thử nhanh trên simulator: `EXPO_PUBLIC_FORCE_UI_VERSION=v3 EXPO_PUBLIC_HIDE_L
 
 Nút chính V3: nền gradient `#2F8BFF → #1466F2` (hoặc `#1466F2`), chữ trắng. Nút nổi bật phụ: nền xanh chanh
 `#C5F433`, chữ `#0B1B3A`.
+
+## Tông sáng / tối của V3
+
+V3 có hai tông, chọn ở **Khác → Giao diện** (V2 / Sáng / Tối) hoặc Hồ sơ → Cài đặt. Lựa chọn lưu ở SecureStore
+`PREF_UI_V3_THEME`, đổi xong app tự nạp lại (`applyUiAppearance(version, theme)`).
+
+- **V3 Sáng**: nền sáng, xanh dương + xanh chanh (mặc định).
+- **V3 Tối**: vẫn bố cục V3 (trang chủ mới, thanh tab mới, hiệu ứng bấm/chuyển trang) nhưng dùng **màu của V2**.
+
+Quy ước khi viết mã:
+
+| Cần gì | Dùng |
+| --- | --- |
+| Rẽ nhánh theo **bố cục** V3 (thành phần chỉ có ở V3, hiệu ứng) | `IS_V3` |
+| Rẽ nhánh theo **màu sáng** (nền trắng, chữ đậm, bóng đổ nhạt…) | `IS_V3_LIGHT` — không dùng `IS_V3` |
+| Giá trị màu/kiểu V2 ↔ V3 sáng | `sk(v2, v3)` — V3 tối tự nhận giá trị V2 |
+| Màu của thành phần chỉ có ở V3 (HomeV3*, FreshBottomBar, banner V3) | token trong bảng `V3` (tự đổi `V3_LIGHT` / `V3_DARK`) |
+
+Thêm màu mới cho thành phần chỉ có ở V3 thì thêm token vào **cả** `V3_LIGHT` và `V3_DARK` trong `hooks/uiVersion.ts`,
+đừng viết cứng mã màu sáng. Thử nhanh trên simulator: `EXPO_PUBLIC_FORCE_UI_VERSION=v3 EXPO_PUBLIC_FORCE_UI_THEME=dark`.
+

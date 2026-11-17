@@ -31,7 +31,7 @@ import {
   useListTournamentBracketsQuery,
 } from "@/slices/tournamentsApiSlice";
 import MatchContent from "./MatchContent";
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 
 /* =========================
  * Helpers: V/T (+B cho vòng bảng)
@@ -378,7 +378,7 @@ function useThemeTokens() {
   // V2 modern (navy) ưu tiên như MatchContent — nếu không, sheet trắng chỏi với
   // các card navy bên trong khi máy đang light mode nhưng app bật V2.
   const v2 = useUiVersion() === "v2" || IS_V3;
-  const isDark = (v2 && !IS_V3) || scheme === "dark";
+  const isDark = (v2 && !IS_V3_LIGHT) || scheme === "dark";
 
   // màu chính + văn bản
   const tint = v2 ? sk("#12B6F3", "#1466F2") : isDark ? "#7cc0ff" : "#0a84ff";

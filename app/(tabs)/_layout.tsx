@@ -148,6 +148,19 @@ export default function TabLayout() {
   // V3 Fresh dùng chung khung điều hướng hiện đại của V2 (dock nổi, 5 tab, thanh bên máy gập).
   const v2 = useUiVersion() === "v2" || IS_V3;
   const isPikoraChat = pathname === "/more/chat" || pathname === "/chat";
+  // Chỉ đóng băng (freezeOnBlur) những tab đã từng được mở. Nếu đóng băng cả 3 tab nền ngay lúc
+  // khởi động (vì lazy: false), các ranh giới Suspense của react-freeze có thể bị React 19 thử lại
+  // lệch pha nhau (mỗi lần commit lại đánh thức ranh giới kia) và lặp vô hạn → app treo ở màn chờ
+  // sau khi nạp lại. Tab chưa mở vẫn render nền cho tới lần mở đầu tiên; rời tab nào thì chỉ một
+  // ranh giới đóng băng nên không thể lệch pha.
+  const [visitedTabs, setVisitedTabs] = React.useState<Record<string, true>>({ index: true });
+  const tabScreenListeners = React.useCallback(
+    ({ route }: { route: { name: string } }) => ({
+      focus: () => setVisitedTabs((prev) => (prev[route.name] ? prev : { ...prev, [route.name]: true })),
+    }),
+    [],
+  );
+
   const renderTabBar = React.useCallback(
     (props: any) => isPikoraChat ? null : <BottomNavigation {...props} isDark={isDark} v2={v2} />,
     [isDark, isPikoraChat, v2],
@@ -164,7 +177,8 @@ export default function TabLayout() {
     <Tabs
       tabBar={renderTabBar}
       screenLayout={renderScreenLayout}
-      screenOptions={{
+      screenListeners={tabScreenListeners}
+      screenOptions={({ route }) => ({
         tabBarPosition: v2 && sideNavigation.enabled ? "right" : v2 && sideNavigation.topEnabled ? "top" : "bottom",
         tabBarActiveTintColor: activeTabTint,
         headerShown: false,
@@ -173,11 +187,11 @@ export default function TabLayout() {
         // giữa mount+navigate lúc user tap nhanh. Trade-off: memory ban đầu cao
         // hơn ~15MB, đổi lại UX tab switch mượt và tab bar luôn sync với screen.
         lazy: false,
-        freezeOnBlur: FREEZE_INACTIVE,
+        freezeOnBlur: FREEZE_INACTIVE && visitedTabs[route.name] === true,
         detachInactiveScreens: false,
         // V3: chuyển tab có hiệu ứng trượt nhẹ + mờ dần.
         animation: IS_V3 ? "shift" : "none",
-      }}
+      })}
     >
       <Tabs.Screen
         name="index"

@@ -1,5 +1,5 @@
 // app/(tabs)/user-stats.tsx
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -69,7 +69,7 @@ const safeArr = <T,>(arr: T[] | undefined | null, fallback: T[]): T[] =>
 function useThemeColors() {
   const scheme = useColorScheme() ?? "light";
   const v2 = useUiVersion() === "v2" || IS_V3;
-  const isDark = (v2 && !IS_V3) || scheme === "dark";
+  const isDark = (v2 && !IS_V3_LIGHT) || scheme === "dark";
   return {
     isDark,
     bg: v2 ? sk("#040E20", "#F2F6FC") : isDark ? "#0f1115" : "#F5F7FA",

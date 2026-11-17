@@ -9,7 +9,7 @@ import {
 import { Text } from "@/components/ui/i18nText";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useTheme } from "@react-navigation/native";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 import {
   useGetTournamentQuery,
   useListPublicMatchesByTournamentQuery,
@@ -139,7 +139,7 @@ export default function TournamentCourtQueueMobile() {
                   borderColor: border,
                   backgroundColor: cardBg,
                   overflow: "hidden",
-                  ...(IS_V3 ? { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 } : null),
+                  ...(IS_V3_LIGHT ? { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 } : null),
                 }}
               >
                 <View

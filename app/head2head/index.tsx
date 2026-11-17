@@ -30,7 +30,7 @@ import {
   useGetFrequentOpponentsQuery,
   useGetPlayerStatsQuery,
 } from "@/slices/headtoheadApiSlice";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 // Màu theo phiên bản giao diện: tham số đầu của sk(...) là giá trị V2 (giữ nguyên), sau là V3 Fresh.
 const ACCENT = sk("#4ECDC4", "#1466F2"); // màu nhấn chung / người chơi bên trái
@@ -40,7 +40,7 @@ const L_SUB = sk("#666", "#5F6F8A"); // chữ phụ (nền sáng)
 const L_MUTED = sk("#999", "#97A3B8"); // chữ mờ (nền sáng)
 const L_FAINT = sk("#ccc", "#C3CEDF"); // icon trạng thái trống
 const L_SOFT = sk("#f8f9fa", "#F5F8FD"); // bề mặt phụ
-const V3_CARD = IS_V3
+const V3_CARD = IS_V3_LIGHT
   ? {
       borderWidth: 1,
       borderColor: "rgba(16,42,92,0.07)",
@@ -1493,7 +1493,7 @@ const styles = StyleSheet.create({
   playerCard: {
     borderRadius: 20,
     overflow: sk<"hidden" | "visible">("hidden", "visible"),
-    ...(IS_V3
+    ...(IS_V3_LIGHT
       ? {
           backgroundColor: "#FFFFFF",
           shadowColor: "#06215C",

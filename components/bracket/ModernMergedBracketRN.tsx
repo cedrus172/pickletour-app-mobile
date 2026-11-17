@@ -4,9 +4,9 @@
 // vòng playoff (1, 2…) nối thẳng sang knockout (vòng tiếp theo → chung kết).
 // Bản RN tương ứng web frontend/src/screens/PickleBall/ModernMergedBracket.jsx.
 
-import React, { useMemo, useRef } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
-import Svg, { Defs, Line, LinearGradient, Path, Stop } from "react-native-svg";
+import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from "react-native-svg";
 import { Text } from "@/components/ui/i18nText";
 import {
   ElbowConnector,
@@ -26,6 +26,11 @@ const ROW_GAP = 24;
 const HEADER_H = 48;
 const SEED_PAD_X = 4;
 
+// Khoảng cách từ mép thẻ đích tới đoạn dọc của đường nối góc vuông (= giữa khe cột thường).
+const ELBOW_BACK = (COL_GAP + SEED_PAD_X * 2) / 2;
+const ELBOW_RADIUS = 10;
+const STUB_LEN = 18;
+
 export const PLAYOFF_ACCENT = "#06b6d4";
 export const KNOCKOUT_ACCENT = "#8b5cf6";
 export const FINAL_ACCENT = "#f59e0b";
@@ -39,6 +44,18 @@ export type MergedSection = {
 };
 
 const SOURCE_TYPES = new Set(["stageMatchLoser", "stageMatchWinner", "matchLoser", "matchWinner"]);
+
+// Đường nối góc vuông bo tròn (kiểu sơ đồ loại trực tiếp cổ điển).
+function elbowPath(x1: number, y1: number, x2: number, y2: number, midX: number) {
+  const dy = y2 - y1;
+  if (Math.abs(dy) < 1) return `M ${x1} ${y1} H ${x2}`;
+  const dir = dy > 0 ? 1 : -1;
+  const r = Math.max(0, Math.min(ELBOW_RADIUS, Math.abs(dy) / 2, midX - x1, x2 - midX));
+  return (
+    `M ${x1} ${y1} H ${midX - r} Q ${midX} ${y1} ${midX} ${y1 + dir * r} ` +
+    `V ${y2 - dir * r} Q ${midX} ${y2} ${midX + r} ${y2} H ${x2}`
+  );
+}
 
 function knockoutRoundName(seedCount: number) {
   if (seedCount <= 1) return "Chung kết";
@@ -137,6 +154,7 @@ function buildMergedLayout(sections: MergedSection[]) {
           centerY: y + CARD_H / 2,
           accent,
           roundIndex,
+          colIndex: columns.length,
           baseRoundStart: section.baseRoundStart || 1,
           championMatchId: section.championMatchId || null,
         };
@@ -152,25 +170,53 @@ function buildMergedLayout(sections: MergedSection[]) {
     });
   });
 
+  // Gom đường nối theo cặp cột (nguồn → đích). Nhóm "gọn" = hai cột liền nhau và các chùm
+  // (mỗi trận đích + các trận nguồn của nó) không chồng lấn theo chiều dọc → vẽ góc vuông bo tròn.
+  // Nhóm còn lại (nhảy cột, hoặc đội thắng playoff đổ rải rác sang knockout) nếu vẽ đủ sẽ đan
+  // chéo nhau rất rối → chỉ vẽ mẩu nối ngắn ở hai đầu, đường đầy đủ hiện khi bật công tắc.
+  const groups = new Map<string, { source: any; target: any; isLoser: boolean }[]>();
   columns.forEach((column) => {
     column.nodes.forEach((target: any) => {
       target.refs.forEach((ref: Ref) => {
         const source = findSource(ref);
         if (!source || source.x >= target.x) return;
-        const startX = source.x + CARD_W - SEED_PAD_X;
-        const endX = target.x + SEED_PAD_X;
-        const midX = (startX + endX) / 2;
-        connectors.push({
-          key: `${source.key}->${target.key}`,
-          d: `M ${startX} ${source.centerY} C ${midX} ${source.centerY}, ${midX} ${target.centerY}, ${endX} ${target.centerY}`,
-          isLoser: ref.isLoser,
-          x1: startX,
-          y1: source.centerY,
-          x2: endX,
-          y2: target.centerY,
-          fromColor: source.accent,
-          toColor: target.accent,
-        });
+        const groupKey = `${source.colIndex}->${target.colIndex}`;
+        if (!groups.has(groupKey)) groups.set(groupKey, []);
+        groups.get(groupKey)!.push({ source, target, isLoser: !!ref.isLoser });
+      });
+    });
+  });
+
+  groups.forEach((links) => {
+    let tidy = links[0].target.colIndex === links[0].source.colIndex + 1;
+    if (tidy) {
+      const spans = new Map<string, { min: number; max: number }>();
+      links.forEach(({ source, target }) => {
+        const span = spans.get(target.key) || { min: target.centerY, max: target.centerY };
+        span.min = Math.min(span.min, source.centerY);
+        span.max = Math.max(span.max, source.centerY);
+        spans.set(target.key, span);
+      });
+      const sorted = [...spans.values()].sort((p, q) => p.min - q.min);
+      tidy = sorted.every((span, i) => i === 0 || span.min > sorted[i - 1].max + 4);
+    }
+    links.forEach(({ source, target, isLoser }) => {
+      const startX = source.x + CARD_W - SEED_PAD_X;
+      const endX = target.x + SEED_PAD_X;
+      const midX = (startX + endX) / 2;
+      connectors.push({
+        key: `${source.key}->${target.key}`,
+        jump: !tidy,
+        d: tidy
+          ? elbowPath(startX, source.centerY, endX, target.centerY, endX - ELBOW_BACK)
+          : `M ${startX} ${source.centerY} C ${midX} ${source.centerY}, ${midX} ${target.centerY}, ${endX} ${target.centerY}`,
+        isLoser,
+        x1: startX,
+        y1: source.centerY,
+        x2: endX,
+        y2: target.centerY,
+        fromColor: source.accent,
+        toColor: target.accent,
       });
     });
   });
@@ -201,6 +247,8 @@ export default function ModernMergedBracketRN({
   const safeZoom = Number.isFinite(zoom) && zoom > 0 ? zoom : 1;
   const layout = useMemo(() => buildMergedLayout(sections || []), [sections]);
   const scrollRef = useRef<ScrollView>(null);
+  const [showJumps, setShowJumps] = useState(false);
+  const hasJumps = useMemo(() => layout.connectors.some((c: any) => c.jump), [layout]);
   if (!layout.columns.length) {
     return (
       <View style={{ padding: 20, alignItems: "center" }}>
@@ -246,6 +294,22 @@ export default function ModernMergedBracketRN({
             <Text style={{ fontSize: 10, color: textSub }}>{String(label)}</Text>
           </View>
         ))}
+        {hasJumps ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: showJumps }}
+            hitSlop={8}
+            onPress={() => setShowJumps((v) => !v)}
+            style={[
+              styles.jumpToggle,
+              { borderColor: rgba(KNOCKOUT_ACCENT, 0.5), backgroundColor: showJumps ? KNOCKOUT_ACCENT : rgba(KNOCKOUT_ACCENT, 0.1) },
+            ]}
+          >
+            <Text style={{ fontSize: 10.5, fontWeight: "800", color: showJumps ? "#fff" : KNOCKOUT_ACCENT }}>
+              {showJumps ? "Ẩn đường nối chéo" : "Hiện đường nối chéo"}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
 
       <ScrollView
@@ -291,17 +355,42 @@ export default function ModernMergedBracketRN({
                     ]}
                   />
                 ))}
-                {layout.connectors.map((c: any) => (
-                  <ElbowConnector
-                    key={c.key}
-                    x1={c.x1}
-                    y1={c.y1}
-                    x2={c.x2}
-                    y2={c.y2}
-                    color={c.isLoser ? loserColor : c.toColor}
-                    dashed={!!c.isLoser}
-                  />
-                ))}
+                {layout.connectors.map((c: any) => {
+                  const color = c.isLoser ? loserColor : c.toColor;
+                  if (c.jump && !showJumps) {
+                    // Đường nối chéo thu gọn: mẩu ngắn đi ra ở trận nguồn, chấm + mẩu ngắn đi vào ở trận đích.
+                    const outColor = c.isLoser ? loserColor : c.fromColor;
+                    return (
+                      <React.Fragment key={c.key}>
+                        <View style={[styles.stub, { left: c.x1, top: c.y1 - 1, backgroundColor: outColor }]} />
+                        <View style={[styles.stubDot, { left: c.x1 + STUB_LEN - 3, top: c.y1 - 3, backgroundColor: outColor }]} />
+                        <View style={[styles.stub, { left: c.x2 - STUB_LEN, top: c.y2 - 1, backgroundColor: color }]} />
+                        <View style={[styles.stubDot, { left: c.x2 - STUB_LEN - 3, top: c.y2 - 3, backgroundColor: color }]} />
+                      </React.Fragment>
+                    );
+                  }
+                  // Khe giữa hai phần (playoff → knockout) rộng hơn khe cột thường: kéo một đoạn ngang
+                  // tới sát cột đích rồi mới bẻ góc, để đoạn dọc không đè lên vạch chia phần.
+                  const elbowStart = Math.max(c.x1, c.x2 - ELBOW_BACK * 2);
+                  const lineColor = c.jump ? rgba(color, 0.4) : color;
+                  return (
+                    <React.Fragment key={c.key}>
+                      {!c.jump && elbowStart > c.x1 ? (
+                        <View
+                          style={[styles.stub, { left: c.x1, top: c.y1 - 1, width: elbowStart - c.x1, backgroundColor: lineColor }]}
+                        />
+                      ) : null}
+                      <ElbowConnector
+                        x1={c.jump ? c.x1 : elbowStart}
+                        y1={c.y1}
+                        x2={c.x2}
+                        y2={c.y2}
+                        color={lineColor}
+                        dashed={!!c.isLoser}
+                      />
+                    </React.Fragment>
+                  );
+                })}
               </View>
             ) : (
             <Svg
@@ -340,18 +429,61 @@ export default function ModernMergedBracketRN({
                   strokeDasharray="6 6"
                 />
               ))}
-              {layout.connectors.map((c: any) => (
-                <Path
-                  key={c.key}
-                  d={c.d}
-                  stroke={c.isLoser ? loserColor : `url(#${gid(c.key)})`}
-                  strokeOpacity={c.isLoser ? 0.7 : 1}
-                  strokeWidth={2.2}
-                  strokeLinecap="round"
-                  strokeDasharray={c.isLoser ? "6 5" : ""}
-                  fill="none"
-                />
-              ))}
+              {layout.connectors.map((c: any) => {
+                if (!c.jump) {
+                  return (
+                    <Path
+                      key={c.key}
+                      d={c.d}
+                      stroke={c.isLoser ? loserColor : `url(#${gid(c.key)})`}
+                      strokeOpacity={c.isLoser ? 0.7 : 1}
+                      strokeWidth={2.2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeDasharray={c.isLoser ? "6 5" : ""}
+                      fill="none"
+                    />
+                  );
+                }
+                // Đường nối chéo: mẩu ngắn ở hai đầu (mũi tên đi ra, chấm đi vào); đường đầy đủ chỉ
+                // vẽ mờ khi bật công tắc "Hiện đường nối chéo".
+                const outColor = c.isLoser ? loserColor : c.fromColor;
+                const inColor = c.isLoser ? loserColor : c.toColor;
+                const tipX = c.x1 + STUB_LEN;
+                return (
+                  <React.Fragment key={c.key}>
+                    {showJumps ? (
+                      <Path
+                        d={c.d}
+                        stroke={c.isLoser ? loserColor : `url(#${gid(c.key)})`}
+                        strokeOpacity={0.45}
+                        strokeWidth={1.4}
+                        strokeLinecap="round"
+                        strokeDasharray={c.isLoser ? "5 5" : ""}
+                        fill="none"
+                      />
+                    ) : null}
+                    <Path
+                      d={`M ${c.x1} ${c.y1} H ${tipX} M ${tipX - 5} ${c.y1 - 4.5} L ${tipX} ${c.y1} L ${tipX - 5} ${c.y1 + 4.5}`}
+                      stroke={outColor}
+                      strokeOpacity={0.85}
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      fill="none"
+                    />
+                    <Path
+                      d={`M ${c.x2 - STUB_LEN} ${c.y2} H ${c.x2}`}
+                      stroke={inColor}
+                      strokeOpacity={0.85}
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      fill="none"
+                    />
+                    <Circle cx={c.x2 - STUB_LEN} cy={c.y2} r={3} fill={inColor} fillOpacity={0.85} />
+                  </React.Fragment>
+                );
+              })}
             </Svg>
             )}
 
@@ -415,6 +547,9 @@ export default function ModernMergedBracketRN({
 const styles = StyleSheet.create({
   pills: { gap: 8, paddingHorizontal: 4, paddingVertical: 6 },
   pill: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1.5 },
-  legendRow: { flexDirection: "row", gap: 14, paddingHorizontal: 6, paddingBottom: 4 },
+  legendRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 14, rowGap: 6, paddingHorizontal: 6, paddingBottom: 4 },
+  jumpToggle: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999, borderWidth: 1 },
+  stub: { position: "absolute", width: STUB_LEN, height: 2, borderRadius: 1 },
+  stubDot: { position: "absolute", width: 6, height: 6, borderRadius: 3 },
   divLabel: { position: "absolute", top: 8, width: 110, alignItems: "center", zIndex: 3 },
 });

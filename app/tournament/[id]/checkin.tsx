@@ -1,5 +1,5 @@
 // app/tournament/[id]/checkin.tsx
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -27,7 +27,7 @@ import {
 function useThemeColors() {
   const scheme = useColorScheme() ?? "light";
   const v2 = useUiVersion() === "v2" || IS_V3;
-  const isDark = (v2 && !IS_V3) || scheme === "dark";
+  const isDark = (v2 && !IS_V3_LIGHT) || scheme === "dark";
 
   const tint = v2 ? sk("#12B6F3", "#1466F2") : isDark ? "#7cc0ff" : "#0a84ff";
   const background = v2 ? sk("#040E20", "#F2F6FC") : isDark ? "#0f1115" : "#fafafa";
@@ -735,7 +735,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 12,
     // V3: thẻ trắng có bóng mềm (V2 giữ nguyên).
-    ...(IS_V3 ? { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 } : null),
+    ...(IS_V3_LIGHT ? { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 } : null),
   },
   actionsCard: { gap: 8 },
   rowWrap: {

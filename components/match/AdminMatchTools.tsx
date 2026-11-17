@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 // AdminMatchTools.tsx
 // Bộ công cụ quản trị trận nâng cao trên mobile — parity với web MatchContent:
 //   • Chỉnh đội A/B (chọn registration / BYE / đội thắng từ trận khác / swap)
@@ -54,7 +54,7 @@ import {
 function useTokens() {
   const scheme = useColorScheme() ?? "light";
   const v2 = useUiVersion() === "v2" || IS_V3;
-  const isDark = (v2 && !IS_V3) || scheme === "dark";
+  const isDark = (v2 && !IS_V3_LIGHT) || scheme === "dark";
   return useMemo(
     () => ({
       isDark,

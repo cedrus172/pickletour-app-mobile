@@ -73,7 +73,7 @@ import { useLiquidGlassEnabled } from "@/context/GlassAppearanceContext";
 import { IOS_26_LIQUID_GLASS_ENABLED } from "@/utils/nativeTabs";
 import PlayerNameText from "@/components/PlayerNameText";
 import RangeSlider from "@/components/RangeSlider";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 import {
   PlayerActions,
   PlayerAvatar,
@@ -173,7 +173,7 @@ function useThemeColors() {
   const sysScheme = useColorScheme?.() || "light";
   const v2 = navTheme?.version === "v2" || IS_V3;
   const isDark =
-    (v2 && !IS_V3) || (typeof navTheme?.dark === "boolean" ? navTheme.dark : sysScheme === "dark");
+    (v2 && !IS_V3_LIGHT) || (typeof navTheme?.dark === "boolean" ? navTheme.dark : sysScheme === "dark");
 
   return useMemo(() => {
     const bg = v2 ? RANKING_COLORS.background : isDark ? "#0f1115" : "#F5F7FA";

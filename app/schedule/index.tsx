@@ -33,7 +33,7 @@ import { useMatchCalendar } from "@/hooks/useMatchCalendar";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { Ionicons } from "@expo/vector-icons";
 import LiquidGlassSurfaceBase from "@/components/ui/LiquidGlassSurface";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 // V3 Fresh: màn này không dùng lớp kính. Ở giao diện sáng, LiquidGlassSurface phủ một lớp trắng đục
 // (và khi bật "Giao diện nổi bật" còn bỏ luôn backgroundColor của style) → chữ trắng trên header /
@@ -41,7 +41,7 @@ import { IS_V3, sk } from "@/hooks/uiVersion";
 const PlainSurface: typeof LiquidGlassSurfaceBase = ({ children, style }) => (
   <View style={style}>{children}</View>
 );
-const LiquidGlassSurface: typeof LiquidGlassSurfaceBase = IS_V3
+const LiquidGlassSurface: typeof LiquidGlassSurfaceBase = IS_V3_LIGHT
   ? PlainSurface
   : LiquidGlassSurfaceBase;
 
@@ -2061,7 +2061,7 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    ...(IS_V3
+    ...(IS_V3_LIGHT
       ? V3_CARD_SHADOW
       : Platform.select({
           ios: {
@@ -2096,7 +2096,7 @@ const styles = StyleSheet.create({
     borderRadius: sk(16, 22),
     overflow: sk<"hidden" | "visible">("hidden", "visible"),
     borderWidth: 1,
-    ...(IS_V3
+    ...(IS_V3_LIGHT
       ? V3_CARD_SHADOW
       : Platform.select({
           ios: {
@@ -2124,7 +2124,7 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
     borderRadius: 22,
     borderWidth: 1,
-    ...(IS_V3 ? V3_CARD_SHADOW : null),
+    ...(IS_V3_LIGHT ? V3_CARD_SHADOW : null),
   },
   sectionHeader: {
     flexDirection: "row",
@@ -2167,7 +2167,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     overflow: sk<"hidden" | "visible">("hidden", "visible"),
     borderWidth: 1,
-    ...(IS_V3
+    ...(IS_V3_LIGHT
       ? V3_CARD_SHADOW
       : Platform.select({
           ios: {
@@ -2184,7 +2184,7 @@ const styles = StyleSheet.create({
   matchCardTouchable: {
     overflow: "hidden",
     // V3: thẻ ngoài để overflow visible cho bóng mềm → phần bấm tự bo góc để cắt dải màu đầu thẻ
-    ...(IS_V3 ? { borderRadius: 19 } : null),
+    ...(IS_V3_LIGHT ? { borderRadius: 19 } : null),
   },
   matchCardHeader: {
     padding: 14,
@@ -2399,7 +2399,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 1,
     borderColor: sk("#E5E7EB", "rgba(16,42,92,0.10)"),
-    ...(IS_V3
+    ...(IS_V3_LIGHT
       ? V3_CARD_SHADOW
       : Platform.select({
           ios: {
@@ -2475,7 +2475,7 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
     borderRadius: 22,
     borderWidth: 1,
-    ...(IS_V3 ? V3_CARD_SHADOW : null),
+    ...(IS_V3_LIGHT ? V3_CARD_SHADOW : null),
   },
 
   // Day Section
@@ -2569,7 +2569,7 @@ const styles = StyleSheet.create({
     borderRadius: sk(18, 22),
     borderWidth: 1,
     padding: 12,
-    ...(IS_V3 ? V3_CARD_SHADOW : null),
+    ...(IS_V3_LIGHT ? V3_CARD_SHADOW : null),
   },
   upcomingSectionHeader: {
     marginBottom: 14,

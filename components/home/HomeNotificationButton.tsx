@@ -5,7 +5,7 @@ import { t } from "@/utils/i18n";
 import HomeFeatureIcon from "./HomeFeatureIcon";
 import HotUpdateIndicator from "@/components/HotUpdateIndicator";
 import { Ionicons } from "@expo/vector-icons";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 export type NotificationUpdate = { visible: boolean; progress: number; status: "downloading" | "done" | "error" };
 
@@ -18,9 +18,9 @@ export default function HomeNotificationButton({ unreadCount, update }: { unread
       onPress={() => router.navigate("/notifications")}
       style={({ pressed }) => [styles.button, pressed && styles.pressed]}
     >
-      {IS_V3 ? <Ionicons name="notifications-outline" size={24} color="#0B1B3A" /> : <HomeFeatureIcon id={16} size={30} />}
+      {IS_V3_LIGHT ? <Ionicons name="notifications-outline" size={24} color="#0B1B3A" /> : <HomeFeatureIcon id={16} size={30} />}
       {unreadCount > 0 ? <View testID="notification-unread-dot" style={styles.dot} /> : null}
-      {update ? <HotUpdateIndicator {...update} inline isDark={!IS_V3} accentColor={sk("#08CDF5", "#1466F2")} /> : null}
+      {update ? <HotUpdateIndicator {...update} inline isDark={!IS_V3_LIGHT} accentColor={sk("#08CDF5", "#1466F2")} /> : null}
     </Pressable>
   );
 }

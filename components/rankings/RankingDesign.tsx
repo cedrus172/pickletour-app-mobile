@@ -23,7 +23,7 @@ import Svg, {
 import { Text } from "@/components/ui/i18nText";
 import { TextInput } from "@/components/ui/i18nTextInput";
 import { normalizeUrl } from "@/utils/normalizeUri";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 const RANKING_COLORS_V2 = {
   background: "#020B1C",
@@ -56,7 +56,7 @@ const RANKING_COLORS_V3: { [K in keyof typeof RANKING_COLORS_V2]: string } = {
   border: "rgba(16,42,92,0.10)",
 };
 
-export const RANKING_COLORS: { [K in keyof typeof RANKING_COLORS_V2]: string } = IS_V3
+export const RANKING_COLORS: { [K in keyof typeof RANKING_COLORS_V2]: string } = IS_V3_LIGHT
   ? RANKING_COLORS_V3
   : RANKING_COLORS_V2;
 
@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
   subtitle: { color: sk("#9DB9D6", "#5F6F8A"), fontSize: 12.5, lineHeight: 17, fontWeight: "500", marginTop: 1, paddingRight: 76 },
   backButton: { width: 38, height: 38, marginRight: 8, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: sk("rgba(10,35,64,0.78)", "#FFFFFF"), borderWidth: 1, borderColor: RANKING_COLORS.border },
   headerAccessory: { marginLeft: 7, zIndex: 2 },
-  search: { height: 54, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, borderRadius: 17, backgroundColor: sk("rgba(7,27,52,0.84)", "#FFFFFF"), borderWidth: 1, borderColor: sk("rgba(111,182,234,0.42)", "rgba(16,42,92,0.10)"), shadowColor: sk("#00BFFF", "#1B3A7A"), shadowOpacity: sk(0.1, 0.08), shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, ...(IS_V3 ? { elevation: 2 } : null) },
+  search: { height: 54, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, borderRadius: 17, backgroundColor: sk("rgba(7,27,52,0.84)", "#FFFFFF"), borderWidth: 1, borderColor: sk("rgba(111,182,234,0.42)", "rgba(16,42,92,0.10)"), shadowColor: sk("#00BFFF", "#1B3A7A"), shadowOpacity: sk(0.1, 0.08), shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, ...(IS_V3_LIGHT ? { elevation: 2 } : null) },
   searchInput: { flex: 1, height: "100%", marginLeft: 11, color: sk("#FFFFFF", "#0B1B3A"), fontSize: 15.5, fontWeight: "500" },
   filtersRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 14 },
   segment: { flex: 1, minWidth: 0, flexDirection: "row", gap: 6 },
@@ -626,7 +626,7 @@ const styles = StyleSheet.create({
   rankBadge: { width: 39, minHeight: 53, alignItems: "center", justifyContent: "center", borderTopLeftRadius: 8, borderTopRightRadius: 8 },
   rankBadgePlain: { minHeight: 39, borderRadius: 20 },
   rankNumber: { color: "#FFFFFF", fontSize: 20, lineHeight: 24, fontWeight: "900", textShadowColor: "rgba(0,0,0,0.4)", textShadowRadius: 3 },
-  rankNumberPlain: { fontSize: 15, ...(IS_V3 ? { color: "#243450", textShadowColor: "transparent" } : null) },
+  rankNumberPlain: { fontSize: 15, ...(IS_V3_LIGHT ? { color: "#243450", textShadowColor: "transparent" } : null) },
   rankNotch: { width: 0, height: 0, borderLeftWidth: 19.5, borderRightWidth: 19.5, borderTopWidth: 10, borderLeftColor: "transparent", borderRightColor: "transparent" },
   avatarRing: { width: 74, height: 74, borderRadius: 37, padding: 3, borderWidth: 2, backgroundColor: sk("rgba(2,11,28,0.86)", "#FFFFFF"), shadowColor: sk("#00BFFF", "#1B3A7A"), shadowOpacity: sk(0.18, 0.12), shadowRadius: 9 },
   avatar: { width: "100%", height: "100%", borderRadius: 33 },

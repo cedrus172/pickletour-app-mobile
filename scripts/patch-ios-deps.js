@@ -439,3 +439,15 @@ patchFile("node_modules/expo-camera/android/src/main/java/expo/modules/camera/Ca
     );
   },
 ]);
+
+// react-native-screens: updateHeaderStateInShadowTreeInContextOfNavigationBar duyệt thẳng mảng
+// _reactSubviews; cập nhật state của header subview có thể kéo theo unmount (removeObject) ngay
+// trong vòng lặp → NSGenericException "Collection was mutated while being enumerated" khi đẩy/đóng
+// màn liên tục. Duyệt trên bản sao. Không ném lỗi nếu bản thư viện mới đã đổi đoạn mã này.
+patchFile("node_modules/react-native-screens/ios/RNSScreenStackHeaderConfig.mm", [
+  (contents) =>
+    contents.replace(
+      "  for (RNSScreenStackHeaderSubview *subview in self.reactSubviews) {\n    [subview updateShadowStateInContextOfAncestorView:navigationBar];",
+      "  for (RNSScreenStackHeaderSubview *subview in [self.reactSubviews copy]) {\n    [subview updateShadowStateInContextOfAncestorView:navigationBar];",
+    ),
+]);

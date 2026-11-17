@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 import React, {
   useCallback,
   useEffect,
@@ -315,7 +315,7 @@ export default function PickleRadarScreen() {
   const router = useRouter();
   const theme = useColorScheme();
   const v2 = useUiVersion() === "v2" || IS_V3;
-  const isDark = (v2 && !IS_V3) || theme === "dark";
+  const isDark = (v2 && !IS_V3_LIGHT) || theme === "dark";
   const mapboxAvailable = !!MapboxGL;
 
   // State

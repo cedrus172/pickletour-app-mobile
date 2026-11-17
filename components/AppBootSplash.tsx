@@ -10,7 +10,7 @@ import { Image } from "expo-image";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { LinearGradient } from "expo-linear-gradient";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 // Global flag: splash chỉ hiện đúng 1 lần duy nhất trong session
 let __splashAlreadyShown__ = false;
@@ -24,7 +24,7 @@ export default function AppBootSplash({ isAppReady }: AppBootSplashProps) {
   const window = useWindowDimensions();
   const [frame, setFrame] = useState({ width: window.width, height: window.height });
   // V3 không dùng ảnh nền (thay bằng gradient sáng) nên đặt sẵn bit 1 để vẫn đạt giá trị 3.
-  const [loadedArtwork, setLoadedArtwork] = useState(IS_V3 ? 1 : 0);
+  const [loadedArtwork, setLoadedArtwork] = useState(IS_V3_LIGHT ? 1 : 0);
   const [isAnimationComplete, setIsAnimationComplete] = useState(
     __splashAlreadyShown__,
   );
@@ -33,7 +33,7 @@ export default function AppBootSplash({ isAppReady }: AppBootSplashProps) {
   const { width, height } = frame;
   const landscape = width > height;
   // V3 giữ logo PickleTour gốc, chỉ thu nhỏ hơn một chút cho hợp nền sáng.
-  const logoWidth = Math.min(width * (IS_V3 ? 0.6 : 0.79), height * (landscape ? 0.5 : 0.4));
+  const logoWidth = Math.min(width * (IS_V3_LIGHT ? 0.6 : 0.79), height * (landscape ? 0.5 : 0.4));
   const logoHeight = logoWidth * (1080 / 1238);
   const brandTop = height * (landscape ? 0.38 : 0.396) - logoHeight / 2;
   const loaderWidth = Math.min(width * 0.3, 160);
@@ -111,7 +111,7 @@ export default function AppBootSplash({ isAppReady }: AppBootSplashProps) {
       }}
     >
       <StatusBar style={sk("light", "dark")} />
-      {IS_V3 ? (
+      {IS_V3_LIGHT ? (
         <LinearGradient
           colors={["#F7FAFF", "#EEF4FC"]}
           style={StyleSheet.absoluteFillObject}

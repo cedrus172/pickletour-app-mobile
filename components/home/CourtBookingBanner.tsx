@@ -6,7 +6,7 @@ import React, { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { Image } from "expo-image";
-import { IS_V3, V3 } from "@/hooks/uiVersion";
+import { IS_V3, V3, IS_V3_DARK } from "@/hooks/uiVersion";
 
 const BOOKING_COURT_V3 = require("@/assets/images/v3/booking-court.jpg");
 
@@ -48,7 +48,7 @@ export default function CourtBookingBanner() {
         <Pressable onPress={() => router.push("/courts")} style={v3.press}>
           <View style={v3.card}>
             <Image source={BOOKING_COURT_V3} style={v3.art} contentFit="cover" contentPosition="right bottom" />
-            <LinearGradient pointerEvents="none" colors={["#FFFFFF", "rgba(255,255,255,0.94)", "rgba(255,255,255,0)"]} locations={[0, 0.5, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={v3.artFade} />
+            <LinearGradient pointerEvents="none" colors={IS_V3_DARK ? [V3.card, V3.cardGlass, "rgba(10,27,52,0)"] : ["#FFFFFF", "rgba(255,255,255,0.94)", "rgba(255,255,255,0)"]} locations={[0, 0.5, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={v3.artFade} />
             <View style={v3.copy}>
               <Text style={v3.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                 Đặt sân Pickleball
@@ -58,9 +58,9 @@ export default function CourtBookingBanner() {
               </Text>
               <View style={v3.ctaRow}>
                 <LinearGradient colors={V3.gradBlue} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={v3.cta}>
-                  <Ionicons name="calendar-clear-outline" size={16} color="#fff" />
+                  <Ionicons name="calendar-clear-outline" size={16} color={V3.onBlue} />
                   <Text style={v3.ctaText}>Đặt sân ngay</Text>
-                  <Ionicons name="chevron-forward" size={15} color="#fff" />
+                  <Ionicons name="chevron-forward" size={15} color={V3.onBlue} />
                 </LinearGradient>
                 <Pressable hitSlop={6} onPress={() => router.push("/courts/my-bookings")} style={v3.ghost}>
                   <Ionicons name="ticket-outline" size={15} color={V3.blue} />
@@ -145,7 +145,7 @@ const v3 = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 4,
   },
-  card: { borderRadius: 22, overflow: "hidden", backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "rgba(16,42,92,0.05)" },
+  card: { borderRadius: 22, overflow: "hidden", backgroundColor: V3.card, borderWidth: 1, borderColor: IS_V3_DARK ? V3.border : "rgba(16,42,92,0.05)" },
   art: { position: "absolute", right: 0, top: 0, bottom: 0, width: "58%" },
   artFade: { position: "absolute", left: "42%", top: 0, bottom: 0, width: "40%" },
   copy: { width: "62%", paddingLeft: 16, paddingVertical: 16 },
@@ -153,7 +153,7 @@ const v3 = StyleSheet.create({
   sub: { color: V3.ink2, fontSize: 12.5, lineHeight: 18, marginTop: 5 },
   ctaRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12 },
   cta: { flexDirection: "row", alignItems: "center", gap: 7, height: 36, paddingHorizontal: 14, borderRadius: 18 },
-  ctaText: { color: "#fff", fontSize: 13.5, fontWeight: "800" },
+  ctaText: { color: V3.onBlue, fontSize: 13.5, fontWeight: "800" },
   ghost: {
     flexDirection: "row",
     alignItems: "center",
@@ -161,9 +161,9 @@ const v3 = StyleSheet.create({
     height: 36,
     paddingHorizontal: 11,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: IS_V3_DARK ? V3.blueSoft : "rgba(255,255,255,0.9)",
     borderWidth: 1,
-    borderColor: "rgba(20,102,242,0.22)",
+    borderColor: IS_V3_DARK ? V3.blueSoftBorder : "rgba(20,102,242,0.22)",
   },
   ghostText: { color: V3.blue, fontSize: 12.5, fontWeight: "800" },
 });

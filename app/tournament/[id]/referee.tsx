@@ -1,6 +1,6 @@
 import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 import { t } from "@/utils/i18n";
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 // app/(app)/tournament/[id]/referee.jsx
 import React, {
   useEffect,
@@ -56,7 +56,7 @@ import AppModal, { ModalTopInset } from "@/components/ui/AppModal";
 function useThemeTokens() {
   const scheme = useColorScheme() ?? "light";
   const v2 = useUiVersion() === "v2" || IS_V3;
-  const dark = (v2 && !IS_V3) || scheme === "dark";
+  const dark = (v2 && !IS_V3_LIGHT) || scheme === "dark";
   return useMemo(
     () => ({
       scheme,
@@ -102,7 +102,7 @@ function useThemeTokens() {
       errText: dark ? "#fecaca" : "#991b1b",
 
       // tabs
-      tabBd: IS_V3 ? "rgba(16,42,92,0.12)" : dark ? "#2a2f36" : "#e4e8ef",
+      tabBd: IS_V3_LIGHT ? "rgba(16,42,92,0.12)" : dark ? "#2a2f36" : "#e4e8ef",
 
       // buttons
       btnDisabledBg: dark ? "#475569" : "#94a3b8",
@@ -1092,7 +1092,7 @@ export default function RefereeCenterScreen() {
         onPress={() => openMatch(m._id)}
         style={({ pressed }) => [
           styles.matchRow,
-          { borderColor: T.border, backgroundColor: IS_V3 ? "#F5F8FD" : T.cardBg },
+          { borderColor: T.border, backgroundColor: IS_V3_LIGHT ? "#F5F8FD" : T.cardBg },
           pressed && { opacity: 0.95 },
         ]}
       >
@@ -1884,7 +1884,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 12,
     // V3 Fresh: thẻ trắng có bóng mềm
-    ...(IS_V3
+    ...(IS_V3_LIGHT
       ? {
           shadowColor: "#1B3A7A",
           shadowOpacity: 0.08,

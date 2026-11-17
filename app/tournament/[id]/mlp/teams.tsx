@@ -37,7 +37,7 @@ import { useLazySearchUserQuery } from "@/slices/usersApiSlice";
 import { useGetTournamentQuery } from "@/slices/tournamentsApiSlice";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 const STATUS_COLOR: Record<string, string> = {
   pending: "#F59E0B",
@@ -1064,7 +1064,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     marginBottom: 8,
     backgroundColor: C.card,
     borderRadius: 12,
-    ...(IS_V3 ? { borderWidth: 1, borderColor: C.border, shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 } : null),
+    ...(IS_V3_LIGHT ? { borderWidth: 1, borderColor: C.border, shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 } : null),
   },
   cardMine: { borderWidth: 2, borderColor: "#10B981" },
   mineBadge: {

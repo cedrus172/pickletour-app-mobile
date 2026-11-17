@@ -1,5 +1,5 @@
 import { t } from "@/utils/i18n";
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 // src/screens/settings/FacebookLiveSettingsScreen.jsx
 import React, { useCallback, useState } from "react";
 import {
@@ -77,7 +77,7 @@ const FacebookLiveSettingsScreen = () => {
   // 🔹 Detect theme
   const colorScheme = useColorScheme();
   const v2 = useUiVersion() === "v2" || IS_V3;
-  const isDark = (v2 && !IS_V3) || colorScheme === "dark";
+  const isDark = (v2 && !IS_V3_LIGHT) || colorScheme === "dark";
   const theme = THEME_COLORS[isDark ? "dark" : "light"];
 
   const router = useRouter();

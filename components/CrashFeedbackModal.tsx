@@ -1,5 +1,5 @@
 import { t } from "@/utils/i18n";
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 import {
   Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
@@ -46,7 +46,7 @@ export default function CrashFeedbackModal() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const v2 = useUiVersion() === "v2" || IS_V3;
-  const isDark = (v2 && !IS_V3) || colorScheme === "dark";
+  const isDark = (v2 && !IS_V3_LIGHT) || colorScheme === "dark";
   const colors = React.useMemo(
     () => ({
       backdrop: "rgba(2, 8, 20, 0.6)",

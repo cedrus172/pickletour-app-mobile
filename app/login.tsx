@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 import {
   View,
   Pressable,
@@ -118,7 +118,7 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const scheme = useColorScheme() ?? "light";
   const v2 = useUiVersion() === "v2" || IS_V3;
-  const isDark = (v2 && !IS_V3) || scheme === "dark";
+  const isDark = (v2 && !IS_V3_LIGHT) || scheme === "dark";
   const tint = v2 ? sk("#12B6F3", "#1466F2") : isDark ? "#7cc0ff" : "#0a84ff";
   const textPrimary = v2 ? sk("#EAF3FF", "#0B1B3A") : isDark ? "#fff" : "#111";
   const textSecondary = v2 ? sk("#8CA6C8", "#5F6F8A") : isDark ? "#c9c9c9" : "#444";

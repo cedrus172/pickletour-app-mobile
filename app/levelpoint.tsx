@@ -1,5 +1,5 @@
 // app/screens/LevelPointScreen.jsx
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 import AuthGuard from "@/components/auth/AuthGuard";
 import {
   useGetLatestAssessmentQuery,
@@ -67,7 +67,7 @@ const duprFromRaw = (raw0to10) =>
 function useThemeTokens() {
   const scheme = useColorScheme() ?? "light";
   const v2 = useUiVersion() === "v2" || IS_V3;
-  const isDark = (v2 && !IS_V3) || scheme === "dark";
+  const isDark = (v2 && !IS_V3_LIGHT) || scheme === "dark";
 
   return {
     isDark,

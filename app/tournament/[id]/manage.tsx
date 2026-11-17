@@ -69,7 +69,7 @@ import BatchAssignRefModal from "@/components/sheets/BatchAssignRefModal";
 import * as IntentLauncher from "expo-intent-launcher";
 import FileViewerModal from "@/components/FileViewerModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 // Màu chỉ áp dụng trong trang quản lý; giữ theme V1 sáng/tối và các màn khác.
 function useManageTheme() {
@@ -81,7 +81,7 @@ function useManageTheme() {
       primary: "#08C9EA", background: "#041021", card: "#082035",
       border: "#29475F", text: "#F2F7FF",
     },
-  } : IS_V3 ? {
+  } : IS_V3_LIGHT ? {
     // V3 Fresh: giữ bảng màu sáng của theme, chỉ làm viền rõ hơn một chút cho nút/thẻ có viền.
     ...theme,
     colors: { ...theme.colors, border: "rgba(16,42,92,0.14)" },
@@ -5225,7 +5225,7 @@ const styles = StyleSheet.create({
     position: "relative",
     overflow: "hidden",
     // V3: thẻ trắng có bóng mềm (V2 giữ nguyên).
-    ...(IS_V3 ? { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 } : null),
+    ...(IS_V3_LIGHT ? { shadowColor: "#1B3A7A", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 } : null),
   },
   matchRowSeparator: { height: 12 },
   selectRow: {

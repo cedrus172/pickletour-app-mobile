@@ -15,7 +15,7 @@ import AppModal from "@/components/ui/AppModal";
 import PlayerNameText from "@/components/PlayerNameText";
 import { NotificationHeaderActions } from "@/components/GlobalNotificationShell";
 import { useDuoSideNavigation } from "@/hooks/useDuoSideNavigation";
-import { V3 } from "@/hooks/uiVersion";
+import { IS_V3_DARK, V3 } from "@/hooks/uiVersion";
 import { useGetMyRankQuery } from "@/slices/usersApiSlice";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import {
@@ -54,9 +54,11 @@ export const HomeV3Hero = memo(function HomeV3Hero({ width }: { width: number })
   return (
     <View style={{ height: heroHeight }}>
       <Image source={HERO_COURT} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="right center" transition={200} />
+      {/* Tông tối: phủ một lớp navy để ảnh sân sáng không chói trên nền tối */}
+      {IS_V3_DARK ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: V3.heroScrim }]} /> : null}
       {/* Hoà mép trên/dưới của ảnh vào nền trang */}
-      <LinearGradient pointerEvents="none" colors={[V3.gradPage[0], "rgba(247,250,255,0)"]} style={styles.heroFadeTop} />
-      <LinearGradient pointerEvents="none" colors={["rgba(247,250,255,0)", V3.gradPage[0]]} style={styles.heroFadeBottom} />
+      <LinearGradient pointerEvents="none" colors={[V3.gradPage[0], V3.fade0]} style={styles.heroFadeTop} />
+      <LinearGradient pointerEvents="none" colors={[V3.fade0, V3.gradPage[0]]} style={styles.heroFadeBottom} />
       <Image
         source={LOGO_BADGE}
         accessibilityLabel="PickleTour"
@@ -141,7 +143,7 @@ export const HomeV3UserCard = memo(function HomeV3UserCard() {
           )}
           <View style={styles.roleRow}>
             <View style={styles.roleBadge}>
-              <Ionicons name="star" size={9} color="#FFFFFF" />
+              <Ionicons name="star" size={9} color={V3.onBlue} />
             </View>
             <Text style={styles.roleText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
               {userInfo ? roleLabel(userInfo?.role) : "Cùng PickleTour"}
@@ -189,12 +191,23 @@ const QUICK_TILES: {
   { key: "schedule", title: "Lịch thi đấu", description: "Theo dõi trận đấu", icon: "time-outline", color: "#F57C1F", bg: ["#FFF0E2", "#FFF8F1"], route: "/schedule" },
 ];
 
+/** "#RRGGBB" → rgba với độ trong suốt cho trước (nền ô ở tông tối). */
+function hexAlpha(hex: string, alpha: number) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+}
+
 export const HomeV3QuickTiles = memo(function HomeV3QuickTiles() {
   return (
     <View style={styles.tilesRow}>
       {QUICK_TILES.map((tile) => (
         <Pressable key={tile.key} accessibilityRole="button" onPress={() => router.push(tile.route as never)} style={styles.tilePress}>
-          <LinearGradient colors={tile.bg} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.tile}>
+          <LinearGradient
+            colors={IS_V3_DARK ? [hexAlpha(tile.color, 0.24), hexAlpha(tile.color, 0.08)] : tile.bg}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.tile}
+          >
             <Ionicons name={tile.icon} size={30} color={tile.color} />
             <Text style={styles.tileTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
               {tile.title}
@@ -228,9 +241,9 @@ export const HomeV3ArcadeBanner = memo(function HomeV3ArcadeBanner() {
             Chơi pickleball 3D trực tuyến
           </Text>
           <LinearGradient colors={V3.gradLime} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.arcadeCta}>
-            <Ionicons name="game-controller" size={17} color={V3.ink} />
+            <Ionicons name="game-controller" size={17} color={V3.onLime} />
             <Text style={styles.arcadeCtaText}>Chơi ngay</Text>
-            <Ionicons name="chevron-forward" size={16} color={V3.ink} />
+            <Ionicons name="chevron-forward" size={16} color={V3.onLime} />
           </LinearGradient>
         </View>
       </View>
@@ -374,7 +387,7 @@ export const HomeV3Shortcuts = memo(function HomeV3Shortcuts() {
                     style={[styles.sheetItem, on ? styles.sheetItemOn : null]}
                   >
                     <View style={[styles.sheetIcon, on ? styles.sheetIconOn : null]}>
-                      <Ionicons name={item.icon} size={21} color={on ? "#FFFFFF" : V3.blue} />
+                      <Ionicons name={item.icon} size={21} color={on ? V3.onBlue : V3.blue} />
                     </View>
                     <Text style={styles.sheetItemLabel} numberOfLines={1}>
                       {item.label}
@@ -415,18 +428,18 @@ const styles = StyleSheet.create({
     paddingLeft: 12,
     paddingRight: 10,
     borderRadius: 24,
-    backgroundColor: "rgba(255,255,255,0.96)",
+    backgroundColor: V3.cardGlass,
     borderWidth: 1,
-    borderColor: "#FFFFFF",
+    borderColor: V3.cardEdge,
     ...CARD_SHADOW,
   },
   avatarRing: { width: 60, height: 60, borderRadius: 30, padding: 3 },
   avatarInner: {
     flex: 1,
     borderRadius: 27,
-    backgroundColor: "#EEF3FA",
+    backgroundColor: V3.field,
     borderWidth: 2,
-    borderColor: "#FFFFFF",
+    borderColor: V3.cardEdge,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -445,11 +458,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#DCEBFF",
+    backgroundColor: V3.chip,
   },
   rankText: { color: V3.ink, fontSize: 14.5, fontWeight: "900" },
   loginPill: { height: 38, paddingHorizontal: 16, borderRadius: 19, alignItems: "center", justifyContent: "center" },
-  loginText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800" },
+  loginText: { color: V3.onBlue, fontSize: 14, fontWeight: "800" },
 
   tilesRow: { flexDirection: "row", gap: 7, paddingHorizontal: 16, marginTop: 14 },
   tilePress: { flex: 1, minWidth: 0, borderRadius: 18 },
@@ -461,7 +474,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.9)",
+    borderColor: V3.tileEdge,
   },
   tileTitle: { width: "100%", textAlign: "center", color: V3.ink, fontSize: 12, lineHeight: 16, fontWeight: "900", letterSpacing: -0.2, marginTop: 8 },
   tileDesc: { width: "100%", textAlign: "center", color: V3.sub, fontSize: 10, lineHeight: 14, marginTop: 1 },
@@ -482,7 +495,7 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     marginTop: 9,
   },
-  arcadeCtaText: { color: V3.ink, fontSize: 13.5, fontWeight: "900" },
+  arcadeCtaText: { color: V3.onLime, fontSize: 13.5, fontWeight: "900" },
 
   sectionRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10, paddingRight: 16 },
   sectionTitle: { flex: 1, color: V3.ink, fontSize: 19, lineHeight: 25, fontWeight: "900" },
@@ -500,18 +513,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingVertical: 10,
     borderRadius: 16,
-    backgroundColor: "#EAF0F9",
+    backgroundColor: V3.iconWell,
   },
   shortcutLabel: { color: V3.ink, fontSize: 11.5, lineHeight: 14, fontWeight: "600", textAlign: "center" },
 
   sheetRoot: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(11,27,58,0.42)" },
-  sheet: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingTop: 8 },
-  sheetGrabber: { alignSelf: "center", width: 40, height: 4, borderRadius: 2, backgroundColor: "#D5DDEA", marginBottom: 10 },
+  sheet: { backgroundColor: V3.card, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingTop: 8 },
+  sheetGrabber: { alignSelf: "center", width: 40, height: 4, borderRadius: 2, backgroundColor: IS_V3_DARK ? V3.line : "#D5DDEA", marginBottom: 10 },
   sheetHeader: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 18, marginBottom: 10 },
   sheetTitle: { color: V3.ink, fontSize: 18, fontWeight: "900" },
   sheetSub: { color: V3.sub, fontSize: 12.5, marginTop: 2 },
   sheetDone: { height: 36, paddingHorizontal: 16, borderRadius: 18, backgroundColor: V3.blue, alignItems: "center", justifyContent: "center" },
-  sheetDoneText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800" },
+  sheetDoneText: { color: V3.onBlue, fontSize: 14, fontWeight: "800" },
   sheetList: { paddingHorizontal: 14, paddingBottom: 8, gap: 6 },
   sheetItem: {
     flexDirection: "row",
@@ -522,8 +535,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: V3.cardAlt,
   },
-  sheetItemOn: { backgroundColor: "#E4EEFF" },
-  sheetIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
+  sheetItemOn: { backgroundColor: V3.selected },
+  sheetIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: V3.card, alignItems: "center", justifyContent: "center" },
   sheetIconOn: { backgroundColor: V3.blue },
   sheetItemLabel: { flex: 1, color: V3.ink, fontSize: 14.5, fontWeight: "700" },
 });

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, Easing, Image, StyleSheet, useWindowDimensions, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Line, Polygon, Rect } from "react-native-svg";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 const ball = require("@/assets/images/referee-pickleball.png");
 
@@ -68,7 +68,7 @@ export default function LoginCourtBackground() {
   const size = Math.min(wide ? height * 0.24 : width * 0.24, 150);
   return (
     <View pointerEvents="none" style={styles.container}>
-      {IS_V3 ? (
+      {IS_V3_LIGHT ? (
         <>
           <LinearGradient colors={["#FFFFFF", "#F2F6FC", "#E9F0FA"]} style={StyleSheet.absoluteFillObject} />
           <LoginCourtLinesV3 width={width} height={height} wide={wide} />

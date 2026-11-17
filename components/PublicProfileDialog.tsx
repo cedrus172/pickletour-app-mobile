@@ -39,7 +39,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useSelector } from "react-redux";
 import { skipToken } from "@reduxjs/toolkit/query";
 import { useTheme } from "@react-navigation/native";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 /* ---------- helpers ---------- */
 const AVA_PLACE = "https://dummyimage.com/160x160/cccccc/ffffff&text=?";
@@ -2464,7 +2464,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 16,
     padding: 12,
-    ...(IS_V3
+    ...(IS_V3_LIGHT
       ? {
           shadowColor: "#1B3A7A",
           shadowOpacity: 0.08,

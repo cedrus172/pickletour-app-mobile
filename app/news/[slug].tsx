@@ -19,7 +19,7 @@ import { Image } from "expo-image";
 import RenderHTML from "react-native-render-html";
 import { useGetNewsDetailQuery } from "@/slices/newsApiSlice";
 import { openInApp } from "@/utils/openInApp"; // ⬅️ dùng in-app browser
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 const FALLBACK_IMG =
   "https://dummyimage.com/800x450/A29BFE/ffffff&text=Pickleball+News";
@@ -197,7 +197,7 @@ export default function NewsDetailScreen() {
           >
             {/* Hero */}
             <View style={styles.heroWrap}>
-              {IS_V3 && !(article.heroImageUrl || article.thumbImageUrl) ? (
+              {IS_V3_LIGHT && !(article.heroImageUrl || article.thumbImageUrl) ? (
                 // V3: bài không có ảnh → bìa dự phòng gradient xanh dương
                 <LinearGradient
                   colors={["#2F8BFF", "#1466F2"]}

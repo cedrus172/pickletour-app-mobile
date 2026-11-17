@@ -1,6 +1,6 @@
 import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // app/match/[id]/home.tsx
-import { IS_V3, sk, useUiVersion } from "@/hooks/uiVersion";
+import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 import React, { useEffect, useMemo, useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -31,7 +31,7 @@ import {
 function useThemeTokens() {
   const scheme = useColorScheme() ?? "light";
   const v2 = useUiVersion() === "v2" || IS_V3;
-  const dark = (v2 && !IS_V3) || scheme === "dark";
+  const dark = (v2 && !IS_V3_LIGHT) || scheme === "dark";
   return {
     scheme,
     bg: v2 ? sk("#040E20", "#F2F6FC") : dark ? "#0b0d10" : "#f6f8fc",

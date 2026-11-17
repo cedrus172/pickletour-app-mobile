@@ -24,7 +24,7 @@ import { Text } from "@/components/ui/i18nText";
 import { TextInput } from "@/components/ui/i18nTextInput";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import AppModal, { useModalTopInset } from "@/components/ui/AppModal";
-import { IS_V3, sk } from "@/hooks/uiVersion";
+import { IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 import {
   useCreateRegistrationAiPosterMutation,
   useGetRegistrationAiPosterQuery,
@@ -96,7 +96,7 @@ function Body({
 }: Omit<Props, "open">) {
   const scheme = useColorScheme();
   // V3 Fresh luôn nền sáng (app/_layout cũng ép sáng) → không theo chế độ tối của máy.
-  const dark = !IS_V3 && scheme === "dark";
+  const dark = !IS_V3_LIGHT && scheme === "dark";
   const C = {
     bg: dark ? "#071226" : sk("#f8fafc", "#F2F6FC"),
     card: dark ? "#0D1B36" : "#ffffff",
