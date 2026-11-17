@@ -5,7 +5,7 @@
 // Bản RN tương ứng web frontend/src/screens/PickleBall/ModernMergedBracket.jsx.
 
 import React, { useMemo, useRef } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Svg, { Defs, Line, LinearGradient, Path, Stop } from "react-native-svg";
 import { Text } from "@/components/ui/i18nText";
 import {
@@ -183,6 +183,46 @@ function buildMergedLayout(sections: MergedSection[]) {
   };
 }
 
+
+// Android: react-native-svg vẽ cả <Svg> vào MỘT bitmap đúng bằng kích thước sơ đồ. Sơ đồ gộp lớn
+// (playoff + knockout 32 đội) vượt giới hạn bitmap của Canvas → app văng ("trying to draw too large
+// bitmap"). Vì vậy trên Android vẽ đường nối bằng các View mảnh (gấp khúc ngang–dọc–ngang), không tốn bitmap.
+const LINE_W = 2.2;
+const ElbowConnector = React.memo(function ElbowConnector({
+  x1,
+  y1,
+  x2,
+  y2,
+  color,
+  dashed,
+}: {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  color: string;
+  dashed: boolean;
+}) {
+  const midX = (x1 + x2) / 2;
+  const top = Math.min(y1, y2);
+  const height = Math.abs(y2 - y1);
+  const horizontal = dashed
+    ? { height: 0, borderTopWidth: LINE_W, borderStyle: "dashed" as const, borderColor: color }
+    : { height: LINE_W, backgroundColor: color, borderRadius: LINE_W / 2 };
+  const vertical = dashed
+    ? { width: 0, borderLeftWidth: LINE_W, borderStyle: "dashed" as const, borderColor: color }
+    : { width: LINE_W, backgroundColor: color, borderRadius: LINE_W / 2 };
+  return (
+    <>
+      <View style={[styles.connectorSeg, horizontal, { left: x1, top: y1 - LINE_W / 2, width: Math.max(0, midX - x1) + LINE_W / 2 }]} />
+      {height > 0 ? (
+        <View style={[styles.connectorSeg, vertical, { left: midX - LINE_W / 2, top, height: height + LINE_W / 2 }]} />
+      ) : null}
+      <View style={[styles.connectorSeg, horizontal, { left: midX - LINE_W / 2, top: y2 - LINE_W / 2, width: Math.max(0, x2 - midX) + LINE_W / 2 }]} />
+    </>
+  );
+});
+
 export default function ModernMergedBracketRN({
   sections,
   onOpenMatch,
@@ -267,6 +307,41 @@ export default function ModernMergedBracketRN({
               transformOrigin: "top left",
             }}
           >
+            {Platform.OS === "android" ? (
+              <View
+                pointerEvents="none"
+                style={{ position: "absolute", left: 0, top: 0, width: layout.width, height: layout.height }}
+              >
+                {layout.dividers.map((dx: number) => (
+                  <View
+                    key={`d-${dx}`}
+                    style={[
+                      styles.connectorSeg,
+                      {
+                        left: dx,
+                        top: HEADER_H - 6,
+                        width: 0,
+                        height: Math.max(0, layout.height - (HEADER_H - 6)),
+                        borderLeftWidth: 1.5,
+                        borderStyle: "dashed",
+                        borderColor: isDark ? "rgba(203,213,225,0.45)" : "rgba(100,116,139,0.45)",
+                      },
+                    ]}
+                  />
+                ))}
+                {layout.connectors.map((c: any) => (
+                  <ElbowConnector
+                    key={c.key}
+                    x1={c.x1}
+                    y1={c.y1}
+                    x2={c.x2}
+                    y2={c.y2}
+                    color={c.isLoser ? loserColor : c.toColor}
+                    dashed={!!c.isLoser}
+                  />
+                ))}
+              </View>
+            ) : (
             <Svg
               width={layout.width}
               height={layout.height}
@@ -316,6 +391,7 @@ export default function ModernMergedBracketRN({
                 />
               ))}
             </Svg>
+            )}
 
             {layout.dividers.map((dx: number) => (
               <View key={`dl-${dx}`} style={[styles.divLabel, { left: dx - 55 }]}>
@@ -375,6 +451,7 @@ export default function ModernMergedBracketRN({
 }
 
 const styles = StyleSheet.create({
+  connectorSeg: { position: "absolute" },
   pills: { gap: 8, paddingHorizontal: 4, paddingVertical: 6 },
   pill: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1.5 },
   legendRow: { flexDirection: "row", gap: 14, paddingHorizontal: 6, paddingBottom: 4 },
