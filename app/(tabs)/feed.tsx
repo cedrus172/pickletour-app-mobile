@@ -68,6 +68,7 @@ import { FeedMediaViewer } from "@/components/feed/FeedMediaViewer";
 import { MentionText } from "@/components/feed/MentionText";
 import { AspectImage } from "@/components/feed/AspectImage";
 import { AuthorAvatar } from "@/components/social/AuthorAvatar";
+import FriendSuggestions from "@/components/feed/FriendSuggestions";
 import PlayerNameText from "@/components/PlayerNameText";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
 import { sk } from "@/hooks/uiVersion";
@@ -2045,7 +2046,13 @@ export default function FeedScreen() {
       <SafeAreaView style={styles.container} edges={["top"]}>
         <Stack.Screen options={{ title: t("Bảng tin"), headerShown: false }} />
         <View style={duoWide ? { flex: 1, flexDirection: "row", gap: 12, paddingHorizontal: 12 } : { flex: 1 }}>
-        {duoWide ? <ScrollView style={{ flex: 1, minWidth: 0 }} contentContainerStyle={{ paddingBottom: 16 }} keyboardShouldPersistTaps="handled">{feedHeader}</ScrollView> : null}
+        {duoWide ? (
+          <ScrollView style={{ flex: 1, minWidth: 0 }} contentContainerStyle={{ paddingBottom: 16 }} keyboardShouldPersistTaps="handled">
+            {feedHeader}
+            {/* Màn rộng: lấp khoảng trống cột trái bằng gợi ý kết bạn (cần đăng nhập). */}
+            {me ? <FriendSuggestions /> : null}
+          </ScrollView>
+        ) : null}
         <FlatList
           data={items}
           keyExtractor={(i: any) => i._id}
