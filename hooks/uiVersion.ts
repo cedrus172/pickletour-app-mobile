@@ -1,8 +1,9 @@
 // Phiên bản giao diện của ứng dụng.
-//  - "v2": V2 Modern (nền navy tối, cyan/volt) — mặc định.
+//  - "v2": V2 Modern (nền navy tối, cyan/volt) — giao diện cũ, vẫn chọn lại được.
 //  - "v3": V3 Fresh (bố cục mới: trang chủ, thanh tab, khối tính năng…). V3 có hai tông:
-//      + "light" (mặc định): nền sáng, xanh dương + xanh chanh.
-//      + "dark": vẫn bố cục V3 nhưng dùng bảng màu V2 (navy tối, cyan/volt).
+//      + "dark" (MẶC ĐỊNH của app): bố cục V3 nhưng dùng bảng màu V2 (navy tối, cyan/volt).
+//      + "light": nền sáng, xanh dương + xanh chanh.
+// Máy chưa từng chọn giao diện sẽ chạy V3 tông tối.
 // Phiên bản được đọc ĐỒNG BỘ một lần lúc khởi động (SecureStore) và cố định suốt phiên chạy:
 // đổi phiên bản = lưu lựa chọn rồi nạp lại app (applyUiVersion). Nhờ vậy StyleSheet khai báo ở
 // cấp module vẫn dùng được `sk(v2, v3)` mà không cần viết lại thành hook.
@@ -20,9 +21,9 @@ function readBootUiVersion(): UiVersion {
     if (forced === "v2" || forced === "v3") return forced;
   }
   try {
-    return SecureStore.getItem(UI_VERSION_KEY) === "v3" ? "v3" : "v2";
+    return SecureStore.getItem(UI_VERSION_KEY) === "v2" ? "v2" : "v3";
   } catch {
-    return "v2";
+    return "v3";
   }
 }
 
@@ -37,9 +38,9 @@ function readBootUiTheme(): UiTheme {
     if (forced === "light" || forced === "dark") return forced;
   }
   try {
-    return SecureStore.getItem(UI_THEME_KEY) === "dark" ? "dark" : "light";
+    return SecureStore.getItem(UI_THEME_KEY) === "light" ? "light" : "dark";
   } catch {
-    return "light";
+    return "dark";
   }
 }
 

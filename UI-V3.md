@@ -53,8 +53,8 @@ Nút chính V3: nền gradient `#2F8BFF → #1466F2` (hoặc `#1466F2`), chữ t
 V3 có hai tông, chọn ở **Khác → Giao diện** (V2 / Sáng / Tối) hoặc Hồ sơ → Cài đặt. Lựa chọn lưu ở SecureStore
 `PREF_UI_V3_THEME`, đổi xong app tự nạp lại (`applyUiAppearance(version, theme)`).
 
-- **V3 Sáng**: nền sáng, xanh dương + xanh chanh (mặc định).
-- **V3 Tối**: vẫn bố cục V3 (trang chủ mới, thanh tab mới, hiệu ứng bấm/chuyển trang) nhưng dùng **màu của V2**.
+- **V3 Sáng**: nền sáng, xanh dương + xanh chanh.
+- **V3 Tối** (mặc định của app — máy chưa từng chọn giao diện sẽ chạy tông này): vẫn bố cục V3 (trang chủ mới, thanh tab mới, hiệu ứng bấm/chuyển trang) nhưng dùng **màu của V2**.
 
 Quy ước khi viết mã:
 
