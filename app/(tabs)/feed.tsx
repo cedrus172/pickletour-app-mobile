@@ -1494,6 +1494,12 @@ function SharedEventCardRN({ se }: { se: any }) {
   );
 }
 
+// Bài viết chỉ vẽ lại khi chính nó đổi (cùng object từ cache RTK Query) — tránh vẽ lại cả danh sách
+// mỗi lần màn Bảng tin cập nhật trạng thái (tải thêm, đổi bộ lọc, socket…).
+const MemoPostCard = React.memo(function MemoPostCard(props: { post: any; me: any }) {
+  return <PostCard {...props} />;
+});
+
 function PostCard({ post, me }: { post: any; me: any }) {
   const C = useThemeTokens();
   const styles = useMemo(() => mk_styles(C), [C]);
@@ -2025,7 +2031,7 @@ export default function FeedScreen() {
   }, [isFetching, hasMore, nextCursor, cursor]);
 
   const renderItem = useCallback(
-    ({ item }: any) => <PostCard post={item} me={me} />,
+    ({ item }: any) => <MemoPostCard post={item} me={me} />,
     [me]
   );
 
@@ -2059,6 +2065,11 @@ export default function FeedScreen() {
           style={duoWide ? { flex: 1, minWidth: 0 } : r.isWide ? { alignSelf: "center", width: "100%", maxWidth: r.contentMaxWidth } : undefined}
           ListHeaderComponent={duoWide ? null : feedHeader}
           renderItem={renderItem}
+          // Bài viết cao + có ảnh/video: dựng ít một lúc để lần đầu hiện nhanh, cuộn vẫn đủ trước.
+          initialNumToRender={4}
+          maxToRenderPerBatch={4}
+          windowSize={9}
+          removeClippedSubviews={Platform.OS === "android"}
           refreshControl={
             <RefreshControl
               refreshing={isFetching && !cursor}

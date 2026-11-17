@@ -1,6 +1,7 @@
 import React, { memo, useState, type ReactNode } from "react";
 import {
   FlatList,
+  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -308,7 +309,17 @@ export const ZaloButton = memo(function ZaloButton({ onPress }: { onPress: () =>
 });
 
 export const TournamentList = React.forwardRef<FlatList<any>, FlatListProps<any>>(function TournamentList(props, ref) {
-  return <FlatList ref={ref} {...props} />;
+  // Thẻ giải cao (ảnh bìa + nội dung): dựng ít một lúc để lần đầu hiện nhanh; màn gọi vẫn ghi đè được.
+  return (
+    <FlatList
+      ref={ref}
+      initialNumToRender={3}
+      maxToRenderPerBatch={4}
+      windowSize={9}
+      removeClippedSubviews={Platform.OS === "android"}
+      {...props}
+    />
+  );
 });
 
 const styles = StyleSheet.create({
