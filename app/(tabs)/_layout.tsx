@@ -1,7 +1,7 @@
 import { t } from "@/utils/i18n";
 import { router, Tabs, usePathname } from "expo-router";
 import React from "react";
-import { DeviceEventEmitter, Platform } from "react-native";
+import { DeviceEventEmitter, InteractionManager, Platform } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import LottieView from "lottie-react-native";
 import { useSelector } from "react-redux";
@@ -31,6 +31,11 @@ const SCROLL_TO_TOP_EVENT = "SCROLL_TO_TOP";
 // stuck (view cũ chưa attach lại thì user đã chuyển tab tiếp) → giữ nguyên tất cả
 // screen trong view tree, chỉ freeze để tiết kiệm CPU.
 const FREEZE_INACTIVE = true;
+// Các tab chính (hiện trên thanh tab) được dựng ngầm SAU khi trang chủ đã hiện xong, để lúc mở app
+// chỉ phải dựng trang chủ mà chuyển tab vẫn tức thì. Tab ẩn (thông báo, giải của tôi, chat, hồ sơ…)
+// chỉ dựng khi mở lần đầu.
+const PRELOAD_TABS = ["tournaments", "feed", "rankings", "more"] as const;
+const PRELOAD_DELAY_MS = 1200;
 
 const HOME_LOTTIE_COLOR_FILTERS = (color: string) => [
   { keypath: "Fill 1", color },
@@ -161,6 +166,34 @@ export default function TabLayout() {
     [],
   );
 
+  // Dựng ngầm các tab chính sau khi trang chủ đã hiện + hết tương tác/animation (xem PRELOAD_TABS).
+  React.useEffect(() => {
+    let cancelled = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const task = { cancel: () => {} };
+    timers.push(
+      setTimeout(() => {
+        task.cancel = InteractionManager.runAfterInteractions(() => {
+          PRELOAD_TABS.forEach((name, i) => {
+            timers.push(
+              setTimeout(() => {
+                if (cancelled) return;
+                try {
+                  router.prefetch(`/(tabs)/${name}` as never);
+                } catch {}
+              }, i * 250),
+            );
+          });
+        }).cancel;
+      }, PRELOAD_DELAY_MS),
+    );
+    return () => {
+      cancelled = true;
+      task.cancel();
+      timers.forEach(clearTimeout);
+    };
+  }, []);
+
   const renderTabBar = React.useCallback(
     (props: any) => isPikoraChat ? null : <BottomNavigation {...props} isDark={isDark} v2={v2} />,
     [isDark, isPikoraChat, v2],
@@ -183,10 +216,10 @@ export default function TabLayout() {
         tabBarActiveTintColor: activeTabTint,
         headerShown: false,
         tabBarHideOnKeyboard: true,
-        // Bỏ lazy — mount TẤT CẢ tab từ đầu để switch tab tức thời, không race
-        // giữa mount+navigate lúc user tap nhanh. Trade-off: memory ban đầu cao
-        // hơn ~15MB, đổi lại UX tab switch mượt và tab bar luôn sync với screen.
-        lazy: false,
+        // lazy: lúc mở app chỉ dựng trang chủ; tab chính được preload ngầm ngay sau đó
+        // (PRELOAD_TABS) nên chuyển tab vẫn tức thì. Trước đây lazy:false dựng cả 10 tab cùng lúc
+        // (kể cả tab ẩn) + gọi API của từng tab → mở app chậm.
+        lazy: true,
         freezeOnBlur: FREEZE_INACTIVE && visitedTabs[route.name] === true,
         detachInactiveScreens: false,
         // V3: chuyển tab có hiệu ứng trượt nhẹ + mờ dần.
