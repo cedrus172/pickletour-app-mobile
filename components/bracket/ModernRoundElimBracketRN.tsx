@@ -6,6 +6,7 @@
 
 import React, { useMemo, useState } from "react";
 import {
+  Platform,
   View,
   ScrollView,
   StyleSheet,
@@ -14,6 +15,7 @@ import { Text } from "@/components/ui/i18nText";
 import Svg, { Path, Defs, LinearGradient, Stop } from "react-native-svg";
 
 import {
+  ElbowConnector,
   ModernSeedCard,
   ModernRoundChip,
   MODERN_CARD_W,
@@ -252,7 +254,25 @@ export default function ModernRoundElimBracketRN({
           ]}
         />
 
-        {/* connectors */}
+        {/* connectors: Android vẽ bằng View (SVG toàn sơ đồ vượt giới hạn bitmap), iOS vẽ SVG */}
+        {Platform.OS === "android" ? (
+          <View
+            pointerEvents="none"
+            style={{ position: "absolute", left: 0, top: 0, width: layout.width, height: layout.height }}
+          >
+            {layout.connectors.map((c) => (
+              <ElbowConnector
+                key={c.key}
+                x1={c.x1}
+                y1={c.y1}
+                x2={c.x2}
+                y2={c.y2}
+                color={c.isLoser ? loserColor : c.toColor}
+                dashed={!!c.isLoser}
+              />
+            ))}
+          </View>
+        ) : (
         <Svg
           width={layout.width}
           height={layout.height}
@@ -302,6 +322,7 @@ export default function ModernRoundElimBracketRN({
             />
           ))}
         </Svg>
+        )}
 
         {/* round headers */}
         {layout.columns.map((col) => (
