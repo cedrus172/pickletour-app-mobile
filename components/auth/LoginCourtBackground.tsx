@@ -75,7 +75,7 @@ export default function LoginCourtBackground() {
         </>
       ) : (
         <>
-          <Image source={require("@/assets/images/login-court-3d.png")} resizeMode="cover" style={StyleSheet.absoluteFillObject} />
+          <Image source={require("@/assets/images/login-court-3d.jpg")} resizeMode="cover" style={StyleSheet.absoluteFillObject} />
           <View style={styles.tint} />
         </>
       )}

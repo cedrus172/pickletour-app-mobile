@@ -5,6 +5,7 @@
 // sau render tức thì.
 import React, { useEffect, useMemo, useState } from "react";
 import { Image, Pressable, StyleProp, ImageStyle, View } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { sk } from "@/hooks/uiVersion";
 
 const aspectCache = new Map<string, number>();
@@ -72,21 +73,45 @@ export function AspectImage({
   style?: StyleProp<ImageStyle>;
   blurredBackground?: boolean;
 }) {
-  const aspect = useImageAspect(url, initialAspect);
+  // Tỉ lệ ảnh lấy từ chính lần tải ảnh (onLoad của expo-image) thay vì Image.getSize — trước đây mỗi
+  // ảnh bị tải 2 lần (1 lần đo kích thước, 1 lần hiển thị). Đã biết tỉ lệ thì lưu cache theo URL.
+  const pickAspect = () => {
+    const cached = url ? aspectCache.get(url) : undefined;
+    if (cached && cached > 0) return cached;
+    return initialAspect && initialAspect > 0 ? initialAspect : null;
+  };
+  const [loadedAspect, setLoadedAspect] = useState<number | null>(pickAspect);
+  useEffect(() => {
+    setLoadedAspect(pickAspect());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url, initialAspect]);
+  const aspect = loadedAspect && loadedAspect > 0 ? loadedAspect : 1;
+  const onLoad = (e: { source?: { width?: number; height?: number } }) => {
+    const w = Number(e?.source?.width);
+    const hh = Number(e?.source?.height);
+    if (!(w > 0 && hh > 0) || !url) return;
+    const next = w / hh;
+    aspectCache.set(url, next);
+    if (!loadedAspect || Math.abs(next - loadedAspect) > 0.01) setLoadedAspect(next);
+  };
   const rawH = width / aspect;
   const h = Math.max(minHeight, Math.min(maxHeight, rawH));
   const img = (
     <View style={{ width, height: h, borderRadius, overflow: "hidden", backgroundColor: sk("#0b1220", "#E9F0FA") }}>
       {blurredBackground ? (
         <>
-          <Image source={{ uri: url }} style={{ position: "absolute", width, height: h }} resizeMode="cover" blurRadius={24} />
+          <ExpoImage source={{ uri: url }} style={{ position: "absolute", width, height: h }} contentFit="cover" blurRadius={24} cachePolicy="memory-disk" recyclingKey={url} />
           <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.35)" }} />
         </>
       ) : null}
-      <Image
+      <ExpoImage
         source={{ uri: url }}
-        style={[{ width, height: h, borderRadius }, style]}
-        resizeMode="contain"
+        style={[{ width, height: h, borderRadius }, style] as any}
+        contentFit="contain"
+        cachePolicy="memory-disk"
+        recyclingKey={url}
+        transition={120}
+        onLoad={onLoad}
       />
     </View>
   );

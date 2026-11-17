@@ -4846,7 +4846,7 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
         >
           {t.dark ? (
             <Image
-              source={require("@/assets/images/referee-court-bg.png")}
+              source={require("@/assets/images/referee-court-bg.jpg")}
               style={s.refereeCourtBackground}
               contentFit="fill"
             />

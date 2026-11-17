@@ -118,7 +118,7 @@ export default function AppBootSplash({ isAppReady }: AppBootSplashProps) {
         />
       ) : (
         <Image
-          source={require("../assets/images/splash-premium-v1/background.png")}
+          source={require("../assets/images/splash-premium-v1/background.jpg")}
           style={StyleSheet.absoluteFillObject}
           contentFit="fill"
           accessible={false}
