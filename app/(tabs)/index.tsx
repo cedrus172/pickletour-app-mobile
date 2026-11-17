@@ -61,6 +61,7 @@ import {
 } from "@/components/home/HomeV3";
 import HomeV3Features from "@/components/home/HomeV3Features";
 import { useResponsive } from "@/hooks/useResponsive";
+import { useStagedMount } from "@/hooks/useStagedMount";
 import PlayerNameText from "@/components/PlayerNameText";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
 import { useLiquidGlassEnabled } from "@/context/GlassAppearanceContext";
@@ -1909,6 +1910,9 @@ export default function HomeScreen() {
   const paneWidth = Math.max(0, (homeWidth - 48) / 2);
   const compact = winH > 0 && winH < 780;
   const gap = compact ? 14 : 24;
+  // Khung hình đầu chỉ dựng phần trên cùng; các khối bên dưới (lối tắt, clip, tính năng, giải đấu,
+  // tin tức, BXH, liên hệ) dựng dần sau khi trang chủ đã hiện — xem useStagedMount.
+  const { stage, revealAll } = useStagedMount(5);
   React.useEffect(() => {
     const listener = DeviceEventEmitter.addListener(
       "SCROLL_TO_TOP",
@@ -1950,6 +1954,7 @@ export default function HomeScreen() {
             keyboardDismissMode="on-drag"
             automaticallyAdjustKeyboardInsets
             contentContainerStyle={{ width: "100%", paddingBottom: bottomPadding }}
+            onScrollBeginDrag={revealAll}
           >
             <View testID="home-responsive-layout" style={twoPane ? { width: homeWidth, flexDirection: "row", alignItems: "flex-start", gap: 16 } : undefined}>
               <View testID="home-primary-pane" style={twoPane ? { width: paneWidth + 24 } : undefined}>
@@ -1959,21 +1964,21 @@ export default function HomeScreen() {
                 <HomeV3ArcadeBanner />
                 <EventLiveBanner />
                 <CourtBookingBanner />
-                <HomeV3Shortcuts />
+                {stage >= 1 ? <HomeV3Shortcuts /> : null}
                 <View style={{ height: 22 }} />
-                <YoutubeClipsHome />
+                {stage >= 1 ? <YoutubeClipsHome /> : null}
                 <View style={{ height: compact ? 4 : 8 }} />
-                <FeaturesGrid compactColumns={twoPane} />
+                {stage >= 2 ? <FeaturesGrid compactColumns={twoPane} /> : null}
               </View>
               <View testID="home-secondary-pane" style={twoPane ? { width: paneWidth - 8, paddingTop: 12, paddingRight: 16 } : undefined}>
                 <View style={{ height: gap }} />
-                <TournamentsSection />
+                {stage >= 3 ? <TournamentsSection /> : null}
                 <View style={{ height: gap }} />
-                <NewsSection />
+                {stage >= 4 ? <NewsSection /> : null}
                 <View style={{ height: gap }} />
-                <LeaderboardSection />
+                {stage >= 5 ? <LeaderboardSection /> : null}
                 <View style={{ height: compact ? 10 : 16 }} />
-                <View style={{ paddingHorizontal: 16 }}><ContactCard /></View>
+                {stage >= 5 ? <View style={{ paddingHorizontal: 16 }}><ContactCard /></View> : null}
               </View>
             </View>
           </ScrollView>
@@ -2043,6 +2048,7 @@ export default function HomeScreen() {
           style={styles.homeScroll}
           contentInsetAdjustmentBehavior="never"
           contentContainerStyle={{ width: "100%", paddingBottom: bottomPadding }}
+          onScrollBeginDrag={revealAll}
         >
           <View testID="home-responsive-layout" style={twoPane ? { width: homeWidth, flexDirection: "row", alignItems: "flex-start", gap: 16, paddingHorizontal: 16 } : undefined}>
             <View testID="home-primary-pane" style={twoPane ? { width: paneWidth } : undefined}>
@@ -2083,20 +2089,20 @@ export default function HomeScreen() {
                 <EventLiveBanner />
                 <CourtBookingBanner />
                 <View style={{ height: compact ? 8 : 12 }} />
-                <YoutubeClipsHome />
+                {stage >= 1 ? <YoutubeClipsHome /> : null}
                 <View style={{ height: compact ? 4 : 8 }} />
-                <FeaturesGrid compactColumns={twoPane} />
+                {stage >= 2 ? <FeaturesGrid compactColumns={twoPane} /> : null}
               </View>
             </View>
             <View testID="home-secondary-pane" style={twoPane ? { width: paneWidth, paddingTop: heroTopBleed + 12 } : undefined}>
               <View style={{ height: gap }} />
-              <TournamentsSection />
+              {stage >= 3 ? <TournamentsSection /> : null}
               <View style={{ height: gap }} />
-              <NewsSection />
+              {stage >= 4 ? <NewsSection /> : null}
               <View style={{ height: gap }} />
-              <LeaderboardSection />
+              {stage >= 5 ? <LeaderboardSection /> : null}
               <View style={{ height: compact ? 10 : 16 }} />
-              <View style={{ paddingHorizontal: 16 }}><ContactCard /></View>
+              {stage >= 5 ? <View style={{ paddingHorizontal: 16 }}><ContactCard /></View> : null}
             </View>
           </View>
         </ScrollView>
