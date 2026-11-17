@@ -372,7 +372,8 @@ export default function ModernMergedBracketRN({
                   // Khe giữa hai phần (playoff → knockout) rộng hơn khe cột thường: kéo một đoạn ngang
                   // tới sát cột đích rồi mới bẻ góc, để đoạn dọc không đè lên vạch chia phần.
                   const elbowStart = Math.max(c.x1, c.x2 - ELBOW_BACK * 2);
-                  const lineColor = c.jump ? rgba(color, 0.4) : color;
+                  // Nét đứt + màu trong suốt bị RN Android vẽ thành nét liền → đường "thua" giữ màu đặc.
+                  const lineColor = c.jump && !c.isLoser ? rgba(color, 0.4) : color;
                   return (
                     <React.Fragment key={c.key}>
                       {!c.jump && elbowStart > c.x1 ? (
