@@ -22,6 +22,48 @@ import { normalizeUrl } from "@/utils/normalizeUri";
 export const MODERN_CARD_W = 296;
 export const MODERN_CARD_MIN_H = 170;
 
+/* ================= connectors (Android) ================= */
+// Android: react-native-svg vẽ cả <Svg> vào MỘT bitmap đúng bằng kích thước sơ đồ. Sơ đồ lớn
+// (knockout 32 đội, sơ đồ gộp playoff + knockout…) vượt giới hạn bitmap của Canvas → app văng
+// ("trying to draw too large bitmap"). Vì vậy trên Android vẽ đường nối bằng các View mảnh
+// (gấp khúc ngang–dọc–ngang), không tốn bitmap. iOS vẫn vẽ bằng SVG.
+const LINE_W = 2.2;
+const CONNECTOR_SEG = { position: "absolute" as const };
+export const ElbowConnector = React.memo(function ElbowConnector({
+  x1,
+  y1,
+  x2,
+  y2,
+  color,
+  dashed,
+}: {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  color: string;
+  dashed: boolean;
+}) {
+  const midX = (x1 + x2) / 2;
+  const top = Math.min(y1, y2);
+  const height = Math.abs(y2 - y1);
+  const horizontal = dashed
+    ? { height: 0, borderTopWidth: LINE_W, borderStyle: "dashed" as const, borderColor: color }
+    : { height: LINE_W, backgroundColor: color, borderRadius: LINE_W / 2 };
+  const vertical = dashed
+    ? { width: 0, borderLeftWidth: LINE_W, borderStyle: "dashed" as const, borderColor: color }
+    : { width: LINE_W, backgroundColor: color, borderRadius: LINE_W / 2 };
+  return (
+    <>
+      <View style={[CONNECTOR_SEG, horizontal, { left: x1, top: y1 - LINE_W / 2, width: Math.max(0, midX - x1) + LINE_W / 2 }]} />
+      {height > 0 ? (
+        <View style={[CONNECTOR_SEG, vertical, { left: midX - LINE_W / 2, top, height: height + LINE_W / 2 }]} />
+      ) : null}
+      <View style={[CONNECTOR_SEG, horizontal, { left: midX - LINE_W / 2, top: y2 - LINE_W / 2, width: Math.max(0, x2 - midX) + LINE_W / 2 }]} />
+    </>
+  );
+});
+
 /* ================= palettes ================= */
 // KO đếm ngược từ Chung kết (gold) ra ngoài
 const ACCENTS_FROM_FINAL = [
