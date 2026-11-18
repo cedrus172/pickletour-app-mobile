@@ -144,6 +144,23 @@ export const tournamentsApiSlice = apiSlice.injectEndpoints({
       providesTags: (res, err, id) => [{ type: "Tournaments", id }],
     }),
 
+    // Tìm ảnh của tôi theo khuôn mặt (file = { uri, name, type } selfie; không gửi → dùng avatar tài khoản)
+    searchAlbumFaces: builder.mutation({
+      query: ({ id, index, file }) => {
+        const body = new FormData();
+        if (file) body.append("photo", file);
+        return { url: `/api/tournaments/${id}/albums/${index}/faces/search`, method: "POST", body };
+      },
+    }),
+    // Admin: đặt ảnh album làm avatar VĐV
+    setAlbumPhotoAvatar: builder.mutation({
+      query: ({ id, index, fileId, userId }) => ({
+        url: `/api/tournaments/${id}/albums/${index}/photos/${fileId}/set-avatar`,
+        method: "POST",
+        body: { userId },
+      }),
+    }),
+
     // Admin đăng ký VĐV ngoài hệ thống (tạo tài khoản khách theo SĐT)
     createGuestRegistration: builder.mutation({
       query: ({ id, players, message }) => ({
@@ -1017,6 +1034,8 @@ export const {
   // mới thêm
   useGetTournamentAlbumsQuery,
   useCreateGuestRegistrationMutation,
+  useSearchAlbumFacesMutation,
+  useSetAlbumPhotoAvatarMutation,
   useLazyGetTournamentAlbumPhotosQuery,
   useListTournamentsQuery,
   useLazyListTournamentsQuery,

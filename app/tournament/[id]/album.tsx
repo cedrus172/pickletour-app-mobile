@@ -5,6 +5,8 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +18,10 @@ import { Image as ExpoImage } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
+import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
+import { useSelector } from "react-redux";
+import PlayerSelector from "@/components/PlayerSelector";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { Text } from "@/components/ui/i18nText";
@@ -25,6 +31,8 @@ import {
   useGetTournamentAlbumsQuery,
   useGetTournamentQuery,
   useLazyGetTournamentAlbumPhotosQuery,
+  useSearchAlbumFacesMutation,
+  useSetAlbumPhotoAvatarMutation,
 } from "@/slices/tournamentsApiSlice";
 
 let MediaLibrary: typeof import("expo-media-library") | null = null;
@@ -80,6 +88,51 @@ export default function TournamentAlbumScreen() {
   const [error, setError] = useState("");
   const [viewer, setViewer] = useState(-1);
   const reqRef = useRef(0);
+  // "Tìm ảnh của tôi": kết quả theo khuôn mặt (null = xem album bình thường)
+  const me: any = useSelector((st: any) => st?.auth?.userInfo || null);
+  const isAdmin = !!(me?.isAdmin || ["admin", "superadmin", "superuser"].includes(String(me?.role || "").toLowerCase()));
+  const [faceResult, setFaceResult] = useState<any>(null);
+  const [searchFaces, { isLoading: searching }] = useSearchAlbumFacesMutation();
+
+  const runFaceSearch = useCallback(
+    async (mode: "avatar" | "camera" | "library") => {
+      try {
+        let file: any = null;
+        if (mode !== "avatar") {
+          const opts: any = { mediaTypes: ["images"], quality: 1, cameraType: ImagePicker.CameraType.front };
+          if (mode === "camera") {
+            const perm = await ImagePicker.requestCameraPermissionsAsync();
+            if (!perm.granted) return Alert.alert("Cần quyền camera", "Hãy cho phép PickleTour dùng camera để chụp ảnh selfie.");
+          }
+          const sel = mode === "camera" ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts);
+          if (sel.canceled) return;
+          const img = await ImageManipulator.manipulateAsync(sel.assets[0].uri, [{ resize: { width: 1080 } }], {
+            compress: 0.85,
+            format: ImageManipulator.SaveFormat.JPEG,
+          });
+          file = { uri: img.uri, name: "selfie.jpg", type: "image/jpeg" };
+        }
+        const res: any = await searchFaces({ id, index: albumIndex, file }).unwrap();
+        setViewer(-1);
+        setFaceResult(res);
+        if (!res?.index?.ready)
+          Alert.alert("Album đang được phân tích", `Đã phân tích ${res?.index?.done || 0}/${res?.index?.total || "?"} ảnh — kết quả sẽ đầy đủ hơn khi xong.`);
+      } catch (e: any) {
+        Alert.alert("Không tìm được ảnh", e?.data?.message || e?.message || "Vui lòng thử lại.");
+      }
+    },
+    [searchFaces, id, albumIndex],
+  );
+  const askFaceSearch = () => {
+    if (!me?._id) return Alert.alert("Cần đăng nhập", "Vui lòng đăng nhập để tìm ảnh của bạn.");
+    Alert.alert("Tìm ảnh của tôi", "So khuôn mặt của bạn với ảnh trong album. Ảnh bạn chọn chỉ dùng để tìm, không được lưu.", [
+      { text: "Dùng ảnh đại diện", onPress: () => runFaceSearch("avatar") },
+      { text: "Chụp ảnh selfie", onPress: () => runFaceSearch("camera") },
+      { text: "Chọn ảnh có sẵn", onPress: () => runFaceSearch("library") },
+      { text: "Huỷ", style: "cancel" },
+    ]);
+  };
+  const shownPhotos: Photo[] = faceResult ? faceResult.photos : photos;
 
   const load = useCallback(
     async (nextPage: number, reset = false) => {
@@ -124,7 +177,7 @@ export default function TournamentAlbumScreen() {
     setFolder((match || info.folders[0]).id);
   }, [folder, info, tour?.name]);
 
-  const hasMore = !!info && page < info.pages;
+  const hasMore = !faceResult && !!info && page < info.pages;
   const loadMore = () => {
     if (hasMore && !loading) load(page + 1);
   };
@@ -143,7 +196,7 @@ export default function TournamentAlbumScreen() {
         </View>
       ) : (
         <FlatList
-          data={photos}
+          data={shownPhotos}
           key={`grid-${cols}`}
           numColumns={cols}
           keyExtractor={(p) => p.id}
@@ -159,7 +212,36 @@ export default function TournamentAlbumScreen() {
               <Text style={[styles.title, { color: C.text }]} numberOfLines={2}>
                 {tour?.name || title}
               </Text>
-              {albums.length > 1 ? (
+              <View style={{ flexDirection: "row", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <Pressable
+                  testID="album-face-search"
+                  accessibilityRole="button"
+                  onPress={askFaceSearch}
+                  disabled={searching}
+                  style={[styles.faceBtn, { backgroundColor: faceResult ? C.card : C.primary, borderColor: C.primary }]}
+                >
+                  {searching ? (
+                    <ActivityIndicator color={faceResult ? C.primary : "#fff"} />
+                  ) : (
+                    <Ionicons name="scan-outline" size={17} color={faceResult ? C.primary : "#fff"} />
+                  )}
+                  <Text style={{ color: faceResult ? C.primary : "#fff", fontWeight: "800" }}>Tìm ảnh của tôi</Text>
+                </Pressable>
+                {faceResult ? (
+                  <Pressable accessibilityRole="button" onPress={() => { setFaceResult(null); setViewer(-1); }} style={styles.faceBack}>
+                    <Text style={{ color: C.primary, fontWeight: "700" }}>← Xem tất cả ảnh</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              {faceResult ? (
+                <Text style={{ color: C.sub, fontSize: 13 }}>
+                  {faceResult.total
+                    ? `Tìm thấy ${faceResult.total} ảnh có bạn (${faceResult.source === "avatar" ? "theo ảnh đại diện" : "theo ảnh bạn chọn"})`
+                    : "Chưa tìm thấy ảnh nào có bạn."}
+                  {!faceResult.index?.ready ? ` · đang phân tích ${faceResult.index?.done || 0}/${faceResult.index?.total || "?"} ảnh` : ""}
+                </Text>
+              ) : null}
+              {!faceResult && albums.length > 1 ? (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                   {albums.map((a: any) => (
                     <Chip
@@ -177,7 +259,7 @@ export default function TournamentAlbumScreen() {
                   ))}
                 </ScrollView>
               ) : null}
-              {rootFolders.length ? (
+              {!faceResult && rootFolders.length ? (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                   {rootHasPhotos ? (
                     <Chip C={C} icon="images-outline" label="Chung" active={!folder} onPress={() => setFolder("")} />
@@ -187,9 +269,11 @@ export default function TournamentAlbumScreen() {
                   ))}
                 </ScrollView>
               ) : null}
-              <Text style={{ color: C.sub, fontSize: 13 }}>
-                {info ? `${info.folder?.name ? `${info.folder.name} · ` : ""}${info.total} ảnh` : " "}
-              </Text>
+              {!faceResult ? (
+                <Text style={{ color: C.sub, fontSize: 13 }}>
+                  {info ? `${info.folder?.name ? `${info.folder.name} · ` : ""}${info.total} ảnh` : " "}
+                </Text>
+              ) : null}
               {error ? <Text style={{ color: "#ef4444" }}>{error}</Text> : null}
             </View>
           }
@@ -210,14 +294,17 @@ export default function TournamentAlbumScreen() {
       )}
 
       <PhotoViewer
-        photos={photos}
+        photos={shownPhotos}
         index={viewer}
-        total={info?.total || photos.length}
+        total={faceResult ? faceResult.total : info?.total || photos.length}
+        isAdmin={isAdmin}
+        tournamentId={String(id)}
+        albumIndex={albumIndex}
         width={width}
         height={height}
         onIndex={(i: number) => {
           setViewer(i);
-          if (i >= photos.length - 3) loadMore();
+          if (!faceResult && i >= photos.length - 3) loadMore();
         }}
         onClose={() => setViewer(-1)}
       />
@@ -225,8 +312,28 @@ export default function TournamentAlbumScreen() {
   );
 }
 
-function PhotoViewer({ photos, index, total, width, height, onIndex, onClose }: any) {
+function PhotoViewer({ photos, index, total, width, height, onIndex, onClose, isAdmin, tournamentId, albumIndex }: any) {
   const [saving, setSaving] = useState(false);
+  // Admin: đặt ảnh đang xem làm ảnh đại diện VĐV
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const [player, setPlayer] = useState<any>(null);
+  const [setAvatar, { isLoading: settingAvatar }] = useSetAlbumPhotoAvatarMutation();
+  const T = useThemeTokens();
+  const confirmAvatar = async () => {
+    const cur = photos[index];
+    if (!cur || !player?._id) return;
+    try {
+      const res: any = await setAvatar({ id: tournamentId, index: albumIndex, fileId: cur.id, userId: player._id }).unwrap();
+      Alert.alert(
+        "Đã đổi ảnh đại diện",
+        `${player.nickname || player.name || "VĐV"} đã có ảnh đại diện mới${res?.faceFound ? "." : " (không thấy mặt, đã cắt giữa ảnh)."}`,
+      );
+      setAvatarOpen(false);
+      setPlayer(null);
+    } catch (e: any) {
+      Alert.alert("Không đổi được ảnh đại diện", e?.data?.message || "Vui lòng thử lại.");
+    }
+  };
   const visible = index >= 0 && !!photos[index];
   const current: Photo | undefined = photos[index];
 
@@ -318,6 +425,11 @@ function PhotoViewer({ photos, index, total, width, height, onIndex, onClose }: 
             <Text style={{ color: "rgba(255,255,255,0.85)", flex: 1 }} numberOfLines={1}>
               {index + 1}/{total} · {current?.name || ""}
             </Text>
+            {isAdmin ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Đặt làm ảnh đại diện VĐV" onPress={() => setAvatarOpen(true)} style={styles.viewerBtn}>
+                <Ionicons name="person-circle-outline" size={22} color="#fff" />
+              </Pressable>
+            ) : null}
             <Pressable accessibilityRole="button" accessibilityLabel="Chia sẻ ảnh" onPress={share} style={styles.viewerBtn}>
               <Ionicons name="share-outline" size={22} color="#fff" />
             </Pressable>
@@ -328,6 +440,39 @@ function PhotoViewer({ photos, index, total, width, height, onIndex, onClose }: 
               <Ionicons name="close" size={24} color="#fff" />
             </Pressable>
           </SafeAreaView>
+          {avatarOpen && current ? (
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.avatarOverlay}>
+              {/* safe-area-ok: SafeAreaView đọc inset bên trong modal */}
+              <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, justifyContent: "flex-start" }}>
+                <View style={[styles.avatarSheet, { backgroundColor: T.card, borderColor: T.border }]}>
+                  <Text style={[styles.avatarTitle, { color: T.text }]}>Đặt làm ảnh đại diện VĐV</Text>
+                  <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+                    <ExpoImage source={{ uri: current.thumb }} style={{ width: 64, height: 64, borderRadius: 10 }} contentFit="cover" />
+                    <Text style={{ flex: 1, color: T.sub, fontSize: 13, lineHeight: 18 }}>
+                      Ảnh sẽ được tự cắt vuông quanh khuôn mặt của VĐV và thay ảnh đại diện hiện tại.
+                    </Text>
+                  </View>
+                  <PlayerSelector label="Tìm vận động viên" appearance="tournament" placeholder="Tên / biệt danh / SĐT" onChange={setPlayer} />
+                  {player?._id ? (
+                    <Text style={{ color: T.text, fontWeight: "700" }}>Đã chọn: {player.nickname || player.name}</Text>
+                  ) : null}
+                  <View style={{ flexDirection: "row", gap: 10, justifyContent: "flex-end" }}>
+                    <Pressable accessibilityRole="button" onPress={() => setAvatarOpen(false)} disabled={settingAvatar} style={[styles.sheetBtn, { backgroundColor: T.field || T.border }]}>
+                      <Text style={{ color: T.text, fontWeight: "800" }}>Huỷ</Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={confirmAvatar}
+                      disabled={!player?._id || settingAvatar}
+                      style={[styles.sheetBtn, { backgroundColor: player?._id ? "#1466F2" : "#9DB4D8" }]}
+                    >
+                      {settingAvatar ? <ActivityIndicator color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "800" }}>Đổi ảnh đại diện</Text>}
+                    </Pressable>
+                  </View>
+                </View>
+              </SafeAreaView>
+            </KeyboardAvoidingView>
+          ) : null}
         </View>
       </SafeAreaProvider>
     </AppModal>
@@ -342,4 +487,10 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, fontWeight: "700", maxWidth: 220 },
   viewerTop: { position: "absolute", top: 0, left: 0, right: 0, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingTop: 6 },
   viewerBtn: { backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 22, padding: 10 },
+  faceBtn: { flexDirection: "row", alignItems: "center", gap: 7, paddingHorizontal: 14, height: 38, borderRadius: 19, borderWidth: 1 },
+  faceBack: { paddingHorizontal: 10, height: 38, justifyContent: "center" },
+  avatarOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.55)" },
+  avatarSheet: { margin: 14, marginTop: 60, padding: 16, borderRadius: 18, borderWidth: 1, gap: 12 },
+  avatarTitle: { fontSize: 17, fontWeight: "900", color: "#0B1B3A" },
+  sheetBtn: { minHeight: 44, paddingHorizontal: 16, borderRadius: 12, alignItems: "center", justifyContent: "center" },
 });
