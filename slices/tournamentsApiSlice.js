@@ -161,6 +161,13 @@ export const tournamentsApiSlice = apiSlice.injectEndpoints({
       keepUnusedDataFor: 600,
     }),
     // Admin: đặt ảnh album làm avatar VĐV
+    // Đoán tài khoản PickleTour của 1 khuôn mặt trong ảnh album (so với avatar VĐV đã đăng ký giải)
+    identifyAlbumFace: builder.mutation({
+      query: ({ id, index, fileId, face }) => ({
+        url: `/api/tournaments/${id}/albums/${index}/photos/${fileId}/faces/${face}/identify`,
+        method: "POST",
+      }),
+    }),
     setAlbumPhotoAvatar: builder.mutation({
       query: ({ id, index, fileId, userId }) => ({
         url: `/api/tournaments/${id}/albums/${index}/photos/${fileId}/set-avatar`,
@@ -1045,6 +1052,7 @@ export const {
   useSearchAlbumFacesMutation,
   useLazyGetAlbumPhotoFacesQuery,
   useSetAlbumPhotoAvatarMutation,
+  useIdentifyAlbumFaceMutation,
   useLazyGetTournamentAlbumPhotosQuery,
   useListTournamentsQuery,
   useLazyListTournamentsQuery,

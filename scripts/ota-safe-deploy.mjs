@@ -36,6 +36,8 @@ if (!target) {
   process.exit(1);
 }
 const message = opt("-m", "--message", "");
+// Kênh OTA (mặc định production). Dùng kênh riêng (vd. "qa") để thử trên máy ảo/bản build thử.
+const channel = opt("-c", "--channel", "");
 const platforms = platformArg === "all" ? ["ios", "android"] : [platformArg];
 
 const BASE = process.env.HOTUPDATER_BASE_URL;
@@ -99,7 +101,7 @@ for (const platform of platforms) {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), `ota-${platform}-`));
   const res = spawnSync(
     "npx",
-    ["hot-updater", "deploy", "-p", platform, "-t", target, "-m", message, "--disabled", "-o", outDir],
+    ["hot-updater", "deploy", "-p", platform, "-t", target, "-m", message, ...(channel ? ["-c", channel] : []), "--disabled", "-o", outDir],
     { cwd: ROOT, stdio: "inherit", env: { ...process.env, CI: "1" } },
   );
   if (res.status !== 0) {

@@ -13,7 +13,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { Image as ExpoImage } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
@@ -26,6 +26,7 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { Text } from "@/components/ui/i18nText";
 import AppModal from "@/components/ui/AppModal";
+import { normalizeUrl } from "@/utils/normalizeUri";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
 import {
   useGetTournamentAlbumsQuery,
@@ -34,6 +35,7 @@ import {
   useSearchAlbumFacesMutation,
   useLazyGetAlbumPhotoFacesQuery,
   useSetAlbumPhotoAvatarMutation,
+  useIdentifyAlbumFaceMutation,
 } from "@/slices/tournamentsApiSlice";
 
 let MediaLibrary: typeof import("expo-media-library") | null = null;
@@ -342,15 +344,33 @@ function PhotoViewer({ photos, index, total, width, height, onIndex, onClose, is
   // "Tìm ảnh người này": lấy các khuôn mặt trong ảnh; 1 mặt → tìm ngay, nhiều mặt → cho chọn
   const [getFaces, { isFetching: loadingFaces }] = useLazyGetAlbumPhotoFacesQuery();
   const [pickFaces, setPickFaces] = useState<any[] | null>(null);
-  const findPerson = async () => {
+  const [pickMode, setPickMode] = useState<"search" | "identify">("search");
+  // "Đây là ai?": đoán tài khoản VĐV của khuôn mặt (so với ảnh đại diện VĐV đã đăng ký giải)
+  const [identifyFace, { isLoading: identifying }] = useIdentifyAlbumFaceMutation();
+  const [who, setWho] = useState<any>(null); // { fileId, face, loading, matches, candidates, complete }
+  const runIdentify = async (fileId: string, face: any) => {
+    setPickFaces(null);
+    setWho({ fileId, face, loading: true, matches: [] });
+    try {
+      const res: any = await identifyFace({ id: tournamentId, index: albumIndex, fileId, face: face.index }).unwrap();
+      setWho({ fileId, face, ...res });
+    } catch (e: any) {
+      setWho(null);
+      Alert.alert("Không nhận diện được", e?.data?.message || "Vui lòng thử lại.");
+    }
+  };
+  const findPerson = async (mode: "search" | "identify" = "search") => {
     const cur = photos[index];
     if (!cur) return;
-    if (!loggedIn) return Alert.alert("Cần đăng nhập", "Vui lòng đăng nhập để tìm ảnh.");
+    if (!loggedIn) return Alert.alert("Cần đăng nhập", mode === "identify" ? "Vui lòng đăng nhập để nhận diện VĐV." : "Vui lòng đăng nhập để tìm ảnh.");
     try {
       const res: any = await getFaces({ id: tournamentId, index: albumIndex, fileId: cur.id }, true).unwrap();
       const faces = res?.faces || [];
-      if (!faces.length) return Alert.alert("Không thấy khuôn mặt", "Ảnh này không có khuôn mặt đủ rõ để tìm.");
-      if (faces.length === 1) return onFindPerson(cur.id, faces[0].index, faces[0].thumb);
+      if (!faces.length) return Alert.alert("Không thấy khuôn mặt", "Ảnh này không có khuôn mặt đủ rõ.");
+      if (faces.length === 1) {
+        return mode === "identify" ? runIdentify(cur.id, faces[0]) : onFindPerson(cur.id, faces[0].index, faces[0].thumb);
+      }
+      setPickMode(mode);
       setPickFaces(faces);
     } catch (e: any) {
       Alert.alert("Chưa đọc được khuôn mặt", e?.data?.message || "Vui lòng thử lại.");
@@ -468,8 +488,11 @@ function PhotoViewer({ photos, index, total, width, height, onIndex, onClose, is
             <Text style={{ color: "rgba(255,255,255,0.85)", flex: 1 }} numberOfLines={1}>
               {index + 1}/{total} · {current?.name || ""}
             </Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="Tìm ảnh người này" disabled={loadingFaces || searching} onPress={findPerson} style={[styles.viewerBtn, { backgroundColor: "rgba(34,197,94,0.85)" }]}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Tìm ảnh người này" disabled={loadingFaces || searching} onPress={() => findPerson("search")} style={[styles.viewerBtn, { backgroundColor: "rgba(34,197,94,0.85)" }]}>
               {loadingFaces || searching ? <ActivityIndicator color="#fff" /> : <Ionicons name="scan" size={22} color="#fff" />}
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Đây là ai?" disabled={loadingFaces || identifying} onPress={() => findPerson("identify")} style={[styles.viewerBtn, { backgroundColor: "rgba(20,102,242,0.85)" }]}>
+              {identifying ? <ActivityIndicator color="#fff" /> : <Ionicons name="person-outline" size={22} color="#fff" />}
             </Pressable>
             {isAdmin ? (
               <Pressable accessibilityRole="button" accessibilityLabel="Đặt làm ảnh đại diện VĐV" onPress={() => setAvatarOpen(true)} style={styles.viewerBtn}>
@@ -491,8 +514,10 @@ function PhotoViewer({ photos, index, total, width, height, onIndex, onClose, is
               {/* safe-area-ok: SafeAreaView đọc inset bên trong modal */}
               <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1 }}>
                 <Pressable style={[styles.avatarSheet, { backgroundColor: T.card, borderColor: T.border }]} onPress={() => {}}>
-                  <Text style={[styles.avatarTitle, { color: T.text }]}>Chọn người cần tìm</Text>
-                  <Text style={{ color: T.sub, fontSize: 13 }}>Ảnh có {pickFaces.length} khuôn mặt — chạm vào người bạn muốn tìm tất cả ảnh.</Text>
+                  <Text style={[styles.avatarTitle, { color: T.text }]}>{pickMode === "identify" ? "Chọn người cần nhận diện" : "Chọn người cần tìm"}</Text>
+                  <Text style={{ color: T.sub, fontSize: 13 }}>
+                    Ảnh có {pickFaces.length} khuôn mặt — chạm vào người {pickMode === "identify" ? "bạn muốn biết là VĐV nào." : "bạn muốn tìm tất cả ảnh."}
+                  </Text>
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
                     {pickFaces.map((f: any) => (
                       <Pressable
@@ -501,6 +526,7 @@ function PhotoViewer({ photos, index, total, width, height, onIndex, onClose, is
                         accessibilityLabel={`Khuôn mặt ${f.index + 1}`}
                         disabled={searching}
                         onPress={async () => {
+                          if (pickMode === "identify") return runIdentify(current.id, f);
                           await onFindPerson(current.id, f.index, f.thumb);
                           setPickFaces(null);
                         }}
@@ -513,6 +539,88 @@ function PhotoViewer({ photos, index, total, width, height, onIndex, onClose, is
                   <Pressable accessibilityRole="button" onPress={() => setPickFaces(null)} style={[styles.sheetBtn, { backgroundColor: T.field || T.border, alignSelf: "flex-end" }]}>
                     <Text style={{ color: T.text, fontWeight: "800" }}>Đóng</Text>
                   </Pressable>
+                </Pressable>
+              </SafeAreaView>
+            </Pressable>
+          ) : null}
+          {who ? (
+            <Pressable style={styles.avatarOverlay} onPress={() => !who.loading && setWho(null)}>
+              {/* safe-area-ok: SafeAreaView đọc inset bên trong modal */}
+              <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1 }}>
+                <Pressable style={[styles.avatarSheet, { backgroundColor: T.card, borderColor: T.border }]} onPress={() => {}}>
+                  <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+                    {who.face?.thumb ? <ExpoImage source={{ uri: who.face.thumb }} style={{ width: 52, height: 52, borderRadius: 26 }} contentFit="cover" /> : null}
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.avatarTitle, { color: T.text }]}>Đây là ai?</Text>
+                      <Text style={{ color: T.sub, fontSize: 12.5, lineHeight: 17 }}>
+                        So với ảnh đại diện của VĐV đã đăng ký giải{who.candidates ? ` (${who.candidates} người)` : ""}.
+                      </Text>
+                    </View>
+                  </View>
+                  {who.loading ? (
+                    <View style={{ flexDirection: "row", gap: 10, alignItems: "center", paddingVertical: 8 }}>
+                      <ActivityIndicator color={T.primary} />
+                      <Text style={{ color: T.sub, flex: 1, fontSize: 13 }}>Đang so khuôn mặt… lần đầu có thể mất khoảng 30 giây.</Text>
+                    </View>
+                  ) : who.matches?.length ? (
+                    <ScrollView style={{ maxHeight: 320 }} contentContainerStyle={{ gap: 8 }}>
+                      {who.matches.map((m: any) => (
+                        <Pressable
+                          key={m._id}
+                          accessibilityRole="button"
+                          onPress={() => {
+                            setWho(null);
+                            onClose();
+                            setTimeout(() => router.push(`/profile/${m._id}` as any), 250);
+                          }}
+                          style={[styles.whoRow, { borderColor: m.likely ? "#22C55E" : T.border }]}
+                        >
+                          {m.avatar ? (
+                            <ExpoImage source={{ uri: normalizeUrl(m.avatar) }} style={styles.whoAvatar} contentFit="cover" />
+                          ) : (
+                            <View style={[styles.whoAvatar, { backgroundColor: T.field || T.border, alignItems: "center", justifyContent: "center" }]}>
+                              <Ionicons name="person" size={20} color={T.sub} />
+                            </View>
+                          )}
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ color: T.text, fontWeight: "800" }} numberOfLines={1}>{m.nickname || m.name}</Text>
+                            {m.nickname && m.name ? <Text style={{ color: T.sub, fontSize: 12.5 }} numberOfLines={1}>{m.name}</Text> : null}
+                          </View>
+                          <View style={[styles.whoBadge, { backgroundColor: m.likely ? "#22C55E" : T.field || T.border }]}>
+                            <Text style={{ color: m.likely ? "#fff" : T.text, fontWeight: "800", fontSize: 12 }}>
+                              {m.likely ? "Khớp" : "Có thể"} · {Math.round(m.similarity * 100)}%
+                            </Text>
+                          </View>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  ) : (
+                    <Text style={{ color: T.sub, fontSize: 13, lineHeight: 18 }}>
+                      Chưa tìm thấy VĐV nào có ảnh đại diện giống khuôn mặt này
+                      {!who.complete ? " — hệ thống vẫn đang phân tích ảnh đại diện, hãy thử lại sau ít phút." : "."}
+                    </Text>
+                  )}
+                  {!who.loading && who.matches?.length && !who.complete ? (
+                    <Text style={{ color: T.sub, fontSize: 12 }}>Chưa so hết ảnh đại diện — thử lại sau ít phút để có kết quả đầy đủ.</Text>
+                  ) : null}
+                  <View style={{ flexDirection: "row", gap: 10, justifyContent: "flex-end" }}>
+                    {!who.loading ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => {
+                          const w = who;
+                          setWho(null);
+                          onFindPerson(w.fileId, w.face.index, w.face.thumb);
+                        }}
+                        style={[styles.sheetBtn, { backgroundColor: "#22C55E" }]}
+                      >
+                        <Text style={{ color: "#fff", fontWeight: "800" }}>Tìm ảnh người này</Text>
+                      </Pressable>
+                    ) : null}
+                    <Pressable accessibilityRole="button" onPress={() => setWho(null)} style={[styles.sheetBtn, { backgroundColor: T.field || T.border }]}>
+                      <Text style={{ color: T.text, fontWeight: "800" }}>Đóng</Text>
+                    </Pressable>
+                  </View>
                 </Pressable>
               </SafeAreaView>
             </Pressable>
@@ -570,5 +678,8 @@ const styles = StyleSheet.create({
   avatarSheet: { margin: 14, marginTop: 60, padding: 16, borderRadius: 18, borderWidth: 1, gap: 12 },
   avatarTitle: { fontSize: 17, fontWeight: "900", color: "#0B1B3A" },
   faceThumb: { width: 76, height: 76, borderRadius: 38, borderWidth: 2, borderColor: "#22C55E" },
+  whoRow: { flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: 12, borderWidth: 1 },
+  whoAvatar: { width: 42, height: 42, borderRadius: 21 },
+  whoBadge: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999 },
   sheetBtn: { minHeight: 44, paddingHorizontal: 16, borderRadius: 12, alignItems: "center", justifyContent: "center" },
 });
