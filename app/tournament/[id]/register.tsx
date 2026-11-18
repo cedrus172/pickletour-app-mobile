@@ -599,7 +599,16 @@ const TournamentSkeleton = () => {
 };
 
 /* -------- OPTIMIZED COUNTDOWN COMPONENT -------- */
-const TournamentCountdown = memo(({ deadline }: { deadline?: string }) => {
+// Banner đầu trang AI (tạo từ poster ở backend) + bảng màu chữ hợp ảnh.
+type HeroPalette = { text: string; textMuted: string; scrim: string; accent: string; onAccent: string; panelBg: string; panelBorder: string; chipBg: string };
+const heroRgba = (hex: string, a: number) => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ""));
+  if (!m) return `rgba(0,0,0,${a})`;
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+};
+
+const TournamentCountdown = memo(({ deadline, palette }: { deadline?: string; palette?: HeroPalette | null }) => {
   const [timeLeft, setTimeLeft] = useState("");
   const C = useThemeColors();
   const isFocused = useIsFocused();
@@ -633,18 +642,18 @@ const TournamentCountdown = memo(({ deadline }: { deadline?: string }) => {
   return (
     <View
       style={{
-        backgroundColor: isEnded ? C.errorBg : "rgba(0,0,0,0.2)",
+        backgroundColor: isEnded ? C.errorBg : palette ? palette.panelBg : "rgba(0,0,0,0.2)",
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: isEnded ? C.errorText : "rgba(255,255,255,0.3)",
+        borderColor: isEnded ? C.errorText : palette ? palette.panelBorder : "rgba(255,255,255,0.3)",
         marginLeft: 8,
       }}
     >
       <Text
         style={{
-          color: isEnded ? C.errorText : "#fff",
+          color: isEnded ? C.errorText : palette ? palette.text : "#fff",
           fontSize: 12,
           fontWeight: "700",
           fontVariant: ["tabular-nums"],
@@ -2508,6 +2517,10 @@ export default function TournamentRegistrationScreen() {
     () => {
       const heroImageUri = getTournamentHeroImage(tour);
       const heroTopPadding = C.v2 ? 18 : 32;
+      const heroBannerUri =
+        tour?.heroBanner?.url && tour?.heroBanner?.palette ? normalizeUrl(tour.heroBanner.url) : "";
+      const hp: HeroPalette | null = heroBannerUri ? tour.heroBanner.palette : null;
+      const heroText = hp ? hp.text : "#fff";
 
       return (
         <View>
@@ -2521,7 +2534,24 @@ export default function TournamentRegistrationScreen() {
               },
             ]}
           >
-            {!C.v2 && heroImageUri ? (
+            {hp ? (
+              <>
+                <ExpoImage
+                  source={{ uri: heroBannerUri }}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="cover"
+                  contentPosition="right"
+                  transition={200}
+                  cachePolicy="memory-disk"
+                />
+                <LinearGradient
+                  pointerEvents="none"
+                  colors={[heroRgba(hp.scrim, 0.35), heroRgba(hp.scrim, 0.72), heroRgba(hp.scrim, 0.9)]}
+                  locations={[0, 0.55, 1]}
+                  style={StyleSheet.absoluteFill}
+                />
+              </>
+            ) : !C.v2 && heroImageUri ? (
               <ExpoImage
                 source={{ uri: heroImageUri }}
                 style={styles.headerHeroImage}
@@ -2537,9 +2567,9 @@ export default function TournamentRegistrationScreen() {
                 style={StyleSheet.absoluteFill}
               />
             )}
-            {C.v2 && <OverviewHeroArt />}
-            {!C.v2 && <View style={styles.headerHeroDim} />}
-            {!C.v2 && <LinearGradient
+            {C.v2 && !hp && <OverviewHeroArt />}
+            {!C.v2 && !hp && <View style={styles.headerHeroDim} />}
+            {!C.v2 && !hp && <LinearGradient
               pointerEvents="none"
               colors={[
                 "rgba(0,0,0,0.56)",
@@ -2551,19 +2581,19 @@ export default function TournamentRegistrationScreen() {
             {/* Header Top: Badge & Countdown */}
             <View style={styles.headerTopRow}>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View style={styles.badgeGlass}>
+                <View style={[styles.badgeGlass, hp && { backgroundColor: hp.accent, borderColor: hp.accent }]}>
                   <Text
-                    style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}
+                    style={{ color: hp ? hp.onAccent : "#fff", fontWeight: "700", fontSize: 12 }}
                   >
                     {isSingles ? "GIẢI ĐƠN" : "GIẢI ĐÔI"}
                   </Text>
                 </View>
-                <TournamentCountdown deadline={tour?.registrationDeadline} />
+                <TournamentCountdown deadline={tour?.registrationDeadline} palette={hp} />
               </View>
             </View>
 
             {/* Tournament Name */}
-            <Text testID="registration-tournament-title" style={[styles.tourNameHero, C.v2 && R.heroTitle]}>{tour?.name}</Text>
+            <Text testID="registration-tournament-title" style={[styles.tourNameHero, C.v2 && R.heroTitle, hp && { color: hp.text }]}>{tour?.name}</Text>
 
             {/* Location & Date Row */}
             <View
@@ -2589,12 +2619,12 @@ export default function TournamentRegistrationScreen() {
                   <Ionicons
                     name="location"
                     size={14}
-                    color="#fff"
+                    color={heroText}
                     style={{ marginTop: 2 }}
                   />
                   <Text
                     style={{
-                      color: "#fff",
+                      color: heroText,
                       fontSize: 12,
                       fontWeight: "600",
                       lineHeight: 18,
@@ -2609,9 +2639,9 @@ export default function TournamentRegistrationScreen() {
               <View
                 style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
               >
-                <Ionicons name="calendar" size={14} color="#fff" />
+                <Ionicons name="calendar" size={14} color={heroText} />
                 <Text
-                  style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}
+                  style={{ color: heroText, fontSize: 12, fontWeight: "600" }}
                 >
                   {fmtRange(tour?.startDate, tour?.endDate)}
                 </Text>
