@@ -9,6 +9,10 @@ export const varApiSlice = apiSlice.injectEndpoints({
       providesTags: ["FeatureFlags"],
       keepUnusedDataFor: 300,
     }),
+    getMyPcoin: builder.query({
+      query: () => "/api/pcoin/me",
+      providesTags: ["Pcoin"],
+    }),
     listVarJobs: builder.query({
       query: (tab) => `/api/var/jobs${tab ? `?tab=${tab}` : ""}`,
       providesTags: ["VarJob"],
@@ -27,11 +31,11 @@ export const varApiSlice = apiSlice.injectEndpoints({
     }),
     createVarJob: builder.mutation({
       query: (body) => ({ url: "/api/var/jobs", method: "POST", body }),
-      invalidatesTags: ["VarJob"],
+      invalidatesTags: ["VarJob", "Pcoin"],
     }),
     cancelVarJob: builder.mutation({
       query: (id) => ({ url: `/api/var/jobs/${id}/cancel`, method: "POST" }),
-      invalidatesTags: ["VarJob"],
+      invalidatesTags: ["VarJob", "Pcoin"],
     }),
     deleteVarJob: builder.mutation({
       query: (id) => ({ url: `/api/var/jobs/${id}`, method: "DELETE" }),
@@ -54,6 +58,7 @@ export const varApiSlice = apiSlice.injectEndpoints({
 
 export const {
   useGetFeatureFlagsQuery,
+  useGetMyPcoinQuery,
   useListVarJobsQuery,
   useGetVarJobQuery,
   useUploadVarVideoMutation,

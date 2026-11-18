@@ -85,6 +85,25 @@ export default function VarListScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["bottom"]}>
       <Stack.Screen options={{ title: "Highlight & VAR", headerShown: true }} />
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }} refreshControl={<RefreshControl refreshing={isFetching && !!all} onRefresh={refetch} tintColor={C.primary} />}>
+        {loggedIn && all?.pcoin ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/var/pcoin" as any)}
+            style={[styles.card, { backgroundColor: C.card, borderColor: C.border, flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 }]}
+          >
+            <View style={[styles.coin, { backgroundColor: "rgba(245,158,11,0.16)" }]}>
+              <Ionicons name="logo-bitcoin" size={18} color="#f59e0b" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: C.text, fontWeight: "900", fontSize: 16 }}>{Number(all.pcoin.balance || 0).toLocaleString("vi-VN")} PCoin</Text>
+              <Text style={{ color: C.sub, fontSize: 12.5 }}>
+                {all.pcoin.price > 0 ? `Mỗi video tốn ${all.pcoin.price} PCoin · lỗi được hoàn lại` : "Đang miễn phí"}
+              </Text>
+            </View>
+            <Text style={{ color: C.primary, fontWeight: "700", fontSize: 13 }}>Lịch sử</Text>
+            <Ionicons name="chevron-forward" size={16} color={C.sub} />
+          </Pressable>
+        ) : null}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <View style={{ flex: 1, flexDirection: "row", gap: 8 }}>
             {[
@@ -207,5 +226,6 @@ const styles = StyleSheet.create({
   tab: { paddingHorizontal: 12, height: 38, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   newBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, height: 38, borderRadius: 12 },
   bar: { flex: 1, height: 8, borderRadius: 4, overflow: "hidden" },
+  coin: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   wait: { alignSelf: "flex-start", borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
 });

@@ -347,6 +347,7 @@ export const apiSlice = createApi({
   baseQuery,
   tagTypes: [
     "VarJob",
+    "Pcoin",
     "FeatureFlags",
     "Reviews",
     "Subscriptions",

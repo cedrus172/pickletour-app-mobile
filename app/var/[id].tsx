@@ -158,6 +158,9 @@ export default function VarResultScreen() {
         <Text style={{ color: C.text, fontWeight: "800", textAlign: "center" }}>
           {job.status === "failed" ? job.error?.message || "Phân tích thất bại" : job.status === "cancelled" ? "Đã huỷ" : "Video đang được xử lý…"}
         </Text>
+        {["failed", "cancelled"].includes(job.status) && job.pcoin?.refunded ? (
+          <Text style={{ color: C.sub, textAlign: "center" }}>Đã hoàn {job.pcoin.charged} PCoin vào ví của bạn.</Text>
+        ) : null}
         <Pressable onPress={() => router.replace("/var" as any)}>
           <Text style={{ color: C.primary, fontWeight: "700" }}>Về danh sách</Text>
         </Pressable>

@@ -24,7 +24,7 @@ import { Text } from "@/components/ui/i18nText";
 import TextInput from "@/components/ui/i18nTextInput";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
 import { useMyCamClipAccessQuery } from "@/slices/camClipApiSlice";
-import { useCreateVarJobMutation } from "@/slices/varApiSlice";
+import { useCreateVarJobMutation, useGetMyPcoinQuery } from "@/slices/varApiSlice";
 import { BASE_URL } from "@/slices/apiSlice";
 import { getHistory, pollClip, thumbnailUrl, type ClipHistoryItem } from "@/utils/pickclip";
 import { VOLT, fmtDur } from "@/components/var/VarUi";
@@ -103,6 +103,10 @@ export default function VarCreateScreen() {
   const token = useSelector((s: any) => s?.auth?.userInfo?.token);
   const { data: access } = useMyCamClipAccessQuery(undefined as any);
   const [createJob] = useCreateVarJobMutation();
+  const { data: wallet, refetch: refetchWallet } = useGetMyPcoinQuery(undefined as any, { skip: !token });
+  const price = Number(wallet?.prices?.highlightVar ?? 0);
+  const balance = Number(wallet?.balance ?? 0);
+  const lacking = !!wallet && price > 0 && balance < price;
 
   const [source, setSource] = useState<Source>("camclip");
   const [clips, setClips] = useState<PickedClip[]>([]);
@@ -211,6 +215,12 @@ export default function VarCreateScreen() {
     if (source === "recorded") return;
     if (source === "camclip" && !clip) return Alert.alert("Chưa chọn clip", "Hãy cắt một clip ở Cắt Cam Sân trước.");
     if (source === "upload" && !video) return Alert.alert("Chưa chọn video", "Chọn video trận (tối đa 5 phút).");
+    if (lacking) {
+      return Alert.alert("Không đủ PCoin", `Mỗi video cần ${price} PCoin, số dư của bạn còn ${balance}. Liên hệ admin PickleTour để nạp thêm PCoin.`, [
+        { text: "Đóng", style: "cancel" },
+        { text: "Xem ví PCoin", onPress: () => router.push("/var/pcoin" as any) },
+      ]);
+    }
     setBusy(true);
     try {
       let src: any;
@@ -236,7 +246,8 @@ export default function VarCreateScreen() {
       router.replace(`/var` as any);
       if (job?._id) Alert.alert("Đã gửi phân tích", "Video đang được xử lý. Bạn sẽ nhận thông báo khi xong.");
     } catch (e: any) {
-      Alert.alert("Không tạo được", e?.data?.message || e?.message || "Vui lòng thử lại.");
+      if (e?.status === 402 || e?.data?.code === "pcoin_insufficient") refetchWallet();
+      Alert.alert(e?.status === 402 ? "Không đủ PCoin" : "Không tạo được", e?.data?.message || e?.message || "Vui lòng thử lại.");
     } finally {
       setBusy(false);
       setUpPct(null);
@@ -417,6 +428,14 @@ export default function VarCreateScreen() {
             <Ionicons name="information-circle-outline" size={16} color={VOLT} />
             <Text style={{ color: VOLT, fontSize: 12.5 }}>Xử lý khoảng 3–10 phút · Sẽ báo khi xong</Text>
           </View>
+          {wallet && price > 0 ? (
+            <Pressable onPress={() => router.push("/var/pcoin" as any)} style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
+              <Ionicons name="logo-bitcoin" size={15} color={lacking ? C.redText : "#f59e0b"} />
+              <Text style={{ color: lacking ? C.redText : C.sub, fontSize: 12.5, fontWeight: "700" }}>
+                Phí {price} PCoin · Số dư {balance.toLocaleString("vi-VN")} PCoin{lacking ? " (không đủ)" : ""}
+              </Text>
+            </Pressable>
+          ) : null}
           <Pressable
             accessibilityRole="button"
             disabled={busy || source === "recorded"}
@@ -429,7 +448,7 @@ export default function VarCreateScreen() {
                 <Text style={styles.ctaText}>{upPct != null ? `Đang tải lên ${Math.round(upPct * 100)}%` : "Đang gửi…"}</Text>
               </View>
             ) : (
-              <Text style={styles.ctaText}>Bắt đầu phân tích</Text>
+              <Text style={styles.ctaText}>{price > 0 ? `Bắt đầu phân tích · ${price} PCoin` : "Bắt đầu phân tích"}</Text>
             )}
           </Pressable>
         </View>
