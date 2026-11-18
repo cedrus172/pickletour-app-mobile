@@ -205,6 +205,16 @@ const FEATURES = [
     link: "/match/stack",
   },
   {
+    id: 44,
+    icon: "game-controller",
+    iconLib: "Ionicons",
+    title: "Minigame",
+    color: "#22c1d6",
+    // Mở tab Giải đấu ở nửa Minigame (giải nhỏ, không tính điểm trình)
+    link: "/(tabs)/tournaments?kind=minigame",
+    isNew: true,
+  },
+  {
     id: 10,
     icon: "chatbox-ellipses",
     iconLib: "Ionicons",
@@ -1365,10 +1375,12 @@ function TournamentsSection() {
   // kết thúc khi chưa có giải đang/sắp (để section không trống).
   const tournamentGroups = useMemo(() => {
     if (!Array.isArray(tournaments)) return [];
-    const ongoing = tournaments.filter((t) => t.status === "ongoing");
-    const upcoming = tournaments.filter((t) => t.status === "upcoming");
+    // Minigame (giải nhỏ, không tính điểm trình) không lên mục Giải đấu nổi bật.
+    const list = tournaments.filter((t) => t?.kind !== "minigame");
+    const ongoing = list.filter((t) => t.status === "ongoing");
+    const upcoming = list.filter((t) => t.status === "upcoming");
     let pool = [...ongoing, ...upcoming];
-    if (!pool.length) pool = tournaments.filter((t) => t.status === "finished");
+    if (!pool.length) pool = list.filter((t) => t.status === "finished");
     return groupTournaments(pool).slice(0, 5);
   }, [tournaments]);
 

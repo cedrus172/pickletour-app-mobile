@@ -32,12 +32,13 @@ const ICONS: Record<number, ImageSourcePropType> = {
   19: require("@/assets/images/v3/features/19.png"),
   20: require("@/assets/images/v3/features/20.png"),
   42: require("@/assets/images/v3/features/42.png"),
+  44: require("@/assets/images/v3/features/44.png"),
 };
 
 // Nhóm theo id trong FEATURES của trang chủ (thứ tự = thứ tự hiển thị).
 const GROUPS: { key: string; title: string; icon: keyof typeof Ionicons.glyphMap; ids: number[] }[] = [
   // Bảng xếp hạng không nằm ở đây vì đã có tab riêng trên thanh điều hướng.
-  { key: "compete", title: "Thi đấu", icon: "trophy-outline", ids: [1, 9, 12, 3] },
+  { key: "compete", title: "Thi đấu", icon: "trophy-outline", ids: [1, 44, 9, 12, 3] },
   { key: "courts", title: "Sân & Live", icon: "tv-outline", ids: [42, 6, 11] },
   // Bảng tin không nằm ở đây vì đã có tab riêng trên thanh điều hướng.
   { key: "community", title: "Cộng đồng", icon: "people-outline", ids: [8, 14, 15, 20, 17] },

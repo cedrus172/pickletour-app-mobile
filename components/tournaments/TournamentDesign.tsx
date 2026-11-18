@@ -119,6 +119,43 @@ export const TournamentSearch = memo(function TournamentSearch({ value, onChange
   );
 });
 
+export type TournamentKind = "tournament" | "minigame";
+
+const KINDS: { key: TournamentKind; label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [
+  { key: "tournament", label: "Giải đấu", icon: "trophy-outline" },
+  { key: "minigame", label: "Minigame", icon: "gamepad-variant-outline" },
+];
+
+/** Công tắc hai nửa đầu tab Giải đấu: giải chính thức ↔ minigame (giải nhỏ, không tính điểm trình). */
+export const TournamentKindSwitch = memo(function TournamentKindSwitch({ active, onChange, liveCount = 0 }: { active: TournamentKind; onChange: (key: TournamentKind) => void; liveCount?: number }) {
+  return (
+    <View style={styles.kindWrap}>
+      <View style={styles.kindSwitch}>
+        {KINDS.map((kind) => {
+          const selected = kind.key === active;
+          const color = selected ? "#FFFFFF" : TOURNAMENT_COLORS.textMuted;
+          return (
+            <Pressable key={kind.key} testID={`tournament-kind-${kind.key}`} accessibilityRole="tab" accessibilityState={{ selected }} aria-selected={selected} onPress={() => onChange(kind.key)} style={({ pressed }) => [styles.kindItem, pressed && styles.pressed]}>
+              {selected ? <LinearGradient colors={[TOURNAMENT_COLORS.primary, TOURNAMENT_COLORS.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} /> : null}
+              <MaterialCommunityIcons name={kind.icon} size={19} color={color} />
+              <Text numberOfLines={1} style={[styles.kindText, { color }, selected && styles.kindTextActive]}>{kind.label}</Text>
+              {kind.key === "minigame" && liveCount > 0 ? (
+                <View style={styles.kindBadge}><Text style={styles.kindBadgeText}>{liveCount > 9 ? "9+" : liveCount}</Text></View>
+              ) : null}
+            </Pressable>
+          );
+        })}
+      </View>
+      {active === "minigame" ? (
+        <View style={styles.kindHint}>
+          <Ionicons name="information-circle" size={16} color={TOURNAMENT_COLORS.primary} />
+          <Text style={styles.kindHintText}>Giải nhỏ · Kết quả không tính điểm trình</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+});
+
 const FILTERS: { key: TournamentFilterKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: "upcoming", label: "Sắp diễn ra", icon: "calendar-outline" },
   { key: "ongoing", label: "Đang diễn ra", icon: "play-circle-outline" },
@@ -334,6 +371,15 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, minWidth: 0, minHeight: 48, paddingVertical: 8, color: TOURNAMENT_COLORS.text, fontSize: 14.5 },
   searchClear: { width: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
   searchFilter: { width: 48, minHeight: 44, borderLeftWidth: 1, borderLeftColor: sk("#163C57", "rgba(16,42,92,0.10)"), alignItems: "center", justifyContent: "center" },
+  kindWrap: { marginBottom: 12 },
+  kindSwitch: { flexDirection: "row", padding: 4, gap: 4, borderRadius: 14, borderWidth: 1, borderColor: sk("#285171", "rgba(16,42,92,0.10)"), backgroundColor: sk("#061B30", "#FFFFFF") },
+  kindItem: { flex: 1, minWidth: 0, minHeight: 42, borderRadius: 10, overflow: "hidden", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, paddingHorizontal: 8 },
+  kindText: { fontSize: 14.5, fontWeight: "700", flexShrink: 1 },
+  kindTextActive: { fontWeight: "900" },
+  kindBadge: { minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "#C5F433" },
+  kindBadgeText: { color: "#0B1B3A", fontSize: 11, fontWeight: "900" },
+  kindHint: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, paddingHorizontal: 2 },
+  kindHintText: { color: TOURNAMENT_COLORS.textMuted, fontSize: 12.5, flexShrink: 1 },
   filters: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: sk("#204661", "rgba(16,42,92,0.10)") },
   filterPressable: { flex: 1, minWidth: 0, minHeight: 48, justifyContent: "center", paddingVertical: 8 },
   filterContent: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 5 },

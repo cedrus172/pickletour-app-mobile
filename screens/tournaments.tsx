@@ -6,7 +6,8 @@ import { router,
   useLocalSearchParams } from "expo-router";
 import { useResponsive } from "@/hooks/useResponsive";
 import React,
-  { useEffect,
+  { useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState } from "react";
@@ -43,6 +44,7 @@ import {
   TournamentEventRow,
   TournamentHeader,
   TournamentInfo,
+  TournamentKindSwitch,
   TournamentList,
   TournamentPage,
   TournamentSearch,
@@ -50,8 +52,14 @@ import {
   ZaloButton,
   type TournamentAction,
   type TournamentFilterKey,
+  type TournamentKind,
 } from "@/components/tournaments/TournamentDesign";
+import * as SecureStore from "expo-secure-store";
 import { IS_V3, IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
+
+// Lựa chọn Giải đấu / Minigame cuối cùng của người dùng (nhớ qua các lần mở app).
+const KIND_PREF_KEY = "PREF_TOURNAMENT_KIND";
+const isMinigame = (tt) => tt?.kind === "minigame";
 
 // Nhóm Zalo cộng đồng — fallback khi giải chưa đặt link Zalo riêng.
 const DEFAULT_ZALO_GROUP = "https://zalo.me/g/yarnhm129";
@@ -235,6 +243,9 @@ function TournamentListHeader({
   setKeyword,
   tab,
   setTab,
+  kind,
+  setKind,
+  minigameLive,
   openDateModal,
   hasDateFilter,
   fromDate,
@@ -245,6 +256,7 @@ function TournamentListHeader({
   return (
     <View style={styles.listHeader}>
       <TournamentHeader isBack={isBack} onBack={() => router.back()} />
+      <TournamentKindSwitch active={kind} onChange={setKind} liveCount={minigameLive} />
       <TournamentSearch
         value={keyword}
         onChangeText={setKeyword}
@@ -411,12 +423,31 @@ export default function TournamentDashboardScreen({ isBack = false }) {
     return refereeTournamentIds.has(String(tt?._id));
   };
 
-  const { sportType = "2", groupId = "0", status, q } = useLocalSearchParams();
+  const { sportType = "2", groupId = "0", status, q, kind: kindParam } = useLocalSearchParams();
 
   const initialTab = TABS.some((t) => t.key === String(status))
     ? String(status)
     : "upcoming";
   const [tab, setTab] = useState(initialTab);
+  const [kind, setKindState] = useState<TournamentKind>(
+    String(kindParam) === "minigame" ? "minigame" : "tournament"
+  );
+  const setKind = useCallback((next: TournamentKind) => {
+    setKindState(next);
+    SecureStore.setItemAsync(KIND_PREF_KEY, next).catch(() => {});
+  }, []);
+  // Mở bằng link có ?kind= (vd. ô Minigame ở trang chủ) thì theo link; không thì lấy lựa chọn đã lưu.
+  useEffect(() => {
+    if (kindParam === "minigame" || kindParam === "tournament") {
+      setKind(kindParam);
+      return;
+    }
+    SecureStore.getItemAsync(KIND_PREF_KEY)
+      .then((v) => {
+        if (v === "minigame" || v === "tournament") setKindState(v);
+      })
+      .catch(() => {});
+  }, [kindParam, setKind]);
   const [keyword, setKeyword] = useState(q ? String(q) : "");
   const [search, setSearch] = useState(q ? String(q).toLowerCase() : "");
 
@@ -493,6 +524,7 @@ export default function TournamentDashboardScreen({ isBack = false }) {
   const filtered = useMemo(() => {
     const list = Array.isArray(tournaments) ? tournaments : [];
     return list
+      .filter((tt) => (kind === "minigame" ? isMinigame(tt) : !isMinigame(tt)))
       .filter((tt) => tt.status === tab)
       .filter((tt) => (search ? tt.name?.toLowerCase().includes(search) : true))
       .filter((tt) => {
@@ -503,7 +535,14 @@ export default function TournamentDashboardScreen({ isBack = false }) {
         if (toDate && s > toDate) return false;
         return true;
       });
-  }, [tournaments, tab, search, fromDate, toDate]);
+  }, [tournaments, kind, tab, search, fromDate, toDate]);
+  const minigameLive = useMemo(
+    () =>
+      (Array.isArray(tournaments) ? tournaments : []).filter(
+        (tt) => isMinigame(tt) && tt.status === "ongoing"
+      ).length,
+    [tournaments]
+  );
 
   const onPressCard = (tt) => router.push(`/tournament/${tt._id}`);
 
@@ -653,6 +692,9 @@ export default function TournamentDashboardScreen({ isBack = false }) {
                 setKeyword={setKeyword}
                 tab={tab}
                 setTab={setTab}
+                kind={kind}
+                setKind={setKind}
+                minigameLive={minigameLive}
                 openDateModal={openDateModal}
                 hasDateFilter={hasDateFilter}
                 fromDate={fromDate}
@@ -683,6 +725,9 @@ export default function TournamentDashboardScreen({ isBack = false }) {
                 setKeyword={setKeyword}
                 tab={tab}
                 setTab={setTab}
+                kind={kind}
+                setKind={setKind}
+                minigameLive={minigameLive}
                 openDateModal={openDateModal}
                 hasDateFilter={hasDateFilter}
                 fromDate={fromDate}
@@ -718,7 +763,7 @@ export default function TournamentDashboardScreen({ isBack = false }) {
                     fontSize: 16,
                   }}
                 >
-                  Không tìm thấy giải đấu nào.
+                  {kind === "minigame" ? "Chưa có minigame nào." : "Không tìm thấy giải đấu nào."}
                 </Text>
               </View>
             }
