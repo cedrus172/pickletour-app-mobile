@@ -764,6 +764,11 @@ function RootLayout() {
   // (1) mở lại app sau khi ẩn ≥ OTA_RESUME_MIN_AWAY_MS (giống CodePush ON_NEXT_RESUME), hoặc
   // (2) lần khởi động lạnh tiếp theo (native tự nạp bundle đã tải). Bản bắt buộc vẫn áp dụng ngay.
   const otaApplyImmediateRef = React.useRef(false);
+  // Android: KHÔNG reload trong app. Bản build hiện tại bị R8 đổi tên field jsBundleLoader nên
+  // HotUpdater.reload() chạy lại gói CŨ, còn native đánh dấu "đã thử" gói mới → lần mở app sau tưởng
+  // gói mới crash và rollback, JS cũ thấy bản chờ lại reload tiếp → restart liên tục. Gói đã tải sẽ tự
+  // áp dụng khi app khởi động lại từ đầu (tắt hẳn rồi mở). Bản bắt buộc chỉ nhắc người dùng một lần.
+  const otaAndroidNoticeRef = React.useRef("");
   const otaBackgroundAtRef = React.useRef(0);
   const otaReloadProtectedRef = React.useRef(isRefereeScoringScreen);
   otaReloadProtectedRef.current = isRefereeScoringScreen;
@@ -989,6 +994,21 @@ function RootLayout() {
       return;
     }
     if (appState !== "active") return;
+    if (Platform.OS === "android") {
+      otaBackgroundAtRef.current = 0;
+      otaDiag("đã tải; áp dụng khi tắt hẳn rồi mở lại app");
+      const pending = otaReadyPayloadRef.current;
+      if (otaApplyImmediateRef.current && pending && otaAndroidNoticeRef.current !== pending.bundleId) {
+        otaAndroidNoticeRef.current = pending.bundleId;
+        setHotUpdateBlocking(false);
+        setHotUpdateVisible(false);
+        Alert.alert(
+          "Đã tải bản cập nhật",
+          "Vui lòng tắt hẳn ứng dụng (vuốt khỏi danh sách ứng dụng gần đây) rồi mở lại để dùng phiên bản mới.",
+        );
+      }
+      return;
+    }
     const awayMs = otaBackgroundAtRef.current ? Date.now() - otaBackgroundAtRef.current : 0;
     otaBackgroundAtRef.current = 0;
     if (!otaApplyImmediateRef.current && awayMs < OTA_RESUME_MIN_AWAY_MS) {

@@ -30,3 +30,10 @@
 # @generated begin expo-build-properties - expo prebuild (DO NOT MODIFY)
 -keep class com.google.firebase.** { *; } -keep class com.crashlytics.** { *; }
 # @generated end expo-build-properties
+
+# HotUpdater đổi gói JS bằng reflection: ReactHostImpl.mReactHostDelegate → <delegate>.jsBundleLoader.
+# R8 đổi tên field này (vd. mb.h$a) → "No field jsBundleLoader" → reload chạy lại gói CŨ, native tưởng
+# gói mới bị crash và rollback (Android restart liên tục 11/2026). Giữ nguyên tên field của mọi delegate.
+-keep class * implements com.facebook.react.ReactHostDelegate { *; }
+-keep class com.facebook.react.runtime.ReactHostImpl { *; }
+-keep class expo.modules.ExpoReactHostFactory** { *; }
