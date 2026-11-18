@@ -1,5 +1,5 @@
 // app/admin/face-lookup.tsx — Tra cứu ảnh VĐV (admin)
-// Chọn/chụp ảnh → chọn khuôn mặt → tìm VĐV (họ tên, biệt danh, SĐT, điểm) trong dữ liệu SPC bằng cách so
+// Chọn/chụp ảnh → chọn khuôn mặt → tìm VĐV (họ tên, biệt danh, SĐT, điểm) trong dữ liệu SportConnect + PickleballVN bằng cách so
 // với ảnh đại diện. Ảnh chỉ dùng để tìm, server không lưu.
 import React, { useState } from "react";
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -71,7 +71,7 @@ export default function FaceLookupScreen() {
       <Stack.Screen options={{ title: "Tra cứu ảnh VĐV", headerShown: true }} />
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
         <Text style={{ color: C.sub, fontSize: 13, lineHeight: 19 }}>
-          Chọn ảnh có mặt VĐV, chọn khuôn mặt → tìm họ tên và SĐT trong dữ liệu SPC (so với ảnh đại diện). Ảnh chỉ dùng
+          Chọn ảnh có mặt VĐV, chọn khuôn mặt → tìm họ tên và SĐT trong dữ liệu SportConnect và PickleballVN (so với ảnh đại diện). Ảnh chỉ dùng
           để tìm, không được lưu.
         </Text>
 
@@ -154,7 +154,7 @@ export default function FaceLookupScreen() {
                 {result.matches.length} VĐV giống nhất (so với {result.searched} ảnh đại diện)
               </Text>
               {result.matches.map((m: any) => (
-                <View key={m.spcId} style={[styles.row, { backgroundColor: C.card, borderColor: m.likely ? "#22C55E" : C.border }]}>
+                <View key={`${m.source || "spc"}:${m.spcId}`} style={[styles.row, { backgroundColor: C.card, borderColor: m.likely ? "#22C55E" : C.border }]}>
                   {m.avatar ? (
                     <ExpoImage source={{ uri: m.avatar }} style={styles.avatar} contentFit="cover" />
                   ) : (
@@ -165,6 +165,9 @@ export default function FaceLookupScreen() {
                   <View style={{ flex: 1, gap: 2 }}>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <Text style={{ color: C.text, fontWeight: "800", fontSize: 15 }}>{m.name || m.nickname || `#${m.spcId}`}</Text>
+                      <View style={[styles.badge, { backgroundColor: m.source === "pbvn" ? "#16A34A" : "#2563EB" }]}>
+                        <Text style={{ color: "#fff", fontWeight: "800", fontSize: 11.5 }}>{m.sourceLabel || "SportConnect"}</Text>
+                      </View>
                       <View style={[styles.badge, { backgroundColor: m.likely ? "#22C55E" : C.field }]}>
                         <Text style={{ color: m.likely ? "#fff" : C.text, fontWeight: "800", fontSize: 11.5 }}>
                           {m.likely ? "Khớp" : "Có thể"} · {Math.round(m.similarity * 100)}%
@@ -201,6 +204,7 @@ export default function FaceLookupScreen() {
                         m.single != null ? `Đơn ${m.single}` : "",
                         m.province,
                         m.status,
+                        m.code ? `Mã ${m.code}` : "",
                         `ID ${m.spcId}`,
                       ]
                         .filter(Boolean)
