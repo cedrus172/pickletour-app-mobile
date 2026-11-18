@@ -307,6 +307,14 @@ export default function MoreIndexScreen() {
           route: "/admin/cam-clip",
           accent: "#06b6d4",
         },
+        {
+          key: "admin-face-lookup",
+          title: "Tra cứu ảnh VĐV",
+          description: "Tải ảnh + chọn mặt → tìm tên, SĐT VĐV trong dữ liệu SPC.",
+          icon: "scan-circle-outline" as const,
+          route: "/admin/face-lookup",
+          accent: "#22C55E",
+        },
       ]
     : isCommentator
       ? [
