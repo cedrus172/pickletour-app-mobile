@@ -28,6 +28,7 @@ import { Text } from "@/components/ui/i18nText";
 import AppModal from "@/components/ui/AppModal";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import {
   useGetTournamentAlbumsQuery,
   useGetTournamentQuery,
@@ -70,6 +71,10 @@ function Chip({ label, active, onPress, icon, C }: any) {
 export default function TournamentAlbumScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const C = useThemeTokens();
+  // Tính năng bật/tắt ở admin: tìm ảnh theo khuôn mặt, "Đây là ai?".
+  const featureOn = useFeatureFlags();
+  const faceOn = featureOn("albumFaceSearch");
+  const identifyOn = featureOn("albumIdentify");
   const { width, height } = useWindowDimensions();
   const cols = width >= 900 ? 6 : width >= 600 ? 4 : 3;
   const gap = 3;
@@ -233,6 +238,7 @@ export default function TournamentAlbumScreen() {
                 {tour?.name || title}
               </Text>
               <View style={{ flexDirection: "row", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                {faceOn ? (
                 <Pressable
                   testID="album-face-search"
                   accessibilityRole="button"
@@ -247,6 +253,7 @@ export default function TournamentAlbumScreen() {
                   )}
                   <Text style={{ color: faceResult ? C.primary : "#fff", fontWeight: "800" }}>Tìm ảnh của tôi</Text>
                 </Pressable>
+                ) : null}
                 {faceResult ? (
                   <Pressable accessibilityRole="button" onPress={() => { setFaceResult(null); setFaceTarget(""); setViewer(-1); }} style={styles.faceBack}>
                     <Text style={{ color: C.primary, fontWeight: "700" }}>← Xem tất cả ảnh</Text>
@@ -326,6 +333,8 @@ export default function TournamentAlbumScreen() {
         loggedIn={!!me?._id}
         searching={searching}
         onFindPerson={searchByAlbumFace}
+        faceOn={faceOn}
+        identifyOn={identifyOn}
         tournamentId={String(id)}
         albumIndex={albumIndex}
         width={width}
@@ -340,7 +349,7 @@ export default function TournamentAlbumScreen() {
   );
 }
 
-function PhotoViewer({ photos, index, total, width, height, onIndex, onClose, isAdmin, tournamentId, albumIndex, loggedIn, searching, onFindPerson }: any) {
+function PhotoViewer({ photos, index, total, width, height, onIndex, onClose, isAdmin, tournamentId, albumIndex, loggedIn, searching, onFindPerson, faceOn = true, identifyOn = true }: any) {
   // "Tìm ảnh người này": lấy các khuôn mặt trong ảnh; 1 mặt → tìm ngay, nhiều mặt → cho chọn
   const [getFaces, { isFetching: loadingFaces }] = useLazyGetAlbumPhotoFacesQuery();
   const [pickFaces, setPickFaces] = useState<any[] | null>(null);
@@ -488,12 +497,16 @@ function PhotoViewer({ photos, index, total, width, height, onIndex, onClose, is
             <Text style={{ color: "rgba(255,255,255,0.85)", flex: 1 }} numberOfLines={1}>
               {index + 1}/{total} · {current?.name || ""}
             </Text>
+            {faceOn ? (
             <Pressable accessibilityRole="button" accessibilityLabel="Tìm ảnh người này" disabled={loadingFaces || searching} onPress={() => findPerson("search")} style={[styles.viewerBtn, { backgroundColor: "rgba(34,197,94,0.85)" }]}>
               {loadingFaces || searching ? <ActivityIndicator color="#fff" /> : <Ionicons name="scan" size={22} color="#fff" />}
             </Pressable>
+            ) : null}
+            {identifyOn ? (
             <Pressable accessibilityRole="button" accessibilityLabel="Đây là ai?" disabled={loadingFaces || identifying} onPress={() => findPerson("identify")} style={[styles.viewerBtn, { backgroundColor: "rgba(20,102,242,0.85)" }]}>
               {identifying ? <ActivityIndicator color="#fff" /> : <Ionicons name="person-outline" size={22} color="#fff" />}
             </Pressable>
+            ) : null}
             {isAdmin ? (
               <Pressable accessibilityRole="button" accessibilityLabel="Đặt làm ảnh đại diện VĐV" onPress={() => setAvatarOpen(true)} style={styles.viewerBtn}>
                 <Ionicons name="person-circle-outline" size={22} color="#fff" />

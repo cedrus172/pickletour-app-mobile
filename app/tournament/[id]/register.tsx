@@ -1,4 +1,5 @@
 import * as ImagePicker from "expo-image-picker";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import * as ImageManipulator from "expo-image-manipulator";
 import { useSubmitTournamentPaymentProofMutation } from "@/slices/tournamentPaymentProofApi";
 import TournamentSponsors from "@/components/tournament/TournamentSponsors";
@@ -1954,6 +1955,11 @@ export default function TournamentRegistrationScreen() {
   const isAdmin = !!(me?.isAdmin || me?.role === "admin");
   // Admin: chế độ đăng ký VĐV ngoài hệ thống (SĐT/họ tên/biệt danh/điểm trình/ảnh)
   const [guestMode, setGuestMode] = useState(false);
+  // Tính năng bật/tắt ở admin (Cài đặt hệ thống → Tính năng).
+  const featureOn = useFeatureFlags();
+  const heroOn = featureOn("heroBanner");
+  const albumOn = featureOn("photoAlbum");
+  const guestOn = featureOn("guestRegistration");
   const canManage = isLoggedIn && (isManager || isAdmin);
 
   // Lịch sử đăng ký (admin) — modal + lazy fetch chỉ khi mở
@@ -2521,7 +2527,7 @@ export default function TournamentRegistrationScreen() {
       const heroImageUri = getTournamentHeroImage(tour);
       const heroTopPadding = C.v2 ? 18 : 32;
       const heroBannerUri =
-        tour?.heroBanner?.url && tour?.heroBanner?.palette ? normalizeUrl(tour.heroBanner.url) : "";
+        heroOn && tour?.heroBanner?.url && tour?.heroBanner?.palette ? normalizeUrl(tour.heroBanner.url) : "";
       const hp: HeroPalette | null = heroBannerUri ? tour.heroBanner.palette : null;
       const heroText = hp ? hp.text : "#fff";
 
@@ -2650,7 +2656,7 @@ export default function TournamentRegistrationScreen() {
                 </Text>
               </View>
             </View>
-            {Array.isArray(tour?.photoAlbums) && tour.photoAlbums.some((a: any) => a?.url) ? (
+            {albumOn && Array.isArray(tour?.photoAlbums) && tour.photoAlbums.some((a: any) => a?.url) ? (
               <TouchableOpacity
                 accessibilityRole="button"
                 onPress={() => router.push(`/tournament/${id}/album` as any)}
@@ -3010,7 +3016,7 @@ export default function TournamentRegistrationScreen() {
               </Text>
             </View>
 
-            {isLoggedIn && isAdmin ? (
+            {isLoggedIn && isAdmin && guestOn ? (
               <View style={{ flexDirection: "row", gap: 6, padding: 4, borderRadius: 12, borderWidth: 1, borderColor: C.border, marginBottom: 14 }}>
                 {[
                   { key: false, label: "VĐV trong hệ thống" },
@@ -3033,7 +3039,7 @@ export default function TournamentRegistrationScreen() {
               </View>
             ) : null}
 
-            {isLoggedIn && isAdmin && guestMode ? (
+            {isLoggedIn && isAdmin && guestOn && guestMode ? (
               <GuestRegistrationForm
                 tournamentId={String(id)}
                 singles={!!isSingles}
@@ -3481,6 +3487,9 @@ export default function TournamentRegistrationScreen() {
     [
       tour,
       guestMode,
+      heroOn,
+      albumOn,
+      guestOn,
       refetchRegs,
       C,
       cap,

@@ -45,6 +45,7 @@ import { useFriendCountsQuery } from "@/slices/friendsApiSlice";
 import { useNotifUnreadCountQuery } from "@/slices/notificationCenterApiSlice";
 import { useMyLiveGrantsQuery } from "@/slices/liveGrantsApiSlice";
 import { useResponsive } from "@/hooks/useResponsive";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useDuoSideNavigationActive } from "@/hooks/useDuoSideNavigation";
 import { IS_V3, UI_VERSION, V3, IS_V3_DARK, IS_V3_LIGHT, UI_THEME, applyUiAppearance } from "@/hooks/uiVersion";
 
@@ -210,9 +211,9 @@ const SECTIONS: { title: string; keys: string[] }[] = [
   { title: "Cá nhân", keys: ["profile", "my_tournament", "my-events", "chat", "messages", "friends"] },
   { title: "Đặt sân", keys: ["courts", "my-bookings", "my-packages"] },
   { title: "Khám phá", keys: ["marketplace", "play", "coaches"] },
-  { title: "Xem trực tiếp", keys: ["live", "youtube-library", "clip-cam"] },
+  { title: "Xem trực tiếp", keys: ["live", "youtube-library", "clip-cam", "highlight-var"] },
   { title: "Trọng tài", keys: ["referee-clusters", "referee-scan"] },
-  { title: "Chủ sân & Quản trị", keys: ["owner", "live-control", "fb-to-youtube", "admin-cam-clip", "my-live-grants"] },
+  { title: "Chủ sân & Quản trị", keys: ["owner", "live-control", "fb-to-youtube", "admin-cam-clip", "admin-face-lookup", "my-live-grants"] },
 ];
 
 function MoreGlassSurface({
@@ -280,7 +281,7 @@ export default function MoreIndexScreen() {
         ]
       : [];
   // Admin: mục Điều khiển Live (đầy đủ). Bình luận viên: chỉ vào bình luận.
-  const moreItems = isAdmin
+  const moreItemsAll = isAdmin
     ? [
         ...MORE_ITEMS,
         {
@@ -346,6 +347,24 @@ export default function MoreIndexScreen() {
   const { data: notifCount } = useNotifUnreadCountQuery(undefined, {
     skip: !isAuthed,
   });
+
+  // Tính năng bật/tắt ở admin (Cài đặt hệ thống → Tính năng).
+  const featureOn = useFeatureFlags();
+  const moreItems = [
+    ...moreItemsAll.filter((it: any) => it.key !== "admin-face-lookup" || featureOn("spcFaceLookup")),
+    ...(featureOn("highlightVar")
+      ? [
+          {
+            key: "highlight-var",
+            title: "Highlight & VAR",
+            description: "AI dựng highlight và soi VAR từ video trận (tối đa 5 phút).",
+            icon: "sparkles-outline" as const,
+            route: "/var",
+            accent: "#84CC16",
+          },
+        ]
+      : []),
+  ];
 
   // ── Dựng nhóm theo SECTIONS; mục không thuộc nhóm nào dồn vào "Khác" ──────────
   const byKey: Record<string, any> = {};

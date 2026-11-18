@@ -1,4 +1,5 @@
 import { useFloatingTabBarPadding } from "@/hooks/useFloatingTabBarPadding";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { t } from "@/utils/i18n";
 // app/index.jsx  (Home)
 import React, { useCallback, useMemo, useEffect, useRef, useState } from "react";
@@ -1134,21 +1135,24 @@ function FeaturesGrid({ compactColumns = false }: { compactColumns?: boolean }) 
   // Số cột theo bề rộng (iPhone Duo mở → 6–8 cột). Hàng cuối chèn ô rỗng cho thẳng lưới.
   const NUM_COLUMNS = compactColumns ? 4 : r.featureColumns;
   const colWidth: any = `${(100 / NUM_COLUMNS) - 1.8}%`;
-  const remainder = FEATURES.length % NUM_COLUMNS;
+  // Ô Minigame ẩn khi admin tắt tính năng Minigame.
+  const featureOn = useFeatureFlags();
+  const feats = FEATURES.filter((f) => f.id !== 44 || featureOn("minigame"));
+  const remainder = feats.length % NUM_COLUMNS;
   const emptySlots = remainder === 0 ? 0 : NUM_COLUMNS - remainder;
 
   // V3 Fresh: khối tính năng chia nhóm theo mục đích với bộ biểu tượng mới.
-  if (IS_V3) return <HomeV3Features features={FEATURES} />;
+  if (IS_V3) return <HomeV3Features features={feats} />;
 
   return (
     <View style={styles.featuresContainer}>
       <HomeSectionHeader
         title="Tính năng PickleTour"
         subtitle="Mọi thứ cho người chơi pickleball — trong một app"
-        count={FEATURES.length}
+        count={feats.length}
       />
       <View style={styles.featuresGrid}>
-        {FEATURES.map((item) => (
+        {feats.map((item) => (
           <FeatureItem key={item.id} item={item} theme={theme} colWidth={colWidth} />
         ))}
         {Array.from({ length: emptySlots }).map((_, index) => (
@@ -1379,6 +1383,7 @@ function TournamentsSection() {
   // Ưu tiên giải ĐANG + SẮP diễn ra (ongoing trước), không hiện đã kết thúc; rồi
   // gom nhóm cùng tên gốc / cùng cụm sân như tab Giải đấu. Chỉ fallback giải đã
   // kết thúc khi chưa có giải đang/sắp (để section không trống).
+  const minigameOn = useFeatureFlags()("minigame");
   const tournamentGroups = useMemo(() => {
     if (!Array.isArray(tournaments)) return [];
     // Minigame (giải nhỏ, không tính điểm trình) luôn xếp SAU mọi giải đấu chính thức,
@@ -1389,13 +1394,13 @@ function TournamentsSection() {
     const upcoming = list.filter((t) => t.status === "upcoming");
     let pool = [...ongoing, ...upcoming];
     if (!pool.length) pool = list.filter((t) => t.status === "finished");
-    const minis = tournaments.filter((t) => isMini(t));
+    const minis = minigameOn ? tournaments.filter((t) => isMini(t)) : [];
     const miniPool = [
       ...minis.filter((t) => t.status === "ongoing"),
       ...minis.filter((t) => t.status === "upcoming"),
     ];
     return [...groupTournaments(pool).slice(0, 5), ...groupTournaments(miniPool).slice(0, 3)];
-  }, [tournaments]);
+  }, [tournaments, minigameOn]);
 
   const renderTournamentItem = useCallback(
     ({ item }) => <TournamentCard group={item} theme={theme} cardWidth={cardWidth} />,

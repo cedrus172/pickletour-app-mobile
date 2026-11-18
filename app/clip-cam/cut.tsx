@@ -18,6 +18,7 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-reanimated";
 import { Text } from "@/components/ui/i18nText";
+import { useFeature } from "@/hooks/useFeatureFlags";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
 import { IS_V3 } from "@/hooks/uiVersion";
 import { useResponsive } from "@/hooks/useResponsive";
@@ -147,6 +148,7 @@ export default function ClipCutScreen() {
   const baseUrl = String(base || "");
   const channelId = Number(chId || 0);
   const channelName = String(chName || "Sân");
+  const varOn = useFeature("highlightVar");
   // Đầu thu Hikvision: xem lại (tua) được nhưng cắt theo khoảng thời gian ra file hỏng →
   // ẩn phần chọn khoảng cắt, ghi hình chỉ theo trực tiếp.
   const { venues: accessVenues } = useClipCameraAccess();
@@ -332,7 +334,7 @@ export default function ClipCutScreen() {
       if (s.status === "done") {
         const item: ClipHistoryItem = {
           clipId: clip_id, name: s.name || name, baseUrl, venueName: String(venueName || ""),
-          channelName, createdAt: Date.now(), size: s.size,
+          channelName, createdAt: Date.now(), size: s.size, channelId,
         };
         addHistory(item);
         setHistory((h) => [item, ...h.filter((x) => x.clipId !== clip_id)]);
@@ -653,6 +655,21 @@ export default function ClipCutScreen() {
                 <Text style={{ color: C.onPrimary, fontWeight: "700", marginLeft: 6 }}>Tải / Chia sẻ</Text>
               </Pressable>
             </View>
+            {varOn ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() =>
+                  router.push({
+                    pathname: "/var/create",
+                    params: { base: baseUrl, clipId: results[0].clipId, chId: String(channelId), chName: channelName, venueName: String(venueName || "") },
+                  } as any)
+                }
+                style={[styles.resBtn, { flex: 0, backgroundColor: "#C5F433", marginTop: 10 }]}
+              >
+                <Ionicons name="sparkles" size={16} color="#0B1B3A" />
+                <Text style={{ color: "#0B1B3A", fontWeight: "800", marginLeft: 6 }}>Phân tích Highlight & VAR</Text>
+              </Pressable>
+            ) : null}
           </View>
         )}
         {phase === "done" && results.length > 1 && (

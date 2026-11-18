@@ -1,4 +1,5 @@
 import TournamentSponsors from "@/components/tournament/TournamentSponsors";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { t } from "@/utils/i18n";
 import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 /* eslint-disable react/prop-types */
@@ -709,8 +710,9 @@ export default function TournamentOverviewScreen() {
 
   const heading = useMemo(() => overviewHeading(tournament?.name), [tournament?.name]);
   const titleEnd = heading.title.match(/^(.*\s)(\d+)$/);
+  const featureOn = useFeatureFlags();
   const heroBannerUri =
-    (tournament as any)?.heroBanner?.url && (tournament as any)?.heroBanner?.palette
+    featureOn("heroBanner") && (tournament as any)?.heroBanner?.url && (tournament as any)?.heroBanner?.palette
       ? normalizeUrl((tournament as any).heroBanner.url)
       : "";
   const hp: any = heroBannerUri ? (tournament as any).heroBanner.palette : null;
@@ -974,7 +976,7 @@ export default function TournamentOverviewScreen() {
                 <Text numberOfLines={T.v2 ? undefined : 2} style={[S.shortcutText, T.v2 && O.shortcutText]}>Nhóm Zalo</Text>
               </Pressable>
 
-              {Array.isArray((tournament as any)?.photoAlbums) &&
+              {featureOn("photoAlbum") && Array.isArray((tournament as any)?.photoAlbums) &&
               (tournament as any).photoAlbums.some((a: any) => a?.url) ? (
                 <Pressable
                   testID="overview-shortcut-album" accessibilityRole="button" accessibilityLabel="Album ảnh"

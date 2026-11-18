@@ -201,6 +201,7 @@ export type ClipHistoryItem = {
   channelName: string;
   createdAt: number;
   size?: number;
+  channelId?: number; // để gửi phân tích Highlight & VAR (kiểm quyền theo camera)
 };
 const HISTORY_KEY = "pickclip_history_v1";
 const HISTORY_MAX = 40;

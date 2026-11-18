@@ -1,4 +1,5 @@
 import { useFloatingTabBarPadding } from "@/hooks/useFloatingTabBarPadding";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 // app/(app)/tournaments/DashboardScreen.jsx
 import {
   useGetTournamentsQuery } from "@/slices/tournamentsApiSlice";
@@ -61,7 +62,9 @@ import { IS_V3, IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 const KIND_PREF_KEY = "PREF_TOURNAMENT_KIND";
 const isMinigame = (tt) => tt?.kind === "minigame";
 // Giải có album ảnh (thư mục Google Drive BTC gắn vào) → hiện nút "Album".
-const hasAlbum = (tt) => Array.isArray(tt?.photoAlbums) && tt.photoAlbums.some((a) => a?.url);
+// Admin tắt "Album ảnh giải" (Cài đặt hệ thống → Tính năng) → màn chính đặt lại cờ này mỗi lần render.
+let albumFeatureOn = true;
+const hasAlbum = (tt) => albumFeatureOn && Array.isArray(tt?.photoAlbums) && tt.photoAlbums.some((a) => a?.url);
 
 // Nhóm Zalo cộng đồng — fallback khi giải chưa đặt link Zalo riêng.
 const DEFAULT_ZALO_GROUP = "https://zalo.me/g/yarnhm129";
@@ -248,6 +251,7 @@ function TournamentListHeader({
   kind,
   setKind,
   minigameLive,
+  showKindSwitch = true,
   openDateModal,
   hasDateFilter,
   fromDate,
@@ -258,7 +262,7 @@ function TournamentListHeader({
   return (
     <View style={styles.listHeader}>
       <TournamentHeader isBack={isBack} onBack={() => router.back()} />
-      <TournamentKindSwitch active={kind} onChange={setKind} liveCount={minigameLive} />
+      {showKindSwitch ? <TournamentKindSwitch active={kind} onChange={setKind} liveCount={minigameLive} /> : null}
       <TournamentSearch
         value={keyword}
         onChangeText={setKeyword}
@@ -432,9 +436,14 @@ export default function TournamentDashboardScreen({ isBack = false }) {
     ? String(status)
     : "upcoming";
   const [tab, setTab] = useState(initialTab);
-  const [kind, setKindState] = useState<TournamentKind>(
+  const featureOn = useFeatureFlags();
+  albumFeatureOn = featureOn("photoAlbum");
+  const minigameOn = featureOn("minigame");
+  const [kindRaw, setKindState] = useState<TournamentKind>(
     String(kindParam) === "minigame" ? "minigame" : "tournament"
   );
+  // Admin tắt Minigame → chỉ hiện giải đấu, ẩn công tắc Giải đấu | Minigame.
+  const kind: TournamentKind = minigameOn ? kindRaw : "tournament";
   const setKind = useCallback((next: TournamentKind) => {
     setKindState(next);
     SecureStore.setItemAsync(KIND_PREF_KEY, next).catch(() => {});
@@ -706,6 +715,7 @@ export default function TournamentDashboardScreen({ isBack = false }) {
                 kind={kind}
                 setKind={setKind}
                 minigameLive={minigameLive}
+                showKindSwitch={minigameOn}
                 openDateModal={openDateModal}
                 hasDateFilter={hasDateFilter}
                 fromDate={fromDate}
@@ -739,6 +749,7 @@ export default function TournamentDashboardScreen({ isBack = false }) {
                 kind={kind}
                 setKind={setKind}
                 minigameLive={minigameLive}
+                showKindSwitch={minigameOn}
                 openDateModal={openDateModal}
                 hasDateFilter={hasDateFilter}
                 fromDate={fromDate}
