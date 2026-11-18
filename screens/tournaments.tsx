@@ -60,6 +60,8 @@ import { IS_V3, IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 // Lựa chọn Giải đấu / Minigame cuối cùng của người dùng (nhớ qua các lần mở app).
 const KIND_PREF_KEY = "PREF_TOURNAMENT_KIND";
 const isMinigame = (tt) => tt?.kind === "minigame";
+// Giải có album ảnh (thư mục Google Drive BTC gắn vào) → hiện nút "Album".
+const hasAlbum = (tt) => Array.isArray(tt?.photoAlbums) && tt.photoAlbums.some((a) => a?.url);
 
 // Nhóm Zalo cộng đồng — fallback khi giải chưa đặt link Zalo riêng.
 const DEFAULT_ZALO_GROUP = "https://zalo.me/g/yarnhm129";
@@ -341,6 +343,7 @@ function GroupCard({ group, canManage, formatDate, onPreview }: any) {
         if (canReg) actions.push({ key: "register", label: "Đăng ký", icon: "person-add-outline", primary: true, onPress: () => router.push(`/tournament/${id}/register`) });
         if (Number(item?.matchesTotal) > 0) actions.push({ key: "schedule", label: "Lịch đấu", icon: "calendar-outline", onPress: () => router.push(`/tournament/${id}/schedule`) });
         if (Number(item?.bracketsTotal) > 0) actions.push({ key: "bracket", label: "Sơ đồ", icon: "git-network-outline", onPress: () => router.push({ pathname: "/tournament/[id]/bracket", params: { id: item?._id } }) });
+        if (hasAlbum(item)) actions.push({ key: "album", label: "Album", icon: "images-outline", onPress: () => router.push(`/tournament/${id}/album` as any) });
         return (
           <TournamentEventRow
             key={id}
@@ -638,6 +641,14 @@ export default function TournamentDashboardScreen({ isBack = false }) {
         label: tt.status === "finished" ? "Xem sơ đồ" : "Sơ đồ",
         icon: "git-network-outline",
         onPress: onPressBracket,
+      });
+    }
+    if (hasAlbum(tt)) {
+      actions.push({
+        key: "album",
+        label: "Album ảnh",
+        icon: "images-outline",
+        onPress: () => router.push(`/tournament/${tt._id}/album` as any),
       });
     }
 

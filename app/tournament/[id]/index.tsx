@@ -942,6 +942,24 @@ export default function TournamentOverviewScreen() {
                 <Text numberOfLines={T.v2 ? undefined : 2} style={[S.shortcutText, T.v2 && O.shortcutText]}>Nhóm Zalo</Text>
               </Pressable>
 
+              {Array.isArray((tournament as any)?.photoAlbums) &&
+              (tournament as any).photoAlbums.some((a: any) => a?.url) ? (
+                <Pressable
+                  testID="overview-shortcut-album" accessibilityRole="button" accessibilityLabel="Album ảnh"
+                  onPress={() => go("/tournament/[id]/album")}
+                  style={({ pressed }) => [
+                    S.shortcut,
+                    T.v2 && O.shortcut,
+                    { opacity: pressed ? 0.85 : 1 },
+                  ]}
+                >
+                  <View style={[S.shortcutIcon, { backgroundColor: "#EC4899" }, T.v2 && O.shortcutIcon]}>
+                    <Ionicons name="images" size={T.v2 ? 23 : 18} color={T.v2 ? sk("#F472B6", "#DB2777") : "#fff"} />
+                  </View>
+                  <Text numberOfLines={T.v2 ? undefined : 2} style={[S.shortcutText, T.v2 && O.shortcutText]}>Album ảnh</Text>
+                </Pressable>
+              ) : null}
+
               <Pressable
                 testID="overview-shortcut-reviews" accessibilityRole="button" accessibilityLabel="Đánh giá"
                 onPress={() => go("/tournament/[id]/reviews")}
