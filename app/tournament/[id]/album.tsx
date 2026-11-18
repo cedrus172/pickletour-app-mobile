@@ -1,5 +1,5 @@
 // app/tournament/[id]/album.tsx — Album ảnh giải đấu (ảnh lấy từ thư mục Google Drive BTC gắn vào giải).
-// Lưới ảnh nhỏ tải dần → chạm xem toàn màn, vuốt qua lại → lưu ảnh gốc vào thư viện / chia sẻ.
+// Lưới ảnh nhỏ tải dần → chạm xem toàn màn, vuốt qua lại → lưu ảnh (bản 2048px có logo) vào thư viện / chia sẻ.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -238,7 +238,7 @@ function PhotoViewer({ photos, index, total, width, height, onIndex, onClose }: 
       if (!dir) throw new Error("Không có bộ nhớ tạm để tải ảnh.");
       const safe = String(current.name || `pickletour-${current.id}.jpg`).replace(/[^\w.-]+/g, "_");
       const res = await FileSystem.downloadAsync(current.download, `${dir}${Date.now()}-${safe}`);
-      if (res.status < 200 || res.status >= 300) throw new Error("Không tải được ảnh gốc.");
+      if (res.status < 200 || res.status >= 300) throw new Error("Không tải được ảnh.");
       if (MediaLibrary?.saveToLibraryAsync) {
         const perm = await MediaLibrary.requestPermissionsAsync(true);
         if (!perm.granted) {
@@ -246,7 +246,7 @@ function PhotoViewer({ photos, index, total, width, height, onIndex, onClose }: 
           return;
         }
         await MediaLibrary.saveToLibraryAsync(res.uri);
-        Alert.alert("Đã lưu", "Ảnh gốc đã được lưu vào thư viện ảnh.");
+        Alert.alert("Đã lưu", "Ảnh (có logo PickleTour) đã được lưu vào thư viện ảnh.");
       } else if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(res.uri, { dialogTitle: "Lưu hoặc chia sẻ ảnh" });
       }
@@ -312,7 +312,7 @@ function PhotoViewer({ photos, index, total, width, height, onIndex, onClose }: 
             <Pressable accessibilityRole="button" accessibilityLabel="Chia sẻ ảnh" onPress={share} style={styles.viewerBtn}>
               <Ionicons name="share-outline" size={22} color="#fff" />
             </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Lưu ảnh gốc" disabled={saving} onPress={save} style={styles.viewerBtn}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Lưu ảnh" disabled={saving} onPress={save} style={styles.viewerBtn}>
               {saving ? <ActivityIndicator color="#fff" /> : <Ionicons name="download-outline" size={22} color="#fff" />}
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="Đóng" onPress={onClose} style={styles.viewerBtn}>
