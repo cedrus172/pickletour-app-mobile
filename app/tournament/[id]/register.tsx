@@ -2647,6 +2647,26 @@ export default function TournamentRegistrationScreen() {
                 </Text>
               </View>
             </View>
+            {Array.isArray(tour?.photoAlbums) && tour.photoAlbums.some((a: any) => a?.url) ? (
+              <TouchableOpacity
+                accessibilityRole="button"
+                onPress={() => router.push(`/tournament/${id}/album` as any)}
+                style={{
+                  alignSelf: "flex-start",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  marginTop: 12,
+                  paddingHorizontal: 14,
+                  height: 34,
+                  borderRadius: 17,
+                  backgroundColor: hp ? hp.accent : "rgba(255,255,255,0.2)",
+                }}
+              >
+                <Ionicons name="images-outline" size={16} color={hp ? hp.onAccent : "#fff"} />
+                <Text style={{ color: hp ? hp.onAccent : "#fff", fontWeight: "800", fontSize: 13 }}>Album ảnh giải</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
 
           {/* Stats Overlap */}

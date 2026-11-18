@@ -144,6 +144,19 @@ export const tournamentsApiSlice = apiSlice.injectEndpoints({
       providesTags: (res, err, id) => [{ type: "Tournaments", id }],
     }),
 
+    // Album ảnh giải (thư mục Google Drive BTC gắn vào giải)
+    getTournamentAlbums: builder.query({
+      query: (id) => `/api/tournaments/${id}/albums`,
+      keepUnusedDataFor: 300,
+    }),
+    getTournamentAlbumPhotos: builder.query({
+      query: ({ id, index, folder, page = 1, limit = 60 }) => ({
+        url: `/api/tournaments/${id}/albums/${index}`,
+        params: { ...(folder ? { folder } : {}), page, limit },
+      }),
+      keepUnusedDataFor: 300,
+    }),
+
     // Sửa chức vụ / ẩn-hiện 1 thành viên BTC (creator hoặc đồng quản lý).
     updateOrganizer: builder.mutation({
       query: ({ tournamentId, userId, title, hidden }) => ({
@@ -988,6 +1001,8 @@ export const tournamentsApiSlice = apiSlice.injectEndpoints({
 
 export const {
   // mới thêm
+  useGetTournamentAlbumsQuery,
+  useLazyGetTournamentAlbumPhotosQuery,
   useListTournamentsQuery,
   useLazyListTournamentsQuery,
   useSearchTournamentsQuery,
