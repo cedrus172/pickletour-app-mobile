@@ -1212,6 +1212,12 @@ const TournamentCard = React.memo(function TournamentCard({
             style={styles.tournamentImageGradient}
           />
           <AnimatedStatusChip status={gstatus} />
+          {rep?.kind === "minigame" ? (
+            <View style={styles.homeMinigameBadge}>
+              <Ionicons name="game-controller" size={12} color="#0B1B3A" />
+              <Text style={styles.homeMinigameText}>MINIGAME</Text>
+            </View>
+          ) : null}
           {/* Format badge: MLP / TEAM — góc trên trái */}
           {String((rep as any)?.tournamentMode || "")
             .toLowerCase() === "mlp" && (
@@ -1375,13 +1381,20 @@ function TournamentsSection() {
   // kết thúc khi chưa có giải đang/sắp (để section không trống).
   const tournamentGroups = useMemo(() => {
     if (!Array.isArray(tournaments)) return [];
-    // Minigame (giải nhỏ, không tính điểm trình) không lên mục Giải đấu nổi bật.
-    const list = tournaments.filter((t) => t?.kind !== "minigame");
+    // Minigame (giải nhỏ, không tính điểm trình) luôn xếp SAU mọi giải đấu chính thức,
+    // kể cả khi diễn ra sớm hơn; chỉ lấy minigame đang/sắp diễn ra.
+    const isMini = (t) => t?.kind === "minigame";
+    const list = tournaments.filter((t) => !isMini(t));
     const ongoing = list.filter((t) => t.status === "ongoing");
     const upcoming = list.filter((t) => t.status === "upcoming");
     let pool = [...ongoing, ...upcoming];
     if (!pool.length) pool = list.filter((t) => t.status === "finished");
-    return groupTournaments(pool).slice(0, 5);
+    const minis = tournaments.filter((t) => isMini(t));
+    const miniPool = [
+      ...minis.filter((t) => t.status === "ongoing"),
+      ...minis.filter((t) => t.status === "upcoming"),
+    ];
+    return [...groupTournaments(pool).slice(0, 5), ...groupTournaments(miniPool).slice(0, 3)];
   }, [tournaments]);
 
   const renderTournamentItem = useCallback(
@@ -2615,6 +2628,25 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(40,30,4,0.78)",
     borderWidth: 1,
     borderColor: "rgba(255,208,72,0.64)",
+  },
+  // Badge Minigame — góc trên trái (minigame không có MLP/TEAM nên không chồng badge)
+  homeMinigameBadge: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: "#C5F433",
+  },
+  homeMinigameText: {
+    color: "#0B1B3A",
+    fontSize: 10.5,
+    fontWeight: "900",
+    letterSpacing: 0.5,
   },
   homeTournamentModeText: {
     color: "#FFE071",
