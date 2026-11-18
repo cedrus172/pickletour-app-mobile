@@ -67,6 +67,7 @@ import {
 } from "@/slices/tournamentsApiSlice";
 import { useGetMeScoreQuery } from "@/slices/usersApiSlice";
 import PlayerSelector from "@/components/PlayerSelector";
+import GuestRegistrationForm from "@/components/registration/GuestRegistrationForm";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import { Image as ExpoImage } from "expo-image"; // <--- Dùng Expo Image
 import { roundTo3 } from "@/utils/roundTo3";
@@ -1951,6 +1952,8 @@ export default function TournamentRegistrationScreen() {
     });
   }, [isLoggedIn, me, tour]);
   const isAdmin = !!(me?.isAdmin || me?.role === "admin");
+  // Admin: chế độ đăng ký VĐV ngoài hệ thống (SĐT/họ tên/biệt danh/điểm trình/ảnh)
+  const [guestMode, setGuestMode] = useState(false);
   const canManage = isLoggedIn && (isManager || isAdmin);
 
   // Lịch sử đăng ký (admin) — modal + lazy fetch chỉ khi mở
@@ -3007,7 +3010,37 @@ export default function TournamentRegistrationScreen() {
               </Text>
             </View>
 
-            {isLoggedIn ? (
+            {isLoggedIn && isAdmin ? (
+              <View style={{ flexDirection: "row", gap: 6, padding: 4, borderRadius: 12, borderWidth: 1, borderColor: C.border, marginBottom: 14 }}>
+                {[
+                  { key: false, label: "VĐV trong hệ thống" },
+                  { key: true, label: "VĐV ngoài hệ thống" },
+                ].map((opt) => {
+                  const active = guestMode === opt.key;
+                  return (
+                    <TouchableOpacity
+                      key={opt.label}
+                      testID={opt.key ? "registration-mode-guest" : "registration-mode-system"}
+                      accessibilityRole="tab"
+                      accessibilityState={{ selected: active }}
+                      onPress={() => setGuestMode(opt.key)}
+                      style={{ flex: 1, minHeight: 38, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: active ? C.tint : "transparent" }}
+                    >
+                      <Text style={{ color: active ? "#fff" : C.textSecondary, fontWeight: "800", fontSize: 13 }}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : null}
+
+            {isLoggedIn && isAdmin && guestMode ? (
+              <GuestRegistrationForm
+                tournamentId={String(id)}
+                singles={!!isSingles}
+                C={C}
+                onDone={() => refetchRegs?.()}
+              />
+            ) : isLoggedIn ? (
               <>
                 {isAdmin ? (
                   <RegisterGlassSurface
@@ -3447,6 +3480,8 @@ export default function TournamentRegistrationScreen() {
     },
     [
       tour,
+      guestMode,
+      refetchRegs,
       C,
       cap,
       regTotal,

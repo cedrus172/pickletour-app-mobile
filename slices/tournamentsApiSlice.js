@@ -144,6 +144,20 @@ export const tournamentsApiSlice = apiSlice.injectEndpoints({
       providesTags: (res, err, id) => [{ type: "Tournaments", id }],
     }),
 
+    // Admin đăng ký VĐV ngoài hệ thống (tạo tài khoản khách theo SĐT)
+    createGuestRegistration: builder.mutation({
+      query: ({ id, players, message }) => ({
+        url: `/api/tournaments/${id}/registrations/guest`,
+        method: "POST",
+        body: { players, message },
+      }),
+      invalidatesTags: (res, err, { id }) => [
+        { type: "Registrations", id },
+        { type: "Registrations", id: "LIST" },
+        { type: "Tournaments", id },
+      ],
+    }),
+
     // Album ảnh giải (thư mục Google Drive BTC gắn vào giải)
     getTournamentAlbums: builder.query({
       query: (id) => `/api/tournaments/${id}/albums`,
@@ -1002,6 +1016,7 @@ export const tournamentsApiSlice = apiSlice.injectEndpoints({
 export const {
   // mới thêm
   useGetTournamentAlbumsQuery,
+  useCreateGuestRegistrationMutation,
   useLazyGetTournamentAlbumPhotosQuery,
   useListTournamentsQuery,
   useLazyListTournamentsQuery,
