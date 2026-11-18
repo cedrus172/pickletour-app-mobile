@@ -26,6 +26,16 @@ import {
 import { Text } from "@/components/ui/i18nText";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image as ExpoImage } from "expo-image";
+import { normalizeUrl } from "@/utils/normalizeUri";
+
+// Banner đầu trang AI (tạo từ poster ở backend, xem tournament.heroBanner) + bảng màu chữ hợp ảnh.
+const heroRgba = (hex: string, a: number) => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ""));
+  if (!m) return `rgba(0,0,0,${a})`;
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+};
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 import {
@@ -699,6 +709,11 @@ export default function TournamentOverviewScreen() {
 
   const heading = useMemo(() => overviewHeading(tournament?.name), [tournament?.name]);
   const titleEnd = heading.title.match(/^(.*\s)(\d+)$/);
+  const heroBannerUri =
+    (tournament as any)?.heroBanner?.url && (tournament as any)?.heroBanner?.palette
+      ? normalizeUrl((tournament as any).heroBanner.url)
+      : "";
+  const hp: any = heroBannerUri ? (tournament as any).heroBanner.palette : null;
   const col2 = width >= 900;
 
   if (loading && !tournament) return <OverviewSkeleton T={T} insets={insets} />;
@@ -758,10 +773,27 @@ export default function TournamentOverviewScreen() {
         >
           {/* HERO */}
           <LinearGradient
-            colors={[T.gradA, T.gradB]}
-            style={[S.hero, { paddingTop: insets.top + 12 }, T.v2 && O.hero]}
+            colors={hp ? [hp.scrim, hp.scrim] : [T.gradA, T.gradB]}
+            style={[S.hero, { paddingTop: insets.top + 12 }, T.v2 && O.hero, hp && { overflow: "hidden" }]}
           >
-            {T.v2 ? <OverviewHeroArt /> : null}
+            {hp ? (
+              <>
+                <ExpoImage
+                  source={{ uri: heroBannerUri }}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="cover"
+                  contentPosition="right"
+                  transition={200}
+                  cachePolicy="memory-disk"
+                />
+                <LinearGradient
+                  pointerEvents="none"
+                  colors={[heroRgba(hp.scrim, 0.35), heroRgba(hp.scrim, 0.75), heroRgba(hp.scrim, 0.92)]}
+                  locations={[0, 0.45, 1]}
+                  style={StyleSheet.absoluteFill}
+                />
+              </>
+            ) : T.v2 ? <OverviewHeroArt /> : null}
             <View
               style={{
                 flexDirection: "row",
@@ -769,13 +801,13 @@ export default function TournamentOverviewScreen() {
                 justifyContent: "space-between",
               }}
             >
-              <View style={[S.heroBadge, T.v2 && O.heroBadge]}>
+              <View style={[S.heroBadge, T.v2 && O.heroBadge, hp && { backgroundColor: hp.accent, borderColor: hp.accent }]}>
                 <MaterialCommunityIcons
                   name="trophy-variant"
                   size={16}
-                  color="#fff"
+                  color={hp ? hp.onAccent : "#fff"}
                 />
-                <Text style={S.heroBadgeText} numberOfLines={1}>
+                <Text style={[S.heroBadgeText, hp && { color: hp.onAccent }]} numberOfLines={1}>
                   {tournament?.eventType?.toLowerCase?.().includes("single")
                     ? "GIẢI ĐƠN"
                     : "GIẢI ĐÔI"}
@@ -798,17 +830,17 @@ export default function TournamentOverviewScreen() {
               )}
             </View>
 
-            <Text testID="tournament-overview-title" style={[S.heroTitle, T.v2 && O.heroTitle]} numberOfLines={T.v2 ? undefined : 2}>
-              {T.v2 ? titleEnd ? <>{titleEnd[1]}<Text style={{ color: sk(T.tint, "#C5F433") }}>{titleEnd[2]}</Text></> : heading.title : tournament?.name || "Giải đấu"}
+            <Text testID="tournament-overview-title" style={[S.heroTitle, T.v2 && O.heroTitle, hp && { color: hp.text }]} numberOfLines={T.v2 ? undefined : 2}>
+              {T.v2 ? titleEnd ? <>{titleEnd[1]}<Text style={{ color: hp ? hp.accent : sk(T.tint, "#C5F433") }}>{titleEnd[2]}</Text></> : heading.title : tournament?.name || "Giải đấu"}
             </Text>
-            {T.v2 && !!heading.category ? <View style={O.category}><Text style={O.categoryText}>{heading.category}</Text></View> : null}
+            {T.v2 && !!heading.category ? <View style={[O.category, hp && { backgroundColor: hp.chipBg }]}><Text style={[O.categoryText, hp && { color: hp.text }]}>{heading.category}</Text></View> : null}
 
             <View style={{ marginTop: 10, gap: 8 }}>
               {T.v2 ? (<View
                 style={{ flexDirection: "row", gap: 8, alignItems: "center" }}
               >
-                <Ionicons name="calendar" size={14} color="#fff" />
-                <Text style={[S.heroMeta, T.v2 && O.heroDate]} numberOfLines={T.v2 ? undefined : 1}>
+                <Ionicons name="calendar" size={14} color={hp ? hp.text : "#fff"} />
+                <Text style={[S.heroMeta, T.v2 && O.heroDate, hp && { color: hp.text }]} numberOfLines={T.v2 ? undefined : 1}>
                   {dateRange}
                 </Text>
               </View>) : null}
@@ -823,10 +855,10 @@ export default function TournamentOverviewScreen() {
                   <Ionicons
                     name="location"
                     size={14}
-                    color="#fff"
+                    color={hp ? hp.text : "#fff"}
                     style={{ marginTop: 2 }}
                   />
-                  <Text style={[S.heroMeta, T.v2 && O.heroLocation]} numberOfLines={T.v2 ? undefined : 2}>
+                  <Text style={[S.heroMeta, T.v2 && O.heroLocation, hp && { color: hp.textMuted }]} numberOfLines={T.v2 ? undefined : 2}>
                     {tournament.location}
                   </Text>
                 </View>
@@ -835,8 +867,8 @@ export default function TournamentOverviewScreen() {
               {!T.v2 ? (<View
                 style={{ flexDirection: "row", gap: 8, alignItems: "center" }}
               >
-                <Ionicons name="calendar" size={14} color="#fff" />
-                <Text style={[S.heroMeta, T.v2 && O.heroDate]} numberOfLines={T.v2 ? undefined : 1}>
+                <Ionicons name="calendar" size={14} color={hp ? hp.text : "#fff"} />
+                <Text style={[S.heroMeta, T.v2 && O.heroDate, hp && { color: hp.text }]} numberOfLines={T.v2 ? undefined : 1}>
                   {dateRange}
                 </Text>
               </View>) : null}
