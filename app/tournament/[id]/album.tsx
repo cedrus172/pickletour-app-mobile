@@ -32,6 +32,7 @@ import {
   useGetTournamentQuery,
   useLazyGetTournamentAlbumPhotosQuery,
   useSearchAlbumFacesMutation,
+  useLazyGetAlbumPhotoFacesQuery,
   useSetAlbumPhotoAvatarMutation,
 } from "@/slices/tournamentsApiSlice";
 
@@ -113,6 +114,7 @@ export default function TournamentAlbumScreen() {
           file = { uri: img.uri, name: "selfie.jpg", type: "image/jpeg" };
         }
         const res: any = await searchFaces({ id, index: albumIndex, file }).unwrap();
+        setFaceTarget("");
         setViewer(-1);
         setFaceResult(res);
         if (!res?.index?.ready)
@@ -123,6 +125,22 @@ export default function TournamentAlbumScreen() {
     },
     [searchFaces, id, albumIndex],
   );
+  // Tìm tất cả ảnh có mặt một người trong ảnh đang xem (nhiều mặt → cho chọn mặt)
+  const [faceTarget, setFaceTarget] = useState(""); // ảnh nhỏ khuôn mặt đang tìm (hiển thị ở đầu kết quả)
+  const searchByAlbumFace = useCallback(
+    async (fileId: string, face: number, thumb?: string) => {
+      try {
+        const res: any = await searchFaces({ id, index: albumIndex, pick: { fileId, face } }).unwrap();
+        setViewer(-1);
+        setFaceTarget(thumb || "");
+        setFaceResult(res);
+      } catch (e: any) {
+        Alert.alert("Không tìm được ảnh", e?.data?.message || e?.message || "Vui lòng thử lại.");
+      }
+    },
+    [searchFaces, id, albumIndex],
+  );
+
   const askFaceSearch = () => {
     if (!me?._id) return Alert.alert("Cần đăng nhập", "Vui lòng đăng nhập để tìm ảnh của bạn.");
     Alert.alert("Tìm ảnh của tôi", "So khuôn mặt của bạn với ảnh trong album. Ảnh bạn chọn chỉ dùng để tìm, không được lưu.", [
@@ -228,18 +246,23 @@ export default function TournamentAlbumScreen() {
                   <Text style={{ color: faceResult ? C.primary : "#fff", fontWeight: "800" }}>Tìm ảnh của tôi</Text>
                 </Pressable>
                 {faceResult ? (
-                  <Pressable accessibilityRole="button" onPress={() => { setFaceResult(null); setViewer(-1); }} style={styles.faceBack}>
+                  <Pressable accessibilityRole="button" onPress={() => { setFaceResult(null); setFaceTarget(""); setViewer(-1); }} style={styles.faceBack}>
                     <Text style={{ color: C.primary, fontWeight: "700" }}>← Xem tất cả ảnh</Text>
                   </Pressable>
                 ) : null}
               </View>
               {faceResult ? (
-                <Text style={{ color: C.sub, fontSize: 13 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                {faceTarget ? <ExpoImage source={{ uri: faceTarget }} style={{ width: 34, height: 34, borderRadius: 17 }} contentFit="cover" /> : null}
+                <Text style={{ color: C.sub, fontSize: 13, flex: 1 }}>
                   {faceResult.total
-                    ? `Tìm thấy ${faceResult.total} ảnh có bạn (${faceResult.source === "avatar" ? "theo ảnh đại diện" : "theo ảnh bạn chọn"})`
+                    ? faceResult.source === "albumFace"
+                      ? `Tìm thấy ${faceResult.total} ảnh có người này`
+                      : `Tìm thấy ${faceResult.total} ảnh có bạn (${faceResult.source === "avatar" ? "theo ảnh đại diện" : "theo ảnh bạn chọn"})`
                     : "Chưa tìm thấy ảnh nào có bạn."}
                   {!faceResult.index?.ready ? ` · đang phân tích ${faceResult.index?.done || 0}/${faceResult.index?.total || "?"} ảnh` : ""}
                 </Text>
+                </View>
               ) : null}
               {!faceResult && albums.length > 1 ? (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
@@ -298,6 +321,9 @@ export default function TournamentAlbumScreen() {
         index={viewer}
         total={faceResult ? faceResult.total : info?.total || photos.length}
         isAdmin={isAdmin}
+        loggedIn={!!me?._id}
+        searching={searching}
+        onFindPerson={searchByAlbumFace}
         tournamentId={String(id)}
         albumIndex={albumIndex}
         width={width}
@@ -312,7 +338,24 @@ export default function TournamentAlbumScreen() {
   );
 }
 
-function PhotoViewer({ photos, index, total, width, height, onIndex, onClose, isAdmin, tournamentId, albumIndex }: any) {
+function PhotoViewer({ photos, index, total, width, height, onIndex, onClose, isAdmin, tournamentId, albumIndex, loggedIn, searching, onFindPerson }: any) {
+  // "Tìm ảnh người này": lấy các khuôn mặt trong ảnh; 1 mặt → tìm ngay, nhiều mặt → cho chọn
+  const [getFaces, { isFetching: loadingFaces }] = useLazyGetAlbumPhotoFacesQuery();
+  const [pickFaces, setPickFaces] = useState<any[] | null>(null);
+  const findPerson = async () => {
+    const cur = photos[index];
+    if (!cur) return;
+    if (!loggedIn) return Alert.alert("Cần đăng nhập", "Vui lòng đăng nhập để tìm ảnh.");
+    try {
+      const res: any = await getFaces({ id: tournamentId, index: albumIndex, fileId: cur.id }, true).unwrap();
+      const faces = res?.faces || [];
+      if (!faces.length) return Alert.alert("Không thấy khuôn mặt", "Ảnh này không có khuôn mặt đủ rõ để tìm.");
+      if (faces.length === 1) return onFindPerson(cur.id, faces[0].index, faces[0].thumb);
+      setPickFaces(faces);
+    } catch (e: any) {
+      Alert.alert("Chưa đọc được khuôn mặt", e?.data?.message || "Vui lòng thử lại.");
+    }
+  };
   const [saving, setSaving] = useState(false);
   // Admin: đặt ảnh đang xem làm ảnh đại diện VĐV
   const [avatarOpen, setAvatarOpen] = useState(false);
@@ -425,6 +468,9 @@ function PhotoViewer({ photos, index, total, width, height, onIndex, onClose, is
             <Text style={{ color: "rgba(255,255,255,0.85)", flex: 1 }} numberOfLines={1}>
               {index + 1}/{total} · {current?.name || ""}
             </Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Tìm ảnh người này" disabled={loadingFaces || searching} onPress={findPerson} style={[styles.viewerBtn, { backgroundColor: "rgba(34,197,94,0.85)" }]}>
+              {loadingFaces || searching ? <ActivityIndicator color="#fff" /> : <Ionicons name="scan" size={22} color="#fff" />}
+            </Pressable>
             {isAdmin ? (
               <Pressable accessibilityRole="button" accessibilityLabel="Đặt làm ảnh đại diện VĐV" onPress={() => setAvatarOpen(true)} style={styles.viewerBtn}>
                 <Ionicons name="person-circle-outline" size={22} color="#fff" />
@@ -440,6 +486,37 @@ function PhotoViewer({ photos, index, total, width, height, onIndex, onClose, is
               <Ionicons name="close" size={24} color="#fff" />
             </Pressable>
           </SafeAreaView>
+          {pickFaces && current ? (
+            <Pressable style={styles.avatarOverlay} onPress={() => !searching && setPickFaces(null)}>
+              {/* safe-area-ok: SafeAreaView đọc inset bên trong modal */}
+              <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1 }}>
+                <Pressable style={[styles.avatarSheet, { backgroundColor: T.card, borderColor: T.border }]} onPress={() => {}}>
+                  <Text style={[styles.avatarTitle, { color: T.text }]}>Chọn người cần tìm</Text>
+                  <Text style={{ color: T.sub, fontSize: 13 }}>Ảnh có {pickFaces.length} khuôn mặt — chạm vào người bạn muốn tìm tất cả ảnh.</Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+                    {pickFaces.map((f: any) => (
+                      <Pressable
+                        key={f.index}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Khuôn mặt ${f.index + 1}`}
+                        disabled={searching}
+                        onPress={async () => {
+                          await onFindPerson(current.id, f.index, f.thumb);
+                          setPickFaces(null);
+                        }}
+                      >
+                        <ExpoImage source={{ uri: f.thumb }} style={styles.faceThumb} contentFit="cover" />
+                      </Pressable>
+                    ))}
+                  </View>
+                  {searching ? <ActivityIndicator color={T.primary} /> : null}
+                  <Pressable accessibilityRole="button" onPress={() => setPickFaces(null)} style={[styles.sheetBtn, { backgroundColor: T.field || T.border, alignSelf: "flex-end" }]}>
+                    <Text style={{ color: T.text, fontWeight: "800" }}>Đóng</Text>
+                  </Pressable>
+                </Pressable>
+              </SafeAreaView>
+            </Pressable>
+          ) : null}
           {avatarOpen && current ? (
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.avatarOverlay}>
               {/* safe-area-ok: SafeAreaView đọc inset bên trong modal */}
@@ -492,5 +569,6 @@ const styles = StyleSheet.create({
   avatarOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.55)" },
   avatarSheet: { margin: 14, marginTop: 60, padding: 16, borderRadius: 18, borderWidth: 1, gap: 12 },
   avatarTitle: { fontSize: 17, fontWeight: "900", color: "#0B1B3A" },
+  faceThumb: { width: 76, height: 76, borderRadius: 38, borderWidth: 2, borderColor: "#22C55E" },
   sheetBtn: { minHeight: 44, paddingHorizontal: 16, borderRadius: 12, alignItems: "center", justifyContent: "center" },
 });

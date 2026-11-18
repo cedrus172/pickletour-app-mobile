@@ -146,11 +146,19 @@ export const tournamentsApiSlice = apiSlice.injectEndpoints({
 
     // Tìm ảnh của tôi theo khuôn mặt (file = { uri, name, type } selfie; không gửi → dùng avatar tài khoản)
     searchAlbumFaces: builder.mutation({
-      query: ({ id, index, file }) => {
+      // file = selfie; pick = { fileId, face } = một khuôn mặt trong ảnh album; không gửi gì = avatar tài khoản
+      query: ({ id, index, file, pick }) => {
+        const url = `/api/tournaments/${id}/albums/${index}/faces/search`;
+        if (pick) return { url, method: "POST", body: { fileId: pick.fileId, face: pick.face } };
         const body = new FormData();
         if (file) body.append("photo", file);
-        return { url: `/api/tournaments/${id}/albums/${index}/faces/search`, method: "POST", body };
+        return { url, method: "POST", body };
       },
+    }),
+    // Các khuôn mặt trong 1 ảnh album (ảnh nhỏ từng mặt) — cho chọn mặt để tìm
+    getAlbumPhotoFaces: builder.query({
+      query: ({ id, index, fileId }) => `/api/tournaments/${id}/albums/${index}/photos/${fileId}/faces`,
+      keepUnusedDataFor: 600,
     }),
     // Admin: đặt ảnh album làm avatar VĐV
     setAlbumPhotoAvatar: builder.mutation({
@@ -1035,6 +1043,7 @@ export const {
   useGetTournamentAlbumsQuery,
   useCreateGuestRegistrationMutation,
   useSearchAlbumFacesMutation,
+  useLazyGetAlbumPhotoFacesQuery,
   useSetAlbumPhotoAvatarMutation,
   useLazyGetTournamentAlbumPhotosQuery,
   useListTournamentsQuery,
