@@ -14,9 +14,11 @@ import { TextInput } from "@/components/ui/i18nTextInput";
 import { useUploadAvatarMutation } from "@/slices/uploadApiSlice";
 import { useCreateGuestRegistrationMutation } from "@/slices/tournamentsApiSlice";
 import { normalizeUrl } from "@/utils/normalizeUri";
+import PlayerSelector from "@/components/PlayerSelector";
 
-type GuestPlayer = { phone: string; name: string; nickname: string; score: string; avatar: string };
-const EMPTY: GuestPlayer = { phone: "", name: "", nickname: "", score: "0", avatar: "" };
+// hasAccount: VĐV đã có tài khoản → chọn từ hệ thống (user); chưa có → nhập tay (tạo tài khoản khách).
+type GuestPlayer = { hasAccount: boolean; user: any; phone: string; name: string; nickname: string; score: string; avatar: string };
+const EMPTY: GuestPlayer = { hasAccount: false, user: null, phone: "", name: "", nickname: "", score: "0", avatar: "" };
 
 type Colors = { textPrimary: string; textSecondary: string; border: string; inputBg: string; tint: string; cardBg?: string };
 
@@ -40,7 +42,7 @@ function Field({ label, value, onChangeText, C, keyboardType, required }: any) {
   );
 }
 
-function PlayerFields({ title, value, onChange, C }: { title: string; value: GuestPlayer; onChange: (v: GuestPlayer) => void; C: Colors }) {
+function PlayerFields({ title, value, onChange, C, eventType }: { title: string; value: GuestPlayer; onChange: (v: GuestPlayer) => void; C: Colors; eventType: "single" | "double" }) {
   const [uploadAvatar, { isLoading: uploading }] = useUploadAvatarMutation();
   const set = (k: keyof GuestPlayer) => (t: string) => onChange({ ...value, [k]: t });
 
@@ -63,6 +65,41 @@ function PlayerFields({ title, value, onChange, C }: { title: string; value: Gue
   return (
     <View style={[styles.player, { borderColor: C.border }]}>
       <Text style={[styles.playerTitle, { color: C.textPrimary }]}>{title}</Text>
+      <View style={[styles.seg, { borderColor: C.border }]}>
+        {[
+          { v: true, label: "Có tài khoản" },
+          { v: false, label: "Chưa có tài khoản" },
+        ].map((o) => {
+          const on = value.hasAccount === o.v;
+          return (
+            <Pressable
+              key={o.label}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: on }}
+              onPress={() => onChange({ ...value, hasAccount: o.v })}
+              style={[styles.segItem, on && { backgroundColor: C.tint }]}
+            >
+              <Text style={{ color: on ? "#fff" : C.textSecondary, fontWeight: "800", fontSize: 12.5 }}>{o.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      {value.hasAccount ? (
+        <View style={{ gap: 6 }}>
+          <PlayerSelector
+            label="Tìm VĐV trong hệ thống"
+            appearance="tournament"
+            eventType={eventType}
+            onChange={(u) => onChange({ ...value, user: u })}
+          />
+          {value.user?._id ? (
+            <Text style={{ color: C.textPrimary, fontWeight: "700" }}>
+              Đã chọn: {value.user.nickname || value.user.nickName || value.user.name}
+            </Text>
+          ) : null}
+        </View>
+      ) : (
+      <>
       <View style={styles.avatarRow}>
         <View style={[styles.avatar, { backgroundColor: C.inputBg, borderColor: C.border }]}>
           {value.avatar ? (
@@ -84,6 +121,8 @@ function PlayerFields({ title, value, onChange, C }: { title: string; value: Gue
         <Field C={C} required label="Biệt danh" value={value.nickname} onChangeText={set("nickname")} />
         <Field C={C} label="Điểm trình (mặc định 0)" value={value.score} onChangeText={set("score")} keyboardType="decimal-pad" />
       </View>
+      </>
+      )}
     </View>
   );
 }
@@ -104,6 +143,7 @@ export default function GuestRegistrationForm({
   const [createGuest, { isLoading }] = useCreateGuestRegistrationMutation();
 
   const validate = (p: GuestPlayer, label: string) => {
+    if (p.hasAccount) return p.user?._id ? "" : `${label}: hãy tìm và chọn VĐV trong hệ thống`;
     const phone = p.phone.replace(/[\s.-]/g, "");
     if (!/^0\d{9}$/.test(phone)) return `${label}: số điện thoại phải có 10 số, bắt đầu bằng 0`;
     if (p.name.trim().length < 2) return `${label}: vui lòng nhập họ và tên`;
@@ -115,7 +155,9 @@ export default function GuestRegistrationForm({
     const err = validate(p1, singles ? "VĐV" : "VĐV 1") || (!singles ? validate(p2, "VĐV 2") : "");
     if (err) return Alert.alert("Thiếu thông tin", err);
     try {
-      const res: any = await createGuest({ id: tournamentId, players: singles ? [p1] : [p1, p2] }).unwrap();
+      const toBody = (p: GuestPlayer) =>
+        p.hasAccount ? { userId: p.user._id } : { phone: p.phone, name: p.name, nickname: p.nickname, score: p.score, avatar: p.avatar };
+      const res: any = await createGuest({ id: tournamentId, players: (singles ? [p1] : [p1, p2]).map(toBody) }).unwrap();
       const created = (res?.players || []).filter((x: any) => x.createdGuest).length;
       const reused = (res?.players || []).filter((x: any) => x.existingAccount).length;
       Alert.alert(
@@ -136,12 +178,12 @@ export default function GuestRegistrationForm({
       <View style={[styles.note, { borderColor: C.border }]}>
         <Ionicons name="information-circle" size={18} color={C.tint} />
         <Text style={{ color: C.textSecondary, flex: 1, fontSize: 12.5, lineHeight: 18 }}>
-          VĐV chưa có tài khoản sẽ được tạo tài khoản khách theo SĐT. Khi VĐV tự đăng ký app bằng đúng SĐT này sẽ có sẵn dữ
-          liệu thi đấu.
+          Mỗi VĐV chọn "Có tài khoản" (tìm trong hệ thống) hoặc "Chưa có tài khoản" (nhập tay, tạo tài khoản khách theo SĐT).
+          Khi VĐV tự đăng ký app bằng đúng SĐT này sẽ có sẵn dữ liệu thi đấu.
         </Text>
       </View>
-      <PlayerFields title={singles ? "Vận động viên" : "Vận động viên 1"} value={p1} onChange={setP1} C={C} />
-      {!singles ? <PlayerFields title="Vận động viên 2" value={p2} onChange={setP2} C={C} /> : null}
+      <PlayerFields title={singles ? "Vận động viên" : "Vận động viên 1"} value={p1} onChange={setP1} C={C} eventType={singles ? "single" : "double"} />
+      {!singles ? <PlayerFields title="Vận động viên 2" value={p2} onChange={setP2} C={C} eventType="double" /> : null}
       <TouchableOpacity
         testID="guest-registration-submit"
         accessibilityRole="button"
@@ -154,7 +196,7 @@ export default function GuestRegistrationForm({
         ) : (
           <>
             <Ionicons name="person-add" size={18} color="#fff" />
-            <Text style={{ color: "#fff", fontWeight: "800" }}>Đăng ký VĐV ngoài hệ thống</Text>
+            <Text style={{ color: "#fff", fontWeight: "800" }}>Đăng ký</Text>
           </>
         )}
       </TouchableOpacity>
@@ -166,6 +208,8 @@ const styles = StyleSheet.create({
   note: { flexDirection: "row", gap: 8, padding: 10, borderRadius: 12, borderWidth: 1, marginBottom: 12 },
   player: { borderWidth: 1, borderRadius: 14, padding: 12, marginBottom: 12, gap: 10 },
   playerTitle: { fontSize: 14, fontWeight: "800" },
+  seg: { flexDirection: "row", gap: 4, padding: 3, borderRadius: 10, borderWidth: 1 },
+  segItem: { flex: 1, minHeight: 34, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   avatarRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   avatar: { width: 56, height: 56, borderRadius: 28, borderWidth: 1, overflow: "hidden", alignItems: "center", justifyContent: "center" },
   photoBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, height: 36, borderRadius: 18, borderWidth: 1 },
