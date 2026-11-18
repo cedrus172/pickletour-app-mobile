@@ -193,6 +193,8 @@ const HOT_UPDATE_NOTIFY_KEY = "__PICKLETOUR_HOTUPDATE_NOTIFY__";
 const OTA_ROUTE_RESTORE_KEY = "__PICKLETOUR_OTA_ROUTE_RESTORE__";
 const HOT_UPDATE_RELOAD_EVENT = "hotupdater:before-reload";
 const HOT_UPDATE_RELOAD_KEY = "__PICKLETOUR_HOTUPDATE_RELOAD__";
+// OTA thường: chỉ nạp bản mới khi người dùng mở lại app sau khi đã ẩn app ít nhất ngần này.
+const OTA_RESUME_MIN_AWAY_MS = 30_000;
 const HOT_UPDATE_PENDING_KEY = "__PICKLETOUR_HOTUPDATE_PENDING__";
 const HOT_UPDATE_APPLIED_BUNDLE_KEY = "__PICKLETOUR_HOTUPDATE_APPLIED_BUNDLE__";
 const HOT_UPDATE_RECOVERED_BUNDLE_KEY = "__PICKLETOUR_HOTUPDATE_RECOVERED_BUNDLE__";
@@ -758,6 +760,11 @@ function RootLayout() {
   const otaIgnoredUpdateIdRef = React.useRef<string | null>(null);
   const otaInitialCheckDoneRef = React.useRef(false);
   const otaCompletionTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  // OTA "lặng lẽ": bản thường tải ngầm, KHÔNG reload khi người dùng đang dùng. Áp dụng khi
+  // (1) mở lại app sau khi ẩn ≥ OTA_RESUME_MIN_AWAY_MS (giống CodePush ON_NEXT_RESUME), hoặc
+  // (2) lần khởi động lạnh tiếp theo (native tự nạp bundle đã tải). Bản bắt buộc vẫn áp dụng ngay.
+  const otaApplyImmediateRef = React.useRef(false);
+  const otaBackgroundAtRef = React.useRef(0);
   const otaReloadProtectedRef = React.useRef(isRefereeScoringScreen);
   otaReloadProtectedRef.current = isRefereeScoringScreen;
   const otaReadyPayloadRef = React.useRef<PendingHotUpdatePayload | null>(null);
@@ -975,7 +982,20 @@ function RootLayout() {
     if (otaCompletionTimerRef.current) clearTimeout(otaCompletionTimerRef.current);
     otaCompletionTimerRef.current = null;
     if (!HotUpdater || !otaReadyPayloadRef.current || otaReloadInProgressRef.current) return;
-    if (otaReloadProtectedRef.current || AppState.currentState !== "active") {
+    const appState = AppState.currentState;
+    if (appState === "background") {
+      // Ghi lại lúc app bị ẩn (chỉ lần đầu) để biết khi mở lại đã rời đi bao lâu.
+      if (!otaBackgroundAtRef.current) otaBackgroundAtRef.current = Date.now();
+      return;
+    }
+    if (appState !== "active") return;
+    const awayMs = otaBackgroundAtRef.current ? Date.now() - otaBackgroundAtRef.current : 0;
+    otaBackgroundAtRef.current = 0;
+    if (!otaApplyImmediateRef.current && awayMs < OTA_RESUME_MIN_AWAY_MS) {
+      otaDiag("đã tải ngầm; áp dụng khi mở lại app hoặc khởi động lại");
+      return;
+    }
+    if (otaReloadProtectedRef.current) {
       otaDiag("đã tải; chờ rời màn hình trọng tài và app đang mở");
       return;
     }
@@ -1034,7 +1054,7 @@ function RootLayout() {
         setHotUpdateBlocking(false);
         setHotUpdateStatus("error");
       });
-    }, 700);
+    }, otaApplyImmediateRef.current ? 700 : 0);
   }, []);
 
   React.useEffect(() => {
@@ -1066,9 +1086,12 @@ function RootLayout() {
     otaCheckInFlightRef.current = true;
     otaReadyPayloadRef.current = null;
     otaIgnoredUpdateIdRef.current = null;
+    otaApplyImmediateRef.current = applyImmediately;
+    otaBackgroundAtRef.current = 0;
     if (otaCompletionTimerRef.current) clearTimeout(otaCompletionTimerRef.current);
     setHotUpdateBlocking(applyImmediately && !otaReloadProtectedRef.current);
-    setHotUpdateVisible(true);
+    // Bản thường tải ngầm, không hiện thanh tiến trình; chỉ bản bắt buộc mới hiện.
+    setHotUpdateVisible(applyImmediately);
     setHotUpdateStatus("downloading");
     setHotUpdateProgress(0);
     setHotUpdateMessage(
