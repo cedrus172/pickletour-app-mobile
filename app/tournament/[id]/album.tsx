@@ -239,16 +239,25 @@ function PhotoViewer({ photos, index, total, width, height, onIndex, onClose }: 
       const safe = String(current.name || `pickletour-${current.id}.jpg`).replace(/[^\w.-]+/g, "_");
       const res = await FileSystem.downloadAsync(current.download, `${dir}${Date.now()}-${safe}`);
       if (res.status < 200 || res.status >= 300) throw new Error("Không tải được ảnh.");
+      // Lưu thẳng vào thư viện ảnh; bản cài cũ thiếu khai báo quyền (NSPhotoLibraryAddUsageDescription)
+      // hoặc thiếu module → mở bảng Chia sẻ của hệ thống (có sẵn "Lưu hình ảnh", không cần quyền riêng).
+      let saved = false;
       if (MediaLibrary?.saveToLibraryAsync) {
-        const perm = await MediaLibrary.requestPermissionsAsync(true);
-        if (!perm.granted) {
-          Alert.alert("Cần quyền truy cập Ảnh", "Hãy cho phép PickleTour lưu ảnh trong phần Cài đặt.");
-          return;
+        try {
+          const perm = await MediaLibrary.requestPermissionsAsync(true);
+          if (perm.granted) {
+            await MediaLibrary.saveToLibraryAsync(res.uri);
+            saved = true;
+            Alert.alert("Đã lưu", "Ảnh (có logo PickleTour) đã được lưu vào thư viện ảnh.");
+          } else if (perm.canAskAgain === false) {
+            Alert.alert("Cần quyền truy cập Ảnh", "Hãy cho phép PickleTour lưu ảnh trong phần Cài đặt, hoặc chọn \"Lưu hình ảnh\" ở bảng chia sẻ.");
+          }
+        } catch {
+          saved = false;
         }
-        await MediaLibrary.saveToLibraryAsync(res.uri);
-        Alert.alert("Đã lưu", "Ảnh (có logo PickleTour) đã được lưu vào thư viện ảnh.");
-      } else if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(res.uri, { dialogTitle: "Lưu hoặc chia sẻ ảnh" });
+      }
+      if (!saved && (await Sharing.isAvailableAsync())) {
+        await Sharing.shareAsync(res.uri, { mimeType: "image/jpeg", UTI: "public.jpeg", dialogTitle: "Lưu hoặc chia sẻ ảnh" });
       }
     } catch (e: any) {
       Alert.alert("Không thể lưu ảnh", e?.message || "Vui lòng thử lại.");

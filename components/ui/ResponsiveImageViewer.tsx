@@ -25,11 +25,20 @@ export default function ResponsiveImageViewer({ images, imageIndex, visible, onR
       const extension = /\.(png|webp|jpeg|jpg)(?:[?#]|$)/i.exec(uri)?.[1] || "jpg";
       const result = await FileSystem.downloadAsync(uri, `${dir}pickletour-image-${Date.now()}.${extension}`, { headers });
       if (result.status < 200 || result.status >= 300) throw new Error("Không tải được ảnh.");
+      // Bản cài cũ thiếu khai báo quyền lưu ảnh → saveToLibraryAsync lỗi; khi đó mở bảng Chia sẻ (có "Lưu hình ảnh").
+      let saved = false;
       if (mediaLibrary?.saveToLibraryAsync) {
-        const permission = await mediaLibrary.requestPermissionsAsync(true);
-        if (!permission.granted) { Alert.alert("Cần quyền truy cập Ảnh", "Hãy cho phép PickleTour lưu ảnh trong phần Cài đặt."); return; }
-        await mediaLibrary.saveToLibraryAsync(result.uri);
-        Alert.alert("Đã lưu", "Ảnh đã được lưu vào thư viện ảnh.");
+        try {
+          const permission = await mediaLibrary.requestPermissionsAsync(true);
+          if (permission.granted) {
+            await mediaLibrary.saveToLibraryAsync(result.uri);
+            saved = true;
+            Alert.alert("Đã lưu", "Ảnh đã được lưu vào thư viện ảnh.");
+          }
+        } catch { saved = false; }
+      }
+      if (saved) {
+        // đã lưu
       } else if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(result.uri, { dialogTitle: "Lưu hoặc chia sẻ ảnh" });
       } else {

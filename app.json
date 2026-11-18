@@ -146,8 +146,8 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Cho phép PickleTour lưu clip đã cắt vào thư viện ảnh của bạn.",
-          "savePhotosPermission": "Cho phép PickleTour lưu clip đã cắt vào thư viện ảnh của bạn.",
+          "photosPermission": "Cho phép PickleTour truy cập thư viện ảnh để lưu ảnh và clip của bạn.",
+          "savePhotosPermission": "Cho phép PickleTour lưu ảnh và clip vào thư viện ảnh của bạn.",
           "isAccessMediaLocationEnabled": false
         }
       ],
