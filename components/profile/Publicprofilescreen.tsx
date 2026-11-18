@@ -993,61 +993,109 @@ const KpiCard = React.memo(({ title, value, sub, colors }) => (
   </ProfileGlassSurface>
 ));
 
+/* Thành tích theo giải: chỉ từ Tứ kết trở lên, giải gần nhất lên đầu, poster + icon (ảnh tạo bằng GPT). */
+const ACH_ICON = {
+  champion: require("@/assets/images/achievements/champion.png"),
+  runnerup: require("@/assets/images/achievements/runnerup.png"),
+  third: require("@/assets/images/achievements/third.png"),
+  quarter: require("@/assets/images/achievements/quarter.png"),
+};
+const achTier = (k) => {
+  if (!Number.isFinite(k) || k > 8) return null;
+  if (k === 1) return { key: "champion", label: "Vô địch", color: "#D99A06", tint: "rgba(245,180,20,0.16)" };
+  if (k === 2) return { key: "runnerup", label: "Á quân", color: "#7C8A9A", tint: "rgba(148,163,184,0.18)" };
+  if (k <= 4) return { key: "third", label: k === 3 ? "Hạng 3" : "Đồng hạng 3", color: "#C2652A", tint: "rgba(217,119,6,0.15)" };
+  return { key: "quarter", label: "Tứ kết", color: "#2563EB", tint: "rgba(37,99,235,0.14)" };
+};
+const achTime = (r) => new Date(r?.tournamentEnd || r?.tournamentStart || r?.lastMatchAt || 0).getTime() || 0;
+
 const AchievementRow = React.memo(({ data, colors }) => {
-  const { bg, fg } = getTopStyle(data?.topK);
+  const tier = achTier(data?.topK);
+  if (!tier) return null;
+  const poster = normalizeUrl(data?.tournamentImage);
+  const when = data?.tournamentStart || data?.lastMatchAt;
+  const live = data?.confirmed === false;
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      disabled={!data?.tournamentId}
+      onPress={() => router.push(`/tournament/${data.tournamentId}` as any)}
+    >
+      <ProfileGlassSurface
+        colors={colors}
+        interactive
+        tintColor={profileGlassSurfaceTint(colors, 0.62, 0.5)}
+        style={[
+          styles.achCard2,
+          { backgroundColor: colors.card, borderColor: colors.border },
+          IOS_26_LIQUID_GLASS_ENABLED && styles.profileGlassPanel,
+        ]}
+      >
+        <View style={[styles.achAccent, { backgroundColor: tier.color }]} />
+        <View style={[styles.achPoster, { backgroundColor: tier.tint }]}>
+          {poster ? (
+            <Image source={{ uri: poster }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
+          ) : (
+            <Image source={ACH_ICON[tier.key]} style={{ width: 40, height: 40 }} contentFit="contain" />
+          )}
+        </View>
+        <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+          <Text style={[styles.achName, { color: colors.text }]} numberOfLines={2}>
+            {data.tournamentName}
+          </Text>
+          {data.bracketName && data.bracketName !== "—" ? (
+            <Text style={{ color: colors.subText, fontSize: 12.5 }} numberOfLines={1}>
+              {data.bracketName}
+            </Text>
+          ) : null}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <View style={[styles.achPill, { backgroundColor: tier.tint, borderColor: tier.color }]}>
+              <Text style={{ color: tier.color, fontWeight: "900", fontSize: 12.5 }}>{tier.label.toUpperCase()}</Text>
+            </View>
+            {live ? (
+              <View style={[styles.achPill, { borderColor: "#16A34A", backgroundColor: "rgba(22,163,74,0.12)" }]}>
+                <Text style={{ color: "#16A34A", fontWeight: "800", fontSize: 11.5 }}>ĐANG THI ĐẤU</Text>
+              </View>
+            ) : null}
+          </View>
+          <Text style={{ color: colors.subText, fontSize: 12 }} numberOfLines={1}>
+            {[when ? fmtDate(when) : null, `${data.stats?.wins ?? 0}T – ${data.stats?.losses ?? 0}B`, Number.isFinite(data.stats?.winRate) ? `${data.stats.winRate.toFixed(0)}% thắng` : null]
+              .filter(Boolean)
+              .join("  ·  ")}
+          </Text>
+        </View>
+        <Image source={ACH_ICON[tier.key]} style={styles.achIcon} contentFit="contain" />
+      </ProfileGlassSurface>
+    </TouchableOpacity>
+  );
+});
+
+const AchShelf = React.memo(({ items, colors }) => {
+  const counts = { champion: 0, runnerup: 0, third: 0, quarter: 0 };
+  for (const it of items) {
+    const t = achTier(it?.topK);
+    if (t && it?.confirmed !== false) counts[t.key] += 1;
+  }
+  const cells = [
+    ["champion", "Vô địch"],
+    ["runnerup", "Á quân"],
+    ["third", "Hạng 3"],
+    ["quarter", "Tứ kết"],
+  ];
   return (
     <ProfileGlassSurface
       colors={colors}
       interactive
       tintColor={profileGlassSurfaceTint(colors, 0.62, 0.5)}
-      style={[
-        styles.achRowCard,
-        { backgroundColor: colors.card, borderColor: colors.border },
-        IOS_26_LIQUID_GLASS_ENABLED && styles.profileGlassPanel,
-      ]}
+      style={[styles.achShelf, { backgroundColor: colors.card, borderColor: colors.border }, IOS_26_LIQUID_GLASS_ENABLED && styles.profileGlassPanel]}
     >
-      <Text style={[styles.achRowTitle, { color: colors.text }]}>
-        {data.tournamentName}
-      </Text>
-
-      <View style={styles.achRowLine}>
-        <Text style={[styles.achRowLabel, { color: colors.subText }]}>
-          Bracket
-        </Text>
-        <Text style={{ color: colors.text, fontWeight: "700" }}>
-          {data.bracketName}
-        </Text>
-      </View>
-
-      <View style={styles.achRowLine}>
-        <Text style={[styles.achRowLabel, { color: colors.subText }]}>Top</Text>
-        <View style={[styles.achChip, { backgroundColor: bg }]}>
-          <Text style={[styles.achChipText, { color: fg }]}>
-            {data.positionLabel || (data.topK ? `Top ${data.topK}` : "—")}
-          </Text>
+      {cells.map(([k, label]) => (
+        <View key={k} style={{ flex: 1, alignItems: "center", gap: 2, opacity: counts[k] ? 1 : 0.45 }}>
+          <Image source={ACH_ICON[k]} style={{ width: 52, height: 52 }} contentFit="contain" />
+          <Text style={{ color: colors.text, fontWeight: "900", fontSize: 20 }}>{counts[k]}</Text>
+          <Text style={{ color: colors.subText, fontSize: 11.5, fontWeight: "600" }}>{label}</Text>
         </View>
-      </View>
-
-      <View style={styles.achRowLine}>
-        <Text style={[styles.achRowLabel, { color: colors.subText }]}>
-          W/L/WR
-        </Text>
-        <Text style={{ color: colors.text }}>
-          {data.stats?.wins ?? 0}/{data.stats?.losses ?? 0} •{" "}
-          {Number.isFinite(data.stats?.winRate)
-            ? `${data.stats.winRate.toFixed(1)}%`
-            : "—"}
-        </Text>
-      </View>
-
-      <View style={styles.achRowLine}>
-        <Text style={[styles.achRowLabel, { color: colors.subText }]}>
-          Cuối cùng
-        </Text>
-        <Text style={{ color: colors.text }}>
-          {data.lastMatchAt ? fmtDate(data.lastMatchAt) : "—"}
-        </Text>
-      </View>
+      ))}
     </ProfileGlassSurface>
   );
 });
@@ -1069,7 +1117,9 @@ const AchievementsTab = React.memo(({ data, loading, error, colors }) => {
     );
 
   const sum = data?.summary || {};
-  const perT = Array.isArray(data?.perTournament) ? data.perTournament : [];
+  const perT = (Array.isArray(data?.perTournament) ? data.perTournament : [])
+    .filter((r) => achTier(r?.topK))
+    .sort((x, y) => achTime(y) - achTime(x));
 
   return (
     <View style={styles.achTabContainer}>
@@ -1107,12 +1157,16 @@ const AchievementsTab = React.memo(({ data, loading, error, colors }) => {
       <Text style={[styles.sectionTitle, { color: colors.text }]}>
         Thành tích theo giải
       </Text>
+      <Text style={{ color: colors.subText, fontSize: 12.5, marginTop: -10 }}>
+        Từ Tứ kết trở lên · giải gần nhất ở trên
+      </Text>
+      <AchShelf items={perT} colors={colors} />
 
       {!perT.length ? (
         <Text
           style={{ color: colors.subText, textAlign: "center", marginTop: 12 }}
         >
-          Chưa có dữ liệu giải đấu
+          Chưa có thành tích từ Tứ kết trở lên
         </Text>
       ) : (
         <View style={{ gap: 12 }}>
@@ -3797,6 +3851,13 @@ const styles = StyleSheet.create({
   kpiSub: { fontSize: 11 },
 
   achRowCard: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 8 },
+  achCard2: { borderWidth: 1, borderRadius: 18, padding: 12, paddingLeft: 16, flexDirection: "row", alignItems: "center", gap: 12, overflow: "hidden" },
+  achAccent: { position: "absolute", left: 0, top: 0, bottom: 0, width: 5 },
+  achPoster: { width: 62, height: 84, borderRadius: 12, overflow: "hidden", alignItems: "center", justifyContent: "center" },
+  achName: { fontWeight: "800", fontSize: 14.5, lineHeight: 19 },
+  achPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 2 },
+  achIcon: { width: 54, height: 54 },
+  achShelf: { borderWidth: 1, borderRadius: 18, paddingVertical: 12, paddingHorizontal: 6, flexDirection: "row" },
   achRowTitle: { fontWeight: "700", fontSize: 15, marginBottom: 4 },
   achRowLine: { flexDirection: "row", alignItems: "center", gap: 8 },
   achRowLabel: { width: 80, fontSize: 12 },
