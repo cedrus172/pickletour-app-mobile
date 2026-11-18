@@ -5,6 +5,7 @@ import { Stack, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image as ExpoImage } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
+import { useSelector } from "react-redux";
 import { Text } from "@/components/ui/i18nText";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
 import { useCancelVarJobMutation, useDeleteVarJobMutation, useListVarJobsQuery } from "@/slices/varApiSlice";
@@ -13,7 +14,8 @@ import { ORANGE, Pill, StageStepper, VOLT, etaText, fmtDur } from "@/components/
 export default function VarListScreen() {
   const C = useThemeTokens();
   const [tab, setTab] = useState<"active" | "done">("active");
-  const { data: all, isFetching, refetch } = useListVarJobsQuery(undefined, { pollingInterval: 8000 });
+  const loggedIn = !!useSelector((st: any) => st?.auth?.userInfo?._id);
+  const { data: all, isFetching, refetch, error } = useListVarJobsQuery(undefined, { pollingInterval: 8000, skip: !loggedIn });
   const [cancelJob] = useCancelVarJobMutation();
   const [deleteJob] = useDeleteVarJobMutation();
   const jobs: any[] = all?.jobs || [];
@@ -100,13 +102,30 @@ export default function VarListScreen() {
               </Pressable>
             ))}
           </View>
-          <Pressable accessibilityRole="button" onPress={() => router.push("/var/create" as any)} style={[styles.newBtn, { backgroundColor: C.primary }]}>
+          <Pressable accessibilityRole="button" onPress={() => (loggedIn ? router.push("/var/create" as any) : router.push("/login" as any))} style={[styles.newBtn, { backgroundColor: C.primary }]}>
             <Ionicons name="add" size={18} color={C.onPrimary} />
             <Text style={{ color: C.onPrimary, fontWeight: "800" }}>Tạo mới</Text>
           </Pressable>
         </View>
 
         {!all && isFetching ? <ActivityIndicator color={C.primary} style={{ marginTop: 30 }} /> : null}
+        {!loggedIn || (error && !all) ? (
+          <View style={[styles.card, { backgroundColor: C.card, borderColor: C.border, alignItems: "center", gap: 10 }]}>
+            <Ionicons name={loggedIn ? "cloud-offline-outline" : "person-circle-outline"} size={30} color={C.primary} />
+            <Text style={{ color: C.text, fontWeight: "800", textAlign: "center" }}>
+              {loggedIn ? (error as any)?.data?.message || "Không tải được danh sách" : "Đăng nhập để dùng Highlight & VAR"}
+            </Text>
+            {!loggedIn ? (
+              <Pressable accessibilityRole="button" onPress={() => router.push("/login" as any)} style={[styles.newBtn, { backgroundColor: C.primary, alignSelf: "center" }]}>
+                <Text style={{ color: C.onPrimary, fontWeight: "800" }}>Đăng nhập</Text>
+              </Pressable>
+            ) : (
+              <Pressable accessibilityRole="button" onPress={refetch}>
+                <Text style={{ color: C.primary, fontWeight: "700" }}>Thử lại</Text>
+              </Pressable>
+            )}
+          </View>
+        ) : null}
 
         {tab === "active" ? (
           <>

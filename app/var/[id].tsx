@@ -44,7 +44,7 @@ export default function VarResultScreen() {
   const C = useThemeTokens();
   const { id, t } = useLocalSearchParams<{ id: string; t?: string }>();
   const [poll, setPoll] = useState(6000);
-  const { data: job, isLoading, refetch } = useGetVarJobQuery(String(id), {
+  const { data: job, isLoading, refetch, error } = useGetVarJobQuery(String(id), {
     pollingInterval: poll,
     skip: !id,
   });
@@ -123,6 +123,19 @@ export default function VarResultScreen() {
       },
     });
   };
+
+  if (error && !job) {
+    return (
+      <View style={{ flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center", padding: 24, gap: 10 }}>
+        <Stack.Screen options={{ title: "Highlight & VAR", headerShown: true }} />
+        <Ionicons name="alert-circle-outline" size={34} color={C.sub} />
+        <Text style={{ color: C.text, fontWeight: "800", textAlign: "center" }}>{(error as any)?.data?.message || "Không mở được video này"}</Text>
+        <Pressable onPress={() => router.replace("/var" as any)}>
+          <Text style={{ color: C.primary, fontWeight: "700" }}>Về danh sách</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   if (isLoading || !job) {
     return (
