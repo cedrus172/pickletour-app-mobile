@@ -1,17 +1,44 @@
 // components/admin/PlayerScoreLookup.tsx — Admin: tra VĐV theo khuôn mặt trong dữ liệu diễn đàn
 // (SportConnect / PickleballVN). Điểm PickleTour = điểm ĐÔI; PickleballVN trừ 0.4, SportConnect giữ nguyên.
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image as ExpoImage } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/i18nText";
-import AppModal from "@/components/ui/AppModal";
+import AppModal, { ModalTopInset } from "@/components/ui/AppModal";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
 import { useLookupPlayerFaceMutation } from "@/slices/spcFaceApiSlice";
 import { normalizeUrl } from "@/utils/normalizeUri";
 
-export const SOURCE_COLOR: Record<string, string> = { spc: "#2563EB", pbvn: "#16A34A" };
+export const SOURCE_COLOR: Record<string, string> = { spc: "#2563EB", pbvn: "#16A34A", pt: "#0891B2" };
+
+/** Ảnh đại diện bấm vào → xem ảnh đầy đủ (nền đen, chạm để đóng). */
+export function ZoomAvatar({ uri, size = 48, fallback }: { uri?: string; size?: number; fallback?: React.ReactNode }) {
+  const C = useThemeTokens();
+  const [open, setOpen] = useState(false);
+  const box = { width: size, height: size, borderRadius: size / 2, overflow: "hidden" as const, alignItems: "center" as const, justifyContent: "center" as const, backgroundColor: C.field };
+  if (!uri) return <View style={box}>{fallback || <Ionicons name="person" size={size * 0.45} color={C.sub} />}</View>;
+  return (
+    <>
+      <Pressable accessibilityRole="imagebutton" accessibilityLabel="Xem ảnh đầy đủ" onPress={() => setOpen(true)} style={box}>
+        <ExpoImage source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+      </Pressable>
+      <AppModal visible={open} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setOpen(false)}>
+        <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.94)" }} onPress={() => setOpen(false)}>
+          <ExpoImage source={{ uri }} style={{ flex: 1 }} contentFit="contain" />
+          <ModalTopInset min={12}>
+            {(top) => (
+              <Pressable accessibilityRole="button" accessibilityLabel="Đóng" hitSlop={12} onPress={() => setOpen(false)} style={{ position: "absolute", top: top + 8, right: 16 }}>
+                <Ionicons name="close-circle" size={34} color="#fff" />
+              </Pressable>
+            )}
+          </ModalTopInset>
+        </Pressable>
+      </AppModal>
+    </>
+  );
+}
 const fmt = (v: any) => (v == null || !Number.isFinite(Number(v)) ? "—" : Number(v).toFixed(2).replace(/0$/, ""));
 
 /** Nhãn điểm theo nguồn: "PickleballVN 3.0 → 2.6" / "SportConnect 3.2". */
@@ -34,16 +61,14 @@ export function MatchRow({ m, onUse }: { m: any; onUse?: (m: any) => void }) {
   const C = useThemeTokens();
   return (
     <View style={[styles.row, { borderColor: m.likely ? SOURCE_COLOR[m.source] : C.border, backgroundColor: C.card }]}>
-      <View style={[styles.ava, { backgroundColor: C.field }]}>
-        {m.avatar ? <ExpoImage source={{ uri: m.avatar }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <Ionicons name="person" size={22} color={C.sub} />}
-      </View>
+      <ZoomAvatar uri={m.avatar} size={48} />
       <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
         <Text style={{ color: C.text, fontWeight: "800" }} numberOfLines={1}>
           {m.name || "—"}
           {m.nickname ? <Text style={{ color: C.sub, fontWeight: "500" }}> · {m.nickname}</Text> : null}
         </Text>
         <Text style={{ color: C.sub, fontSize: 12 }} numberOfLines={1}>
-          {[m.phone, m.province, m.code ? `Mã ${m.code}` : "", m.status].filter(Boolean).join(" · ") || "—"}
+          {[m.phone, m.province, m.code ? `Mã ${m.code}` : "", m.status, m.matchedBy === "cccd" ? "Khớp qua ảnh CCCD" : ""].filter(Boolean).join(" · ") || "—"}
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
           <ScoreSourceBadge m={m} />

@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Stack } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { SOURCE_COLOR, ZoomAvatar } from "@/components/admin/PlayerScoreLookup";
 import { Image as ExpoImage } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -71,7 +72,7 @@ export default function FaceLookupScreen() {
       <Stack.Screen options={{ title: "Tra cứu ảnh VĐV", headerShown: true }} />
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
         <Text style={{ color: C.sub, fontSize: 13, lineHeight: 19 }}>
-          Chọn ảnh có mặt VĐV, chọn khuôn mặt → tìm họ tên và SĐT trong dữ liệu SportConnect và PickleballVN (so với ảnh đại diện). Ảnh chỉ dùng
+          Chọn ảnh có mặt VĐV, chọn khuôn mặt → tìm họ tên và SĐT trong dữ liệu SportConnect, PickleballVN và tài khoản PickleTour (so với ảnh đại diện, với PickleTour cả ảnh CCCD). Ảnh chỉ dùng
           để tìm, không được lưu.
         </Text>
 
@@ -151,21 +152,15 @@ export default function FaceLookupScreen() {
           result.matches?.length ? (
             <View style={{ gap: 10 }}>
               <Text style={{ color: C.sub, fontSize: 12.5 }}>
-                {result.matches.length} VĐV giống nhất (so với {result.searched} ảnh đại diện)
+                {result.matches.length} VĐV giống nhất (so với {result.searched} ảnh)
               </Text>
               {result.matches.map((m: any) => (
                 <View key={`${m.source || "spc"}:${m.spcId}`} style={[styles.row, { backgroundColor: C.card, borderColor: m.likely ? "#22C55E" : C.border }]}>
-                  {m.avatar ? (
-                    <ExpoImage source={{ uri: m.avatar }} style={styles.avatar} contentFit="cover" />
-                  ) : (
-                    <View style={[styles.avatar, { backgroundColor: C.field, alignItems: "center", justifyContent: "center" }]}>
-                      <Ionicons name="person" size={24} color={C.sub} />
-                    </View>
-                  )}
+                  <ZoomAvatar uri={m.avatar} size={60} />
                   <View style={{ flex: 1, gap: 2 }}>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <Text style={{ color: C.text, fontWeight: "800", fontSize: 15 }}>{m.name || m.nickname || `#${m.spcId}`}</Text>
-                      <View style={[styles.badge, { backgroundColor: m.source === "pbvn" ? "#16A34A" : "#2563EB" }]}>
+                      <View style={[styles.badge, { backgroundColor: SOURCE_COLOR[m.source] || "#2563EB" }]}>
                         <Text style={{ color: "#fff", fontWeight: "800", fontSize: 11.5 }}>{m.sourceLabel || "SportConnect"}</Text>
                       </View>
                       <View style={[styles.badge, { backgroundColor: m.likely ? "#22C55E" : C.field }]}>
@@ -205,7 +200,8 @@ export default function FaceLookupScreen() {
                         m.province,
                         m.status,
                         m.code ? `Mã ${m.code}` : "",
-                        `ID ${m.spcId}`,
+                        m.matchedBy === "cccd" ? "Khớp qua ảnh CCCD" : "",
+                        m.source === "pt" ? "" : `ID ${m.spcId}`,
                       ]
                         .filter(Boolean)
                         .join(" · ")}
