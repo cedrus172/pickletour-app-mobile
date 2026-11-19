@@ -1999,13 +1999,13 @@ export default function HomeScreen() {
                 <CourtBookingBanner />
                 {stage >= 1 ? <HomeV3Shortcuts /> : null}
                 <View style={{ height: 22 }} />
-                {stage >= 1 ? <YoutubeClipsHome /> : null}
+                {stage >= 1 ? <TournamentsSection /> : null}
                 <View style={{ height: compact ? 4 : 8 }} />
                 {stage >= 2 ? <FeaturesGrid compactColumns={twoPane} /> : null}
               </View>
               <View testID="home-secondary-pane" style={twoPane ? { width: paneWidth - 8, paddingTop: 12, paddingRight: 16 } : undefined}>
                 <View style={{ height: gap }} />
-                {stage >= 3 ? <TournamentsSection /> : null}
+                {stage >= 3 ? <YoutubeClipsHome /> : null}
                 <View style={{ height: gap }} />
                 {stage >= 4 ? <NewsSection /> : null}
                 <View style={{ height: gap }} />
@@ -2122,14 +2122,14 @@ export default function HomeScreen() {
                 <EventLiveBanner />
                 <CourtBookingBanner />
                 <View style={{ height: compact ? 8 : 12 }} />
-                {stage >= 1 ? <YoutubeClipsHome /> : null}
+                {stage >= 1 ? <TournamentsSection /> : null}
                 <View style={{ height: compact ? 4 : 8 }} />
                 {stage >= 2 ? <FeaturesGrid compactColumns={twoPane} /> : null}
               </View>
             </View>
             <View testID="home-secondary-pane" style={twoPane ? { width: paneWidth, paddingTop: heroTopBleed + 12 } : undefined}>
               <View style={{ height: gap }} />
-              {stage >= 3 ? <TournamentsSection /> : null}
+              {stage >= 3 ? <YoutubeClipsHome /> : null}
               <View style={{ height: gap }} />
               {stage >= 4 ? <NewsSection /> : null}
               <View style={{ height: gap }} />
