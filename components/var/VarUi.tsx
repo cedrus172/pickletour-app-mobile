@@ -19,7 +19,7 @@ export function stepOf(job: any): number {
   if (job.status === "finishing" || job.status === "done") return 4;
   const s = String(job.stage || "");
   if (["download", "trim", "court", "upload", ""].includes(s)) return 0;
-  if (s === "detect") return 1;
+  if (s === "detect" || s === "review" || s === "learn") return 1;
   if (s === "feet" || s === "check") return 2;
   if (s === "render") return 3;
   return 4;
@@ -30,9 +30,20 @@ export function etaText(job: any): string {
   if (job.status === "preparing") return "Đang chuyển video sang máy phân tích…";
   if (job.status === "finishing") return "Đang tải kết quả và dựng highlight…";
   if (job.status === "queued") return job.queuePos ? `Đang chờ · thứ ${job.queuePos} trong hàng` : "Đang chờ máy phân tích";
+  if (job.stage === "learn") return "Máy đang tự học sân mới · thêm khoảng 30–60 phút";
   const dur = Number(job.durationSec) || 120;
   const left = Math.max(1, Math.ceil((dur * 1.6 * (1 - (Number(job.progress) || 0))) / 60));
-  return `Còn khoảng ${left} phút`;
+  // Sân mới, video từ 2,5 phút: máy phân tích tự học sân ngay trong lần chạy (API 1.9+).
+  const learning = job.source?.newCourt && dur >= 150 && ["download", "trim", "court", "detect", "review", ""].includes(String(job.stage || ""));
+  return learning ? `Còn khoảng ${left} phút (+30–60 phút để máy học sân mới)` : `Còn khoảng ${left} phút`;
+}
+
+/** Độ tin cậy máy tự chấm (result.confidence / summary.confidence): good / check / poor. */
+export function confidenceStyle(level?: string): { bg: string; color: string; label: string } | null {
+  if (level === "good") return { bg: "#16A34A", color: "#fff", label: "Tin cậy tốt" };
+  if (level === "check") return { bg: ORANGE, color: "#1F1300", label: "Cần xem lại" };
+  if (level === "poor") return { bg: RED, color: "#fff", label: "Không đáng tin" };
+  return null;
 }
 
 export function fmtDur(sec?: number | null): string {

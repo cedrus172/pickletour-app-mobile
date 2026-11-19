@@ -9,7 +9,7 @@ import { useSelector } from "react-redux";
 import { Text } from "@/components/ui/i18nText";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
 import { useCancelVarJobMutation, useDeleteVarJobMutation, useListVarJobsQuery } from "@/slices/varApiSlice";
-import { ORANGE, Pill, StageStepper, VOLT, etaText, fmtDur } from "@/components/var/VarUi";
+import { ORANGE, Pill, RED, StageStepper, VOLT, etaText, fmtDur } from "@/components/var/VarUi";
 
 export default function VarListScreen() {
   const C = useThemeTokens();
@@ -69,6 +69,7 @@ export default function VarListScreen() {
                 {j.highlight?.status === "done" ? <Pill label={`Highlight ${fmtDur(j.highlight.durationSec)}`} bg={VOLT} color="#0B1B3A" /> : null}
                 {j.summary?.varCount ? <Pill label={`VAR ${j.summary.varCount} pha`} bg={C.primary} color={C.onPrimary} /> : null}
                 {j.summary?.reviewCount ? <Pill label={`${j.summary.reviewCount} pha cần xem lại`} bg={ORANGE} color="#1F1300" /> : null}
+                {j.summary?.confidence?.level === "poor" ? <Pill label="Kết quả không đáng tin" bg={RED} color="#fff" /> : null}
               </View>
             </>
           ) : (

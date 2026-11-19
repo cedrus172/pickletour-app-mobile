@@ -13,6 +13,11 @@ export const varApiSlice = apiSlice.injectEndpoints({
       query: () => "/api/pcoin/me",
       providesTags: ["Pcoin"],
     }),
+    getVarVenues: builder.query({
+      // sân trong hệ thống đặt sân PickleTour + giới hạn video (sân mới 3–15 phút, 1GB)
+      query: () => "/api/var/venues",
+      keepUnusedDataFor: 600,
+    }),
     listVarJobs: builder.query({
       query: (tab) => `/api/var/jobs${tab ? `?tab=${tab}` : ""}`,
       providesTags: ["VarJob"],
@@ -59,6 +64,7 @@ export const varApiSlice = apiSlice.injectEndpoints({
 export const {
   useGetFeatureFlagsQuery,
   useGetMyPcoinQuery,
+  useGetVarVenuesQuery,
   useListVarJobsQuery,
   useGetVarJobQuery,
   useUploadVarVideoMutation,

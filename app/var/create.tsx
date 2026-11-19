@@ -1,5 +1,6 @@
 // app/var/create.tsx — Tạo Highlight & VAR (mockup docs/mockups/highlight-var-1-tao-video.png)
-// Nguồn: clip camera sân (chỉ người được cấp quyền xem cam / chủ sân) hoặc video tải lên. Tối đa 5 phút.
+// Nguồn: clip camera sân (chỉ người được cấp quyền xem cam / chủ sân) hoặc video tải lên.
+// Sân trên PickleTour tối đa 5 phút; sân mới (không thuộc hệ thống đặt sân PickleTour) 3–15 phút; tối đa 1GB.
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -24,12 +25,15 @@ import { Text } from "@/components/ui/i18nText";
 import TextInput from "@/components/ui/i18nTextInput";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
 import { useMyCamClipAccessQuery } from "@/slices/camClipApiSlice";
-import { useCreateVarJobMutation, useGetMyPcoinQuery } from "@/slices/varApiSlice";
+import { useCreateVarJobMutation, useGetMyPcoinQuery, useGetVarVenuesQuery } from "@/slices/varApiSlice";
 import { BASE_URL } from "@/slices/apiSlice";
 import { getHistory, pollClip, thumbnailUrl, type ClipHistoryItem } from "@/utils/pickclip";
 import { VOLT, fmtDur } from "@/components/var/VarUi";
 
-const MAX_SEC = 300; // tối đa 5 phút
+const MAX_SEC = 300; // sân trên PickleTour: tối đa 5 phút
+const NEW_MIN_SEC = 180; // sân mới: tối thiểu 3 phút (máy cần học sân)
+const NEW_MAX_SEC = 900; // sân mới: tối đa 15 phút
+const MAX_BYTES = 1024 * 1024 * 1024; // 1GB / video
 const CLIP_TTL_MS = 3 * 3600 * 1000;
 const SHOW = [
   { key: "scoreboard", label: "Tỉ số" },
@@ -123,6 +127,13 @@ export default function VarCreateScreen() {
   const [aiCheck, setAiCheck] = useState(false);
   const [busy, setBusy] = useState(false);
   const [upPct, setUpPct] = useState<number | null>(null);
+  // Sân quay video tải lên: "" = sân mới (không thuộc hệ thống đặt sân PickleTour)
+  const { data: venueData } = useGetVarVenuesQuery(undefined as any, { skip: !token });
+  const venues: { _id: string; name: string; address?: string }[] = venueData?.venues || [];
+  const [venueId, setVenueId] = useState("");
+  const [venueOpen, setVenueOpen] = useState(false);
+  const newCourt = !venueId;
+  const venueName = venues.find((v) => v._id === venueId)?.name || "";
 
   const allowedBases = useMemo(
     () => new Set((access || []).filter((v: any) => v.hasAccess && v.piBaseUrl).map((v: any) => String(v.piBaseUrl).replace(/\/+$/, ""))),
@@ -174,14 +185,14 @@ export default function VarCreateScreen() {
   const duration = source === "upload" ? video?.durationSec || 0 : clipDur;
 
   const pickVideo = async () => {
-    const sel = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["videos"], quality: 1, videoMaxDuration: MAX_SEC });
+    const sel = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["videos"], quality: 1, videoMaxDuration: NEW_MAX_SEC });
     if (sel.canceled) return;
     const a = sel.assets[0];
     const dur = Math.round((Number(a.duration) || 0) / 1000);
-    if (dur > MAX_SEC + 2) {
-      return Alert.alert("Video quá dài", `Video dài ${fmtDur(dur)} — tối đa 5 phút. Hãy cắt ngắn rồi chọn lại.`);
+    if (dur > NEW_MAX_SEC + 2) {
+      return Alert.alert("Video quá dài", `Video dài ${fmtDur(dur)} — tối đa 15 phút. Hãy cắt ngắn rồi chọn lại.`);
     }
-    if (a.fileSize && a.fileSize > 500 * 1024 * 1024) return Alert.alert("Video quá lớn", "Tối đa 500MB.");
+    if (a.fileSize && a.fileSize > MAX_BYTES) return Alert.alert("Video quá lớn", "Tối đa 1GB / video.");
     const name = a.fileName || `video-${Date.now()}.mp4`;
     setVideo({ uri: a.uri, name, type: a.mimeType || "video/mp4", durationSec: dur || MAX_SEC, size: a.fileSize });
     setRange([0, dur || MAX_SEC]);
@@ -214,7 +225,19 @@ export default function VarCreateScreen() {
   const submit = async () => {
     if (source === "recorded") return;
     if (source === "camclip" && !clip) return Alert.alert("Chưa chọn clip", "Hãy cắt một clip ở Cắt Cam Sân trước.");
-    if (source === "upload" && !video) return Alert.alert("Chưa chọn video", "Chọn video trận (tối đa 5 phút).");
+    if (source === "upload" && !video) return Alert.alert("Chưa chọn video", newCourt ? "Chọn video trận (sân mới: 3–15 phút)." : "Chọn video trận (tối đa 5 phút).");
+    if (source === "upload" && video) {
+      const seg = duration ? range[1] - range[0] : video.durationSec;
+      if (!newCourt && video.durationSec > MAX_SEC + 2) {
+        return Alert.alert("Video quá dài", `Video ở sân trên PickleTour tối đa 5 phút (video dài ${fmtDur(video.durationSec)}).`);
+      }
+      if (newCourt && (video.durationSec < NEW_MIN_SEC - 2 || seg < NEW_MIN_SEC - 2)) {
+        return Alert.alert(
+          "Video quá ngắn",
+          `Sân mới cần video tối thiểu 3 phút để máy học sân (${seg < video.durationSec ? "đoạn đã chọn" : "video"} dài ${fmtDur(Math.min(seg, video.durationSec))}).`,
+        );
+      }
+    }
     if (lacking) {
       return Alert.alert("Không đủ PCoin", `Mỗi video cần ${price} PCoin, số dư của bạn còn ${balance}. Liên hệ admin PickleTour để nạp thêm PCoin.`, [
         { text: "Đóng", style: "cancel" },
@@ -227,7 +250,7 @@ export default function VarCreateScreen() {
       if (source === "camclip" && clip) {
         src = { type: "camclip", base: clip.baseUrl, clipId: clip.clipId, channelId: clip.channelId, channelName: clip.channelName };
       } else if (video) {
-        src = { type: "upload", uploadId: await uploadVideo(video), fileName: video.name };
+        src = { type: "upload", uploadId: await uploadVideo(video), fileName: video.name, venueId: venueId || undefined };
       }
       const trim = duration && (range[0] > 0 || range[1] < duration) ? { start_s: range[0], end_s: range[1] } : undefined;
       const job: any = await createJob({
@@ -358,10 +381,51 @@ export default function VarCreateScreen() {
               <View style={{ flex: 1, gap: 4 }}>
                 <Text style={{ color: C.text, fontWeight: "800" }} numberOfLines={1}>{video ? video.name : "Chọn video từ máy"}</Text>
                 <Text style={{ color: C.sub, fontSize: 12.5 }}>
-                  {video ? `${fmtDur(video.durationSec)}${video.size ? ` · ${Math.round(video.size / 1048576)}MB` : ""}` : "Camera cố định thấy toàn sân · tối đa 5 phút"}
+                  {video
+                    ? `${fmtDur(video.durationSec)}${video.size ? ` · ${Math.round(video.size / 1048576)}MB` : ""}`
+                    : `Camera cố định thấy toàn sân · ${newCourt ? "3–15 phút" : "tối đa 5 phút"} · tối đa 1GB`}
                 </Text>
               </View>
             </Pressable>
+          ) : null}
+
+          {source === "upload" ? (
+            <>
+              <Section label="Sân quay video" />
+              <View style={[styles.card, { borderColor: C.border, backgroundColor: C.card, padding: 0 }]}>
+                <Pressable accessibilityRole="button" onPress={() => setVenueOpen((x) => !x)} style={styles.row}>
+                  <Ionicons name={newCourt ? "add-circle-outline" : "location-outline"} size={18} color={C.primary} />
+                  <Text style={{ color: C.text, fontWeight: "700", flex: 1 }} numberOfLines={1}>
+                    {newCourt ? "Sân mới (chưa có trên PickleTour)" : venueName}
+                  </Text>
+                  <Ionicons name={venueOpen ? "chevron-up" : "chevron-down"} size={18} color={C.sub} />
+                </Pressable>
+                {venueOpen
+                  ? [{ _id: "", name: "Sân mới (chưa có trên PickleTour)" }, ...venues].map((v) => (
+                      <Pressable
+                        key={v._id || "new"}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: venueId === v._id }}
+                        onPress={() => {
+                          setVenueId(v._id);
+                          setVenueOpen(false);
+                        }}
+                        style={[styles.row, { borderTopColor: C.border, borderTopWidth: 1 }]}
+                      >
+                        <Text style={{ color: C.text, flex: 1 }} numberOfLines={1}>
+                          {v.name}
+                        </Text>
+                        {venueId === v._id ? <Ionicons name="checkmark-circle" size={18} color={C.primary} /> : null}
+                      </Pressable>
+                    ))
+                  : null}
+              </View>
+              <Text style={{ color: C.sub, fontSize: 12, lineHeight: 17 }}>
+                {newCourt
+                  ? "Sân mới: video 3–15 phút để máy tự học sân · xử lý lâu hơn (thêm khoảng 30–60 phút) · tối đa 1GB."
+                  : "Sân trong hệ thống đặt sân PickleTour: video tối đa 5 phút · tối đa 1GB."}
+              </Text>
+            </>
           ) : null}
 
           <Section label="Gắn trận" hint="(tuỳ chọn)" />

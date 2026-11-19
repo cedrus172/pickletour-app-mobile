@@ -12,7 +12,7 @@ import { Text } from "@/components/ui/i18nText";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
 import { useShareToFeed } from "@/components/feed/ShareToFeedModal";
 import { useGetVarJobQuery, useRebuildVarHighlightMutation } from "@/slices/varApiSlice";
-import { ORANGE, Pill, ScoreChart, VOLT, callLabel, fmtDur } from "@/components/var/VarUi";
+import { ORANGE, Pill, ScoreChart, VOLT, callLabel, confidenceStyle, fmtDur } from "@/components/var/VarUi";
 
 let MediaLibrary: typeof import("expo-media-library") | null = null;
 try {
@@ -211,6 +211,30 @@ export default function VarResultScreen() {
           </Pressable>
         </View>
 
+        {(() => {
+          const cf = job.result?.confidence || job.summary?.confidence;
+          const st = confidenceStyle(cf?.level);
+          if (!cf || !st) return null;
+          const reasons: string[] = Array.isArray(cf.reasons) ? cf.reasons.slice(0, 4) : [];
+          return (
+            <View style={[styles.confCard, { borderColor: C.border, backgroundColor: C.card }]}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={{ color: C.text, fontWeight: "800", flex: 1 }}>Độ tin cậy của kết quả</Text>
+                <Pill label={`${cf.label || st.label}${cf.score != null ? ` · ${cf.score}/100` : ""}`} bg={st.bg} color={st.color} />
+              </View>
+              {cf.level !== "good" && reasons.length ? (
+                <View style={{ marginTop: 6, gap: 2 }}>
+                  {reasons.map((x, i) => (
+                    <Text key={i} style={{ color: C.sub, fontSize: 12.5, lineHeight: 17 }}>
+                      • {x}
+                    </Text>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          );
+        })()}
+
         <View style={[styles.tabs, { borderBottomColor: C.border }]}>
           {[
             { k: "highlight" as const, label: "Highlight" },
@@ -341,6 +365,7 @@ function RallyRow({ r, C, teamName, onPress, var: isVar }: { r: any; C: any; tea
 }
 
 const styles = StyleSheet.create({
+  confCard: { marginHorizontal: 14, marginTop: 12, padding: 12, borderRadius: 14, borderWidth: 1 },
   video: { width: "100%", aspectRatio: 16 / 9, backgroundColor: "#000" },
   btn: { flex: 1, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", height: 44, borderRadius: 12, borderWidth: 1 },
   tabs: { flexDirection: "row", borderBottomWidth: 1, marginTop: 14 },
