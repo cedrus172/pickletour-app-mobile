@@ -9,6 +9,8 @@ import { Text } from "@/components/ui/i18nText";
 import AppModal, { ModalTopInset } from "@/components/ui/AppModal";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
 import { useLookupPlayerFaceMutation } from "@/slices/spcFaceApiSlice";
+import { useCreateEvaluationMutation } from "@/slices/evaluationsApiSlice";
+import { TextInput } from "@/components/ui/i18nTextInput";
 import { normalizeUrl } from "@/utils/normalizeUri";
 
 export const SOURCE_COLOR: Record<string, string> = { spc: "#2563EB", pbvn: "#16A34A", pt: "#0891B2" };
@@ -118,8 +120,103 @@ export function FacePicker({ faces, selected, onSelect, busy }: { faces: any[]; 
   );
 }
 
-/** target = { imageUrl, name } | null */
-export default function PlayerScoreLookupModal({ target, onClose }: { target: { imageUrl: string; name?: string } | null; onClose: () => void }) {
+const MIN_RATING = 1.6;
+const MAX_RATING = 8.0;
+const parseRating = (v: string) => {
+  const t = String(v ?? "").replace(/,/g, ".").trim();
+  return t === "" ? undefined : Number.parseFloat(t);
+};
+const fmtInput = (v: any) => (v == null || !Number.isFinite(Number(v)) ? "" : String(Number(Number(v).toFixed(2))));
+
+type LookupTarget = { imageUrl: string; name?: string; userId?: string; province?: string; score?: number };
+
+/** "Chấm trình ngay" trong popup Tra điểm: điểm đôi gợi ý từ VĐV khớp, admin sửa rồi gửi
+ *  (cùng API chấm trình — cập nhật BXH + điểm trong các đăng ký đang mở). */
+function QuickGrade({
+  target,
+  doubles,
+  setDoubles,
+  singles,
+  setSingles,
+  onGraded,
+}: {
+  target: LookupTarget;
+  doubles: string;
+  setDoubles: (v: string) => void;
+  singles: string;
+  setSingles: (v: string) => void;
+  onGraded?: () => void;
+}) {
+  const C = useThemeTokens();
+  const [createEvaluation, { isLoading }] = useCreateEvaluationMutation();
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  useEffect(() => setMsg(null), [target?.userId]);
+  const submit = async () => {
+    setMsg(null);
+    const d = parseRating(doubles);
+    const s = parseRating(singles);
+    if (d === undefined && s === undefined) return setMsg({ ok: false, text: "Nhập điểm đôi hoặc điểm đơn" });
+    const bad = (v?: number) => v !== undefined && !(Number.isFinite(v) && v >= MIN_RATING && v <= MAX_RATING);
+    if (bad(d) || bad(s)) return setMsg({ ok: false, text: `Điểm phải trong khoảng ${MIN_RATING} - ${MAX_RATING}` });
+    try {
+      await createEvaluation({
+        targetUser: target.userId,
+        province: target.province || "",
+        source: "live",
+        overall: { singles: s, doubles: d },
+        notes: "Chấm từ Tra điểm",
+      }).unwrap();
+      setMsg({ ok: true, text: `Đã chấm trình${d !== undefined ? ` · Đôi ${d}` : ""}${s !== undefined ? ` · Đơn ${s}` : ""}` });
+      onGraded?.();
+    } catch (e: any) {
+      setMsg({ ok: false, text: e?.data?.message || e?.error || "Không chấm được" });
+    }
+  };
+  const field = [styles.gradeInput, { backgroundColor: C.field, borderColor: C.border, color: C.text }];
+  return (
+    <View style={[styles.gradeBox, { borderTopColor: C.border, backgroundColor: C.card }]}>
+      <Text style={{ color: C.text, fontWeight: "900", fontSize: 14 }}>
+        Chấm trình ngay
+        {target?.score != null ? <Text style={{ color: C.sub, fontWeight: "500", fontSize: 12.5 }}> · điểm hiện tại {fmtInput(target.score) || "—"}</Text> : null}
+      </Text>
+      <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
+        <View style={{ width: 84, gap: 3 }}>
+          <Text style={{ color: C.sub, fontSize: 11 }}>Điểm đôi</Text>
+          <TextInput value={doubles} onChangeText={setDoubles} keyboardType="decimal-pad" placeholder="—" keypadLabel="Điểm đôi" placeholderTextColor={C.sub} style={field} />
+        </View>
+        <View style={{ width: 84, gap: 3 }}>
+          <Text style={{ color: C.sub, fontSize: 11 }}>Điểm đơn</Text>
+          <TextInput value={singles} onChangeText={setSingles} keyboardType="decimal-pad" placeholder="—" keypadLabel="Điểm đơn" placeholderTextColor={C.sub} style={field} />
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Chấm trình ngay"
+          disabled={isLoading}
+          onPress={submit}
+          style={[styles.gradeBtn, { backgroundColor: C.primary, opacity: isLoading ? 0.7 : 1 }]}
+        >
+          {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "900", fontSize: 14 }}>Chấm trình ngay</Text>}
+        </Pressable>
+      </View>
+      {msg ? (
+        <Text style={{ color: msg.ok ? "#16A34A" : "#EF4444", fontWeight: "700", fontSize: 12.5 }}>{msg.text}</Text>
+      ) : (
+        <Text style={{ color: C.sub, fontSize: 11.5 }}>Chạm “Dùng” ở VĐV khớp để lấy điểm đôi PickleTour. Chấm xong cập nhật luôn điểm trong các giải đang đăng ký.</Text>
+      )}
+    </View>
+  );
+}
+
+/** target = { imageUrl, name, userId?, province?, score? } | null; onGraded() sau khi chấm xong. */
+export default function PlayerScoreLookupModal({
+  target,
+  onClose,
+  onGraded,
+}: {
+  target: LookupTarget | null;
+  onClose: () => void;
+  onGraded?: () => void;
+}) {
   const C = useThemeTokens();
   const [lookup, { data, isLoading, error }] = useLookupPlayerFaceMutation();
   const [searchFace, { isLoading: searching }] = useLookupPlayerFaceMutation();
@@ -134,6 +231,23 @@ export default function PlayerScoreLookupModal({ target, onClose }: { target: { 
   const res: any = data;
   const selected = picked ? picked.index : res?.selected ?? 0;
   const matches: any[] = picked ? picked.matches : res?.matches || [];
+  // Ô chấm trình: gợi ý điểm đôi từ VĐV khớp đầu tiên "khả năng cao" (admin chưa sửa tay).
+  const [doubles, setDoubles] = useState("");
+  const [singles, setSingles] = useState("");
+  const [touched, setTouched] = useState(false);
+  useEffect(() => {
+    setDoubles("");
+    setSingles("");
+    setTouched(false);
+  }, [target?.userId, url]);
+  const suggested = matches.find((m) => m.likely && m.pickletourScore != null)?.pickletourScore;
+  useEffect(() => {
+    if (!touched) setDoubles(fmtInput(suggested));
+  }, [suggested, touched]);
+  const applyMatch = (m: any) => {
+    setTouched(true);
+    setDoubles(fmtInput(m.pickletourScore));
+  };
   const chooseFace = async (i: number) => {
     if (i === selected) return;
     if (i === res?.selected) return setPicked(null);
@@ -182,13 +296,28 @@ export default function PlayerScoreLookupModal({ target, onClose }: { target: { 
               {searching ? (
                 <ActivityIndicator color={C.primary} style={{ marginTop: 20 }} />
               ) : matches.length ? (
-                matches.map((m) => <MatchRow key={`${m.source}:${m.spcId}`} m={m} />)
+                matches.map((m) => (
+                  <MatchRow key={`${m.source}:${m.spcId}`} m={m} onUse={target?.userId && m.pickletourScore != null ? applyMatch : undefined} />
+                ))
               ) : (
                 <Text style={{ color: C.sub, textAlign: "center", marginTop: 20 }}>Không tìm thấy VĐV giống trong dữ liệu diễn đàn.</Text>
               )}
             </>
           ) : null}
         </ScrollView>
+        {target?.userId ? (
+          <QuickGrade
+            target={target}
+            doubles={doubles}
+            setDoubles={(v) => {
+              setTouched(true);
+              setDoubles(v);
+            }}
+            singles={singles}
+            setSingles={setSingles}
+            onGraded={onGraded}
+          />
+        ) : null}
       </SafeAreaView>
     </AppModal>
   );
@@ -199,4 +328,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: 14, borderWidth: 1 },
   ava: { width: 48, height: 48, borderRadius: 24, overflow: "hidden", alignItems: "center", justifyContent: "center" },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+  gradeBox: { gap: 8, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 6, borderTopWidth: 1 },
+  gradeInput: { height: 42, borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, fontSize: 17, fontWeight: "800", textAlign: "center" },
+  gradeBtn: { flex: 1, height: 42, borderRadius: 10, alignItems: "center", justifyContent: "center" },
 });

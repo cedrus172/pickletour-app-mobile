@@ -1844,8 +1844,18 @@ export default function TournamentRegistrationScreen() {
   const [posterBusyId, setPosterBusyId] = useState("");
   const [aiPosterReg, setAiPosterReg] = useState<any>(null);
   // Admin: "Tra điểm" — tra khuôn mặt VĐV trong dữ liệu diễn đàn (SportConnect / PickleballVN)
-  const [lookupTarget, setLookupTarget] = useState<{ imageUrl: string; name?: string } | null>(null);
-  const openLookupScore = useCallback((pl: any) => setLookupTarget({ imageUrl: String(pl?.avatar || ""), name: displayName(pl, tour) }), [tour]);
+  const [lookupTarget, setLookupTarget] = useState<{ imageUrl: string; name?: string; userId?: string; province?: string; score?: number } | null>(null);
+  const openLookupScore = useCallback(
+    (pl: any) =>
+      setLookupTarget({
+        imageUrl: String(pl?.avatar || ""),
+        name: displayName(pl, tour),
+        userId: String(pl?.user?._id || pl?.user || ""),
+        province: pl?.province || pl?.user?.province || "",
+        score: pl?.score,
+      }),
+    [tour],
+  );
   const [aiPosterTemplateOpen, setAiPosterTemplateOpen] = useState(false);
   // Mở AI Poster từ thông báo (?aiPoster=<regId>). Màn AI Poster chỉ cần mã đăng ký nên
   // mở luôn, không chờ danh sách; đợi màn chuyển xong (iOS từ chối mở Modal giữa lúc
@@ -4018,7 +4028,7 @@ export default function TournamentRegistrationScreen() {
 
         {/* MODALS */}
 
-        <PlayerScoreLookupModal target={lookupTarget} onClose={() => setLookupTarget(null)} />
+        <PlayerScoreLookupModal target={lookupTarget} onClose={() => setLookupTarget(null)} onGraded={() => refetchRegs()} />
 
         {/* === IMAGE VIEWER LIBRARY === */}
         <AiPosterSheet
