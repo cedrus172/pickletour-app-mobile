@@ -26,6 +26,7 @@ import {
   Easing,
   FlatList,
   Keyboard,
+  KeyboardAvoidingView,
   Modal,
   Pressable,
   RefreshControl,
@@ -87,7 +88,6 @@ import {
   RankingPage,
   RankingSearch,
   RANKING_COLORS,
-  ScoreLegend,
   ScoreRange,
   type PlayerAction,
 } from "@/components/rankings/RankingDesign";
@@ -106,7 +106,7 @@ const COLORS = {
 };
 const SCORE_STALE_MONTHS = 4;
 const ACHIEVEMENT_VISIBLE_LIMIT = 3;
-const PODIUM_MARQUEE_ITEM_WIDTH = 320;
+const PODIUM_MARQUEE_ITEM_WIDTH = 300;
 
 const ACHIEVEMENT_TONES = {
   yellow: { bg: "#facc15", fg: "#422006", border: "#fde68a" },
@@ -648,38 +648,54 @@ const AchievementSummary = memo(({ achievements, theme, onOpen }) => {
 });
 AchievementSummary.displayName = "AchievementSummary";
 
+const shortTourName = (name) => String(name || "").split(" • ")[0].trim();
+
+// Thẻ "Chúc mừng" dạng viên dẹp: avatar tròn nhỏ của VĐV (chồng nhau) + huy chương + 1 dòng chữ.
 const PodiumCelebrationItem = memo(({ item, theme, onPress }) => {
   const meta = PODIUM_MARQUEE_META[item?.medal] || PODIUM_MARQUEE_META.gold;
+  const players = (Array.isArray(item?.players) ? item.players : []).slice(0, 2);
+  const teamName = item?.teamName || String(item?.teamLabel || "").replace(/^đội\s+/i, "");
   return (
     <TouchableOpacity activeOpacity={0.88} onPress={() => onPress?.(item)}>
       <View
         style={[
           styles.podiumMarqueeItem,
           {
-            borderColor: theme.isDark
-              ? "rgba(255,255,255,0.14)"
-              : "rgba(15,23,42,0.12)",
-            backgroundColor: theme.isDark
-              ? "rgba(15,23,42,0.86)"
-              : "rgba(30,41,59,0.84)",
-            shadowColor: meta.accent,
+            borderColor: meta.glow,
+            backgroundColor: theme.isDark ? "rgba(15,23,42,0.86)" : "#FFFFFF",
           },
         ]}
       >
-        <LinearGradient colors={meta.colors} style={styles.podiumIconBubble}>
-          <MaterialCommunityIcons name={meta.icon} size={18} color={meta.text} />
-        </LinearGradient>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            style={[styles.podiumOverline, { color: meta.accent }]}
-            numberOfLines={1}
-          >
-            Chúc mừng {meta.label}
-          </Text>
-          <Text style={styles.podiumMessage} numberOfLines={1}>
-            {item?.teamLabel} {meta.action} {item?.tournamentName}
-          </Text>
+        <View style={styles.podiumAvatars}>
+          {players.length ? (
+            players.map((p, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.podiumAvatar,
+                  { borderColor: meta.accent, marginLeft: i ? -9 : 0, zIndex: 2 - i, backgroundColor: theme.isDark ? "#1e293b" : "#E2E8F0" },
+                ]}
+              >
+                {p?.avatar ? (
+                  <ExpoImage source={{ uri: normalizeUrl(p.avatar) }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" />
+                ) : (
+                  <Text style={{ color: theme.isDark ? "#cbd5e1" : "#475569", fontSize: 11, fontWeight: "900" }}>
+                    {String(p?.name || "?").trim().charAt(0).toUpperCase()}
+                  </Text>
+                )}
+              </View>
+            ))
+          ) : null}
+          <LinearGradient colors={meta.colors} style={[styles.podiumMedalBadge, players.length ? null : { position: "relative", right: 0, bottom: 0, width: 26, height: 26, borderRadius: 13 }]}>
+            <MaterialCommunityIcons name={meta.icon} size={players.length ? 10 : 15} color={meta.text} />
+          </LinearGradient>
         </View>
+        <Text style={[styles.podiumMessage, { color: theme.isDark ? "#fff" : "#0B1B3A" }]} numberOfLines={1}>
+          <Text style={{ color: theme.isDark ? meta.accent : "#B45309", fontWeight: "900" }}>{meta.label}</Text>
+          {"  "}
+          {teamName}
+          <Text style={{ color: theme.isDark ? "#94A3B8" : "#64748B", fontWeight: "600" }}>{`  ·  ${shortTourName(item?.tournamentName)}`}</Text>
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -703,7 +719,7 @@ const PodiumCelebrationMarquee = memo(({ items = [], theme, onPressItem }) => {
 
   useEffect(() => {
     if (!group.length) return undefined;
-    const distance = PODIUM_MARQUEE_ITEM_WIDTH * group.length;
+    const distance = (PODIUM_MARQUEE_ITEM_WIDTH + 10) * group.length; // + marginHorizontal 5×2
     translateX.setValue(0);
     const loop = Animated.loop(
       Animated.timing(translateX, {
@@ -1727,12 +1743,14 @@ export default function RankingListScreen({ isBack = false }) {
   };
   // Có bất kỳ bộ lọc nào đang bật (để tô sáng nút "Bộ lọc" kể cả khi popup đóng).
   const anyFilterActive =
+    kw.trim() !== "" ||
     rangeActive ||
     genderFilter !== "all" ||
     preferredFilter !== "" ||
     provinceFilter !== "";
   // Xoá toàn bộ bộ lọc trong popup.
   const resetAllFilters = () => {
+    setKw("");
     setRange([SCORE_MIN, SCORE_MAX]);
     setLiveRange([SCORE_MIN, SCORE_MAX]);
     setGenderFilter("all");
@@ -2028,14 +2046,6 @@ export default function RankingListScreen({ isBack = false }) {
           theme={theme}
           onPressItem={goToTournament}
         />
-        <ScoreLegend
-          items={[
-            { label: "Từ 3 giải", color: RANKING_COLORS.primary },
-            { label: "Admin chấm", color: COLORS.gold },
-            { label: "Cần chấm lại", color: COLORS.scoreRed },
-            { label: "Chưa có điểm", color: COLORS.scoreGrey },
-          ]}
-        />
       </View>
     ),
     [goToTournament, podiumAnnouncementItems, theme]
@@ -2056,7 +2066,6 @@ export default function RankingListScreen({ isBack = false }) {
               />
             }
           />
-          <RankingSearch value={kw} onChangeText={setKw} onClear={clearSearch} />
           <RankingFilters
             value={scoreType}
             options={SCORE_TYPES}
@@ -2073,7 +2082,10 @@ export default function RankingListScreen({ isBack = false }) {
             transparent
             onRequestClose={() => setFiltersExpanded(false)}
           >
-            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : undefined}
+              style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}
+            >
               <View style={{ backgroundColor: theme.card, borderTopLeftRadius: 18, borderTopRightRadius: 18, maxHeight: "85%", paddingTop: 12 }}>
                 <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 8 }}>
                   <Text style={{ flex: 1, color: theme.text, fontSize: 16, fontWeight: "800" }}>Bộ lọc</Text>
@@ -2085,6 +2097,10 @@ export default function RankingListScreen({ isBack = false }) {
                   keyboardShouldPersistTaps="handled"
                   contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 12 }}
                 >
+              {/* Tìm kiếm gom vào bộ lọc (chỉ hiện khi mở "Bộ lọc") */}
+              <View style={{ marginBottom: 12 }}>
+                <RankingSearch value={kw} onChangeText={setKw} onClear={clearSearch} />
+              </View>
               <ScoreRange values={liveRange} active={rangeActive} onClear={clearRange}>
                 <RangeSlider
                   min={SCORE_MIN}
@@ -2272,7 +2288,7 @@ export default function RankingListScreen({ isBack = false }) {
                   </TouchableOpacity>
                 </View>
               </View>
-            </View>
+            </KeyboardAvoidingView>
           </Modal>
         </View>
       </TouchableWithoutFeedback>
@@ -2726,10 +2742,10 @@ const styles = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 5, marginRight: 6 },
   legendText: { fontSize: 12, fontWeight: "600" },
   podiumMarqueeWrap: {
-    height: 72,
+    height: 48,
     marginHorizontal: -16,
-    marginTop: -2,
-    marginBottom: 12,
+    marginTop: -4,
+    marginBottom: 10,
     overflow: "hidden",
     justifyContent: "center",
   },
@@ -2739,40 +2755,45 @@ const styles = StyleSheet.create({
   },
   podiumMarqueeItem: {
     width: PODIUM_MARQUEE_ITEM_WIDTH,
-    minHeight: 54,
-    marginHorizontal: 8,
-    borderRadius: 16,
+    height: 38,
+    marginHorizontal: 5,
+    borderRadius: 19,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingLeft: 4,
+    paddingRight: 12,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    shadowOpacity: 0.2,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    gap: 8,
     overflow: "hidden",
   },
-  podiumIconBubble: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+  podiumAvatars: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  podiumAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
   },
-  podiumOverline: {
-    fontSize: 10,
-    fontWeight: "900",
-    lineHeight: 13,
-    textTransform: "uppercase",
+  podiumMedalBadge: {
+    position: "absolute",
+    right: -4,
+    bottom: -3,
+    zIndex: 5,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
   podiumMessage: {
-    color: "#fff",
-    fontSize: 13,
+    flex: 1,
+    fontSize: 12.5,
     fontWeight: "800",
-    lineHeight: 17,
-    marginTop: 2,
   },
   podiumMarqueeFadeLeft: {
     position: "absolute",
