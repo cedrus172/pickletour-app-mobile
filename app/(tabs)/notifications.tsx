@@ -15,6 +15,8 @@ import {
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { normalizeNotifUrl } from "@/utils/notifRoute";
+import { Image as ExpoImage } from "expo-image";
+import { normalizeUrl } from "@/utils/normalizeUri";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -53,8 +55,86 @@ const ICONS: Record<string, any> = {
   PAYMENT_PROOF_NEW: "receipt-outline",
   ATTACHMENT_NEW: "attach-outline",
   CLUB_UPDATE: "shield-outline",
-  SYSTEM: "information-circle-outline",
+  CLUB_ACTIVITY: "people-outline",
+  BOOKING: "calendar-outline",
+  TOURNAMENT_FINISHED: "trophy-outline",
+  MARKET_OFFER_NEW: "pricetag-outline",
+  MARKET_OFFER_ACCEPTED: "checkmark-circle-outline",
+  MARKET_OFFER_REJECTED: "close-circle-outline",
+  PLAY_INVITE_JOIN: "person-add-outline",
+  PLAY_INVITE_ACCEPTED: "tennisball-outline",
+  POKER_INVITE: "game-controller-outline",
+  NICKNAME_APPROVED: "checkmark-circle-outline",
+  NICKNAME_REJECTED: "close-circle-outline",
+  FEED_MENTION_COMMENT: "at-outline",
+  SYSTEM: "megaphone-outline",
 };
+
+// Thông báo loại chung (SYSTEM / BOOKING…) → icon theo data.kind, rồi theo đường dẫn, rồi theo tiêu đề.
+type Visual = { icon: any; color: string };
+const V = (icon: string, color: string): Visual => ({ icon, color });
+const KIND_VISUAL: Record<string, Visual> = {
+  shop_order: V("bag-handle-outline", "#E11D2A"),
+  shop_order_new: V("cart-outline", "#E11D2A"),
+  var_done: V("sparkles-outline", "#84CC16"),
+  var_failed: V("alert-circle-outline", "#F59E0B"),
+  AI_POSTER: V("image-outline", "#8B5CF6"),
+  clip_ready: V("videocam-outline", "#16A34A"),
+  clip_approved: V("videocam-outline", "#16A34A"),
+  clip_failed: V("videocam-off-outline", "#EF4444"),
+  clip_rejected: V("videocam-off-outline", "#EF4444"),
+  clip_approval_request: V("videocam-outline", "#0EA5E9"),
+  package_purchased: V("ticket-outline", "#1466F2"),
+  package_activated: V("ticket-outline", "#16A34A"),
+  recurring_renewed: V("repeat-outline", "#1466F2"),
+  staff_assigned: V("id-card-outline", "#0EA5E9"),
+  venue_review: V("star-outline", "#D97706"),
+  event_register: V("calendar-number-outline", "#1466F2"),
+  event_proof: V("receipt-outline", "#0284C7"),
+  event_cancelled: V("calendar-clear-outline", "#EF4444"),
+  user_match: V("tennisball-outline", "#84CC16"),
+  live: V("radio-outline", "#EF4444"),
+};
+const URL_VISUAL: [RegExp, Visual][] = [
+  [/^\/shop/, V("bag-handle-outline", "#E11D2A")],
+  [/^\/var/, V("sparkles-outline", "#84CC16")],
+  [/aiPoster|poster/i, V("image-outline", "#8B5CF6")],
+  [/^\/tournament|^\/pickle-ball\/tournament/, V("trophy-outline", "#D97706")],
+  [/^\/(courts|booking|bookings|venue)/, V("calendar-outline", "#1466F2")],
+  [/clip/, V("videocam-outline", "#16A34A")],
+  [/live/, V("radio-outline", "#EF4444")],
+  [/match/, V("tennisball-outline", "#84CC16")],
+  [/^\/(feed|post)/, V("newspaper-outline", "#0066FF")],
+  [/^\/club/, V("people-outline", "#16A34A")],
+  [/pcoin|wallet/, V("wallet-outline", "#D97706")],
+  [/^\/(chat|messages)/, V("chatbubbles-outline", "#8B5CF6")],
+  [/^\/market/, V("pricetag-outline", "#0EA5E9")],
+  [/^\/play/, V("people-outline", "#10B981")],
+  [/^\/owner/, V("storefront-outline", "#1466F2")],
+  [/^\/(profile|user)/, V("person-outline", "#0EA5E9")],
+];
+const TITLE_VISUAL: [RegExp, Visual][] = [
+  [/poster/i, V("image-outline", "#8B5CF6")],
+  [/pcoin/i, V("wallet-outline", "#D97706")],
+  [/live|trực tiếp/i, V("radio-outline", "#EF4444")],
+  [/đơn /i, V("bag-handle-outline", "#E11D2A")],
+  [/giải|trận/i, V("trophy-outline", "#D97706")],
+  [/sân|đặt chỗ|booking/i, V("calendar-outline", "#1466F2")],
+  [/cccd|kyc|xác thực/i, V("id-card-outline", "#0EA5E9")],
+  [/biệt danh/i, V("person-outline", "#0EA5E9")],
+];
+function notifVisual(n: any): Visual {
+  const kind = String(n?.data?.kind || "");
+  if (KIND_VISUAL[kind]) return KIND_VISUAL[kind];
+  const generic = !n?.type || n.type === "SYSTEM" || n.type === "BOOKING";
+  if (!generic && ICONS[n.type]) return V(ICONS[n.type], COLORS[n.type] || "#0066FF");
+  const url = String(n?.url || n?.data?.url || "");
+  for (const [re, v] of URL_VISUAL) if (re.test(url)) return v;
+  const title = String(n?.title || "");
+  for (const [re, v] of TITLE_VISUAL) if (re.test(title)) return v;
+  if (ICONS[n?.type]) return V(ICONS[n.type], COLORS[n.type] || "#0EA5E9");
+  return V("notifications-outline", "#0EA5E9");
+}
 const COLORS: Record<string, string> = {
   FEED_COMMENT_NEW: "#0066FF",
   FEED_REPLY_NEW: "#0066FF",
@@ -108,8 +188,10 @@ function NotifRow({
 }) {
   const C = useThemeTokens();
   const styles = useMemo(() => mk_styles(C), [C]);
-  const icon = ICONS[n.type] || "notifications-outline";
-  const color = COLORS[n.type] || "#0066FF";
+  const { icon, color } = notifVisual(n);
+  // Ảnh nhỏ: ảnh của thông báo (sản phẩm, video, poster…) hoặc avatar người tạo ra thông báo
+  const image = String(n?.data?.image || "") || normalizeUrl(n?.actor?.avatar) || "";
+  const roundImage = !n?.data?.image && !!image;
   return (
     <Pressable
       onPress={onPress}
@@ -128,13 +210,24 @@ function NotifRow({
       <View
         style={[
           styles.iconWrap,
-          {
-            backgroundColor: `${color}1C`,
-            borderColor: `${color}42`,
-          },
+          image
+            ? { backgroundColor: "transparent", borderWidth: 0 }
+            : {
+                backgroundColor: `${color}1C`,
+                borderColor: `${color}42`,
+              },
         ]}
       >
-        <Ionicons name={icon} size={25} color={color} />
+        {image ? (
+          <>
+            <ExpoImage source={{ uri: image }} style={[styles.thumb, roundImage && { borderRadius: 26 }]} contentFit="cover" transition={150} />
+            <View style={[styles.thumbBadge, { backgroundColor: color }]}>
+              <Ionicons name={icon} size={12} color="#FFFFFF" />
+            </View>
+          </>
+        ) : (
+          <Ionicons name={icon} size={25} color={color} />
+        )}
       </View>
       <View style={styles.content}>
         <Text
@@ -363,6 +456,19 @@ const mk_styles = (_C: ThemeTokens) => StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
+  },
+  thumb: { width: 52, height: 52, borderRadius: 14 },
+  thumbBadge: {
+    position: "absolute",
+    right: -4,
+    bottom: -4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: NOTIFICATION_COLORS.background,
   },
   content: { flex: 1, minWidth: 0 },
   title: {
