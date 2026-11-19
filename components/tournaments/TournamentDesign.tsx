@@ -72,15 +72,17 @@ export const TournamentPage = memo(function TournamentPage({ children }: { child
   );
 });
 
-export const TournamentHeader = memo(function TournamentHeader({ isBack, onBack }: { isBack?: boolean; onBack?: () => void }) {
+export const TournamentHeader = memo(function TournamentHeader({ isBack, onBack, onOrganize }: { isBack?: boolean; onBack?: () => void; onOrganize?: () => void }) {
   return (
     <View style={styles.header}>
+      {onOrganize ? null : (
       <Svg pointerEvents="none" width={118} height={94} viewBox="0 0 118 94" style={styles.heroArtwork} accessible={false} focusable={false}>
         <G stroke={sk("#08CDF5", "#1466F2")} fill="none">
           <Path d="m6 93 89-89M24 94 111 7M48 94l69-69" strokeWidth={7} opacity={0.06} />
           <Path d="M68 22h27v15c0 11-5 17-13.5 17S68 48 68 37Zm0 4H57v6c0 11 7 15 14 15m24-21h11v6c0 11-7 15-14 15M82 54v14m-10 5h20v5H72Z" strokeWidth={2.4} strokeLinejoin="round" />
         </G>
       </Svg>
+      )}
       <View style={styles.headerTitleRow}>
         {isBack ? (
           <Pressable accessibilityRole="button" accessibilityLabel="Quay lại" onPress={onBack} style={styles.backButton}>
@@ -88,7 +90,21 @@ export const TournamentHeader = memo(function TournamentHeader({ isBack, onBack 
           </Pressable>
         ) : null}
         <Text accessibilityRole="header" style={styles.title}>Giải đấu</Text>
-        <View style={{ marginLeft: "auto", paddingLeft: 8 }}><NotificationHeaderActions /></View>
+        <View style={{ marginLeft: "auto", paddingLeft: 8, flexDirection: "row", alignItems: "center", gap: 8 }}>
+          {onOrganize ? (
+            // Mockup docs/mockups/to-chuc-giai-1-nut-A.png: nút "Tổ chức giải" cạnh chuông
+            <Pressable testID="tournament-organize" accessibilityRole="button" accessibilityLabel="Tổ chức giải đấu cùng PickleTour" onPress={onOrganize} style={({ pressed }) => [styles.organizeWrap, pressed && styles.pressed]}>
+              <LinearGradient colors={[TOURNAMENT_COLORS.primary, TOURNAMENT_COLORS.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.organizeBtn}>
+                <View>
+                  <Ionicons name="trophy-outline" size={18} color="#FFFFFF" />
+                  <View style={styles.organizePlus}><Ionicons name="add" size={9} color={TOURNAMENT_COLORS.secondary} /></View>
+                </View>
+                <Text numberOfLines={1} style={styles.organizeText}>Tổ chức giải</Text>
+              </LinearGradient>
+            </Pressable>
+          ) : null}
+          <NotificationHeaderActions />
+        </View>
       </View>
       <Text style={styles.subtitle}>Tìm giải đấu, chinh phục thử thách</Text>
     </View>
@@ -177,6 +193,58 @@ export const TournamentFilters = memo(function TournamentFilters({ active, onCha
           </Pressable>
         );
       })}
+    </View>
+  );
+});
+
+const SHORT_TABS: { key: TournamentFilterKey; label: string }[] = [
+  { key: "upcoming", label: "Sắp" },
+  { key: "ongoing", label: "Đang" },
+  { key: "finished", label: "Đã xong" },
+];
+
+/** Hàng tab gọn (mockup docs/mockups/giai-dau-loc-1.png): Sắp / Đang / Đã xong kèm số giải + một nút lọc (tìm kiếm + lọc). */
+export const TournamentTabsBar = memo(function TournamentTabsBar({ active, onChange, counts, filterActive, onFilter }: {
+  active: TournamentFilterKey;
+  onChange: (key: TournamentFilterKey) => void;
+  counts: Partial<Record<TournamentFilterKey, number>>;
+  filterActive?: boolean;
+  onFilter: () => void;
+}) {
+  return (
+    <View style={styles.tabsBar}>
+      {SHORT_TABS.map((t) => {
+        const selected = t.key === active;
+        const n = counts[t.key] ?? 0;
+        return (
+          <Pressable key={t.key} testID={`tournament-filter-${t.key}`} accessibilityRole="tab" accessibilityState={{ selected }} onPress={() => onChange(t.key)} style={({ pressed }) => [styles.tabsItem, pressed && styles.pressed]}>
+            <View style={styles.tabsItemRow}>
+              <Text numberOfLines={1} style={[styles.tabsText, selected && styles.filterTextActive]}>{t.label}</Text>
+              <View style={styles.tabsCount}><Text style={styles.tabsCountText}>{n > 999 ? "999+" : n}</Text></View>
+            </View>
+            {selected ? <View style={styles.tabsUnderline} /> : null}
+          </Pressable>
+        );
+      })}
+      <Pressable testID="tournament-filter-open" accessibilityRole="button" accessibilityLabel="Tìm và lọc giải đấu" onPress={onFilter} style={({ pressed }) => [styles.tabsFilterBtn, pressed && styles.pressed]}>
+        <Ionicons name="options-outline" size={21} color={filterActive ? TOURNAMENT_COLORS.primary : TOURNAMENT_COLORS.textMuted} />
+        {filterActive ? <View style={styles.tabsFilterDot} /> : null}
+      </Pressable>
+    </View>
+  );
+});
+
+/** Chip các lọc đang bật dưới hàng tab, bấm ✕ để bỏ từng lọc. */
+export const ActiveFilterChips = memo(function ActiveFilterChips({ chips }: { chips: { key: string; label: string; onRemove: () => void }[] }) {
+  if (!chips.length) return null;
+  return (
+    <View style={styles.chipsRow}>
+      {chips.map((c) => (
+        <Pressable key={c.key} accessibilityRole="button" accessibilityLabel={`Bỏ lọc ${c.label}`} onPress={c.onRemove} style={({ pressed }) => [styles.activeChip, pressed && styles.pressed]}>
+          <Text numberOfLines={1} style={styles.activeChipText}>{c.label}</Text>
+          <Ionicons name="close" size={14} color={TOURNAMENT_COLORS.textMuted} />
+        </Pressable>
+      ))}
     </View>
   );
 });
@@ -380,6 +448,22 @@ const styles = StyleSheet.create({
   kindBadgeText: { color: "#0B1B3A", fontSize: 11, fontWeight: "900" },
   kindHint: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, paddingHorizontal: 2 },
   kindHintText: { color: TOURNAMENT_COLORS.textMuted, fontSize: 12.5, flexShrink: 1 },
+  organizeWrap: { borderRadius: 999, shadowColor: "#08CDF5", shadowOpacity: 0.45, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
+  organizeBtn: { flexDirection: "row", alignItems: "center", gap: 7, height: 42, paddingHorizontal: 14, borderRadius: 999 },
+  organizePlus: { position: "absolute", right: -5, bottom: -4, width: 12, height: 12, borderRadius: 6, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
+  organizeText: { color: "#FFFFFF", fontSize: 13.5, fontWeight: "900" },
+  tabsBar: { flexDirection: "row", alignItems: "center", gap: 4, borderBottomWidth: 1, borderBottomColor: sk("#204661", "rgba(16,42,92,0.10)") },
+  tabsItem: { flex: 1, minWidth: 0, minHeight: 48, justifyContent: "center" },
+  tabsItemRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  tabsText: { color: TOURNAMENT_COLORS.textMuted, fontSize: 14.5, fontWeight: "700", flexShrink: 1 },
+  tabsCount: { minWidth: 24, height: 20, paddingHorizontal: 6, borderRadius: 10, backgroundColor: "#D92D20", alignItems: "center", justifyContent: "center" },
+  tabsCountText: { color: "#FFFFFF", fontSize: 11.5, fontWeight: "800" },
+  tabsUnderline: { position: "absolute", bottom: -1, left: 6, right: 6, height: 3, borderRadius: 2, backgroundColor: TOURNAMENT_COLORS.primary },
+  tabsFilterBtn: { width: 42, height: 42, borderRadius: 21, marginLeft: 4, marginBottom: 3, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: TOURNAMENT_COLORS.border, backgroundColor: TOURNAMENT_COLORS.surface },
+  tabsFilterDot: { position: "absolute", top: 7, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: TOURNAMENT_COLORS.primary },
+  chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
+  activeChip: { flexDirection: "row", alignItems: "center", gap: 5, maxWidth: 220, paddingHorizontal: 10, height: 30, borderRadius: 999, borderWidth: 1, borderColor: TOURNAMENT_COLORS.primary, backgroundColor: TOURNAMENT_COLORS.surface },
+  activeChipText: { color: TOURNAMENT_COLORS.textSoft, fontSize: 12.5, fontWeight: "700", flexShrink: 1 },
   filters: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: sk("#204661", "rgba(16,42,92,0.10)") },
   filterPressable: { flex: 1, minWidth: 0, minHeight: 48, justifyContent: "center", paddingVertical: 8 },
   filterContent: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 5 },

@@ -49,6 +49,8 @@ import {
   TournamentList,
   TournamentPage,
   TournamentSearch,
+  TournamentTabsBar,
+  ActiveFilterChips,
   TOURNAMENT_COLORS,
   ZaloButton,
   type TournamentAction,
@@ -56,6 +58,8 @@ import {
   type TournamentKind,
 } from "@/components/tournaments/TournamentDesign";
 import * as SecureStore from "expo-secure-store";
+import TournamentFilterSheet, { TIME_LABEL, type TimePreset, type TournamentFilterValue } from "@/components/tournaments/TournamentFilterSheet";
+import { provinceOf } from "@/utils/vnProvince";
 import { IS_V3, IS_V3_LIGHT, sk } from "@/hooks/uiVersion";
 
 // Lựa chọn Giải đấu / Minigame cuối cùng của người dùng (nhớ qua các lần mở app).
@@ -258,31 +262,23 @@ function TournamentListHeader({
   toDate,
   clearDateFilter,
   error,
+  counts,
+  filterChips,
+  openFilterSheet,
 }) {
   return (
     <View style={styles.listHeader}>
-      <TournamentHeader isBack={isBack} onBack={() => router.back()} />
+      <TournamentHeader isBack={isBack} onBack={() => router.back()} onOrganize={() => router.push("/organize" as any)} />
       {showKindSwitch ? <TournamentKindSwitch active={kind} onChange={setKind} liveCount={minigameLive} /> : null}
-      <TournamentSearch
-        value={keyword}
-        onChangeText={setKeyword}
-        onClear={() => setKeyword("")}
-        onFilter={openDateModal}
-      />
-      <TournamentFilters
+      {/* Mockup docs/mockups/giai-dau-loc-1.png: tab gọn kèm số giải + 1 nút lọc (tìm kiếm nằm trong bảng lọc) */}
+      <TournamentTabsBar
         active={tab as TournamentFilterKey}
         onChange={(nextTab) => setTab(nextTab)}
+        counts={counts || {}}
+        filterActive={(filterChips || []).length > 0}
+        onFilter={openFilterSheet}
       />
-      <DateFilter
-        active={hasDateFilter}
-        label={
-          hasDateFilter
-            ? `${formatDate(fromDate)} – ${formatDate(toDate)}`
-            : "Lọc theo ngày"
-        }
-        onPress={openDateModal}
-        onClear={clearDateFilter}
-      />
+      <ActiveFilterChips chips={filterChips || []} />
 
       {!!error && (
         <AppleLiquidGlassView
@@ -533,21 +529,88 @@ export default function TournamentDashboardScreen({ isBack = false }) {
     setToDate(null);
   };
 
-  const filtered = useMemo(() => {
-    const list = Array.isArray(tournaments) ? tournaments : [];
-    return list
-      .filter((tt) => (kind === "minigame" ? isMinigame(tt) : !isMinigame(tt)))
-      .filter((tt) => tt.status === tab)
-      .filter((tt) => (search ? tt.name?.toLowerCase().includes(search) : true))
-      .filter((tt) => {
-        if (!fromDate && !toDate) return true;
-        if (!tt.startDate) return true;
-        const s = new Date(tt.startDate);
-        if (fromDate && s < fromDate) return false;
-        if (toDate && s > toDate) return false;
-        return true;
-      });
-  }, [tournaments, kind, tab, search, fromDate, toDate]);
+  // --- Bảng "Tìm & lọc": thời gian (preset / khoảng ngày) + khu vực ---
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [timePreset, setTimePreset] = useState<TimePreset>("all");
+  const [province, setProvince] = useState("");
+  const sheetDraftRef = React.useRef<TournamentFilterValue | null>(null);
+
+  /** Khoảng ngày [from, to] theo preset; null = không lọc thời gian. */
+  const rangeOf = (time: TimePreset, f: Date | null, t: Date | null): [Date, Date] | null => {
+    const now = new Date();
+    const d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const end = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+    if (time === "today") return [d0, end(d0)];
+    if (time === "week") {
+      const mon = new Date(d0);
+      mon.setDate(d0.getDate() - ((d0.getDay() + 6) % 7));
+      const sun = new Date(mon);
+      sun.setDate(mon.getDate() + 6);
+      return [mon, end(sun)];
+    }
+    if (time === "month") return [new Date(d0.getFullYear(), d0.getMonth(), 1), end(new Date(d0.getFullYear(), d0.getMonth() + 1, 0))];
+    if (time === "range" && f && t) return [f, end(t)];
+    return null;
+  };
+  // Giải "dính" khoảng ngày: bắt đầu trước khi khoảng kết thúc và kết thúc sau khi khoảng bắt đầu.
+  const inRange = (tt: any, r: [Date, Date] | null) => {
+    if (!r) return true;
+    const s = tt.startDate ? new Date(tt.startDate) : null;
+    if (!s) return true;
+    const e = tt.endDate ? new Date(tt.endDate) : s;
+    return s <= r[1] && e >= r[0];
+  };
+  const baseMatch = (tt: any, v: TournamentFilterValue, f: Date | null, t: Date | null) => {
+    const q = v.keyword.trim().toLowerCase();
+    if (q && !String(tt.name || "").toLowerCase().includes(q)) return false;
+    if (v.province && provinceOf(tt.location) !== v.province) return false;
+    return inRange(tt, rangeOf(v.time, f, t));
+  };
+  const ofKind = useMemo(
+    () => (Array.isArray(tournaments) ? tournaments : []).filter((tt) => (kind === "minigame" ? isMinigame(tt) : !isMinigame(tt))),
+    [tournaments, kind]
+  );
+  const provinceOptions = useMemo(() => {
+    const cnt: Record<string, number> = {};
+    for (const tt of ofKind) {
+      const p = provinceOf(tt.location);
+      if (p) cnt[p] = (cnt[p] || 0) + 1;
+    }
+    return Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]).slice(0, 12);
+  }, [ofKind]);
+  const filterValue: TournamentFilterValue = { keyword: search, time: timePreset, province };
+  const matchAll = ofKind.filter((tt) => baseMatch(tt, filterValue, fromDate, toDate));
+  const tabCounts = useMemo(() => {
+    const c: Record<string, number> = { upcoming: 0, ongoing: 0, finished: 0 };
+    for (const tt of matchAll) if (c[tt.status] != null) c[tt.status] += 1;
+    return c;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ofKind, search, timePreset, province, fromDate, toDate]);
+  const filtered = useMemo(() => matchAll.filter((tt) => tt.status === tab), [matchAll, tab]);
+  const rangeLabel = fromDate && toDate ? `${formatDate(fromDate)} – ${formatDate(toDate)}` : "";
+  const filterChips = [
+    ...(search ? [{ key: "q", label: `“${keyword.trim()}”`, onRemove: () => setKeyword("") }] : []),
+    ...(timePreset !== "all"
+      ? [{ key: "t", label: timePreset === "range" ? rangeLabel || TIME_LABEL.range : TIME_LABEL[timePreset], onRemove: () => { setTimePreset("all"); clearDateFilter(); } }]
+      : []),
+    ...(province ? [{ key: "p", label: province, onRemove: () => setProvince("") }] : []),
+  ];
+  const applySheet = (v: TournamentFilterValue) => {
+    setKeyword(v.keyword);
+    setSearch(v.keyword.trim().toLowerCase());
+    setTimePreset(v.time);
+    if (v.time !== "range") clearDateFilter();
+    setProvince(v.province);
+    setSheetOpen(false);
+    // tab đang xem không còn giải nào → chuyển sang tab có giải
+    const hit = ofKind.filter((tt) => baseMatch(tt, v, fromDate, toDate));
+    if (!hit.some((tt) => tt.status === tab)) {
+      const next = (["ongoing", "upcoming", "finished"] as const).find((k) => hit.some((tt) => tt.status === k));
+      if (next) setTab(next);
+    }
+  };
+  const countForDraft = (v: TournamentFilterValue) =>
+    ofKind.filter((tt) => baseMatch(tt, v, fromDate, toDate)).length;
   const minigameLive = useMemo(
     () =>
       (Array.isArray(tournaments) ? tournaments : []).filter(
@@ -722,6 +785,9 @@ export default function TournamentDashboardScreen({ isBack = false }) {
                 toDate={toDate}
                 clearDateFilter={clearDateFilter}
                 error={error}
+                counts={tabCounts}
+                filterChips={filterChips}
+                openFilterSheet={() => setSheetOpen(true)}
               />
             }
             data={Array.from({ length: cols > 1 ? Math.ceil(SKELETON_COUNT / cols) * cols : SKELETON_COUNT })}
@@ -756,6 +822,9 @@ export default function TournamentDashboardScreen({ isBack = false }) {
                 toDate={toDate}
                 clearDateFilter={clearDateFilter}
                 error={error}
+                counts={tabCounts}
+                filterChips={filterChips}
+                openFilterSheet={() => setSheetOpen(true)}
               />
             }
             data={gridData}
@@ -800,6 +869,21 @@ export default function TournamentDashboardScreen({ isBack = false }) {
           </ScrollView>
         ) : null}
       </View>
+
+      <TournamentFilterSheet
+        visible={sheetOpen}
+        value={filterValue.keyword === keyword.trim().toLowerCase() ? { ...filterValue, keyword } : { ...filterValue, keyword }}
+        provinces={provinceOptions}
+        rangeLabel={rangeLabel}
+        countFor={countForDraft}
+        onClose={() => setSheetOpen(false)}
+        onApply={applySheet}
+        onPickRange={(draft) => {
+          sheetDraftRef.current = draft;
+          setSheetOpen(false);
+          setTimeout(openDateModal, 350);
+        }}
+      />
 
       {/* Date range modal */}
       <Modal
@@ -954,6 +1038,16 @@ export default function TournamentDashboardScreen({ isBack = false }) {
                   setFromDate(start ? fromDateId(start) : null);
                   setToDate(end ? fromDateId(end) : null);
                   setDateModalVisible(false);
+                  if (start && end) setTimePreset("range");
+                  // mở lại bảng lọc (giữ chữ / khu vực đang chọn trong bảng)
+                  if (sheetDraftRef.current) {
+                    const d = sheetDraftRef.current;
+                    sheetDraftRef.current = null;
+                    setKeyword(d.keyword);
+                    setSearch(d.keyword.trim().toLowerCase());
+                    setProvince(d.province);
+                    setTimeout(() => setSheetOpen(true), 350);
+                  }
                 }}
                 style={[
                   styles.modalApplyBtn,

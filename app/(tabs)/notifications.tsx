@@ -94,6 +94,8 @@ const KIND_VISUAL: Record<string, Visual> = {
   event_cancelled: V("calendar-clear-outline", "#EF4444"),
   user_match: V("tennisball-outline", "#84CC16"),
   live: V("radio-outline", "#EF4444"),
+  organize_request: V("trophy-outline", "#D97706"),
+  organize_request_new: V("megaphone-outline", "#D97706"),
 };
 const URL_VISUAL: [RegExp, Visual][] = [
   [/^\/shop/, V("bag-handle-outline", "#E11D2A")],
