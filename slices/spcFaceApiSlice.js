@@ -17,7 +17,8 @@ export const spcFaceApiSlice = apiSlice.injectEndpoints({
     }),
     // Tra VĐV theo ảnh (avatar URL): điểm đôi quy đổi PickleTour (PickleballVN −0.4, SportConnect giữ nguyên)
     lookupPlayerFace: builder.mutation({
-      query: (imageUrl) => ({ url: "/api/admin/spc-face/lookup-player", method: "POST", body: { imageUrl } }),
+      // arg: imageUrl (chuỗi) hoặc { emb } — tra lại theo mặt admin chọn khi ảnh có nhiều mặt
+      query: (arg) => ({ url: "/api/admin/spc-face/lookup-player", method: "POST", body: typeof arg === "string" ? { imageUrl: arg } : arg }),
     }),
     searchSpcFace: builder.mutation({
       query: (emb) => ({ url: "/api/admin/spc-face/search", method: "POST", body: { emb } }),

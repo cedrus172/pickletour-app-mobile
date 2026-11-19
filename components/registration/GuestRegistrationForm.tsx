@@ -16,7 +16,7 @@ import { useCreateGuestRegistrationMutation } from "@/slices/tournamentsApiSlice
 import { normalizeUrl } from "@/utils/normalizeUri";
 import PlayerSelector from "@/components/PlayerSelector";
 import { useLookupPlayerFaceMutation } from "@/slices/spcFaceApiSlice";
-import { MatchRow, ScoreSourceBadge } from "@/components/admin/PlayerScoreLookup";
+import { FacePicker, MatchRow, ScoreSourceBadge } from "@/components/admin/PlayerScoreLookup";
 
 // SĐT diễn đàn → dạng 0xxxxxxxxx (bỏ +84/84).
 const normPhone = (p: string) => {
@@ -74,6 +74,17 @@ function PlayerFields({ title, value, onChange, C, eventType }: { title: string;
     score: m.pickletourScore != null ? String(m.pickletourScore) : base.score,
     scoreFrom: m.pickletourScore != null ? m : null,
   });
+
+  // Ảnh có nhiều mặt → admin chọn mặt, tra lại theo mã của mặt đó.
+  const chooseFace = async (i: number) => {
+    if (!found?.faces?.[i] || i === found.selected) return;
+    try {
+      const r: any = await lookupFace({ emb: found.faces[i].emb } as any).unwrap();
+      setFound({ ...found, selected: i, matches: r?.matches || [] });
+    } catch (err: any) {
+      Alert.alert("Không tra được", err?.data?.message || "Vui lòng thử lại.");
+    }
+  };
 
   const pickPhoto = async () => {
     try {
@@ -160,7 +171,9 @@ function PlayerFields({ title, value, onChange, C, eventType }: { title: string;
           <Text style={{ color: C.textSecondary, fontSize: 12.5 }}>Đang tìm VĐV trong dữ liệu SportConnect / PickleballVN…</Text>
         </View>
       ) : found ? (
-        found.error || !found.faceFound || !found.matches?.length ? (
+        <View style={{ gap: 8 }}>
+        {found.faces?.length > 1 ? <FacePicker faces={found.faces} selected={found.selected} onSelect={chooseFace} busy={looking} /> : null}
+        {found.error || !found.faceFound || !found.matches?.length ? (
           <Text style={{ color: C.textSecondary, fontSize: 12.5 }}>
             {found.error ||
               (!found.faceFound ? "Không thấy khuôn mặt rõ trong ảnh — nhập tay thông tin." : "Không tìm thấy VĐV giống trong dữ liệu diễn đàn — nhập tay thông tin.")}
@@ -174,7 +187,8 @@ function PlayerFields({ title, value, onChange, C, eventType }: { title: string;
               <MatchRow key={`${m.source}:${m.spcId}`} m={m} onUse={(mm) => onChange(applyMatch(value, mm))} />
             ))}
           </View>
-        )
+        )}
+        </View>
       ) : null}
       <View style={styles.grid}>
         <Field C={C} required label="Số điện thoại" value={value.phone} onChangeText={set("phone")} keyboardType="phone-pad" />

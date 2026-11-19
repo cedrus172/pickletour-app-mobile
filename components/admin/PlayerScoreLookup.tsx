@@ -92,18 +92,58 @@ export function MatchRow({ m, onUse }: { m: any; onUse?: (m: any) => void }) {
   );
 }
 
+/** Ảnh có nhiều khuôn mặt → hàng ảnh nhỏ để admin chọn mặt cần tra. */
+export function FacePicker({ faces, selected, onSelect, busy }: { faces: any[]; selected: number; onSelect: (i: number) => void; busy?: boolean }) {
+  const C = useThemeTokens();
+  if (!Array.isArray(faces) || faces.length < 2) return null;
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={{ color: C.text, fontWeight: "700", fontSize: 13 }}>Ảnh có {faces.length} khuôn mặt — chạm chọn đúng mặt VĐV cần tra</Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        {faces.map((f, i) => (
+          <Pressable
+            key={i}
+            accessibilityRole="button"
+            accessibilityLabel={`Chọn khuôn mặt ${i + 1}`}
+            accessibilityState={{ selected: i === selected, disabled: !!busy }}
+            disabled={busy}
+            onPress={() => onSelect(i)}
+            style={{ padding: 2, borderRadius: 32, borderWidth: 3, borderColor: i === selected ? C.primary : "transparent", opacity: busy && i !== selected ? 0.5 : 1 }}
+          >
+            <ExpoImage source={{ uri: f.thumb }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 /** target = { imageUrl, name } | null */
 export default function PlayerScoreLookupModal({ target, onClose }: { target: { imageUrl: string; name?: string } | null; onClose: () => void }) {
   const C = useThemeTokens();
   const [lookup, { data, isLoading, error }] = useLookupPlayerFaceMutation();
+  const [searchFace, { isLoading: searching }] = useLookupPlayerFaceMutation();
+  const [picked, setPicked] = useState<{ index: number; matches: any[] } | null>(null);
   const url = target?.imageUrl ? normalizeUrl(target.imageUrl) : "";
   // Chỉ gọi một lần mỗi khi mở cho một ảnh (reset/lookup của RTK đổi sau mỗi lượt → không đưa vào deps, tránh gọi lặp).
   useEffect(() => {
+    setPicked(null);
     if (url) lookup(url);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
   const res: any = data;
-  const matches: any[] = res?.matches || [];
+  const selected = picked ? picked.index : res?.selected ?? 0;
+  const matches: any[] = picked ? picked.matches : res?.matches || [];
+  const chooseFace = async (i: number) => {
+    if (i === selected) return;
+    if (i === res?.selected) return setPicked(null);
+    try {
+      const r: any = await searchFace({ emb: res.faces[i].emb } as any).unwrap();
+      setPicked({ index: i, matches: r?.matches || [] });
+    } catch {
+      setPicked({ index: i, matches: [] });
+    }
+  };
   return (
     <AppModal visible={!!target} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top", "bottom"]}>
@@ -129,13 +169,19 @@ export default function PlayerScoreLookupModal({ target, onClose }: { target: { 
             <Text style={{ color: C.sub, textAlign: "center", marginTop: 30 }}>Không thấy khuôn mặt rõ trong ảnh đại diện của VĐV này.</Text>
           ) : res ? (
             <>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                {res.face ? <ExpoImage source={{ uri: res.face }} style={{ width: 52, height: 52, borderRadius: 26 }} /> : null}
-                <Text style={{ color: C.sub, fontSize: 12.5, flex: 1, lineHeight: 17 }}>
-                  Điểm PickleTour = điểm đôi của diễn đàn · PickleballVN trừ 0.4 · SportConnect giữ nguyên.
-                </Text>
-              </View>
-              {matches.length ? (
+              {res.faces?.length > 1 ? (
+                <FacePicker faces={res.faces} selected={selected} onSelect={chooseFace} busy={searching} />
+              ) : (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                  {res.face ? <ExpoImage source={{ uri: res.face }} style={{ width: 52, height: 52, borderRadius: 26 }} /> : null}
+                  <Text style={{ color: C.sub, fontSize: 12.5, flex: 1, lineHeight: 17 }}>
+                    Điểm PickleTour = điểm đôi của diễn đàn · PickleballVN trừ 0.4 · SportConnect giữ nguyên.
+                  </Text>
+                </View>
+              )}
+              {searching ? (
+                <ActivityIndicator color={C.primary} style={{ marginTop: 20 }} />
+              ) : matches.length ? (
                 matches.map((m) => <MatchRow key={`${m.source}:${m.spcId}`} m={m} />)
               ) : (
                 <Text style={{ color: C.sub, textAlign: "center", marginTop: 20 }}>Không tìm thấy VĐV giống trong dữ liệu diễn đàn.</Text>
