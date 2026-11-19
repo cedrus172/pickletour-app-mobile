@@ -302,6 +302,9 @@ function TournamentListHeader({
   );
 }
 
+// Ảnh bìa ngang AI (cardCover) cho khung thẻ giải; chưa có thì dùng poster. Bấm ảnh vẫn mở poster gốc.
+const cardImageOf = (t: any) => (t?.cardCover?.status === "ready" && t?.cardCover?.url ? t.cardCover.url : t?.image);
+
 /* ---------- Card GOM NHÓM: nhiều nội dung cùng 1 sự kiện ---------- */
 function GroupCard({ group, canManage, formatDate, onPreview }: any) {
   const [open, setOpen] = React.useState(true);
@@ -315,7 +318,7 @@ function GroupCard({ group, canManage, formatDate, onPreview }: any) {
   return (
     <PremiumTournamentCard>
       <TournamentCover
-        image={cover?.image}
+        image={cardImageOf(cover)}
         title={group?.title || "Giải đấu Pickletour"}
         status={gstatus}
         startDate={cover?.startDate}
@@ -727,7 +730,7 @@ export default function TournamentDashboardScreen({ isBack = false }) {
     return (
       <PremiumTournamentCard>
         <TournamentCover
-          image={tt.image}
+          image={cardImageOf(tt)}
           title={tt.name || "Giải đấu Pickletour"}
           status={tt.status}
           mode={(tt as any)?.tournamentMode}
