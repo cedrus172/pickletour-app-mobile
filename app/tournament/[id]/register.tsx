@@ -91,6 +91,7 @@ import { OpenMessageButton } from "@/components/social/OpenMessageButton";
 import PlayerNameText from "@/components/PlayerNameText";
 
 import AppModal, { ModalTopInset } from "@/components/ui/AppModal";
+import PlayerScoreLookupModal from "@/components/admin/PlayerScoreLookup";
 import AiPosterSheet from "@/components/registration/AiPosterSheet";
 const PLACE = "https://dummyimage.com/800x600/cccccc/ffffff&text=?";
 
@@ -996,6 +997,7 @@ const RegItem = memo(function RegItem({
   onApprovePartner,
   onRejectPartner,
   partnerActBusy,
+  onLookupScore,
 }: any) {
   const C = useThemeColors();
   const total = totalScoreOf(r, isSingles);
@@ -1197,6 +1199,17 @@ const RegItem = memo(function RegItem({
                     {roundTo3(pl?.score)}
                   </Text>
                 </View>
+                {onLookupScore ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    hitSlop={6}
+                    onPress={() => onLookupScore(pl)}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 6, borderRadius: 4, borderWidth: 1, borderColor: C.tint }}
+                  >
+                    <Ionicons name="search" size={10} color={C.tint} />
+                    <Text style={{ fontSize: 10, fontWeight: "800", color: C.tint }}>Tra điểm</Text>
+                  </Pressable>
+                ) : null}
               </View>
             </TouchableOpacity>
           </View>
@@ -1830,6 +1843,9 @@ export default function TournamentRegistrationScreen() {
   const posterOpenLockRef = useRef("");
   const [posterBusyId, setPosterBusyId] = useState("");
   const [aiPosterReg, setAiPosterReg] = useState<any>(null);
+  // Admin: "Tra điểm" — tra khuôn mặt VĐV trong dữ liệu diễn đàn (SportConnect / PickleballVN)
+  const [lookupTarget, setLookupTarget] = useState<{ imageUrl: string; name?: string } | null>(null);
+  const openLookupScore = useCallback((pl: any) => setLookupTarget({ imageUrl: String(pl?.avatar || ""), name: displayName(pl, tour) }), [tour]);
   const [aiPosterTemplateOpen, setAiPosterTemplateOpen] = useState(false);
   // Mở AI Poster từ thông báo (?aiPoster=<regId>). Màn AI Poster chỉ cần mã đăng ký nên
   // mở luôn, không chờ danh sách; đợi màn chuyển xong (iOS từ chối mở Modal giữa lúc
@@ -3610,6 +3626,7 @@ export default function TournamentRegistrationScreen() {
               aiPosterEnabled={Boolean((tour as any)?.aiPosterTemplateUrl)}
               legacyPosterEnabled={(tour as any)?.legacyPosterEnabled === true}
               onOpenAiPoster={setAiPosterReg}
+              onLookupScore={isAdmin ? openLookupScore : undefined}
             />
           )}
         />
@@ -3716,6 +3733,7 @@ export default function TournamentRegistrationScreen() {
               aiPosterEnabled={Boolean((tour as any)?.aiPosterTemplateUrl)}
               legacyPosterEnabled={(tour as any)?.legacyPosterEnabled === true}
               onOpenAiPoster={setAiPosterReg}
+              onLookupScore={isAdmin ? openLookupScore : undefined}
             />
           )}
           ListHeaderComponent={HeaderComponent}
@@ -3999,6 +4017,8 @@ export default function TournamentRegistrationScreen() {
         {searchOpen && renderSearchScreen()}
 
         {/* MODALS */}
+
+        <PlayerScoreLookupModal target={lookupTarget} onClose={() => setLookupTarget(null)} />
 
         {/* === IMAGE VIEWER LIBRARY === */}
         <AiPosterSheet

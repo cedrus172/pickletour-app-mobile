@@ -2,7 +2,7 @@
 // Admin đăng ký VĐV NGOÀI HỆ THỐNG: SĐT, họ tên, biệt danh (bắt buộc), điểm trình (mặc định 0), ảnh (tuỳ chọn).
 // SĐT đã có tài khoản → dùng tài khoản đó; chưa có → tạo tài khoản khách. VĐV đăng ký app bằng đúng SĐT
 // sau này sẽ nhận lại tài khoản kèm dữ liệu thi đấu.
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,10 +15,20 @@ import { useUploadAvatarMutation } from "@/slices/uploadApiSlice";
 import { useCreateGuestRegistrationMutation } from "@/slices/tournamentsApiSlice";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import PlayerSelector from "@/components/PlayerSelector";
+import { useLookupPlayerFaceMutation } from "@/slices/spcFaceApiSlice";
+import { MatchRow, ScoreSourceBadge } from "@/components/admin/PlayerScoreLookup";
+
+// SĐT diễn đàn → dạng 0xxxxxxxxx (bỏ +84/84).
+const normPhone = (p: string) => {
+  const d = String(p || "").replace(/\D/g, "");
+  if (/^84\d{9}$/.test(d)) return `0${d.slice(2)}`;
+  return /^0\d{9}$/.test(d) ? d : "";
+};
 
 // hasAccount: VĐV đã có tài khoản → chọn từ hệ thống (user); chưa có → nhập tay (tạo tài khoản khách).
-type GuestPlayer = { hasAccount: boolean; user: any; phone: string; name: string; nickname: string; score: string; avatar: string };
-const EMPTY: GuestPlayer = { hasAccount: false, user: null, phone: "", name: "", nickname: "", score: "0", avatar: "" };
+// scoreFrom: VĐV diễn đàn đã dùng để điền điểm (hiện nhãn nguồn điểm).
+type GuestPlayer = { hasAccount: boolean; user: any; phone: string; name: string; nickname: string; score: string; avatar: string; scoreFrom?: any };
+const EMPTY: GuestPlayer = { hasAccount: false, user: null, phone: "", name: "", nickname: "", score: "0", avatar: "", scoreFrom: null };
 
 type Colors = { textPrimary: string; textSecondary: string; border: string; inputBg: string; tint: string; cardBg?: string };
 
@@ -44,7 +54,21 @@ function Field({ label, value, onChangeText, C, keyboardType, required }: any) {
 
 function PlayerFields({ title, value, onChange, C, eventType }: { title: string; value: GuestPlayer; onChange: (v: GuestPlayer) => void; C: Colors; eventType: "single" | "double" }) {
   const [uploadAvatar, { isLoading: uploading }] = useUploadAvatarMutation();
-  const set = (k: keyof GuestPlayer) => (t: string) => onChange({ ...value, [k]: t });
+  // Tải ảnh lên → tự tìm khuôn mặt trong dữ liệu SportConnect / PickleballVN để điền sẵn thông tin.
+  const [lookupFace, { isLoading: looking }] = useLookupPlayerFaceMutation();
+  const [found, setFound] = useState<any>(null);
+  const set = (k: keyof GuestPlayer) => (t: string) => onChange({ ...value, [k]: t, ...(k === "score" ? { scoreFrom: null } : {}) });
+  useEffect(() => {
+    if (!value.avatar) setFound(null);
+  }, [value.avatar]);
+  const applyMatch = (base: GuestPlayer, m: any): GuestPlayer => ({
+    ...base,
+    name: m.name || base.name,
+    nickname: m.nickname || base.nickname,
+    phone: base.phone || normPhone(m.phone),
+    score: m.pickletourScore != null ? String(m.pickletourScore) : base.score,
+    scoreFrom: m.pickletourScore != null ? m : null,
+  });
 
   const pickPhoto = async () => {
     try {
@@ -56,7 +80,17 @@ function PlayerFields({ title, value, onChange, C, eventType }: { title: string;
         format: ImageManipulator.SaveFormat.JPEG,
       });
       const res: any = await uploadAvatar({ uri: img.uri, name: "avatar.jpg", type: "image/jpeg" } as any).unwrap();
-      onChange({ ...value, avatar: res?.url || "" });
+      const next = { ...value, avatar: res?.url || "" };
+      onChange(next);
+      if (!next.avatar) return;
+      try {
+        const r: any = await lookupFace(normalizeUrl(next.avatar)).unwrap();
+        setFound(r);
+        const top = r?.matches?.[0];
+        if (top?.likely) onChange(applyMatch(next, top));
+      } catch (err: any) {
+        setFound({ error: err?.data?.message || "Không tra được khuôn mặt" });
+      }
     } catch (e: any) {
       Alert.alert("Không tải được ảnh", e?.data?.message || e?.message || "Vui lòng thử lại.");
     }
@@ -113,6 +147,28 @@ function PlayerFields({ title, value, onChange, C, eventType }: { title: string;
           <Text style={{ color: C.tint, fontWeight: "700", fontSize: 13 }}>{value.avatar ? "Đổi ảnh" : "Thêm ảnh (không bắt buộc)"}</Text>
         </Pressable>
       </View>
+      {looking ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <ActivityIndicator color={C.tint} />
+          <Text style={{ color: C.textSecondary, fontSize: 12.5 }}>Đang tìm VĐV trong dữ liệu SportConnect / PickleballVN…</Text>
+        </View>
+      ) : found ? (
+        found.error || !found.faceFound || !found.matches?.length ? (
+          <Text style={{ color: C.textSecondary, fontSize: 12.5 }}>
+            {found.error ||
+              (!found.faceFound ? "Không thấy khuôn mặt rõ trong ảnh — nhập tay thông tin." : "Không tìm thấy VĐV giống trong dữ liệu diễn đàn — nhập tay thông tin.")}
+          </Text>
+        ) : (
+          <View style={{ gap: 8 }}>
+            <Text style={{ color: C.textSecondary, fontSize: 12, lineHeight: 16 }}>
+              VĐV giống trong dữ liệu diễn đàn (điểm PickleTour = điểm đôi; PickleballVN trừ 0.4). Bấm “Dùng” để điền.
+            </Text>
+            {found.matches.slice(0, 3).map((m: any) => (
+              <MatchRow key={`${m.source}:${m.spcId}`} m={m} onUse={(mm) => onChange(applyMatch(value, mm))} />
+            ))}
+          </View>
+        )
+      ) : null}
       <View style={styles.grid}>
         <Field C={C} required label="Số điện thoại" value={value.phone} onChangeText={set("phone")} keyboardType="phone-pad" />
         <Field C={C} required label="Họ và tên" value={value.name} onChangeText={set("name")} />
@@ -121,6 +177,12 @@ function PlayerFields({ title, value, onChange, C, eventType }: { title: string;
         <Field C={C} required label="Biệt danh" value={value.nickname} onChangeText={set("nickname")} />
         <Field C={C} label="Điểm trình (mặc định 0)" value={value.score} onChangeText={set("score")} keyboardType="decimal-pad" />
       </View>
+      {value.scoreFrom ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <Text style={{ color: C.textSecondary, fontSize: 12 }}>Điểm lấy từ</Text>
+          <ScoreSourceBadge m={value.scoreFrom} />
+        </View>
+      ) : null}
       </>
       )}
     </View>
