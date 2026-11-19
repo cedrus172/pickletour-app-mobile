@@ -17,6 +17,7 @@ import { NotificationHeaderActions } from "@/components/GlobalNotificationShell"
 import { useDuoSideNavigation } from "@/hooks/useDuoSideNavigation";
 import { IS_V3_DARK, V3 } from "@/hooks/uiVersion";
 import { useGetMyRankQuery } from "@/slices/usersApiSlice";
+import { useShopInfo } from "@/slices/shopApiSlice";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import {
   formatRatingScore,
@@ -25,12 +26,9 @@ import {
   isValidRankNo,
 } from "@/utils/rankUtils";
 
-// Giữ logo PickleTour gốc (huy hiệu) — V3 chỉ đổi phong cách giao diện, không đổi logo.
-const LOGO_BADGE = require("@/assets/images/logo-v2-badge.png");
 const HERO_COURT = require("@/assets/images/v3/hero-court.jpg");
 const ARCADE_BANNER = require("@/assets/images/v3/arcade-banner.jpg");
 
-const LOGO_ASPECT = 1237 / 1088; // tỉ lệ file badge đã trim
 
 /* ------------------------------------------------------------------ */
 /* Nền trang                                                           */
@@ -44,13 +42,12 @@ export const HomeV3Page = memo(function HomeV3Page({ children }: { children: Rea
 });
 
 /* ------------------------------------------------------------------ */
-/* Hero: ảnh sân + logo + chuông thông báo                             */
+/* Hero: ảnh sân + avatar/tên/điểm người dùng + chuông thông báo       */
 /* ------------------------------------------------------------------ */
 export const HomeV3Hero = memo(function HomeV3Hero({ width }: { width: number }) {
   const insets = useSafeAreaInsets();
   const sideNavigation = useDuoSideNavigation();
   const heroHeight = Math.round(Math.min(Math.max(width * 0.5, 180), 300));
-  const logoWidth = Math.round(Math.min(Math.max(width * 0.24, 88), 124));
   return (
     <View style={{ height: heroHeight }}>
       <Image source={HERO_COURT} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="right center" transition={200} />
@@ -59,12 +56,9 @@ export const HomeV3Hero = memo(function HomeV3Hero({ width }: { width: number })
       {/* Hoà mép trên/dưới của ảnh vào nền trang */}
       <LinearGradient pointerEvents="none" colors={[V3.gradPage[0], V3.fade0]} style={styles.heroFadeTop} />
       <LinearGradient pointerEvents="none" colors={[V3.fade0, V3.gradPage[0]]} style={styles.heroFadeBottom} />
-      <Image
-        source={LOGO_BADGE}
-        accessibilityLabel="PickleTour"
-        style={{ position: "absolute", left: 14, top: 8, width: logoWidth, height: logoWidth / LOGO_ASPECT }}
-        contentFit="contain"
-      />
+      <View pointerEvents="box-none" style={styles.heroUser}>
+        <HomeV3UserCard variant="hero" />
+      </View>
       <View
         pointerEvents="box-none"
         testID="home-notification-corner"
@@ -92,7 +86,8 @@ function roleLabel(role?: string) {
   }
 }
 
-export const HomeV3UserCard = memo(function HomeV3UserCard() {
+export const HomeV3UserCard = memo(function HomeV3UserCard({ variant = "card" }: { variant?: "card" | "hero" }) {
+  const hero = variant === "hero";
   const userInfo = useSelector((s: any) => s.auth?.userInfo);
   const storedRawRankNo = getRankNoFromPayload(userInfo);
   const hasStoredRankNo = isValidRankNo(storedRawRankNo);
@@ -121,9 +116,9 @@ export const HomeV3UserCard = memo(function HomeV3UserCard() {
   const onPress = useCallback(() => router.push((userInfo ? "/profile/stack" : "/login") as never), [userInfo]);
 
   return (
-    <View style={styles.userWrap}>
-      <Pressable accessibilityRole="button" onPress={onPress} style={styles.userCard}>
-        <LinearGradient colors={[V3.lime, V3.blueBright]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatarRing}>
+    <View style={hero ? undefined : styles.userWrap}>
+      <Pressable accessibilityRole="button" onPress={onPress} style={hero ? styles.userHero : styles.userCard}>
+        <LinearGradient colors={[V3.lime, V3.blueBright]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={hero ? styles.avatarRingHero : styles.avatarRing}>
           <View style={styles.avatarInner}>
             {userInfo && avatarUrl ? (
               <Image source={{ uri: avatarUrl }} style={styles.avatar} contentFit="cover" transition={300} />
@@ -133,11 +128,11 @@ export const HomeV3UserCard = memo(function HomeV3UserCard() {
           </View>
         </LinearGradient>
 
-        <View style={styles.userInfo}>
+        <View style={hero ? styles.userInfoHero : styles.userInfo}>
           {userInfo ? (
-            <PlayerNameText user={userInfo} name={name} style={styles.userName} numberOfLines={1} />
+            <PlayerNameText user={userInfo} name={name} style={[styles.userName, hero && styles.userNameHero]} numberOfLines={1} />
           ) : (
-            <Text style={styles.userName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+            <Text style={[styles.userName, hero && styles.userNameHero]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
               Bắt đầu hành trình
             </Text>
           )}
@@ -145,13 +140,30 @@ export const HomeV3UserCard = memo(function HomeV3UserCard() {
             <View style={styles.roleBadge}>
               <Ionicons name="star" size={9} color={V3.onBlue} />
             </View>
-            <Text style={styles.roleText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+            <Text style={[styles.roleText, hero && styles.roleTextHero]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
               {userInfo ? roleLabel(userInfo?.role) : "Cùng PickleTour"}
             </Text>
           </View>
+          {hero ? (
+            userInfo ? (
+              hideRank ? null : (
+                <View style={[styles.rankPill, styles.rankPillHero]}>
+                  <MaterialIcons name={rankIcon} size={15} color={V3.blue} />
+                  <Text style={[styles.rankText, { fontSize: 13.5 }]} numberOfLines={1}>
+                    {rankText}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={15} color={V3.blue} />
+                </View>
+              )
+            ) : (
+              <LinearGradient colors={V3.gradBlue} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.loginPill, styles.rankPillHero]}>
+                <Text style={styles.loginText}>Đăng nhập</Text>
+              </LinearGradient>
+            )
+          ) : null}
         </View>
 
-        {userInfo ? (
+        {hero ? null : userInfo ? (
           hideRank ? null : (
             <View style={styles.rankRow}>
               <View style={styles.rankPill}>
@@ -170,6 +182,36 @@ export const HomeV3UserCard = memo(function HomeV3UserCard() {
         )}
       </Pressable>
     </View>
+  );
+});
+
+/* ------------------------------------------------------------------ */
+/* Thẻ Gian hàng độc quyền GOATWIN (chỉ hiện khi gian hàng mở cho người xem) */
+/* ------------------------------------------------------------------ */
+export const HomeV3ShopCard = memo(function HomeV3ShopCard() {
+  const { data: shop } = useShopInfo();
+  if (!shop?.enabled) return null;
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={shop.title} onPress={() => router.push("/shop" as never)} style={styles.shopPress}>
+      <LinearGradient colors={["#070709", "#2A0709", "#4A0B10"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.shopCard}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            {shop.logo ? <Image source={{ uri: shop.logo }} style={styles.shopLogo} contentFit="contain" /> : null}
+            <View style={styles.shopBadge}>
+              <Text style={styles.shopBadgeText}>ĐỘC QUYỀN</Text>
+            </View>
+          </View>
+          <Text style={styles.shopTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+            {shop.title}
+          </Text>
+          <Text style={styles.shopSub} numberOfLines={1}>
+            {[shop.subtitle, shop.promoLabel].filter(Boolean).join(" · ")}
+          </Text>
+        </View>
+        {shop.cardImage ? <Image source={{ uri: shop.cardImage }} style={styles.shopImg} contentFit="contain" transition={200} /> : null}
+        <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+      </LinearGradient>
+    </Pressable>
   );
 });
 
@@ -420,6 +462,45 @@ const styles = StyleSheet.create({
   heroBell: { position: "absolute", top: 8, zIndex: 10 },
 
   userWrap: { paddingHorizontal: 16, marginTop: -44 },
+  heroUser: { position: "absolute", left: 14, top: 10, right: 76 },
+  userHero: { flexDirection: "row", alignItems: "center", gap: 12, alignSelf: "flex-start", maxWidth: "100%" },
+  avatarRingHero: { width: 76, height: 76, borderRadius: 38, padding: 3 },
+  userInfoHero: { flexShrink: 1, minWidth: 0 },
+  // Chữ trên ảnh đầu trang: tông tối = chữ trắng đổ bóng; tông sáng = chữ đậm màu mực + viền sáng cho dễ đọc.
+  userNameHero: {
+    fontSize: 21,
+    lineHeight: 26,
+    color: IS_V3_DARK ? "#FFFFFF" : V3.ink,
+    textShadowColor: IS_V3_DARK ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.95)",
+    textShadowRadius: 6,
+    textShadowOffset: { width: 0, height: 1 },
+  },
+  roleTextHero: {
+    color: IS_V3_DARK ? "rgba(255,255,255,0.92)" : V3.sub,
+    textShadowColor: IS_V3_DARK ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.95)",
+    textShadowRadius: 4,
+  },
+  rankPillHero: { alignSelf: "flex-start", height: 32, marginTop: 6, borderWidth: 1, borderColor: V3.cardEdge },
+  shopPress: { marginHorizontal: 16, marginTop: -30, borderRadius: 20, ...CARD_SHADOW, shadowColor: "#E11D2A", shadowOpacity: 0.35 },
+  shopCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minHeight: 96,
+    paddingVertical: 12,
+    paddingLeft: 14,
+    paddingRight: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(225,29,42,0.75)",
+    overflow: "hidden",
+  },
+  shopLogo: { width: 64, height: 26 },
+  shopBadge: { backgroundColor: "#C5F433", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  shopBadgeText: { color: "#132000", fontSize: 10.5, fontWeight: "900", letterSpacing: 0.3 },
+  shopTitle: { color: "#FFFFFF", fontSize: 16.5, fontWeight: "900", marginTop: 6 },
+  shopSub: { color: "rgba(255,255,255,0.72)", fontSize: 12, marginTop: 2 },
+  shopImg: { width: 104, height: 70 },
   userCard: {
     flexDirection: "row",
     alignItems: "center",

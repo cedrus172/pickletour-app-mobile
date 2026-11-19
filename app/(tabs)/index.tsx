@@ -57,8 +57,8 @@ import {
   HomeV3Hero,
   HomeV3Page,
   HomeV3QuickTiles,
+  HomeV3ShopCard,
   HomeV3Shortcuts,
-  HomeV3UserCard,
 } from "@/components/home/HomeV3";
 import HomeV3Features from "@/components/home/HomeV3Features";
 import { useResponsive } from "@/hooks/useResponsive";
@@ -1989,7 +1989,7 @@ export default function HomeScreen() {
             <View testID="home-responsive-layout" style={twoPane ? { width: homeWidth, flexDirection: "row", alignItems: "flex-start", gap: 16 } : undefined}>
               <View testID="home-primary-pane" style={twoPane ? { width: paneWidth + 24 } : undefined}>
                 <HomeV3Hero width={twoPane ? paneWidth + 24 : homeWidth} />
-                <HomeV3UserCard />
+                <HomeV3ShopCard />
                 <HomeV3QuickTiles />
                 <HomeV3ArcadeBanner />
                 <EventLiveBanner />

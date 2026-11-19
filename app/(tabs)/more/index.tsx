@@ -46,6 +46,7 @@ import { useNotifUnreadCountQuery } from "@/slices/notificationCenterApiSlice";
 import { useMyLiveGrantsQuery } from "@/slices/liveGrantsApiSlice";
 import { useResponsive } from "@/hooks/useResponsive";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { useShopInfo } from "@/slices/shopApiSlice";
 import { useDuoSideNavigationActive } from "@/hooks/useDuoSideNavigation";
 import { IS_V3, UI_VERSION, V3, IS_V3_DARK, IS_V3_LIGHT, UI_THEME, applyUiAppearance } from "@/hooks/uiVersion";
 
@@ -350,6 +351,7 @@ export default function MoreIndexScreen() {
 
   // Tính năng bật/tắt ở admin (Cài đặt hệ thống → Tính năng).
   const featureOn = useFeatureFlags();
+  const { data: shopInfo } = useShopInfo();
   const moreItems = [
     ...moreItemsAll.filter((it: any) => it.key !== "admin-face-lookup" || featureOn("spcFaceLookup")),
     ...(featureOn("highlightVar")
@@ -361,6 +363,31 @@ export default function MoreIndexScreen() {
             icon: "sparkles-outline" as const,
             route: "/var",
             accent: "#84CC16",
+          },
+        ]
+      : []),
+    // Gian hàng GOATWIN: hiện theo chế độ admin chọn; người được cấp quyền thấy thêm "Quản lý gian hàng".
+    ...(shopInfo?.enabled
+      ? [
+          {
+            key: "shop-goatwin",
+            title: "Gian hàng GOATWIN",
+            description: "Túi, bóng, phụ kiện chính hãng · đơn hàng của tôi",
+            icon: "storefront-outline" as const,
+            route: "/shop",
+            accent: "#E11D2A",
+          },
+        ]
+      : []),
+    ...(shopInfo?.isManager
+      ? [
+          {
+            key: "shop-manage",
+            title: "Quản lý gian hàng",
+            description: "Sản phẩm, xử lý đơn, quét mã đơn GOATWIN",
+            icon: "construct-outline" as const,
+            route: "/shop/manage",
+            accent: "#E11D2A",
           },
         ]
       : []),
