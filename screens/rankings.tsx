@@ -106,7 +106,6 @@ const COLORS = {
 };
 const SCORE_STALE_MONTHS = 4;
 const ACHIEVEMENT_VISIBLE_LIMIT = 3;
-const PODIUM_MARQUEE_ITEM_WIDTH = 300;
 
 const ACHIEVEMENT_TONES = {
   yellow: { bg: "#facc15", fg: "#422006", border: "#fde68a" },
@@ -690,7 +689,7 @@ const PodiumCelebrationItem = memo(({ item, theme, onPress }) => {
             <MaterialCommunityIcons name={meta.icon} size={players.length ? 10 : 15} color={meta.text} />
           </LinearGradient>
         </View>
-        <Text style={[styles.podiumMessage, { color: theme.isDark ? "#fff" : "#0B1B3A" }]} numberOfLines={1}>
+        <Text style={[styles.podiumMessage, { color: theme.isDark ? "#fff" : "#0B1B3A" }]}>
           <Text style={{ color: theme.isDark ? meta.accent : "#B45309", fontWeight: "900" }}>{meta.label}</Text>
           {"  "}
           {teamName}
@@ -716,32 +715,40 @@ const PodiumCelebrationMarquee = memo(({ items = [], theme, onPressItem }) => {
     return Array.from({ length: repeat }, () => base).flat();
   }, [base]);
   const translateX = useRef(new Animated.Value(0)).current;
+  // Thẻ rộng theo nội dung (hiện đủ tên) → đo chiều rộng track (2 bản lặp), chạy đúng nửa.
+  const [trackW, setTrackW] = useState(0);
 
   useEffect(() => {
-    if (!group.length) return undefined;
-    const distance = (PODIUM_MARQUEE_ITEM_WIDTH + 10) * group.length; // + marginHorizontal 5×2
+    if (!group.length || !trackW) return undefined;
+    const distance = trackW / 2;
     translateX.setValue(0);
     const loop = Animated.loop(
       Animated.timing(translateX, {
         toValue: -distance,
-        duration: Math.max(24000, group.length * 5000),
+        duration: Math.max(20000, (distance / 45) * 1000), // ~45px/giây
         easing: Easing.linear,
         useNativeDriver: true,
       })
     );
     loop.start();
     return () => loop.stop();
-  }, [group.length, translateX]);
+  }, [group.length, trackW, translateX]);
 
   if (!base.length) return null;
 
   return (
     <View style={styles.podiumMarqueeWrap}>
+      {/* ScrollView ngang (khoá cuộn) để thẻ không bị bó theo bề ngang màn hình → hiện đủ tên. */}
+      <ScrollView horizontal scrollEnabled={false} showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: "center" }}>
       <Animated.View
         style={[
           styles.podiumMarqueeTrack,
           { transform: [{ translateX }] },
         ]}
+        onLayout={(e) => {
+          const w = Math.round(e.nativeEvent.layout.width);
+          if (w && Math.abs(w - trackW) > 2) setTrackW(w);
+        }}
       >
         {[...group, ...group].map((item, index) => (
           <PodiumCelebrationItem
@@ -752,6 +759,7 @@ const PodiumCelebrationMarquee = memo(({ items = [], theme, onPressItem }) => {
           />
         ))}
       </Animated.View>
+      </ScrollView>
       <View
         pointerEvents="none"
         style={[
@@ -2752,9 +2760,9 @@ const styles = StyleSheet.create({
   podiumMarqueeTrack: {
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "flex-start",
   },
   podiumMarqueeItem: {
-    width: PODIUM_MARQUEE_ITEM_WIDTH,
     height: 38,
     marginHorizontal: 5,
     borderRadius: 19,
@@ -2791,7 +2799,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   podiumMessage: {
-    flex: 1,
     fontSize: 12.5,
     fontWeight: "800",
   },
