@@ -34,7 +34,7 @@ export default function ShopProductEditScreen() {
   const { data } = useGetManageProductsQuery(undefined, { skip: !id });
   const [save, { isLoading: saving }] = useSaveManageProductMutation();
   const [del] = useDeleteManageProductMutation();
-  const [f, setF] = useState<any>({ name: "", category: "phu-kien", price: "", compareAtPrice: "", images: [], colors: [], description: "", exclusive: true, active: true, sold: "0", rating: "0", sort: "0" });
+  const [f, setF] = useState<any>({ name: "", category: "phu-kien", price: "", compareAtPrice: "", images: [], colors: [], description: "", exclusive: true, freeShip: false, active: true, sold: "0", rating: "0", sort: "0" });
   const [uploading, setUploading] = useState(false);
   const [loaded, setLoaded] = useState(!id);
 
@@ -151,6 +151,31 @@ export default function ShopProductEditScreen() {
               <TextInput value={String(f.compareAtPrice)} onChangeText={set("compareAtPrice")} keyboardType="number-pad" placeholder="Bỏ trống nếu không giảm" placeholderTextColor={C.sub} style={input} />
             </View>
           </View>
+
+          <Label C={C}>Phí ship</Label>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {[
+              { v: true, label: "Freeship", icon: "gift-outline" },
+              { v: false, label: "Thu phí (COD)", icon: "cash-outline" },
+            ].map((o) => {
+              const on = !!f.freeShip === o.v;
+              return (
+                <Pressable
+                  key={o.label}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: on }}
+                  onPress={() => set("freeShip")(o.v)}
+                  style={[styles.chip, { flex: 1, flexDirection: "row", gap: 6, borderColor: on ? C.primary : C.border, backgroundColor: on ? C.primary : "transparent" }]}
+                >
+                  <Ionicons name={o.icon as any} size={16} color={on ? C.onPrimary : C.text} />
+                  <Text style={{ color: on ? C.onPrimary : C.text, fontWeight: "700" }}>{o.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={{ color: C.sub, fontSize: 11.5 }}>
+            {f.freeShip ? "Miễn phí vận chuyển cho khách." : "Khách trả phí ship khi nhận hàng (COD)."}
+          </Text>
 
           <Label C={C}>Màu sắc (khách phải chọn khi mua)</Label>
           {(f.colors || []).map((c: any, i: number) => (

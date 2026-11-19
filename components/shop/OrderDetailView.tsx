@@ -120,7 +120,10 @@ export default function OrderDetailView({
         {o.delivery === "tournament" ? (
           <Row C={C} icon="trophy-outline" label="Nhận tại giải" value={o.tournament?.name || "—"} />
         ) : (
-          <Row C={C} icon="location-outline" label="Địa chỉ" value={o.customer?.address || "—"} />
+          <>
+            <Row C={C} icon="location-outline" label="Địa chỉ" value={o.customer?.address || "—"} />
+            <Row C={C} icon="car-outline" label="Phí ship" value={o.shipping === "free" ? "Miễn phí vận chuyển" : "Thu khi nhận hàng (COD)"} />
+          </>
         )}
         {o.customer?.note ? <Row C={C} icon="chatbubble-ellipses-outline" label="Ghi chú" value={o.customer.note} /> : null}
         {!manage && o.adminNote ? <Row C={C} icon="storefront-outline" label="Gian hàng" value={o.adminNote} /> : null}

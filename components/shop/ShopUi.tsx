@@ -67,6 +67,7 @@ export function ProductCard({ p, C, width, onPress, onAdd }: { p: any; C: ThemeT
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={{ color: GW_RED, fontWeight: "900", fontSize: 15 }}>{fmtVnd(p.price)}</Text>
             {off ? <Text style={{ color: C.sub, fontSize: 11.5, textDecorationLine: "line-through" }}>{fmtVnd(p.compareAtPrice)}</Text> : null}
+            {p.freeShip ? <Text style={{ color: "#16A34A", fontSize: 11.5, fontWeight: "800" }}>Freeship</Text> : null}
             <Stars rating={p.rating} count={p.ratingCount} C={C} />
           </View>
           <Pressable accessibilityRole="button" accessibilityLabel={`Thêm ${p.name} vào giỏ`} hitSlop={6} onPress={onAdd} style={[styles.add, { backgroundColor: C.primary }]}>

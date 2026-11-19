@@ -2,7 +2,7 @@
 import { useSyncExternalStore } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export type CartItem = { productId: string; name: string; image: string; price: number; color: string; qty: number };
+export type CartItem = { productId: string; name: string; image: string; price: number; color: string; qty: number; freeShip?: boolean };
 const KEY = "pt_shop_cart_v1";
 let items: CartItem[] = [];
 let loaded = false;

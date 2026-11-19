@@ -59,7 +59,7 @@ export default function ShopProductScreen() {
   const needColor = (p.colors || []).length > 0;
   const add = (go: boolean) => {
     if (needColor && !color) return Alert.alert("Chọn màu", "Vui lòng chọn màu sắc trước.");
-    cart.add({ productId: p._id, name: p.name, image: colorImg || p.images?.[0] || "", price: p.price, color }, qty);
+    cart.add({ productId: p._id, name: p.name, image: colorImg || p.images?.[0] || "", price: p.price, color, freeShip: !!p.freeShip }, qty);
     if (go) router.push("/shop/cart" as any);
     else Alert.alert("Đã thêm vào giỏ", `${p.name}${color ? ` · ${color}` : ""} × ${qty}`);
   };
@@ -154,7 +154,7 @@ export default function ShopProductScreen() {
 
           <View style={[styles.info, { borderColor: C.border, backgroundColor: C.card }]}>
             {[
-              { icon: "car-outline", text: shop?.shippingNote || "Giao hàng toàn quốc" },
+              { icon: "car-outline", text: p.freeShip ? "Miễn phí vận chuyển toàn quốc" : "Giao toàn quốc · phí ship thu khi nhận hàng (COD)" },
               { icon: "trophy-outline", text: "Nhận tại giải đấu (chọn khi đặt hàng)" },
               { icon: "qr-code-outline", text: shop?.qrEnabled ? "Thanh toán QR / COD" : "Thanh toán khi nhận hàng (COD)" },
             ].map((r, i) => (

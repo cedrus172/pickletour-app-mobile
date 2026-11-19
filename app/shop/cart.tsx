@@ -83,6 +83,8 @@ export default function ShopCartScreen() {
   const [payment, setPayment] = useState<"cod" | "qr">("cod");
   const tours: any[] = shop?.tournaments || [];
   const tourSel = tours.find((t) => t._id === tourId) || null;
+  // Phí ship: mọi sản phẩm freeship → miễn phí; còn lại thu khi nhận hàng (COD)
+  const allFree = cart.items.length > 0 && cart.items.every((it) => it.freeShip);
   const input = [styles.input, { color: C.text, borderColor: C.border, backgroundColor: C.field }];
 
   const submit = async () => {
@@ -166,7 +168,12 @@ export default function ShopCartScreen() {
               {delivery === "ship" ? (
                 <>
                   <TextInput value={address} onChangeText={setAddress} placeholder="Địa chỉ nhận hàng (số nhà, đường, phường/xã, tỉnh)" placeholderTextColor={C.sub} multiline style={[...input, { minHeight: 64 }]} />
-                  {shop?.shippingNote ? <Text style={{ color: C.sub, fontSize: 12.5 }}>{shop.shippingNote}</Text> : null}
+                  <View style={[styles.shipNote, { borderColor: allFree ? "#16A34A" : C.border }]}>
+                    <Ionicons name={allFree ? "gift-outline" : "cash-outline"} size={16} color={allFree ? "#16A34A" : C.primary} />
+                    <Text style={{ color: allFree ? "#16A34A" : C.text, fontSize: 13, fontWeight: "700", flex: 1 }}>
+                      {allFree ? "Miễn phí vận chuyển" : "Phí ship: thu khi nhận hàng (COD)"}
+                    </Text>
+                  </View>
                 </>
               ) : (
                 <View style={[styles.card, { borderColor: tourId ? C.primary : C.border, backgroundColor: C.card }]}>
@@ -240,6 +247,7 @@ const styles = StyleSheet.create({
   segItem: { flex: 1, minHeight: 40, borderRadius: 9, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center" },
   card: { borderWidth: 1, borderRadius: 14, overflow: "hidden" },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, minHeight: 48 },
+  shipNote: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
   tourRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 10 },
   poster: { width: 56, height: 74, borderRadius: 10, overflow: "hidden", alignItems: "center", justifyContent: "center" },
   meta: { flexDirection: "row", alignItems: "center", gap: 4 },

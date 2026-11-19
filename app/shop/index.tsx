@@ -128,7 +128,7 @@ export default function ShopScreen() {
                 onAdd={() =>
                   p.colors?.length
                     ? router.push(`/shop/${p._id}` as any)
-                    : cart.add({ productId: p._id, name: p.name, image: p.images?.[0] || "", price: p.price, color: "" })
+                    : cart.add({ productId: p._id, name: p.name, image: p.images?.[0] || "", price: p.price, color: "", freeShip: !!p.freeShip })
                 }
               />
             ))}
