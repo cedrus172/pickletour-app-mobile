@@ -61,7 +61,12 @@ function PlayerFields({ title, value, onChange, C, eventType }: { title: string;
   useEffect(() => {
     if (!value.avatar) setFound(null);
   }, [value.avatar]);
-  const applyMatch = (base: GuestPlayer, m: any): GuestPlayer => ({
+  // VĐV khớp là tài khoản PickleTour → chọn luôn tài khoản đó (không tạo VĐV ngoài hệ thống).
+  const applyMatch = (base: GuestPlayer, m: any): GuestPlayer =>
+    m.source === "pt"
+      ? { ...base, hasAccount: true, user: { _id: m.spcId, name: m.name, nickname: m.nickname, phone: m.phone, avatar: m.avatar } }
+      : applyForum(base, m);
+  const applyForum = (base: GuestPlayer, m: any): GuestPlayer => ({
     ...base,
     name: m.name || base.name,
     nickname: m.nickname || base.nickname,
@@ -87,7 +92,9 @@ function PlayerFields({ title, value, onChange, C, eventType }: { title: string;
         const r: any = await lookupFace(normalizeUrl(next.avatar)).unwrap();
         setFound(r);
         const top = r?.matches?.[0];
-        if (top?.likely) onChange(applyMatch(next, top));
+        const pt = (r?.matches || []).find((x: any) => x.source === "pt" && x.likely && x.similarity >= (top?.similarity || 0) - 0.05);
+        const pickM = pt || (top?.likely ? top : null);
+        if (pickM) onChange(applyMatch(next, pickM));
       } catch (err: any) {
         setFound({ error: err?.data?.message || "Không tra được khuôn mặt" });
       }

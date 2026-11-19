@@ -84,7 +84,7 @@ export function MatchRow({ m, onUse }: { m: any; onUse?: (m: any) => void }) {
         <Text style={{ color: C.text, fontWeight: "900", fontSize: 20 }}>{fmt(m.pickletourScore)}</Text>
         {onUse ? (
           <Pressable accessibilityRole="button" hitSlop={8} onPress={() => onUse(m)}>
-            <Text style={{ color: C.primary, fontWeight: "800", fontSize: 13 }}>Dùng</Text>
+            <Text style={{ color: C.primary, fontWeight: "800", fontSize: 13 }}>{m.source === "pt" ? "Chọn TK" : "Dùng"}</Text>
           </Pressable>
         ) : null}
       </View>
