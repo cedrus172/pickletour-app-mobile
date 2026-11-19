@@ -222,13 +222,17 @@ export default function PlayerScoreLookupModal({
   const [searchFace, { isLoading: searching }] = useLookupPlayerFaceMutation();
   const [picked, setPicked] = useState<{ index: number; matches: any[] } | null>(null);
   const url = target?.imageUrl ? normalizeUrl(target.imageUrl) : "";
+  // Server ưu tiên ảnh CCCD của VĐV (theo userId), không có mặt rõ mới dùng avatar.
+  const uid = target?.userId ? String(target.userId) : "";
+  const canLookup = !!(url || uid);
   // Chỉ gọi một lần mỗi khi mở cho một ảnh (reset/lookup của RTK đổi sau mỗi lượt → không đưa vào deps, tránh gọi lặp).
   useEffect(() => {
     setPicked(null);
-    if (url) lookup(url);
+    if (url || uid) lookup({ imageUrl: url, userId: uid } as any);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url]);
+  }, [url, uid]);
   const res: any = data;
+  const srcLabel = res?.imageSource === "cccd" ? "ảnh CCCD" : "ảnh đại diện";
   const selected = picked ? picked.index : res?.selected ?? 0;
   const matches: any[] = picked ? picked.matches : res?.matches || [];
   // Ô chấm trình: gợi ý điểm đôi từ VĐV khớp đầu tiên "khả năng cao" (admin chưa sửa tay).
@@ -270,8 +274,8 @@ export default function PlayerScoreLookupModal({
           </Pressable>
         </View>
         <ScrollView contentContainerStyle={{ padding: 14, gap: 10 }}>
-          {!url ? (
-            <Text style={{ color: C.sub, textAlign: "center", marginTop: 30 }}>VĐV chưa có ảnh đại diện để tra khuôn mặt.</Text>
+          {!canLookup ? (
+            <Text style={{ color: C.sub, textAlign: "center", marginTop: 30 }}>VĐV chưa có ảnh CCCD hay ảnh đại diện để tra khuôn mặt.</Text>
           ) : isLoading ? (
             <View style={{ alignItems: "center", gap: 10, marginTop: 40 }}>
               <ActivityIndicator color={C.primary} />
@@ -280,16 +284,19 @@ export default function PlayerScoreLookupModal({
           ) : error ? (
             <Text style={{ color: "#EF4444", textAlign: "center", marginTop: 30 }}>{(error as any)?.data?.message || "Không tra được"}</Text>
           ) : res && !res.faceFound ? (
-            <Text style={{ color: C.sub, textAlign: "center", marginTop: 30 }}>Không thấy khuôn mặt rõ trong ảnh đại diện của VĐV này.</Text>
+            <Text style={{ color: C.sub, textAlign: "center", marginTop: 30 }}>Không thấy khuôn mặt rõ trong ảnh CCCD hay ảnh đại diện của VĐV này.</Text>
           ) : res ? (
             <>
               {res.faces?.length > 1 ? (
-                <FacePicker faces={res.faces} selected={selected} onSelect={chooseFace} busy={searching} />
+                <>
+                  <Text style={{ color: C.sub, fontSize: 12 }}>Tra theo {srcLabel}</Text>
+                  <FacePicker faces={res.faces} selected={selected} onSelect={chooseFace} busy={searching} />
+                </>
               ) : (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                   {res.face ? <ExpoImage source={{ uri: res.face }} style={{ width: 52, height: 52, borderRadius: 26 }} /> : null}
                   <Text style={{ color: C.sub, fontSize: 12.5, flex: 1, lineHeight: 17 }}>
-                    Điểm PickleTour = điểm đôi của diễn đàn · PickleballVN trừ 0.4 · SportConnect giữ nguyên.
+                    Tra theo {srcLabel}. Điểm PickleTour = điểm đôi của diễn đàn · PickleballVN trừ 0.4 · SportConnect giữ nguyên.
                   </Text>
                 </View>
               )}
