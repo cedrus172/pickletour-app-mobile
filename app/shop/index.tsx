@@ -33,6 +33,9 @@ export default function ShopScreen() {
                 <Ionicons name="settings-outline" size={22} color={C.text} />
               </Pressable>
             ) : null}
+            <Pressable accessibilityRole="button" accessibilityLabel="Đơn hàng của tôi" hitSlop={10} onPress={() => router.push("/shop/orders" as any)} style={{ padding: 4 }}>
+              <Ionicons name="receipt-outline" size={23} color={C.text} />
+            </Pressable>
             <CartButton count={cart.count} color={C.text} onPress={() => router.push("/shop/cart" as any)} />
           </View>
         ),
@@ -137,11 +140,6 @@ export default function ShopScreen() {
           <Text style={{ color: C.sub, textAlign: "center", marginTop: 30 }}>Chưa có sản phẩm trong mục này.</Text>
         )}
 
-        <Pressable accessibilityRole="button" onPress={() => router.push("/shop/orders" as any)} style={[styles.ordersLink, { borderColor: C.border }]}>
-          <Ionicons name="receipt-outline" size={18} color={C.primary} />
-          <Text style={{ color: C.text, fontWeight: "700", flex: 1 }}>Đơn hàng của tôi</Text>
-          <Ionicons name="chevron-forward" size={18} color={C.sub} />
-        </Pressable>
       </ScrollView>
 
       {cart.count ? (
@@ -167,7 +165,6 @@ const styles = StyleSheet.create({
   heroCopy: { position: "absolute", left: "44%", right: 10, gap: 6 },
   chipSm: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.22)", backgroundColor: "rgba(0,0,0,0.35)" },
   cat: { paddingHorizontal: 16, height: 36, borderRadius: 18, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  ordersLink: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: 14, borderWidth: 1 },
   cartBar: { position: "absolute", left: 12, right: 12, bottom: 16, flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 18, borderWidth: 1 },
   checkout: { height: 46, paddingHorizontal: 22, borderRadius: 14, alignItems: "center", justifyContent: "center" },
 });
