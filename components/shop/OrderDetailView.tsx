@@ -135,6 +135,8 @@ export default function OrderDetailView({
               <Text style={{ color: C.onPrimary, fontWeight: "900" }}>{a.label}</Text>
             </Pressable>
           ))}
+          {o.status !== "cancelled" ? (
+            <>
           <Pressable
             accessibilityRole="button"
             disabled={busy}
@@ -169,6 +171,8 @@ export default function OrderDetailView({
               <Text style={{ color: C.primary, fontWeight: "800" }}>Lưu</Text>
             </Pressable>
           </View>
+            </>
+          ) : null}
           {o.status !== "cancelled" && o.status !== "done" ? (
             <Pressable accessibilityRole="button" disabled={busy} onPress={() => setStatus("cancelled", "Huỷ đơn")} style={styles.cancel}>
               <Text style={{ color: "#EF4444", fontWeight: "800" }}>Huỷ đơn</Text>

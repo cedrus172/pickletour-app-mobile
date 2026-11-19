@@ -65,7 +65,24 @@ export default function ShopScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: cart.count ? 110 : 30, gap: 14, maxWidth: 720, width: "100%", alignSelf: "center" }}
         refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={C.primary} />}
       >
-        <View style={[styles.hero, { borderColor: "rgba(225,29,42,0.55)" }]}>
+        {shop.heroImage ? (
+          <View style={styles.heroImgBox}>
+            <ExpoImage source={{ uri: shop.heroImage }} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="left center" transition={200} />
+            <View style={styles.heroCopy}>
+              <Text style={{ color: "#fff", fontWeight: "900", fontSize: 14.5 }} numberOfLines={2}>
+                {shop.partnerText}
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
+                {["Chính hãng 100%", "Giao toàn quốc", "Nhận tại giải"].map((t) => (
+                  <View key={t} style={styles.chipSm}>
+                    <Text style={{ color: "#fff", fontSize: 10.5, fontWeight: "700" }}>{t}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+        ) : (
+          <View style={[styles.hero, { borderColor: "rgba(225,29,42,0.55)" }]}>
           {shop.logo ? <ExpoImage source={{ uri: shop.logo }} style={{ width: 96, height: 48 }} contentFit="contain" /> : null}
           <View style={{ flex: 1, gap: 6 }}>
             <Text style={{ color: "#fff", fontWeight: "900", fontSize: 14.5 }}>{shop.partnerText}</Text>
@@ -78,6 +95,7 @@ export default function ShopScreen() {
             </View>
           </View>
         </View>
+        )}
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {[{ key: "", label: "Tất cả" }, ...(shop.categories || [])].map((c: any) => {
@@ -145,7 +163,9 @@ export default function ShopScreen() {
 
 const styles = StyleSheet.create({
   hero: { flexDirection: "row", alignItems: "center", gap: 14, padding: 14, borderRadius: 18, borderWidth: 1, backgroundColor: "#0A0A0E" },
-  chipSm: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
+  heroImgBox: { aspectRatio: 2.56, borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: "rgba(225,29,42,0.55)", backgroundColor: "#0A0A0E", justifyContent: "center" },
+  heroCopy: { position: "absolute", left: "44%", right: 10, gap: 6 },
+  chipSm: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.22)", backgroundColor: "rgba(0,0,0,0.35)" },
   cat: { paddingHorizontal: 16, height: 36, borderRadius: 18, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   ordersLink: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: 14, borderWidth: 1 },
   cartBar: { position: "absolute", left: 12, right: 12, bottom: 16, flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 18, borderWidth: 1 },
