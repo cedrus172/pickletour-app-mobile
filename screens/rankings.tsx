@@ -807,28 +807,74 @@ const PODIUM_TONE = {
     glow: "rgba(240,154,87,0.45)",
   },
 };
-const PODIUM_BLOCK_H = { 1: 92, 2: 68, 3: 56 };
+// Ảnh bục + vòng nguyệt quế/vương miện tạo bằng GPT (assets/images/rankings), khớp mockup A2/B2.
+const PODIUM_IMG = IS_V3_LIGHT
+  ? {
+      1: { src: require("@/assets/images/rankings/podium-light-1.png"), ar: 300 / 270 },
+      2: { src: require("@/assets/images/rankings/podium-light-2.png"), ar: 300 / 251 },
+      3: { src: require("@/assets/images/rankings/podium-light-3.png"), ar: 300 / 260 },
+    }
+  : {
+      1: { src: require("@/assets/images/rankings/podium-dark-1.png"), ar: 300 / 236 },
+      2: { src: require("@/assets/images/rankings/podium-dark-2.png"), ar: 300 / 206 },
+      3: { src: require("@/assets/images/rankings/podium-dark-3.png"), ar: 300 / 209 },
+    };
+const PODIUM_CROWN = require("@/assets/images/rankings/podium-crown.png");
+// Vị trí vòng tròn trong ảnh vương miện (tỉ lệ theo ảnh 360×395): tâm & bán kính trong.
+const CROWN_AR = 360 / 395;
+const CROWN_CX = 0.487;
+const CROWN_CY = 0.533;
+const CROWN_R = 0.296;
 
 const PodiumColumn = memo(({ r, place, scoreType, onPress }: any) => {
   const tone = PODIUM_TONE[place];
   const u = r?.user || {};
   const big = place === 1;
-  const size = big ? 86 : 66;
   const score = scoreType === "single" ? r?.single : r?.double;
+  const img = PODIUM_IMG[place];
+  const crownW = 150;
+  const crownH = crownW / CROWN_AR;
+  const crownAvatar = Math.round(crownW * CROWN_R * 2);
+  const size = 70;
   return (
-    <Pressable onPress={() => onPress?.(r)} style={{ flex: 1, alignItems: "center", justifyContent: "flex-end" }}>
-      {big ? <MaterialCommunityIcons name="crown" size={30} color="#F7C948" style={{ marginBottom: -4 }} /> : null}
-      <View style={{ shadowColor: tone.glow, shadowOpacity: 1, shadowRadius: big ? 18 : 10, shadowOffset: { width: 0, height: 0 } }}>
-        <LinearGradient colors={tone.ring} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: size + 8, height: size + 8, borderRadius: (size + 8) / 2, alignItems: "center", justifyContent: "center" }}>
-          <View style={{ width: size, height: size, borderRadius: size / 2, overflow: "hidden", backgroundColor: sk("#0B1B33", "#E2E8F0") }}>
+    <Pressable onPress={() => onPress?.(r)} style={{ flex: big ? 1.15 : 1, alignItems: "center", justifyContent: "flex-end" }}>
+      {big ? (
+        <View style={{ width: crownW, height: crownH, marginBottom: -10 }}>
+          <View
+            style={{
+              position: "absolute",
+              left: crownW * CROWN_CX - crownAvatar / 2,
+              top: crownH * CROWN_CY - crownAvatar / 2,
+              width: crownAvatar,
+              height: crownAvatar,
+              borderRadius: crownAvatar / 2,
+              overflow: "hidden",
+              backgroundColor: sk("#0B1B33", "#E2E8F0"),
+            }}
+          >
             <ExpoImage source={{ uri: normalizeUrl(u?.avatar) || PLACE }} style={{ width: "100%", height: "100%" }} contentFit="cover" cachePolicy="memory-disk" />
           </View>
-        </LinearGradient>
-        <LinearGradient colors={tone.ring} style={[styles.podiumRankDot, big && { width: 26, height: 26, borderRadius: 13 }]}>
-          <Text style={{ color: place === 2 ? "#334155" : "#3B1D00", fontWeight: "900", fontSize: big ? 14 : 12 }}>{place}</Text>
-        </LinearGradient>
-      </View>
-      <View style={{ alignItems: "center", marginTop: 8, paddingHorizontal: 2, maxWidth: "100%" }}>
+          <ExpoImage source={PODIUM_CROWN} style={StyleSheet.absoluteFill} contentFit="contain" />
+          <LinearGradient
+            colors={tone.ring}
+            style={[styles.podiumRankDot, { width: 26, height: 26, borderRadius: 13, right: crownW * 0.2, bottom: crownH * 0.2 }]}
+          >
+            <Text style={{ color: "#3B1D00", fontWeight: "900", fontSize: 14 }}>1</Text>
+          </LinearGradient>
+        </View>
+      ) : (
+        <View style={{ shadowColor: tone.glow, shadowOpacity: 1, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } }}>
+          <LinearGradient colors={tone.ring} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: size + 8, height: size + 8, borderRadius: (size + 8) / 2, alignItems: "center", justifyContent: "center" }}>
+            <View style={{ width: size, height: size, borderRadius: size / 2, overflow: "hidden", backgroundColor: sk("#0B1B33", "#E2E8F0") }}>
+              <ExpoImage source={{ uri: normalizeUrl(u?.avatar) || PLACE }} style={{ width: "100%", height: "100%" }} contentFit="cover" cachePolicy="memory-disk" />
+            </View>
+          </LinearGradient>
+          <LinearGradient colors={tone.ring} style={styles.podiumRankDot}>
+            <Text style={{ color: place === 2 ? "#334155" : "#3B1D00", fontWeight: "900", fontSize: 12 }}>{place}</Text>
+          </LinearGradient>
+        </View>
+      )}
+      <View style={{ alignItems: "center", marginTop: 6, paddingHorizontal: 2, maxWidth: "100%" }}>
         <PlayerNameText user={u} name={u?.nickname || "---"} style={[styles.podiumName, big && { fontSize: 16 }]} numberOfLines={1} />
         {u?.province ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 2, marginTop: 1 }}>
@@ -836,16 +882,14 @@ const PodiumColumn = memo(({ r, place, scoreType, onPress }: any) => {
             <Text style={styles.podiumProvince} numberOfLines={1}>{u.province}</Text>
           </View>
         ) : null}
-        <Text style={[styles.podiumScore, { color: tone.score }, big && { fontSize: 24 }]}>{fmt3(score)}</Text>
+        <Text style={[styles.podiumScoreLabel, { color: tone.score }]}>{scoreType === "single" ? "ĐIỂM ĐƠN" : "ĐIỂM ĐÔI"}</Text>
+        <Text style={[styles.podiumScore, { color: tone.score }, big && { fontSize: 25 }]}>{fmt3(score)}</Text>
       </View>
-      <LinearGradient
-        colors={tone.block}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={[styles.podiumBlock, { height: PODIUM_BLOCK_H[place], borderColor: tone.edge }]}
-      >
-        <Text style={[styles.podiumBlockNum, { color: tone.num }, big && { fontSize: 44 }]}>{place}</Text>
-      </LinearGradient>
+      <ExpoImage
+        source={img.src}
+        style={{ width: big ? "100%" : "94%", aspectRatio: img.ar, marginTop: 4 }}
+        contentFit="contain"
+      />
     </Pressable>
   );
 });
@@ -862,12 +906,12 @@ const RankingPodium = memo(({ items, scoreType, onPress }: any) => {
         end={{ x: 0.5, y: 1 }}
         style={styles.podiumHalo}
       />
-      <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
+      <View pointerEvents="none" style={styles.podiumFloor} />
+      <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 4 }}>
         <PodiumColumn r={items[1]} place={2} scoreType={scoreType} onPress={onPress} />
         <PodiumColumn r={items[0]} place={1} scoreType={scoreType} onPress={onPress} />
         <PodiumColumn r={items[2]} place={3} scoreType={scoreType} onPress={onPress} />
       </View>
-      <View pointerEvents="none" style={styles.podiumFloor} />
     </View>
   );
 });
@@ -2935,9 +2979,10 @@ const styles = StyleSheet.create({
   legendItem: { flexDirection: "row", alignItems: "center" },
   dot: { width: 10, height: 10, borderRadius: 5, marginRight: 6 },
   legendText: { fontSize: 12, fontWeight: "600" },
-  podiumStage: { marginTop: 6, marginBottom: 14, paddingTop: 6, paddingHorizontal: 2 },
+  podiumStage: { marginTop: 4, marginBottom: 22, paddingTop: 4, paddingHorizontal: 0 },
   podiumHalo: { position: "absolute", left: -16, right: -16, top: -10, bottom: 0 },
-  podiumFloor: { height: 10, marginHorizontal: -4, marginTop: -2, borderRadius: 60, backgroundColor: sk("rgba(8,205,245,0.22)", "rgba(16,42,92,0.07)"), borderWidth: sk(1, 0), borderColor: "rgba(8,205,245,0.55)" },
+  podiumFloor: { position: "absolute", left: "50%", marginLeft: -215, width: 430, height: 430, borderRadius: 215, bottom: -203, transform: [{ scaleY: 0.1 }], backgroundColor: sk("rgba(8,205,245,0.12)", "rgba(16,42,92,0.07)"), borderWidth: sk(3, 0), borderColor: "rgba(8,205,245,0.75)", shadowColor: "#08CDF5", shadowOpacity: sk(0.9, 0), shadowRadius: 16, shadowOffset: { width: 0, height: 0 } },
+  podiumScoreLabel: { fontSize: 10, fontWeight: "900", letterSpacing: 0.6, marginTop: 4, opacity: 0.9 },
   podiumRankDot: { position: "absolute", right: 0, bottom: 0, width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: sk("#0A1A2E", "#FFFFFF") },
   podiumName: { color: sk("#FFFFFF", "#0B1B3A"), fontSize: 14, fontWeight: "900", textAlign: "center" },
   podiumProvince: { color: sk("#8FB8DE", "#5F6F8A"), fontSize: 11, fontWeight: "600" },
