@@ -1,5 +1,5 @@
 // app/shop/[id].tsx — Chi tiết sản phẩm GOATWIN (mockup docs/mockups/goatwin-3-san-pham.png)
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, Share, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -21,6 +21,7 @@ export default function ShopProductScreen() {
   const [color, setColor] = useState("");
   const [qty, setQty] = useState(1);
   const [page, setPage] = useState(0);
+  const galleryRef = useRef<ScrollView>(null);
   const p: any = data?.product;
   const related: any[] = data?.related || [];
   const W = Math.min(width, 720);
@@ -51,11 +52,14 @@ export default function ShopProductScreen() {
       </View>
     );
   }
+  // Màu có ảnh riêng → ảnh đó lên đầu (khách chọn màu nào thấy đúng sản phẩm màu đó).
+  const colorImg = (p.colors || []).find((c: any) => c.name === color)?.image || "";
+  const gallery: string[] = colorImg ? [colorImg, ...(p.images || []).filter((u: string) => u !== colorImg)] : p.images || [];
   const off = discountPct(p);
   const needColor = (p.colors || []).length > 0;
   const add = (go: boolean) => {
     if (needColor && !color) return Alert.alert("Chọn màu", "Vui lòng chọn màu sắc trước.");
-    cart.add({ productId: p._id, name: p.name, image: p.images?.[0] || "", price: p.price, color }, qty);
+    cart.add({ productId: p._id, name: p.name, image: colorImg || p.images?.[0] || "", price: p.price, color }, qty);
     if (go) router.push("/shop/cart" as any);
     else Alert.alert("Đã thêm vào giỏ", `${p.name}${color ? ` · ${color}` : ""} × ${qty}`);
   };
@@ -69,20 +73,21 @@ export default function ShopProductScreen() {
       {header}
       <ScrollView contentContainerStyle={{ paddingBottom: 110, maxWidth: 720, width: "100%", alignSelf: "center" }}>
         <ScrollView
+          ref={galleryRef}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / W))}
         >
-          {(p.images?.length ? p.images : [""]).map((u: string, i: number) => (
+          {(gallery.length ? gallery : [""]).map((u: string, i: number) => (
             <View key={i} style={{ width: W, aspectRatio: 1, backgroundColor: "#05080F" }}>
               {u ? <ExpoImage source={{ uri: u }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} /> : null}
             </View>
           ))}
         </ScrollView>
-        {p.images?.length > 1 ? (
+        {gallery.length > 1 ? (
           <View style={styles.dots}>
-            {p.images.map((_: any, i: number) => (
+            {gallery.map((_: any, i: number) => (
               <View key={i} style={[styles.dot, { backgroundColor: i === page ? C.primary : C.border }]} />
             ))}
           </View>
@@ -99,10 +104,19 @@ export default function ShopProductScreen() {
                     accessibilityRole="radio"
                     accessibilityLabel={c.name}
                     accessibilityState={{ selected: color === c.name }}
-                    onPress={() => setColor(c.name)}
+                    onPress={() => {
+                      setColor(c.name);
+                      // về ảnh đầu (ảnh của màu vừa chọn)
+                      galleryRef.current?.scrollTo({ x: 0, animated: false });
+                      setPage(0);
+                    }}
                     style={[styles.swatch, { borderColor: color === c.name ? C.primary : C.border }]}
                   >
-                    <View style={[styles.swatchDot, { backgroundColor: c.hex || "#888" }]} />
+                    {c.image ? (
+                      <ExpoImage source={{ uri: c.image }} style={[styles.swatchDot, { width: 26, height: 26, borderRadius: 13 }]} contentFit="cover" />
+                    ) : (
+                      <View style={[styles.swatchDot, { backgroundColor: c.hex || "#888" }]} />
+                    )}
                     <Text style={{ color: C.text, fontSize: 12.5 }}>{c.name}</Text>
                   </Pressable>
                 ))}

@@ -49,9 +49,10 @@ export default function ShopProductEditScreen() {
   const set = (k: string) => (v: any) => setF((x: any) => ({ ...x, [k]: v }));
   const input = [styles.input, { color: C.text, borderColor: C.border, backgroundColor: C.field }];
 
-  const addImage = async () => {
+  // Chọn + tải 1 ảnh lên máy chủ → URL (null nếu huỷ / lỗi).
+  const pickAndUpload = async (): Promise<string | null> => {
     const sel = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.9, allowsEditing: true, aspect: [1, 1] });
-    if (sel.canceled) return;
+    if (sel.canceled) return null;
     setUploading(true);
     try {
       const r = await FileSystem.uploadAsync(`${BASE_URL}/api/shop/manage/upload`, sel.assets[0].uri, {
@@ -63,12 +64,22 @@ export default function ShopProductEditScreen() {
       });
       const body = JSON.parse(r.body || "{}");
       if (r.status >= 300 || !body.url) throw new Error(body.message || "Tải ảnh thất bại");
-      setF((x: any) => ({ ...x, images: [...(x.images || []), body.url] }));
+      return String(body.url);
     } catch (e: any) {
       Alert.alert("Không tải được ảnh", e?.message || "Vui lòng thử lại.");
+      return null;
     } finally {
       setUploading(false);
     }
+  };
+  const addImage = async () => {
+    const url = await pickAndUpload();
+    if (url) setF((x: any) => ({ ...x, images: [...(x.images || []), url] }));
+  };
+  // Ảnh riêng của một màu: khách chọn màu này thì trang sản phẩm đổi sang ảnh này.
+  const setColorImage = async (i: number) => {
+    const url = await pickAndUpload();
+    if (url) setF((x: any) => ({ ...x, colors: x.colors.map((c: any, k: number) => (k === i ? { ...c, image: url } : c)) }));
   };
 
   const submit = async () => {
@@ -145,7 +156,23 @@ export default function ShopProductEditScreen() {
           {(f.colors || []).map((c: any, i: number) => (
             <View key={i} style={{ gap: 6, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: C.border }}>
               <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-                <View style={[styles.sw, { backgroundColor: c.hex || "#888" }]} />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Ảnh màu ${c.name || i + 1}`}
+                  disabled={uploading}
+                  onPress={() => setColorImage(i)}
+                  onLongPress={() => c.image && set("colors")(f.colors.map((x: any, k: number) => (k === i ? { ...x, image: "" } : x)))}
+                  style={[styles.colorImg, { borderColor: c.image ? C.primary : C.border }]}
+                >
+                  {c.image ? (
+                    <ExpoImage source={{ uri: c.image }} style={StyleSheet.absoluteFill} contentFit="cover" />
+                  ) : (
+                    <>
+                      <View style={[styles.sw, { width: 18, height: 18, backgroundColor: c.hex || "#888" }]} />
+                      <Ionicons name="camera-outline" size={14} color={C.primary} />
+                    </>
+                  )}
+                </Pressable>
                 <TextInput
                   value={c.name}
                   onChangeText={(t: string) => set("colors")(f.colors.map((x: any, k: number) => (k === i ? { ...x, name: t } : x)))}
@@ -157,6 +184,9 @@ export default function ShopProductEditScreen() {
                   <Ionicons name="trash-outline" size={20} color="#EF4444" />
                 </Pressable>
               </View>
+              <Text style={{ color: C.sub, fontSize: 11.5 }}>
+                {c.image ? "Ảnh riêng của màu này — chạm để đổi, giữ để bỏ" : "Chạm ô ảnh bên trái để thêm ảnh riêng cho màu này"}
+              </Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                 {PALETTE.map((h) => (
                   <Pressable key={h} accessibilityRole="button" accessibilityLabel={h} onPress={() => set("colors")(f.colors.map((x: any, k: number) => (k === i ? { ...x, hex: h } : x)))} style={[styles.sw, { backgroundColor: h, borderWidth: c.hex === h ? 3 : 1, borderColor: c.hex === h ? C.primary : C.border }]} />
@@ -164,7 +194,7 @@ export default function ShopProductEditScreen() {
               </View>
             </View>
           ))}
-          <Pressable accessibilityRole="button" onPress={() => set("colors")([...(f.colors || []), { name: "", hex: "#111111" }])} style={{ paddingVertical: 6 }}>
+          <Pressable accessibilityRole="button" onPress={() => set("colors")([...(f.colors || []), { name: "", hex: "#111111", image: "" }])} style={{ paddingVertical: 6 }}>
             <Text style={{ color: C.primary, fontWeight: "800" }}>+ Thêm màu</Text>
           </Pressable>
 
@@ -230,6 +260,7 @@ const styles = StyleSheet.create({
   imgAdd: { borderWidth: 1.5, borderStyle: "dashed", alignItems: "center", justifyContent: "center", backgroundColor: "transparent" },
   imgDel: { position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: "rgba(0,0,0,0.65)", alignItems: "center", justifyContent: "center" },
   chip: { paddingHorizontal: 12, height: 36, borderRadius: 18, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  colorImg: { width: 52, height: 52, borderRadius: 10, borderWidth: 1.5, overflow: "hidden", alignItems: "center", justifyContent: "center", gap: 2 },
   sw: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: "rgba(127,127,127,0.4)" },
   switchRow: { flexDirection: "row", alignItems: "center", paddingVertical: 6 },
   save: { height: 50, borderRadius: 14, alignItems: "center", justifyContent: "center", marginTop: 10 },
