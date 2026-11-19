@@ -70,12 +70,13 @@ export function MatchRow({ m, onUse }: { m: any; onUse?: (m: any) => void }) {
 /** target = { imageUrl, name } | null */
 export default function PlayerScoreLookupModal({ target, onClose }: { target: { imageUrl: string; name?: string } | null; onClose: () => void }) {
   const C = useThemeTokens();
-  const [lookup, { data, isLoading, error, reset }] = useLookupPlayerFaceMutation();
+  const [lookup, { data, isLoading, error }] = useLookupPlayerFaceMutation();
   const url = target?.imageUrl ? normalizeUrl(target.imageUrl) : "";
+  // Chỉ gọi một lần mỗi khi mở cho một ảnh (reset/lookup của RTK đổi sau mỗi lượt → không đưa vào deps, tránh gọi lặp).
   useEffect(() => {
     if (url) lookup(url);
-    else reset();
-  }, [url, lookup, reset]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url]);
   const res: any = data;
   const matches: any[] = res?.matches || [];
   return (
