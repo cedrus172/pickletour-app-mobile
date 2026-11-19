@@ -42,6 +42,7 @@ import { skipToken } from "@reduxjs/toolkit/query";
 import { useListMyTournamentsQuery } from "@/slices/tournamentsApiSlice";
 import ResponsiveMatchViewer from "@/components/match/ResponsiveMatchViewer";
 import { normalizeUrl } from "@/utils/normalizeUri";
+import ImageViewing from "@/components/ui/ResponsiveImageViewer";
 import { useSocket } from "@/context/SocketContext";
 import { useSocketRoomSet } from "@/hooks/useSocketRoomSet";
 import { useTheme } from "@react-navigation/native";
@@ -876,11 +877,22 @@ function Banner({ t, tokens, collapsed, onToggle }) {
       ? tokens.success
       : tokens.tint;
 
-  const uri = t.image || t.cover || t.bannerUrl || null;
+  // Banner có chữ đè lên → ưu tiên ảnh ngang AI không chữ (heroBanner), rồi ảnh bìa ngang (cardCover);
+  // poster dọc gốc chỉ mở khi bấm vào xem đầy đủ.
+  const aiReady = (x: any) => (x?.status === "ready" && x?.url ? x.url : "");
+  const poster = t.image || t.cover || t.bannerUrl || null;
+  const uri = aiReady(t.heroBanner) || aiReady(t.cardCover) || poster;
+  const [posterOpen, setPosterOpen] = useState(false);
 
   return (
     <View style={styles.bannerWrap}>
-      <View style={styles.bannerContainer}>
+      <Pressable
+        style={styles.bannerContainer}
+        disabled={!poster}
+        onPress={() => setPosterOpen(true)}
+        accessibilityRole="imagebutton"
+        accessibilityLabel="Xem poster giải"
+      >
         {uri ? (
           <Image
             source={{ uri: normalizeUrl(uri) }}
@@ -982,7 +994,17 @@ function Banner({ t, tokens, collapsed, onToggle }) {
             </Pressable>
           </View>
         </View>
-      </View>
+      </Pressable>
+      {poster ? (
+        <ImageViewing
+          images={[{ uri: normalizeUrl(poster) }]}
+          imageIndex={0}
+          visible={posterOpen}
+          onRequestClose={() => setPosterOpen(false)}
+          swipeToCloseEnabled
+          backgroundColor="rgba(0,0,0,0.95)"
+        />
+      ) : null}
     </View>
   );
 }

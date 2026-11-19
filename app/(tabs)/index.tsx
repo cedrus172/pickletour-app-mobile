@@ -1185,6 +1185,9 @@ const TournamentCard = React.memo(function TournamentCard({
   const imageUri =
     normalizeUrl(rep.image) ||
     "https://dummyimage.com/600x400/4ECDC4/ffffff&text=Tournament";
+  // Khung thẻ dùng ảnh bìa ngang AI (cardCover); bấm vẫn mở poster gốc đầy đủ (imageUri).
+  const coverUri =
+    (rep?.cardCover?.status === "ready" && rep?.cardCover?.url ? normalizeUrl(rep.cardCover.url) : "") || imageUri;
 
   return (
     <AppleLiquidGlassView
@@ -1206,8 +1209,8 @@ const TournamentCard = React.memo(function TournamentCard({
           onPress={() => setImageVisible(true)}
         >
           <Image
-            source={{ uri: normalizeUrl(imageUri) }}
-            style={styles.tournamentImage}
+            source={{ uri: normalizeUrl(coverUri) }}
+            style={[styles.tournamentImage, coverUri !== imageUri ? { height: undefined, aspectRatio: 2.4 } : null]}
             contentFit="cover"
             transition={500}
           />
