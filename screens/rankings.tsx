@@ -779,6 +779,148 @@ const PodiumCelebrationMarquee = memo(({ items = [], theme, onPressItem }) => {
 });
 PodiumCelebrationMarquee.displayName = "PodiumCelebrationMarquee";
 
+/* ================= Bục vinh quang Top 3 + dòng xếp hạng gọn (mockup docs/mockups/bxh-bucvinh-v2-A/B.png) ================= */
+// Tông sáng = A2, tông tối = B2 (sk(tối, sáng)).
+const PODIUM_TONE = {
+  1: {
+    ring: ["#FFF6C2", "#F7C948", "#C98A0B"],
+    score: sk("#FFC83D", "#D18B00"),
+    block: sk(["#3B2C08", "#151106"], ["#FFF6D6", "#FBE3A1"]),
+    edge: sk("rgba(255,200,61,0.75)", "rgba(217,154,6,0.45)"),
+    num: sk("#FFD45E", "#E2A10C"),
+    glow: "rgba(255,196,40,0.55)",
+  },
+  2: {
+    ring: ["#FFFFFF", "#CBD5E1", "#8A9BB0"],
+    score: sk("#E2E8F0", "#1E3A6E"),
+    block: sk(["#1F2C3F", "#0C1522"], ["#F8FAFC", "#E2E8F0"]),
+    edge: sk("rgba(203,213,225,0.6)", "rgba(100,116,139,0.35)"),
+    num: sk("#E2E8F0", "#94A3B8"),
+    glow: "rgba(203,213,225,0.45)",
+  },
+  3: {
+    ring: ["#FFE1C2", "#F09A57", "#A8521E"],
+    score: sk("#FF9F5A", "#B5541A"),
+    block: sk(["#3A1F0E", "#170C06"], ["#FFF1E6", "#F8D2B4"]),
+    edge: sk("rgba(255,159,90,0.6)", "rgba(181,84,26,0.35)"),
+    num: sk("#FFAA6B", "#C8682C"),
+    glow: "rgba(240,154,87,0.45)",
+  },
+};
+const PODIUM_BLOCK_H = { 1: 92, 2: 68, 3: 56 };
+
+const PodiumColumn = memo(({ r, place, scoreType, onPress }: any) => {
+  const tone = PODIUM_TONE[place];
+  const u = r?.user || {};
+  const big = place === 1;
+  const size = big ? 86 : 66;
+  const score = scoreType === "single" ? r?.single : r?.double;
+  return (
+    <Pressable onPress={() => onPress?.(r)} style={{ flex: 1, alignItems: "center", justifyContent: "flex-end" }}>
+      {big ? <MaterialCommunityIcons name="crown" size={30} color="#F7C948" style={{ marginBottom: -4 }} /> : null}
+      <View style={{ shadowColor: tone.glow, shadowOpacity: 1, shadowRadius: big ? 18 : 10, shadowOffset: { width: 0, height: 0 } }}>
+        <LinearGradient colors={tone.ring} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: size + 8, height: size + 8, borderRadius: (size + 8) / 2, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ width: size, height: size, borderRadius: size / 2, overflow: "hidden", backgroundColor: sk("#0B1B33", "#E2E8F0") }}>
+            <ExpoImage source={{ uri: normalizeUrl(u?.avatar) || PLACE }} style={{ width: "100%", height: "100%" }} contentFit="cover" cachePolicy="memory-disk" />
+          </View>
+        </LinearGradient>
+        <LinearGradient colors={tone.ring} style={[styles.podiumRankDot, big && { width: 26, height: 26, borderRadius: 13 }]}>
+          <Text style={{ color: place === 2 ? "#334155" : "#3B1D00", fontWeight: "900", fontSize: big ? 14 : 12 }}>{place}</Text>
+        </LinearGradient>
+      </View>
+      <View style={{ alignItems: "center", marginTop: 8, paddingHorizontal: 2, maxWidth: "100%" }}>
+        <PlayerNameText user={u} name={u?.nickname || "---"} style={[styles.podiumName, big && { fontSize: 16 }]} numberOfLines={1} />
+        {u?.province ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 2, marginTop: 1 }}>
+            <Ionicons name="location" size={11} color={sk("#8FB8DE", "#5F6F8A")} />
+            <Text style={styles.podiumProvince} numberOfLines={1}>{u.province}</Text>
+          </View>
+        ) : null}
+        <Text style={[styles.podiumScore, { color: tone.score }, big && { fontSize: 24 }]}>{fmt3(score)}</Text>
+      </View>
+      <LinearGradient
+        colors={tone.block}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={[styles.podiumBlock, { height: PODIUM_BLOCK_H[place], borderColor: tone.edge }]}
+      >
+        <Text style={[styles.podiumBlockNum, { color: tone.num }, big && { fontSize: 44 }]}>{place}</Text>
+      </LinearGradient>
+    </Pressable>
+  );
+});
+PodiumColumn.displayName = "PodiumColumn";
+
+const RankingPodium = memo(({ items, scoreType, onPress }: any) => {
+  if (!Array.isArray(items) || items.length < 3) return null;
+  return (
+    <View style={styles.podiumStage}>
+      <LinearGradient
+        pointerEvents="none"
+        colors={sk(["rgba(8,205,245,0)", "rgba(8,205,245,0.07)", "rgba(8,205,245,0)"], ["rgba(120,150,255,0)", "rgba(120,150,255,0.09)", "rgba(120,150,255,0)"])}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.podiumHalo}
+      />
+      <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
+        <PodiumColumn r={items[1]} place={2} scoreType={scoreType} onPress={onPress} />
+        <PodiumColumn r={items[0]} place={1} scoreType={scoreType} onPress={onPress} />
+        <PodiumColumn r={items[2]} place={3} scoreType={scoreType} onPress={onPress} />
+      </View>
+      <View pointerEvents="none" style={styles.podiumFloor} />
+    </View>
+  );
+});
+RankingPodium.displayName = "RankingPodium";
+
+const RankingRow = memo(({ r, rankNo, scoreType, isMe, expanded, onPress }: any) => {
+  const u = r?.user || {};
+  const kyc = u?.cccdStatus === "verified";
+  const main = scoreType === "single" ? "single" : "double";
+  return (
+    <Pressable
+      onPress={() => onPress?.(r)}
+      style={({ pressed }) => [styles.rankRow, isMe && styles.rankRowMe, pressed && { opacity: 0.85 }]}
+    >
+      <View style={[styles.rankNoBox, isMe && { backgroundColor: sk("rgba(8,205,245,0.18)", "#E7F9B8") }]}>
+        <Text style={styles.rankNoText}>{rankNo}</Text>
+      </View>
+      <View style={styles.rankAvatar}>
+        <ExpoImage source={{ uri: normalizeUrl(u?.avatar) || PLACE }} style={{ width: "100%", height: "100%" }} contentFit="cover" cachePolicy="memory-disk" />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <PlayerNameText user={u} name={isMe ? `Bạn · ${u?.nickname || ""}` : u?.nickname || "---"} style={styles.rankName} numberOfLines={1} />
+        </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
+          {u?.province ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 2, flexShrink: 1 }}>
+              <Ionicons name="location" size={11} color={sk("#8FB8DE", "#5F6F8A")} />
+              <Text style={styles.rankProvince} numberOfLines={1}>{u.province}</Text>
+            </View>
+          ) : null}
+          {kyc ? (
+            <View style={styles.rankKyc}>
+              <Ionicons name="checkmark-circle" size={11} color="#16A34A" />
+              <Text style={styles.rankKycText}>KYC</Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+      <View style={styles.rankScores}>
+        {(["double", "single"] as const).map((k) => (
+          <View key={k} style={{ alignItems: "center", minWidth: 48 }}>
+            <Text style={styles.rankScoreLabel}>{k === "double" ? "Đôi" : "Đơn"}</Text>
+            <Text style={[styles.rankScore, k === main ? styles.rankScoreMain : null]}>{fmt3(r?.[k])}</Text>
+          </View>
+        ))}
+      </View>
+      <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={18} color={sk("#8FA8C7", "#94A3B8")} />
+    </Pressable>
+  );
+});
+RankingRow.displayName = "RankingRow";
+
 const AchievementsBottomSheet = memo(
   ({ sheetRef, state, theme, onDismiss }) => {
     const renderBackdrop = useCallback(
@@ -1997,11 +2139,46 @@ export default function RankingListScreen({ isBack = false }) {
       : [];
   }, [podiumAnnouncementData]);
 
+  // Bục vinh quang: top 3 lên bục (khi không tìm theo tên), danh sách gọn từ hạng 4; bấm 1 dòng để bung thẻ đầy đủ.
+  const showPodium = !kw.trim() && accumulatedList.length >= 3;
+  const podiumItems = useMemo(() => (showPodium ? accumulatedList.slice(0, 3) : []), [showPodium, accumulatedList]);
+  const rowList = useMemo(() => (showPodium ? accumulatedList.slice(3) : accumulatedList), [showPodium, accumulatedList]);
+  const rankOffset = showPodium ? 4 : 1;
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const rowKey = (r) => String(r?._id || r?.user?._id || "");
+  const toggleRow = useCallback((r) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const k = String(r?._id || r?.user?._id || "");
+    setExpandedKey((cur) => (cur === k ? null : k));
+  }, []);
+  const openPodiumProfile = useCallback(
+    (r) => {
+      if (!r?.user?._id) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      router.push(`/profile/${r.user._id}` as any);
+    },
+    [router]
+  );
+
   const renderItem = useCallback(
-    ({ item, index }) => (
+    ({ item, index }) => {
+      const open = expandedKey === rowKey(item);
+      const isMe = !!me?._id && String(me._id) === String(item?.user?._id || "");
+      return (
+        <View>
+          <RankingRow
+            r={item}
+            rankNo={index + rankOffset}
+            scoreType={scoreType}
+            isMe={isMe}
+            expanded={open}
+            onPress={toggleRow}
+          />
+          {open ? (
+            <View style={{ marginBottom: 10 }}>
       <RankingCard
         item={item}
-        rankNo={index + 1}
+        rankNo={index + rankOffset}
         podium={podiumByUser[item?.user?._id]}
         position={posByUser[item?.user?._id]}
         scorePatch={{}}
@@ -2013,8 +2190,16 @@ export default function RankingListScreen({ isBack = false }) {
         onGoToTournament={goToTournament}
         onOpenAchievements={openAchievements}
       />
-    ),
+            </View>
+          ) : null}
+        </View>
+      );
+    },
     [
+      expandedKey,
+      rankOffset,
+      scoreType,
+      toggleRow,
       podiumByUser,
       posByUser,
       me,
@@ -2035,12 +2220,12 @@ export default function RankingListScreen({ isBack = false }) {
     [renderItem, cols]
   );
   const gridList = useMemo(() => {
-    if (cols <= 1) return accumulatedList;
-    const rem = accumulatedList.length % cols;
-    if (rem === 0) return accumulatedList;
+    if (cols <= 1) return rowList;
+    const rem = rowList.length % cols;
+    if (rem === 0) return rowList;
     const pad = Array.from({ length: cols - rem }, (_, i) => ({ _id: `__sp-${i}`, __spacer: true }));
-    return [...accumulatedList, ...pad];
-  }, [accumulatedList, cols]);
+    return [...rowList, ...pad];
+  }, [rowList, cols]);
 
   const initialLoading =
     isLoadingList ||
@@ -2054,9 +2239,10 @@ export default function RankingListScreen({ isBack = false }) {
           theme={theme}
           onPressItem={goToTournament}
         />
+        <RankingPodium items={podiumItems} scoreType={scoreType} onPress={openPodiumProfile} />
       </View>
     ),
-    [goToTournament, podiumAnnouncementItems, theme]
+    [goToTournament, podiumAnnouncementItems, theme, podiumItems, scoreType, openPodiumProfile]
   );
 
   const screenContent = (
@@ -2749,6 +2935,28 @@ const styles = StyleSheet.create({
   legendItem: { flexDirection: "row", alignItems: "center" },
   dot: { width: 10, height: 10, borderRadius: 5, marginRight: 6 },
   legendText: { fontSize: 12, fontWeight: "600" },
+  podiumStage: { marginTop: 6, marginBottom: 14, paddingTop: 6, paddingHorizontal: 2 },
+  podiumHalo: { position: "absolute", left: -16, right: -16, top: -10, bottom: 0 },
+  podiumFloor: { height: 10, marginHorizontal: -4, marginTop: -2, borderRadius: 60, backgroundColor: sk("rgba(8,205,245,0.22)", "rgba(16,42,92,0.07)"), borderWidth: sk(1, 0), borderColor: "rgba(8,205,245,0.55)" },
+  podiumRankDot: { position: "absolute", right: 0, bottom: 0, width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: sk("#0A1A2E", "#FFFFFF") },
+  podiumName: { color: sk("#FFFFFF", "#0B1B3A"), fontSize: 14, fontWeight: "900", textAlign: "center" },
+  podiumProvince: { color: sk("#8FB8DE", "#5F6F8A"), fontSize: 11, fontWeight: "600" },
+  podiumScore: { fontSize: 19, fontWeight: "900", marginTop: 2, letterSpacing: 0.3 },
+  podiumBlock: { alignSelf: "stretch", marginTop: 8, borderTopLeftRadius: 14, borderTopRightRadius: 14, borderWidth: 1, borderBottomWidth: 0, alignItems: "center", justifyContent: "center" },
+  podiumBlockNum: { fontSize: 32, fontWeight: "900", opacity: 0.9 },
+  rankRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 10, marginBottom: 8, borderRadius: 16, borderWidth: 1, borderColor: sk("rgba(96,170,230,0.22)", "rgba(16,42,92,0.08)"), backgroundColor: sk("rgba(8,26,48,0.78)", "#FFFFFF"), shadowColor: "#1B3A7A", shadowOpacity: sk(0, 0.06), shadowRadius: 10, shadowOffset: { width: 0, height: 3 } },
+  rankRowMe: { borderWidth: 1.5, borderColor: sk("#08CDF5", "#A3D916"), backgroundColor: sk("rgba(8,205,245,0.10)", "#FBFFEF") },
+  rankNoBox: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: sk("rgba(255,255,255,0.06)", "#F1F5FB") },
+  rankNoText: { color: sk("#E6F1FC", "#0B1B3A"), fontSize: 14, fontWeight: "900" },
+  rankAvatar: { width: 40, height: 40, borderRadius: 20, overflow: "hidden", backgroundColor: sk("#0B1B33", "#E2E8F0") },
+  rankName: { color: sk("#FFFFFF", "#0B1B3A"), fontSize: 14.5, fontWeight: "800", flexShrink: 1 },
+  rankProvince: { color: sk("#8FB8DE", "#5F6F8A"), fontSize: 11.5, fontWeight: "600", flexShrink: 1 },
+  rankKyc: { flexDirection: "row", alignItems: "center", gap: 2, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 8, backgroundColor: sk("rgba(22,163,74,0.16)", "#EAF8EF") },
+  rankKycText: { color: "#16A34A", fontSize: 10, fontWeight: "800" },
+  rankScores: { flexDirection: "row", gap: 2 },
+  rankScoreLabel: { color: sk("#7F9BBE", "#8A97AD"), fontSize: 10, fontWeight: "700" },
+  rankScore: { color: sk("#B9CBE0", "#5F6F8A"), fontSize: 14, fontWeight: "800" },
+  rankScoreMain: { color: sk("#08CDF5", "#1466F2"), fontSize: 15.5, fontWeight: "900" },
   podiumMarqueeWrap: {
     height: 48,
     marginHorizontal: -16,
