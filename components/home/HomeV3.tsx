@@ -143,27 +143,31 @@ export const HomeV3UserCard = memo(function HomeV3UserCard({ variant = "card" }:
             <Text style={[styles.roleText, hero && styles.roleTextHero]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
               {userInfo ? roleLabel(userInfo?.role) : "Cùng PickleTour"}
             </Text>
-          </View>
-          {hero ? (
-            userInfo ? (
-              hideRank ? null : (
-                <View style={[styles.rankPill, styles.rankPillHero]}>
-                  <MaterialIcons name={rankIcon} size={15} color={V3.blue} />
-                  <Text style={[styles.rankText, { fontSize: 13.5 }]} numberOfLines={1}>
-                    {rankText}
-                  </Text>
-                  <Ionicons name="chevron-forward" size={15} color={V3.blue} />
-                </View>
+            {/* Viên kính (mockup home-ten-vdv-C): điểm nằm cùng dòng với vai trò */}
+            {hero ? (
+              userInfo ? (
+                hideRank ? null : (
+                  <>
+                    <Text style={styles.heroDot}>·</Text>
+                    <MaterialIcons name={rankIcon} size={13} color={V3.blue} />
+                    <Text style={styles.heroRank} numberOfLines={1}>
+                      {rankText}
+                    </Text>
+                  </>
+                )
+              ) : (
+                <>
+                  <Text style={styles.heroDot}>·</Text>
+                  <Text style={[styles.heroRank, { color: V3.blue }]}>Đăng nhập</Text>
+                </>
               )
-            ) : (
-              <LinearGradient colors={V3.gradBlue} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.loginPill, styles.rankPillHero]}>
-                <Text style={styles.loginText}>Đăng nhập</Text>
-              </LinearGradient>
-            )
-          ) : null}
+            ) : null}
+          </View>
         </View>
 
-        {hero ? null : userInfo ? (
+        {hero ? (
+          <Ionicons name="chevron-forward" size={18} color={IS_V3_DARK ? "rgba(255,255,255,0.8)" : V3.sub} />
+        ) : userInfo ? (
           hideRank ? null : (
             <View style={styles.rankRow}>
               <View style={styles.rankPill}>
@@ -463,23 +467,29 @@ const styles = StyleSheet.create({
 
   userWrap: { paddingHorizontal: 16, marginTop: -44 },
   heroUser: { position: "absolute", left: 14, top: 10, right: 76 },
-  userHero: { flexDirection: "row", alignItems: "center", gap: 12, alignSelf: "flex-start", maxWidth: "100%" },
-  avatarRingHero: { width: 76, height: 76, borderRadius: 38, padding: 3 },
+  // Phương án C: một viên kính ngang (avatar · tên · vai trò + điểm · mũi tên)
+  userHero: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    alignSelf: "flex-start",
+    maxWidth: "100%",
+    paddingVertical: 6,
+    paddingLeft: 6,
+    paddingRight: 12,
+    borderRadius: 999,
+    backgroundColor: IS_V3_DARK ? "rgba(8,20,40,0.78)" : "rgba(255,255,255,0.88)",
+    borderWidth: 1,
+    borderColor: IS_V3_DARK ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.95)",
+    ...CARD_SHADOW,
+  },
+  avatarRingHero: { width: 50, height: 50, borderRadius: 25, padding: 2.5 },
+  heroDot: { color: V3.sub, fontSize: 12, fontWeight: "900", marginHorizontal: 1 },
+  heroRank: { flexShrink: 1, color: IS_V3_DARK ? "#FFFFFF" : V3.ink, fontSize: 12, fontWeight: "800" },
   userInfoHero: { flexShrink: 1, minWidth: 0 },
   // Chữ trên ảnh đầu trang: tông tối = chữ trắng đổ bóng; tông sáng = chữ đậm màu mực + viền sáng cho dễ đọc.
-  userNameHero: {
-    fontSize: 21,
-    lineHeight: 26,
-    color: IS_V3_DARK ? "#FFFFFF" : V3.ink,
-    textShadowColor: IS_V3_DARK ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.95)",
-    textShadowRadius: 6,
-    textShadowOffset: { width: 0, height: 1 },
-  },
-  roleTextHero: {
-    color: IS_V3_DARK ? "rgba(255,255,255,0.92)" : V3.sub,
-    textShadowColor: IS_V3_DARK ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.95)",
-    textShadowRadius: 4,
-  },
+  userNameHero: { fontSize: 17.5, lineHeight: 22, color: IS_V3_DARK ? "#FFFFFF" : V3.ink },
+  roleTextHero: { flexShrink: 0, fontSize: 11, letterSpacing: 0.6, color: V3.sub },
   rankPillHero: { alignSelf: "flex-start", height: 32, marginTop: 6, borderWidth: 1, borderColor: V3.cardEdge },
   shopPress: { marginHorizontal: 16, marginTop: -30, borderRadius: 20, ...CARD_SHADOW, shadowColor: "#E11D2A", shadowOpacity: 0.35 },
   shopCard: {

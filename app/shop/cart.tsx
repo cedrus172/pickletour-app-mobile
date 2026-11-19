@@ -13,6 +13,44 @@ import { useCreateShopOrderMutation, useShopInfo } from "@/slices/shopApiSlice";
 import { useShopCart } from "@/hooks/useShopCart";
 import { GW_RED, fmtVnd } from "@/components/shop/ShopUi";
 
+const fmtDay = (d?: string) => (d ? new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }) : "");
+/** Một giải nhận hàng: poster + tên + ngày + địa điểm (định nghĩa ngoài màn để không remount). */
+function TourRow({ C, t, selected, onPress, action }: { C: ThemeTokens; t: any; selected?: boolean; onPress: () => void; action?: string }) {
+  const days = [fmtDay(t.startDate), fmtDay(t.endDate)].filter(Boolean);
+  const when = days.length === 2 && days[0] !== days[1] ? `${days[0]} – ${days[1]}` : days[0] || "";
+  return (
+    <Pressable accessibilityRole="radio" accessibilityState={{ selected: !!selected }} onPress={onPress} style={styles.tourRow}>
+      <View style={[styles.poster, { backgroundColor: C.field }]}>
+        {t.image ? <ExpoImage source={{ uri: t.image }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} /> : <Ionicons name="trophy" size={22} color={C.sub} />}
+      </View>
+      <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+        <Text style={{ color: C.text, fontWeight: "800", fontSize: 14 }} numberOfLines={2}>
+          {t.name}
+        </Text>
+        {when ? (
+          <View style={styles.meta}>
+            <Ionicons name="calendar-outline" size={13} color={C.sub} />
+            <Text style={{ color: C.sub, fontSize: 12.5 }}>{when}</Text>
+          </View>
+        ) : null}
+        {t.location ? (
+          <View style={styles.meta}>
+            <Ionicons name="location-outline" size={13} color={C.sub} />
+            <Text style={{ color: C.sub, fontSize: 12.5, flex: 1 }} numberOfLines={1}>
+              {t.location}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+      {action ? (
+        <Text style={{ color: C.primary, fontWeight: "800" }}>{action}</Text>
+      ) : (
+        <Ionicons name={selected ? "checkmark-circle" : "ellipse-outline"} size={22} color={selected ? C.primary : C.border} />
+      )}
+    </Pressable>
+  );
+}
+
 function Seg({ C, value, options, onChange }: { C: ThemeTokens; value: string; options: { k: string; label: string; icon: any }[]; onChange: (k: string) => void }) {
   return (
     <View style={[styles.seg, { borderColor: C.border }]}>
@@ -44,7 +82,7 @@ export default function ShopCartScreen() {
   const [tourOpen, setTourOpen] = useState(false);
   const [payment, setPayment] = useState<"cod" | "qr">("cod");
   const tours: any[] = shop?.tournaments || [];
-  const tourName = tours.find((t) => t._id === tourId)?.name || "";
+  const tourSel = tours.find((t) => t._id === tourId) || null;
   const input = [styles.input, { color: C.text, borderColor: C.border, backgroundColor: C.field }];
 
   const submit = async () => {
@@ -131,31 +169,29 @@ export default function ShopCartScreen() {
                   {shop?.shippingNote ? <Text style={{ color: C.sub, fontSize: 12.5 }}>{shop.shippingNote}</Text> : null}
                 </>
               ) : (
-                <View style={[styles.card, { borderColor: C.border, backgroundColor: C.card }]}>
-                  <Pressable accessibilityRole="button" onPress={() => setTourOpen((x) => !x)} style={styles.row}>
-                    <Ionicons name="trophy-outline" size={18} color={C.primary} />
-                    <Text style={{ color: tourName ? C.text : C.sub, flex: 1, fontWeight: "700" }} numberOfLines={1}>
-                      {tourName || "Chọn giải nhận hàng"}
-                    </Text>
-                    <Ionicons name={tourOpen ? "chevron-up" : "chevron-down"} size={18} color={C.sub} />
-                  </Pressable>
+                <View style={[styles.card, { borderColor: tourId ? C.primary : C.border, backgroundColor: C.card }]}>
+                  {tourSel && !tourOpen ? (
+                    <TourRow C={C} t={tourSel} selected onPress={() => setTourOpen(true)} action="Đổi" />
+                  ) : (
+                    <Pressable accessibilityRole="button" onPress={() => setTourOpen((x) => !x)} style={styles.row}>
+                      <Ionicons name="trophy-outline" size={18} color={C.primary} />
+                      <Text style={{ color: C.sub, flex: 1, fontWeight: "700" }}>Chọn giải nhận hàng</Text>
+                      <Ionicons name={tourOpen ? "chevron-up" : "chevron-down"} size={18} color={C.sub} />
+                    </Pressable>
+                  )}
                   {tourOpen
                     ? tours.map((t) => (
-                        <Pressable
-                          key={t._id}
-                          accessibilityRole="radio"
-                          accessibilityState={{ selected: tourId === t._id }}
-                          onPress={() => {
-                            setTourId(t._id);
-                            setTourOpen(false);
-                          }}
-                          style={[styles.row, { borderTopWidth: 1, borderTopColor: C.border }]}
-                        >
-                          <Text style={{ color: C.text, flex: 1 }} numberOfLines={2}>
-                            {t.name}
-                          </Text>
-                          {tourId === t._id ? <Ionicons name="checkmark-circle" size={18} color={C.primary} /> : null}
-                        </Pressable>
+                        <View key={t._id} style={{ borderTopWidth: 1, borderTopColor: C.border }}>
+                          <TourRow
+                            C={C}
+                            t={t}
+                            selected={tourId === t._id}
+                            onPress={() => {
+                              setTourId(t._id);
+                              setTourOpen(false);
+                            }}
+                          />
+                        </View>
                       ))
                     : null}
                   {tourOpen && !tours.length ? <Text style={{ color: C.sub, padding: 12 }}>Chưa có giải sắp diễn ra.</Text> : null}
@@ -204,6 +240,9 @@ const styles = StyleSheet.create({
   segItem: { flex: 1, minHeight: 40, borderRadius: 9, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center" },
   card: { borderWidth: 1, borderRadius: 14, overflow: "hidden" },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, minHeight: 48 },
+  tourRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 10 },
+  poster: { width: 56, height: 74, borderRadius: 10, overflow: "hidden", alignItems: "center", justifyContent: "center" },
+  meta: { flexDirection: "row", alignItems: "center", gap: 4 },
   bar: { position: "absolute", left: 12, right: 12, bottom: 16, flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 18, borderWidth: 1 },
   order: { height: 48, minWidth: 130, paddingHorizontal: 22, borderRadius: 14, alignItems: "center", justifyContent: "center" },
 });
