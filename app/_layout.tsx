@@ -1052,6 +1052,15 @@ function RootLayout() {
         }
         (globalThis as any)[HOT_UPDATE_RELOAD_KEY] = true;
         DeviceEventEmitter.emit(HOT_UPDATE_RELOAD_EVENT);
+        // iOS văng nếu reload khi còn view native nặng đang mở (trình phát expo-video ở màn VAR,
+        // camera, bản đồ…): gói mới bị coi là crash rồi rollback. Về trang chủ để các màn đó
+        // unmount sạch trước khi reload; trang cũ được khôi phục sau reload (OTA_ROUTE_RESTORE_KEY).
+        try {
+          const { router: otaRouter } = require("expo-router");
+          if (otaRouter?.canDismiss?.()) otaRouter.dismissAll();
+          otaRouter?.replace?.("/");
+        } catch {}
+        await new Promise((resolve) => setTimeout(resolve, 700));
         await HotUpdater.reload();
       })().catch((error: unknown) => {
         void SecureStore.deleteItemAsync(OTA_ROUTE_RESTORE_KEY).catch(() => {});

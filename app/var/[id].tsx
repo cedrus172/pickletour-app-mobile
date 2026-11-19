@@ -270,7 +270,7 @@ export default function VarResultScreen() {
                       <View style={styles.play}><Ionicons name="play" size={18} color="#fff" /></View>
                     </View>
                     <View style={{ flex: 1, gap: 8 }}>
-                      <Text style={{ color: C.sub }}>{`${fmtDur(job.highlight.durationSec)} · ${job.highlight.rallies?.length || 0} pha hay nhất`}</Text>
+                      <Text style={{ color: C.sub }}>{`${fmtDur(job.highlight.durationSec)} · toàn bộ ${job.highlight.rallies?.length || 0} pha`}</Text>
                       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                         {["Pha dài nhất", "Cú nhanh nhất", "Quả sát vạch"].map((l) => (
                           <View key={l} style={[styles.tag, { borderColor: C.border }]}>
