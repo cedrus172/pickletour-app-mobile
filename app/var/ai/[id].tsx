@@ -149,7 +149,7 @@ export default function AiHighlightScreen() {
               <Text style={{ color: C.text, fontWeight: "900", flex: 1 }}>AI đang dựng video</Text>
             </View>
             <Stepper job={job} C={C} />
-            <Text style={{ color: C.sub, fontSize: 12.5 }}>Thường mất khoảng 5 phút. Bạn có thể rời màn này — sẽ có thông báo khi xong.</Text>
+            <Text style={{ color: C.sub, fontSize: 12.5 }}>Clip 1 phút mất khoảng 5 phút, clip 15 phút khoảng 20–40 phút. Bạn có thể rời màn này — sẽ có thông báo khi xong.</Text>
             <Pressable
               accessibilityRole="button"
               onPress={() =>

@@ -14,7 +14,7 @@ import { useCreateAiHighlightMutation, useGetMyPcoinQuery } from "@/slices/varAp
 import { BASE_URL } from "@/slices/apiSlice";
 import { VOLT, fmtDur } from "@/components/var/VarUi";
 
-const MAX_SEC = 60;
+const MAX_SEC = 15 * 60;
 const MIN_SEC = 8;
 const MAX_BYTES = 1024 * 1024 * 1024;
 const RED = "#ff5468";
@@ -80,7 +80,7 @@ export default function AiHighlightCreateScreen() {
     const d = Math.round((Number(a.duration) || 0) / 1000);
     if (a.fileSize && a.fileSize > MAX_BYTES) return Alert.alert("Video quá lớn", "Tối đa 1GB / video.");
     if (d && d < MIN_SEC) return Alert.alert("Video quá ngắn", `Cần tối thiểu ${MIN_SEC} giây.`);
-    if (d > 15 * 60) return Alert.alert("Video quá dài", "Hãy cắt còn dưới 15 phút rồi chọn lại (Highlight AI dùng 1 phút trong đó).");
+    if (d > 60 * 60) return Alert.alert("Video quá dài", "Hãy cắt còn dưới 1 giờ rồi chọn lại (Highlight AI dùng tối đa 15 phút trong đó).");
     setVideo({ uri: a.uri, name: a.fileName || `video-${Date.now()}.mp4`, type: a.mimeType || "video/mp4", durationSec: d || MAX_SEC, size: a.fileSize });
     setStart(0);
   };
@@ -111,7 +111,7 @@ export default function AiHighlightCreateScreen() {
 
   const submit = async () => {
     if (!token) return router.push("/login" as any);
-    if (!video) return Alert.alert("Chưa chọn video", "Chọn clip pickleball dài tối đa 1 phút.");
+    if (!video) return Alert.alert("Chưa chọn video", "Chọn video pickleball dài tối đa 15 phút.");
     if (lacking) {
       return Alert.alert("Không đủ PCoin", `Mỗi video cần ${price} PCoin, số dư của bạn còn ${balance}. Liên hệ admin PickleTour để nạp thêm PCoin.`, [
         { text: "Đóng", style: "cancel" },
@@ -150,12 +150,12 @@ export default function AiHighlightCreateScreen() {
               <Text style={{ color: C.text, fontSize: 18, fontWeight: "900" }}>Highlight AI phân tích</Text>
             </View>
             <Text style={{ color: C.sub, fontSize: 13.5, lineHeight: 19 }}>
-              AI xem từng cú đánh: ai đánh, loại cú, tốc độ ước lượng, đường bóng, sơ đồ sân, quay chậm cú quyết định. Ra video dọc 1080×1920 sẵn đăng
-              TikTok / Reels, khoảng 5 phút.
+              AI xem từng cú đánh: ai đánh, loại cú, tốc độ ước lượng, đường bóng, sơ đồ sân, quay chậm cú quyết định — tự chọn những pha hay nhất. Ra
+              video dọc 1080×1920 sẵn đăng TikTok / Reels. Clip 1 phút mất khoảng 5 phút; clip 15 phút khoảng 20–40 phút.
             </Text>
           </View>
 
-          <Text style={[styles.section, { color: C.text }]}>1. Chọn clip (tối đa 1 phút)</Text>
+          <Text style={[styles.section, { color: C.text }]}>1. Chọn video (tối đa 15 phút)</Text>
           <Pressable accessibilityRole="button" onPress={pickVideo} disabled={busy} style={[styles.pick, { borderColor: video ? C.primary : C.border, backgroundColor: C.card }]}>
             <Ionicons name={video ? "videocam" : "cloud-upload-outline"} size={24} color={C.primary} />
             <View style={{ flex: 1 }}>
@@ -171,10 +171,10 @@ export default function AiHighlightCreateScreen() {
           {long ? (
             <View style={[styles.card, { borderColor: C.border, backgroundColor: C.card, gap: 10 }]}>
               <Text style={{ color: C.text, fontWeight: "800" }}>
-                Video dài {fmtDur(dur)} — chọn đoạn 1 phút: {fmtDur(start)} → {fmtDur(segEnd)}
+                Video dài {fmtDur(dur)} — chọn đoạn 15 phút: {fmtDur(start)} → {fmtDur(segEnd)}
               </Text>
               <View style={{ flexDirection: "row", gap: 8 }}>
-                {[-10, -1, 1, 10].map((d) => (
+                {[-60, -10, 10, 60].map((d) => (
                   <Pressable key={d} accessibilityRole="button" onPress={() => moveStart(d)} style={[styles.stepBtn, { borderColor: C.border, backgroundColor: C.field }]}>
                     <Text style={{ color: C.text, fontWeight: "800" }}>{d > 0 ? `+${d}s` : `${d}s`}</Text>
                   </Pressable>

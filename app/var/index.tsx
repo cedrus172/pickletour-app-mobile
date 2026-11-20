@@ -122,7 +122,7 @@ export default function VarListScreen() {
             </View>
           </View>
           <Text style={{ color: C.sub, fontSize: 12.5 }}>
-            {`Clip ≤ 1 phút → video dọc: người đánh, loại cú, tốc độ, quay chậm cú quyết định${aiData?.pcoin?.price ? ` · ${aiData.pcoin.price} PCoin` : ""}`}
+            {`Video ≤ 15 phút → video dọc những pha hay nhất: người đánh, loại cú, tốc độ, quay chậm cú quyết định${aiData?.pcoin?.price ? ` · ${aiData.pcoin.price} PCoin` : ""}`}
           </Text>
         </Pressable>
         {aiJobs.map((j) => (
