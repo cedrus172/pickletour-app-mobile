@@ -79,6 +79,7 @@ import { normalizeUrl } from "@/utils/normalizeUri";
 import CccdQrModal from "@/components/CccdQrModal";
 import PhoneActivationCard from "@/components/auth/PhoneActivationCard";
 import FacebookLinkRow from "@/components/profile/FacebookLinkRow";
+import PhoneChangeModal from "@/components/auth/PhoneChangeModal";
 import apiSlice from "@/slices/apiSlice";
 import { useTheme } from "@react-navigation/native";
 import { IS_V3, sk, UI_VERSION, type UiVersion, IS_V3_DARK, IS_V3_LIGHT, UI_THEME, applyUiAppearance, type UiTheme } from "@/hooks/uiVersion";
@@ -465,6 +466,12 @@ export default function ProfileScreen({ isBack = false }) {
   } = useGetProfileQuery(undefined, { skip: !userInfo });
 
   const [updateProfile, { isLoading }] = useUpdateUserMutation();
+  // Backend từ chối đổi tỉnh/thành khi đã có, và đổi SĐT khi đã xác minh (phải qua OTP 2 số).
+  const provinceLocked = !!String(user?.province || "").trim();
+  const phoneLocked =
+    (user?.phoneVerified ?? userInfo?.phoneVerified) === true &&
+    !!String(user?.phone || "").trim();
+  const [phoneChangeOpen, setPhoneChangeOpen] = useState(false);
   const [unregisterDeviceToken] = useUnregisterPushTokenMutation();
   const [syncLiveActivities] = useSyncLiveActivitiesMutation();
   const [logoutApiCall] = useLogoutMutation();
@@ -638,7 +645,8 @@ export default function ProfileScreen({ isBack = false }) {
     else if (d.name.trim().length < 2) e.name = "Tối thiểu 2 ký tự";
     if (!d.nickname.trim()) e.nickname = "Bắt buộc";
     else if (d.nickname.trim().length < 2) e.nickname = "Tối thiểu 2 ký tự";
-    if (!/^0\d{9}$/.test(d.phone.trim())) e.phone = "Sai định dạng";
+    // SĐT đã xác minh bị khoá (đổi qua OTP) → không chặn lưu vì định dạng số cũ.
+    if (!phoneLocked && !/^0\d{9}$/.test(d.phone.trim())) e.phone = "Sai định dạng";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email.trim()))
       e.email = "Email không hợp lệ";
     if (d.dob) {
@@ -675,6 +683,8 @@ export default function ProfileScreen({ isBack = false }) {
     for (const k in form)
       if (k !== "confirmPassword" && form[k] !== initialRef.current[k])
         out[k] = form[k];
+    if (phoneLocked) delete (out as any).phone;
+    if (provinceLocked) delete (out as any).province;
     return out;
   };
 
@@ -692,7 +702,8 @@ export default function ProfileScreen({ isBack = false }) {
       const match = PROVINCES.find((p) =>
         r.address.toLowerCase().includes(p.toLowerCase()),
       );
-      if (match) updates.province = match;
+      // Tỉnh/thành đã chọn thì khoá — không ghi đè từ CCCD.
+      if (match && !provinceLocked) updates.province = match;
     }
     if (Object.keys(updates).length) {
       setForm((p) => ({ ...p, ...updates }));
@@ -1517,6 +1528,9 @@ export default function ProfileScreen({ isBack = false }) {
                   error={showErr("phone") ? errors.phone : ""}
                   icon="phone"
                   keyboardType="phone-pad"
+                  editable={!phoneLocked}
+                  actionLabel={phoneLocked ? "Đổi số" : undefined}
+                  onAction={() => setPhoneChangeOpen(true)}
                   t={t}
                 />
                 <FormField compact
@@ -1565,6 +1579,12 @@ export default function ProfileScreen({ isBack = false }) {
                   }}
                   icon="map-pin"
                   highlighted={HL.province}
+                  disabled={provinceLocked}
+                  hint={
+                    provinceLocked
+                      ? "Đã chọn — muốn đổi tỉnh/thành, liên hệ admin PickleTour"
+                      : undefined
+                  }
                   t={t}
                 />
                 <Text style={[styles.subTitle, { color: t.text }]}>
@@ -2130,6 +2150,16 @@ export default function ProfileScreen({ isBack = false }) {
       </Animated.ScrollView>
 
       {/* ===== MODALS ===== */}
+      <PhoneChangeModal
+        visible={phoneChangeOpen}
+        currentPhone={user?.phone || ""}
+        onClose={() => setPhoneChangeOpen(false)}
+        onSuccess={() => {
+          void refetch();
+          // đợi modal đóng hẳn rồi mới hiện Alert (iOS bỏ Alert khi modal đang đóng)
+          setTimeout(() => Alert.alert("Thành công", "Đã đổi số điện thoại."), 400);
+        }}
+      />
       <CccdQrModal
         visible={qrOpen}
         onClose={() => setQrOpen(false)}
@@ -2813,8 +2843,11 @@ const FormField = ({
   maxLength,
   highlighted,
   compact = false,
+  editable = true,
+  actionLabel,
+  onAction,
   t,
-}) => {
+}: any) => {
   const [focused, setFocused] = useState(false);
   return (
     <View style={[styles.formField, compact && styles.formFieldCompact]}>
@@ -2861,8 +2894,27 @@ const FormField = ({
           systemKeyboard={systemKeyboard}
           secureTextEntry={secureTextEntry}
           maxLength={maxLength}
-          style={[styles.formTextInput, { color: t.text }]}
+          editable={editable}
+          style={[
+            styles.formTextInput,
+            { color: editable ? t.text : t.textSecondary },
+          ]}
         />
+        {actionLabel ? (
+          <Pressable
+            onPress={onAction}
+            hitSlop={8}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.formFieldAction,
+              { backgroundColor: t.accentLight, opacity: pressed ? 0.75 : 1 },
+            ]}
+          >
+            <Text style={[styles.formFieldActionText, { color: t.accent }]}>
+              {actionLabel}
+            </Text>
+          </Pressable>
+        ) : null}
       </ProfileGlassSurface>
       {!!error && (
         <Text style={{ color: t.error, fontSize: 12, marginTop: 4, width: compact ? "100%" : undefined }}>
@@ -2881,10 +2933,12 @@ const FormSelect = ({
   icon,
   highlighted,
   compact = false,
+  disabled = false,
+  hint,
   t,
-}) => {
+}: any) => {
   const [open, setOpen] = useState(false);
-  const display = options.find((o) => o.value === value)?.label || "-- Chọn --";
+  const display = options.find((o: any) => o.value === value)?.label || "-- Chọn --";
   return (
     <View style={[styles.formField, compact && styles.formFieldCompact]}>
       <Text style={[styles.formLabel, compact && styles.formLabelCompact, { color: t.textSecondary }]}>
@@ -2892,6 +2946,7 @@ const FormSelect = ({
       </Text>
       <Pressable
         onPress={() => setOpen(true)}
+        disabled={disabled}
         style={({ pressed }) => [
           styles.formPressable,
           compact && styles.formPressableCompact,
@@ -2918,14 +2973,30 @@ const FormSelect = ({
           <Text
             style={[
               styles.formSelectText,
-              { color: value ? t.text : t.textMuted },
+              { color: disabled ? t.textSecondary : value ? t.text : t.textMuted },
             ]}
           >
             {display}
           </Text>
-          <Feather name="chevron-down" size={18} color={t.textMuted} />
+          <Feather
+            name={disabled ? "lock" : "chevron-down"}
+            size={disabled ? 16 : 18}
+            color={t.textMuted}
+          />
         </ProfileGlassSurface>
       </Pressable>
+      {hint ? (
+        <Text
+          style={{
+            color: t.textMuted,
+            fontSize: 12,
+            marginTop: 4,
+            width: compact ? "100%" : undefined,
+          }}
+        >
+          {hint}
+        </Text>
+      ) : null}
       <Modal visible={open} transparent animationType="slide">
         <View style={styles.pickerOverlay}>
           <View
@@ -3873,6 +3944,13 @@ const styles = StyleSheet.create({
   },
   radioInner: { width: 12, height: 12, borderRadius: 6 },
 
+  formFieldAction: {
+    marginLeft: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  formFieldActionText: { fontSize: 12, fontWeight: "700" },
   switchRow: {
     flexDirection: "row",
     alignItems: "center",

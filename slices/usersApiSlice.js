@@ -298,6 +298,21 @@ export const userApiSlice = apiSlice.injectEndpoints({
         body: body || {},
       }),
     }),
+    // Đổi SĐT đã xác minh: bước 1 OTP về số CŨ → oldPhoneToken (truyền vào requestPhoneOtp).
+    requestOldPhoneChangeOtp: builder.mutation({
+      query: () => ({
+        url: "/api/users/phone/change/request-old-otp",
+        method: "POST",
+        body: {},
+      }),
+    }),
+    verifyOldPhoneChangeOtp: builder.mutation({
+      query: (body) => ({
+        url: "/api/users/phone/change/verify-old-otp",
+        method: "POST",
+        body,
+      }),
+    }),
     verifyPhoneActivationOtp: builder.mutation({
       query: (body) => ({
         url: "/api/users/phone/verify-otp",
@@ -415,6 +430,8 @@ export const {
   useSkipRegisterOtpMutation,
   useRequestPhoneOtpMutation,
   useVerifyPhoneActivationOtpMutation,
+  useRequestOldPhoneChangeOtpMutation,
+  useVerifyOldPhoneChangeOtpMutation,
   useGetNotificationPrefsQuery,
   usePatchNotificationPrefsMutation,
   useGetFacebookLoginStatusQuery,

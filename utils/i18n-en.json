@@ -3638,5 +3638,17 @@
   "Huỷ liên kết thất bại.": "Failed to unlink.",
   "Đã liên kết ngày": "Linked on",
   "Đăng nhập nhanh bằng tài khoản Facebook.": "Log in quickly with your Facebook account.",
-  "Bỏ qua": "Skip"
+  "Bỏ qua": "Skip",
+  "Đã chọn — muốn đổi tỉnh/thành, liên hệ admin PickleTour": "Already set — to change your province/city, contact PickleTour admin",
+  "Đổi số điện thoại": "Change phone number",
+  "Bước 1/2 · Xác minh số hiện tại": "Step 1/2 · Verify current number",
+  "Bước 2/2 · Xác minh số mới": "Step 2/2 · Verify new number",
+  "Gửi mã OTP qua Zalo tới số hiện tại:": "Send an OTP via Zalo to your current number:",
+  "Nhập số điện thoại mới. Mã OTP sẽ gửi qua Zalo tới số này.": "Enter your new phone number. The OTP will be sent to it via Zalo.",
+  "Đổi số khác": "Use another number",
+  "Bạn đã gửi quá nhiều lần. Vui lòng thử lại sau.": "Too many requests. Please try again later.",
+  "Phiên xác minh số cũ đã hết hạn. Vui lòng xác minh lại số hiện tại.": "Current-number verification expired. Please verify your current number again.",
+  "Số điện thoại không hợp lệ": "Invalid phone number",
+  "Số mới phải khác số hiện tại": "The new number must differ from the current one",
+  "Đã đổi số điện thoại.": "Phone number changed."
 }
