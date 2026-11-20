@@ -304,6 +304,8 @@ export const userApiSlice = apiSlice.injectEndpoints({
         method: "POST",
         body,
       }),
+      // getMe.phoneVerified phải mới để PhoneActivationGate đóng ngay.
+      invalidatesTags: ["Me", "User"],
     }),
     getNotificationPrefs: builder.query({
       query: () => ({
@@ -319,6 +321,60 @@ export const userApiSlice = apiSlice.injectEndpoints({
         body,
       }),
       invalidatesTags: ["NotificationPrefs"],
+    }),
+    // ===== Đăng nhập / liên kết Facebook (luồng web-auth, không SDK native) =====
+    getFacebookLoginStatus: builder.query({
+      query: () => `${USERS_URL}/auth/facebook/status`,
+      keepUnusedDataFor: 30,
+    }),
+    // GET nhưng khai báo mutation để mỗi lần bấm luôn lấy URL/state mới (không cache).
+    getFacebookAuthUrl: builder.mutation({
+      query: () => ({
+        url: `${USERS_URL}/auth/facebook/url`,
+        method: "GET",
+        params: { platform: "app" },
+      }),
+    }),
+    exchangeFacebookCode: builder.mutation({
+      query: (code) => ({
+        url: `${USERS_URL}/auth/facebook/exchange`,
+        method: "POST",
+        body: { code, channel: "app" },
+      }),
+    }),
+    // Facebook chưa liên kết → tạo tài khoản mới từ ticket (trả cùng dạng exchange, isNew:true).
+    registerFacebookTicket: builder.mutation({
+      query: (ticket) => ({
+        url: `${USERS_URL}/auth/facebook/register`,
+        method: "POST",
+        body: { ticket, channel: "app" },
+      }),
+    }),
+    // token: truyền khi vừa đăng nhập xong mà chưa setCredentials.
+    linkFacebookTicket: builder.mutation({
+      query: ({ ticket, token }) => ({
+        url: `${USERS_URL}/me/facebook/link`,
+        method: "POST",
+        body: { ticket },
+        ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+      }),
+    }),
+    getMyFacebookLink: builder.query({
+      query: () => `${USERS_URL}/me/facebook`,
+      keepUnusedDataFor: 0,
+    }),
+    getFacebookLinkUrl: builder.mutation({
+      query: () => ({
+        url: `${USERS_URL}/me/facebook/link-url`,
+        method: "GET",
+        params: { platform: "app" },
+      }),
+    }),
+    unlinkFacebook: builder.mutation({
+      query: () => ({
+        url: `${USERS_URL}/me/facebook`,
+        method: "DELETE",
+      }),
     }),
   }),
 });
@@ -361,4 +417,12 @@ export const {
   useVerifyPhoneActivationOtpMutation,
   useGetNotificationPrefsQuery,
   usePatchNotificationPrefsMutation,
+  useGetFacebookLoginStatusQuery,
+  useGetFacebookAuthUrlMutation,
+  useExchangeFacebookCodeMutation,
+  useLinkFacebookTicketMutation,
+  useRegisterFacebookTicketMutation,
+  useGetMyFacebookLinkQuery,
+  useGetFacebookLinkUrlMutation,
+  useUnlinkFacebookMutation,
 } = userApiSlice;

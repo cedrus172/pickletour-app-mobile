@@ -1862,6 +1862,10 @@ function RootLayout() {
       }
 
       const resolved = resolvePikoraNavigationTarget(url);
+      // Callback web-auth Facebook do openAuthSessionAsync xử lý — không điều hướng thêm.
+      if (/^\/?fb-auth(?:[/?#]|$)/i.test(String(resolved.internalPath || ""))) {
+        return null;
+      }
       return resolved.internalPath || null;
     } catch (error) {
       console.error("Deep Link Parse Error:", error);

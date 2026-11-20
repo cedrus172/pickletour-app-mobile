@@ -20,9 +20,21 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router, Stack, Redirect, useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import {
+  useExchangeFacebookCodeMutation,
+  useGetFacebookAuthUrlMutation,
+  useGetFacebookLoginStatusQuery,
   useLazyGetMyRankQuery,
+  useLinkFacebookTicketMutation,
   useLoginMutation,
+  useRegisterFacebookTicketMutation,
 } from "@/slices/usersApiSlice";
+import apiSlice from "@/slices/apiSlice";
+import { useThemeTokens } from "@/hooks/useThemeTokens";
+import {
+  facebookAuthErrorMessage,
+  openFacebookAuthSession,
+} from "@/utils/facebookAuth";
+import { t as tr } from "@/utils/i18n";
 import { setCredentials } from "@/slices/authSlice";
 import { forceCheckpoint } from "@/slices/checkpointUiSlice";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -30,6 +42,7 @@ import LottieView from "lottie-react-native";
 import {
   IOS_26_LIQUID_GLASS_ENABLED,
   normalizeAppRoutePath,
+  resolveAuxiliaryTabPath,
 } from "@/utils/nativeTabs";
 import { SHOULD_RENDER_NATIVE_LOTTIE } from "@/utils/runtimeSafety";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
@@ -129,6 +142,19 @@ export default function LoginScreen() {
   const userInfo = useSelector((s) => s.auth?.userInfo);
   const [login, { isLoading }] = useLoginMutation();
   const [refreshMyRank] = useLazyGetMyRankQuery();
+  const C = useThemeTokens();
+  // Đăng nhập Facebook (web-auth) — chỉ hiện nút khi admin bật.
+  const { data: fbStatus } = useGetFacebookLoginStatusQuery(undefined);
+  const fbEnabled = !!fbStatus?.enabled;
+  const [getFbAuthUrl] = useGetFacebookAuthUrlMutation();
+  const [exchangeFbCode] = useExchangeFacebookCodeMutation();
+  const [linkFbTicket] = useLinkFacebookTicketMutation();
+  const [registerFbTicket] = useRegisterFacebookTicketMutation();
+  const [fbBusy, setFbBusy] = useState(false);
+  // Facebook chưa liên kết: giữ ticket, đăng nhập mật khẩu xong sẽ liên kết.
+  const [fbPending, setFbPending] = useState<{ ticket: string; name: string } | null>(null);
+  // true khi người dùng chọn "đã có tài khoản" → chỉ còn gợi ý đăng nhập để liên kết.
+  const [fbLinkMode, setFbLinkMode] = useState(false);
   const returnTo = useMemo(() => {
     const rawReturnTo = Array.isArray(params.returnTo)
       ? params.returnTo[0]
@@ -147,6 +173,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<"login" | "password" | null>(null);
   const passwordInputRef = React.useRef<TextInput>(null);
+  const loginInputRef = React.useRef<TextInput>(null);
 
   const kind = useMemo(() => {
     const v = (loginId || "").trim();
@@ -183,37 +210,121 @@ export default function LoginScreen() {
 
     try {
       const res = await login(payload).unwrap();
-      if (res?.checkpointRequired && res?.checkpoint?.token) {
-        dispatch(
-          forceCheckpoint({
-            checkpoint: res.checkpoint,
-            mandate: res.mandate || null,
-            returnTo,
-            source: "login",
-          }),
-        );
-        return;
-      }
-
-      if (res?.checkpointRequired) {
-        Alert.alert(
-          "Cần xác minh",
-          "Tài khoản cần checkpoint nhưng máy chủ chưa trả token xác minh. Vui lòng thử lại.",
-        );
-        return;
-      }
-
-      const normalized = res?.user ? { ...res.user, token: res.token } : res;
-
-      dispatch(setCredentials(normalized));
-      void refreshMyRank()
-        .unwrap()
-        .catch(() => {});
-
-      router.replace(returnTo as any);
+      await completeLogin(res, fbPending?.ticket);
     } catch (err) {
       console.log("[login] auth failed", err);
       Alert.alert("Lỗi", getLoginErrorMessage(err));
+    }
+  };
+
+  // Xử lý chung khi máy chủ trả phiên đăng nhập (mật khẩu hoặc Facebook exchange).
+  const completeLogin = async (res: any, fbTicket?: string) => {
+    if (res?.checkpointRequired && res?.checkpoint?.token) {
+      dispatch(
+        forceCheckpoint({
+          checkpoint: res.checkpoint,
+          mandate: res.mandate || null,
+          returnTo,
+          source: "login",
+        }),
+      );
+      return;
+    }
+
+    if (res?.checkpointRequired) {
+      Alert.alert(
+        "Cần xác minh",
+        "Tài khoản cần checkpoint nhưng máy chủ chưa trả token xác minh. Vui lòng thử lại.",
+      );
+      return;
+    }
+
+    const normalized = res?.user ? { ...res.user, token: res.token } : res;
+
+    // Liên kết Facebook đang chờ: gọi bằng token mới TRƯỚC khi setCredentials
+    // (setCredentials làm màn này chuyển hướng/unmount).
+    let fbLinkMsg: { ok: boolean; text: string } | null = null;
+    if (fbTicket && normalized?.token) {
+      try {
+        await linkFbTicket({ ticket: fbTicket, token: normalized.token }).unwrap();
+        fbLinkMsg = { ok: true, text: "Đã liên kết Facebook" };
+      } catch (err) {
+        fbLinkMsg = {
+          ok: false,
+          text: facebookAuthErrorMessage(err, "Liên kết Facebook thất bại."),
+        };
+      }
+      setFbPending(null);
+    }
+
+    dispatch(setCredentials(normalized));
+    // getMe mới → PhoneActivationGate thấy phoneVerificationRequired ngay.
+    dispatch(apiSlice.util.invalidateTags(["Me"]));
+    void refreshMyRank()
+      .unwrap()
+      .catch(() => {});
+
+    // Tài khoản mới (tạo bằng Facebook): giống đăng ký thường → về Hồ sơ (gợi ý KYC).
+    router.replace(
+      (res?.isNew ? resolveAuxiliaryTabPath("profile") : returnTo) as any,
+    );
+    if (fbLinkMsg) {
+      Alert.alert(fbLinkMsg.ok ? "Thành công" : "Lỗi", fbLinkMsg.text);
+    }
+  };
+
+  // (a) Tạo tài khoản PickleTour mới từ Facebook chưa liên kết.
+  const onFacebookRegister = async () => {
+    if (!fbPending?.ticket || fbBusy || isLoading) return;
+    setFbBusy(true);
+    try {
+      const res = await registerFbTicket(fbPending.ticket).unwrap();
+      setFbPending(null);
+      await completeLogin(res);
+    } catch (err) {
+      console.log("[login] facebook register failed", err);
+      Alert.alert("Lỗi", getLoginErrorMessage(err));
+    } finally {
+      setFbBusy(false);
+    }
+  };
+
+  // (b) Đã có tài khoản: giữ ticket, đăng nhập mật khẩu xong sẽ liên kết.
+  const onFacebookUseExisting = () => {
+    setFbLinkMode(true);
+    setTimeout(() => loginInputRef.current?.focus(), 50);
+  };
+
+  const onFacebookLogin = async () => {
+    if (fbBusy || isLoading) return;
+    setFbBusy(true);
+    try {
+      const r: any = await getFbAuthUrl(undefined).unwrap();
+      if (!r?.url) throw new Error(tr("Không lấy được liên kết đăng nhập Facebook."));
+      const p = await openFacebookAuthSession(r.url, r.redirect);
+      if (!p) return; // người dùng tự đóng trình duyệt
+
+      if (p.fb === "ok" && p.code) {
+        const res = await exchangeFbCode(p.code).unwrap();
+        await completeLogin(res);
+        return;
+      }
+      if (p.fb === "unlinked" && p.ticket) {
+        // Hiện bảng 2 lựa chọn đầu form: tạo tài khoản mới / đăng nhập để liên kết.
+        setFbPending({ ticket: p.ticket, name: p.name || "" });
+        setFbLinkMode(false);
+        return;
+      }
+      if (p.fb === "cancel") {
+        if (p.msg) Alert.alert("Thông báo", p.msg);
+        return;
+      }
+      Alert.alert("Lỗi", p.msg || "Đăng nhập Facebook thất bại. Vui lòng thử lại.");
+    } catch (err) {
+      console.log("[login] facebook failed", err);
+      Alert.alert("Lỗi", getLoginErrorMessage(err));
+    } finally {
+      setFbBusy(false);
     }
   };
 
@@ -313,6 +424,77 @@ export default function LoginScreen() {
                 </Text>
 
                 <View style={styles.form}>
+                  {fbPending ? (
+                    <View
+                      style={[
+                        styles.fbNotice,
+                        { backgroundColor: C.primarySoft, borderColor: C.border },
+                      ]}
+                    >
+                      <View style={styles.fbNoticeHead}>
+                        <Ionicons name="logo-facebook" size={18} color="#1877F2" />
+                        <Text style={[styles.fbNoticeText, { color: C.text }]}>
+                          Facebook{fbPending.name ? ` "${fbPending.name}" ` : " "}
+                          {tr(
+                            fbLinkMode
+                              ? "sẽ được liên kết sau khi bạn đăng nhập tài khoản PickleTour bên dưới."
+                              : "chưa liên kết với tài khoản PickleTour nào.",
+                          )}
+                        </Text>
+                        <Pressable
+                          onPress={() => {
+                            setFbPending(null);
+                            setFbLinkMode(false);
+                          }}
+                          hitSlop={8}
+                          accessibilityRole="button"
+                          accessibilityLabel={tr("Bỏ qua")}
+                        >
+                          <Ionicons name="close" size={18} color={C.sub} />
+                        </Pressable>
+                      </View>
+                      {!fbLinkMode ? (
+                        <>
+                          <Pressable
+                            onPress={onFacebookRegister}
+                            disabled={fbBusy || isLoading}
+                            accessibilityRole="button"
+                            style={({ pressed }) => [
+                              styles.btnFacebook,
+                              {
+                                marginTop: 12,
+                                opacity: fbBusy || isLoading ? 0.7 : pressed ? 0.9 : 1,
+                              },
+                            ]}
+                          >
+                            {fbBusy ? (
+                              <ActivityIndicator color="#fff" />
+                            ) : (
+                              <>
+                                <Ionicons name="person-add" size={18} color="#fff" />
+                                <Text style={styles.btnTextWhite}>
+                                  Tạo tài khoản mới bằng Facebook
+                                </Text>
+                              </>
+                            )}
+                          </Pressable>
+                          <Pressable
+                            onPress={onFacebookUseExisting}
+                            disabled={fbBusy}
+                            accessibilityRole="button"
+                            style={({ pressed }) => [
+                              styles.fbExistingBtn,
+                              { borderColor: C.border, opacity: pressed ? 0.8 : 1 },
+                            ]}
+                          >
+                            <Text style={[styles.fbExistingText, { color: C.text }]}>
+                              Tôi đã có tài khoản PickleTour → đăng nhập để liên kết
+                            </Text>
+                          </Pressable>
+                        </>
+                      ) : null}
+                    </View>
+                  ) : null}
                   <Text style={[styles.label, { color: textSecondary }]}>
                     Email / Số điện thoại
                   </Text>
@@ -331,6 +513,7 @@ export default function LoginScreen() {
                     ]}
                   >
                     <TextInput
+                      ref={loginInputRef}
                       value={loginId}
                       onChangeText={setLoginId}
                       onFocus={() => setFocusedField("login")}
@@ -427,6 +610,43 @@ export default function LoginScreen() {
                       Quên mật khẩu?
                     </Text>
                   </Pressable>
+
+                  {fbEnabled ? (
+                    <>
+                      <View style={styles.orRow}>
+                        <View style={[styles.orLine, { backgroundColor: C.border }]} />
+                        <Text style={[styles.orText, { color: textSecondary }]}>
+                          hoặc
+                        </Text>
+                        <View style={[styles.orLine, { backgroundColor: C.border }]} />
+                      </View>
+                      <Pressable
+                        onPress={onFacebookLogin}
+                        disabled={fbBusy || isLoading}
+                        accessibilityRole="button"
+                        accessibilityLabel={tr("Đăng nhập bằng Facebook")}
+                        style={({ pressed }) => [
+                          styles.btnFacebook,
+                          {
+                            opacity: fbBusy || isLoading ? 0.7 : pressed ? 0.9 : 1,
+                            transform: [{ translateY: pressed ? 2 : 0 }],
+                          },
+                        ]}
+                      >
+                        {fbBusy ? (
+                          <ActivityIndicator color="#fff" />
+                        ) : (
+                          <>
+                            <Ionicons name="logo-facebook" size={20} color="#fff" />
+                            <Text style={styles.btnTextWhite}>
+                              Đăng nhập bằng Facebook
+                            </Text>
+                          </>
+                        )}
+                      </Pressable>
+                    </>
+                  ) : null}
+
                 </View>
           <View style={{ marginTop: 24, gap: 10 }}>
             <Pressable
@@ -553,6 +773,41 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
   },
   btnTextWhite: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  orRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 16,
+  },
+  orLine: { flex: 1, height: StyleSheet.hairlineWidth },
+  orText: { fontSize: 13, fontWeight: "600" },
+  btnFacebook: {
+    marginTop: 14,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: "#1877F2",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  fbNotice: {
+    marginBottom: 14,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  fbNoticeHead: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  fbNoticeText: { flex: 1, fontSize: 13, lineHeight: 18 },
+  fbExistingBtn: {
+    marginTop: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  fbExistingText: { fontSize: 14, fontWeight: "700", textAlign: "center" },
   bottomActions: {
     position: "absolute",
     left: 0,

@@ -78,6 +78,7 @@ import {
 import { normalizeUrl } from "@/utils/normalizeUri";
 import CccdQrModal from "@/components/CccdQrModal";
 import PhoneActivationCard from "@/components/auth/PhoneActivationCard";
+import FacebookLinkRow from "@/components/profile/FacebookLinkRow";
 import apiSlice from "@/slices/apiSlice";
 import { useTheme } from "@react-navigation/native";
 import { IS_V3, sk, UI_VERSION, type UiVersion, IS_V3_DARK, IS_V3_LIGHT, UI_THEME, applyUiAppearance, type UiTheme } from "@/hooks/uiVersion";
@@ -2104,6 +2105,7 @@ export default function ProfileScreen({ isBack = false }) {
                       color={t.textSecondary}
                     />
                   </Pressable>
+                  <FacebookLinkRow topSpacing={16} />
                 </Card>
                 <Card title="Tài khoản" t={t}>
                   <View style={styles.dangerRow}>
