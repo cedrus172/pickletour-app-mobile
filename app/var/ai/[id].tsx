@@ -44,7 +44,7 @@ function Stepper({ job, C }: { job: any; C: ThemeTokens }) {
               {done ? <Ionicons name="checkmark" size={14} color={C.onPrimary} /> : now ? <ActivityIndicator size="small" color={C.primary} /> : null}
             </View>
             <Text style={{ color: done || now ? C.text : C.sub, fontWeight: now ? "800" : "600", flex: 1 }}>{label}</Text>
-            {now && k === 1 && job.varProgress > 0 ? <Text style={{ color: C.primary, fontWeight: "800" }}>{Math.round(job.varProgress * 100)}%</Text> : null}
+            {now && job.stage === "analyze" && job.varProgress > 0 ? <Text style={{ color: C.primary, fontWeight: "800" }}>{Math.round(job.varProgress * 100)}%</Text> : null}
           </View>
         );
       })}

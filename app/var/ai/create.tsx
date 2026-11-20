@@ -151,7 +151,7 @@ export default function AiHighlightCreateScreen() {
             </View>
             <Text style={{ color: C.sub, fontSize: 13.5, lineHeight: 19 }}>
               AI xem từng cú đánh: ai đánh, loại cú, tốc độ ước lượng, đường bóng, sơ đồ sân, quay chậm cú quyết định — tự chọn những pha hay nhất. Ra
-              video dọc 1080×1920 sẵn đăng TikTok / Reels. Clip 1 phút mất khoảng 5 phút; clip 15 phút khoảng 20–40 phút.
+              video dọc 1080×1920 sẵn đăng TikTok / Reels. Clip 1 phút mất khoảng 5 phút; clip 15 phút khoảng 30 phút.
             </Text>
           </View>
 
