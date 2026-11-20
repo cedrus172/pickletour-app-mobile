@@ -8,7 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSelector } from "react-redux";
 import { Text } from "@/components/ui/i18nText";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
-import { useCancelVarJobMutation, useDeleteVarJobMutation, useListVarJobsQuery } from "@/slices/varApiSlice";
+import { useCancelVarJobMutation, useDeleteVarJobMutation, useListAiHighlightsQuery, useListVarJobsQuery } from "@/slices/varApiSlice";
 import { ORANGE, Pill, RED, StageStepper, VOLT, etaText, fmtDur } from "@/components/var/VarUi";
 
 export default function VarListScreen() {
@@ -16,6 +16,8 @@ export default function VarListScreen() {
   const [tab, setTab] = useState<"active" | "done">("active");
   const loggedIn = !!useSelector((st: any) => st?.auth?.userInfo?._id);
   const { data: all, isFetching, refetch, error } = useListVarJobsQuery(undefined, { pollingInterval: 8000, skip: !loggedIn });
+  const { data: aiData } = useListAiHighlightsQuery(undefined, { pollingInterval: 8000, skip: !loggedIn });
+  const aiJobs: any[] = (aiData?.jobs || []).slice(0, 5);
   const [cancelJob] = useCancelVarJobMutation();
   const [deleteJob] = useDeleteVarJobMutation();
   const jobs: any[] = all?.jobs || [];
@@ -105,6 +107,51 @@ export default function VarListScreen() {
             <Ionicons name="chevron-forward" size={16} color={C.sub} />
           </Pressable>
         ) : null}
+        {/* Highlight AI phân tích: clip ≤ 1 phút → video dọc phân tích từng cú */}
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push((loggedIn ? "/var/ai/create" : "/login") as any)}
+          style={[styles.card, { backgroundColor: C.card, borderColor: VOLT, gap: 6 }]}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Ionicons name="sparkles" size={18} color={VOLT} />
+            <Text style={{ color: C.text, fontWeight: "900", fontSize: 16, flex: 1 }}>Highlight AI phân tích</Text>
+            <View style={[styles.newBtn, { backgroundColor: VOLT, height: 32 }]}>
+              <Ionicons name="add" size={16} color="#0B1B3A" />
+              <Text style={{ color: "#0B1B3A", fontWeight: "900", fontSize: 13 }}>Tạo</Text>
+            </View>
+          </View>
+          <Text style={{ color: C.sub, fontSize: 12.5 }}>
+            {`Clip ≤ 1 phút → video dọc: người đánh, loại cú, tốc độ, quay chậm cú quyết định${aiData?.pcoin?.price ? ` · ${aiData.pcoin.price} PCoin` : ""}`}
+          </Text>
+        </Pressable>
+        {aiJobs.map((j) => (
+          <Pressable
+            key={j._id}
+            accessibilityRole="button"
+            onPress={() => router.push(`/var/ai/${j._id}` as any)}
+            style={[styles.card, { backgroundColor: C.card, borderColor: C.border, flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 }]}
+          >
+            <View style={[styles.thumb, { width: 54, height: 96, backgroundColor: C.field, borderColor: C.border }]}>
+              {j.thumbUrl ? <ExpoImage source={{ uri: j.thumbUrl }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
+              {j.status === "running" ? <ActivityIndicator color={C.primary} /> : j.status === "done" ? <Ionicons name="play" size={18} color="#fff" /> : null}
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={[styles.title, { color: C.text }]} numberOfLines={1}>{j.title || j.summary?.court || "Highlight AI"}</Text>
+              <Text style={{ color: j.status === "failed" ? C.redText : C.sub, fontSize: 12.5 }} numberOfLines={2}>
+                {j.status === "running"
+                  ? `${j.stageLabel || "Đang xử lý"}…`
+                  : j.status === "done"
+                    ? `${j.summary?.rallies || 0} pha · ${j.summary?.shots || 0} cú${j.summary?.fastestKmh ? ` · nhanh nhất ~${Math.round(j.summary.fastestKmh)} km/h` : ""}`
+                    : j.status === "failed"
+                      ? j.error?.message || "Không tạo được"
+                      : "Đã huỷ"}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={C.sub} />
+          </Pressable>
+        ))}
+
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <View style={{ flex: 1, flexDirection: "row", gap: 8 }}>
             {[

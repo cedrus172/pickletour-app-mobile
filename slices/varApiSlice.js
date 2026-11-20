@@ -54,6 +54,27 @@ export const varApiSlice = apiSlice.injectEndpoints({
       query: ({ id, index }) => ({ url: `/api/var/jobs/${id}/rallies/${index}/check`, method: "POST", timeout: 200000 }),
       invalidatesTags: (r, e, { id }) => [{ type: "VarJob", id }],
     }),
+    // Highlight AI phân tích (clip ≤ 1 phút → video dọc phân tích từng cú)
+    listAiHighlights: builder.query({
+      query: () => "/api/var/ai-highlights",
+      providesTags: ["VarJob"],
+    }),
+    getAiHighlight: builder.query({
+      query: (id) => `/api/var/ai-highlights/${id}`,
+      providesTags: (r, e, id) => [{ type: "VarJob", id: `ai-${id}` }],
+    }),
+    createAiHighlight: builder.mutation({
+      query: (body) => ({ url: "/api/var/ai-highlights", method: "POST", body, timeout: 120000 }),
+      invalidatesTags: ["VarJob", "Pcoin"],
+    }),
+    cancelAiHighlight: builder.mutation({
+      query: (id) => ({ url: `/api/var/ai-highlights/${id}/cancel`, method: "POST" }),
+      invalidatesTags: ["VarJob", "Pcoin"],
+    }),
+    deleteAiHighlight: builder.mutation({
+      query: (id) => ({ url: `/api/var/ai-highlights/${id}`, method: "DELETE" }),
+      invalidatesTags: ["VarJob"],
+    }),
     editVarRally: builder.mutation({
       query: ({ id, index, winner }) => ({ url: `/api/var/jobs/${id}/rallies/${index}`, method: "PATCH", body: { winner } }),
       invalidatesTags: (r, e, { id }) => [{ type: "VarJob", id }],
@@ -74,4 +95,9 @@ export const {
   useRebuildVarHighlightMutation,
   useCheckVarRallyMutation,
   useEditVarRallyMutation,
+  useListAiHighlightsQuery,
+  useGetAiHighlightQuery,
+  useCreateAiHighlightMutation,
+  useCancelAiHighlightMutation,
+  useDeleteAiHighlightMutation,
 } = varApiSlice;
