@@ -9,6 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { Text } from "@/components/ui/i18nText";
+import ImageViewing from "@/components/ui/ResponsiveImageViewer";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
 import { useShareToFeed } from "@/components/feed/ShareToFeedModal";
 import { useGetVarJobQuery, useRebuildVarHighlightMutation } from "@/slices/varApiSlice";
@@ -56,6 +57,7 @@ export default function VarResultScreen() {
   const [rebuild, { isLoading: rebuilding }] = useRebuildVarHighlightMutation();
   const { openShare, shareModal } = useShareToFeed();
   const [tab, setTab] = useState<Tab>("highlight");
+  const [courtZoom, setCourtZoom] = useState(false);
   const [mode, setMode] = useState<"full" | "highlight">("full");
   const [seek, setSeek] = useState<{ t: number; n: number } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -234,6 +236,36 @@ export default function VarResultScreen() {
             </View>
           );
         })()}
+
+        {job.courtInfo ? (
+          <View style={[styles.confCard, { borderColor: C.border, backgroundColor: C.card }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Ionicons name={job.courtInfo.kind === "new" ? "scan-outline" : "checkmark-circle"} size={18} color={job.courtInfo.kind === "new" ? ORANGE : VOLT} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: C.sub, fontSize: 12 }}>
+                  Sân máy phân tích dùng
+                </Text>
+                <Text style={{ color: C.text, fontWeight: "800" }}>{job.courtInfo.label}</Text>
+              </View>
+            </View>
+            {job.courtInfo.previewUrl ? (
+              <Pressable accessibilityRole="imagebutton" accessibilityLabel="Xem ảnh vạch sân máy tìm được" onPress={() => setCourtZoom(true)} style={{ marginTop: 8 }}>
+                <ExpoImage source={{ uri: job.courtInfo.previewUrl }} style={{ width: "100%", aspectRatio: 16 / 9, borderRadius: 10, backgroundColor: "#000" }} contentFit="contain" />
+                <Text style={{ color: C.sub, fontSize: 12, marginTop: 4 }}>
+                  Vạch đỏ là sân máy tìm được — nếu không trùng vạch sân thật, kết quả trong/ngoài có thể sai.
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+        <ImageViewing
+          images={job.courtInfo?.previewUrl ? [{ uri: job.courtInfo.previewUrl }] : []}
+          imageIndex={0}
+          visible={courtZoom && !!job.courtInfo?.previewUrl}
+          onRequestClose={() => setCourtZoom(false)}
+          swipeToCloseEnabled
+          backgroundColor="rgba(0,0,0,0.95)"
+        />
 
         <View style={[styles.tabs, { borderBottomColor: C.border }]}>
           {[
