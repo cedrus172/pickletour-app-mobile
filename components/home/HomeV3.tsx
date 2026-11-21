@@ -26,6 +26,8 @@ import {
   isValidRankNo,
 } from "@/utils/rankUtils";
 
+import StoryBar from "@/components/story/StoryBar";
+
 const HERO_COURT = require("@/assets/images/v3/hero-court.jpg");
 const ARCADE_BANNER = require("@/assets/images/v3/arcade-banner.jpg");
 
@@ -58,6 +60,10 @@ export const HomeV3Hero = memo(function HomeV3Hero({ width }: { width: number })
       <LinearGradient pointerEvents="none" colors={[V3.fade0, V3.gradPage[0]]} style={styles.heroFadeBottom} />
       <View pointerEvents="box-none" style={styles.heroUser}>
         <HomeV3UserCard variant="hero" />
+      </View>
+      {/* Story người dùng đăng ở Bảng tin — nằm ở khoảng trống dưới thẻ người dùng */}
+      <View pointerEvents="box-none" style={styles.heroStories}>
+        <StoryBar variant="hero" />
       </View>
       <View
         pointerEvents="box-none"
@@ -467,6 +473,7 @@ const styles = StyleSheet.create({
 
   userWrap: { paddingHorizontal: 16, marginTop: -44 },
   heroUser: { position: "absolute", left: 14, top: 10, right: 76 },
+  heroStories: { position: "absolute", left: 0, right: 0, top: 78 },
   // Phương án C: một viên kính ngang (avatar · tên · vai trò + điểm · mũi tên)
   userHero: {
     flexDirection: "row",

@@ -11,20 +11,23 @@ import { useSelector } from "react-redux";
 import { AuthorAvatar } from "@/components/social/AuthorAvatar";
 import { Text } from "@/components/ui/i18nText";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
-import { sk } from "@/hooks/uiVersion";
+import { IS_V3_DARK, sk } from "@/hooks/uiVersion";
 import { useGetStoryFeedQuery } from "@/slices/storiesApiSlice";
 import StoryComposer, { type PickedStoryMedia } from "./StoryComposer";
 import StoryViewer from "./StoryViewer";
 
-const AVATAR = 62;
-const RING = AVATAR + 10;
 const RING_UNSEEN: [string, string] = ["#C5F433", "#22C55E"];
+// "feed": đầu Bảng tin · "hero": nằm trên ảnh đầu trang chủ (nhỏ hơn, chữ có bóng để đọc được trên ảnh)
+type StoryBarVariant = "feed" | "hero";
 
 const nameOf = (u: any) => u?.nickname || u?.name || "Người dùng";
 
-function StoryBarBase({ refreshKey = 0 }: { refreshKey?: number }) {
+function StoryBarBase({ refreshKey = 0, variant = "feed" }: { refreshKey?: number; variant?: StoryBarVariant }) {
   const C = useThemeTokens();
-  const styles = useMemo(() => mk_styles(C), [C]);
+  const hero = variant === "hero";
+  const AVATAR = hero ? 54 : 62;
+  const RING = AVATAR + 10;
+  const styles = useMemo(() => mk_styles(C, AVATAR, hero), [C, AVATAR, hero]);
   const me = useSelector((s: any) => s.auth?.userInfo);
   const { data, refetch } = useGetStoryFeedQuery(undefined);
   // Nạp lại khi quay lại tab Bảng tin hoặc khi người dùng kéo để làm mới
@@ -182,13 +185,16 @@ function StoryBarBase({ refreshKey = 0 }: { refreshKey?: number }) {
 
 export default React.memo(StoryBarBase);
 
-const mk_styles = (C: ThemeTokens) =>
-  StyleSheet.create({
-    wrap: { marginBottom: 12 },
+const mk_styles = (C: ThemeTokens, AVATAR: number, hero: boolean) => {
+  const RING = AVATAR + 10;
+  // Trên ảnh trang chủ: khe vòng + viền nút lấy màu nền tối/sáng cố định thay vì nền trang
+  const gapBg = hero ? (IS_V3_DARK ? "#081428" : "#FFFFFF") : C.bg;
+  return StyleSheet.create({
+    wrap: { marginBottom: hero ? 0 : 12 },
     list: { paddingHorizontal: 12, gap: 6 },
     item: { width: RING + 14, alignItems: "center" },
     ring: { width: RING, height: RING, borderRadius: RING / 2, alignItems: "center", justifyContent: "center" },
-    ringSeen: { backgroundColor: C.line },
+    ringSeen: { backgroundColor: hero ? "rgba(255,255,255,0.55)" : C.line },
     ringNone: { width: RING, height: RING, alignItems: "center", justifyContent: "center" },
     ringGap: {
       width: RING - 5,
@@ -196,7 +202,7 @@ const mk_styles = (C: ThemeTokens) =>
       borderRadius: (RING - 5) / 2,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: C.bg,
+      backgroundColor: gapBg,
     },
     plus: {
       position: "absolute",
@@ -209,7 +215,7 @@ const mk_styles = (C: ThemeTokens) =>
       justifyContent: "center",
       backgroundColor: sk("#1E9BFF", "#1466F2"),
       borderWidth: 2.5,
-      borderColor: C.bg,
+      borderColor: gapBg,
     },
     badge: {
       position: "absolute",
@@ -222,8 +228,21 @@ const mk_styles = (C: ThemeTokens) =>
       justifyContent: "center",
       backgroundColor: sk("#1E9BFF", "#1466F2"),
       borderWidth: 2,
-      borderColor: C.bg,
+      borderColor: gapBg,
     },
-    name: { marginTop: 6, fontSize: 12, color: C.sub, maxWidth: RING + 12, textAlign: "center" },
-    nameUnseen: { color: C.text, fontWeight: "700" },
+    name: hero
+      ? {
+          marginTop: 4,
+          fontSize: 11.5,
+          fontWeight: "700",
+          maxWidth: RING + 12,
+          textAlign: "center",
+          color: IS_V3_DARK ? "#FFFFFF" : "#0B1B3A",
+          textShadowColor: IS_V3_DARK ? "rgba(0,0,0,0.75)" : "rgba(255,255,255,0.9)",
+          textShadowOffset: { width: 0, height: 1 },
+          textShadowRadius: 4,
+        }
+      : { marginTop: 6, fontSize: 12, color: C.sub, maxWidth: RING + 12, textAlign: "center" },
+    nameUnseen: hero ? { fontWeight: "800" } : { color: C.text, fontWeight: "700" },
   });
+};
