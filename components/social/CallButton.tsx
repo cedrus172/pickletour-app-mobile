@@ -5,6 +5,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Alert, Linking, Pressable, StyleSheet } from "react-native";
+import { useThemeTokens } from "@/hooks/useThemeTokens";
 
 function normalizePhone(raw?: string | null) {
   const digits = String(raw || "").replace(/[^\d+]/g, "");
@@ -55,10 +56,14 @@ async function openPhoneCall(phone: string, displayName: string) {
 export function CallButton({
   phone,
   userName,
+  appearance = "default",
 }: {
   phone?: string | null;
   userName?: string;
+  /** "chat": nút tròn có viền theo giao diện màn nhắn tin */
+  appearance?: "default" | "chat";
 }) {
+  const C = useThemeTokens();
   const displayName = userName || "user này";
 
   const openMenu = () => {
@@ -83,8 +88,16 @@ export function CallButton({
   };
 
   return (
-    <Pressable onPress={openMenu} hitSlop={10} style={styles.btn}>
-      <Ionicons name="call" size={20} color="#1877F2" />
+    <Pressable
+      onPress={openMenu}
+      hitSlop={10}
+      style={
+        appearance === "chat"
+          ? [styles.chatBtn, { backgroundColor: C.field, borderColor: C.border }]
+          : styles.btn
+      }
+    >
+      <Ionicons name="call" size={appearance === "chat" ? 18 : 20} color={appearance === "chat" ? C.text : "#1877F2"} />
     </Pressable>
   );
 }
@@ -96,5 +109,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 4,
+  },
+  chatBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
   },
 });

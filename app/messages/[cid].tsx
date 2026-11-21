@@ -1,5 +1,5 @@
 import TournamentPaymentProofCard from "@/components/tournament/TournamentPaymentProofCard";
-import { withNotificationHeader } from "@/components/GlobalNotificationShell";
+import { NotificationHeaderActions } from "@/components/GlobalNotificationShell";
 // app/messages/[cid].tsx — Chat window (Messenger-like)
 import {
   Ionicons } from "@expo/vector-icons";
@@ -21,19 +21,26 @@ import {
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
   } from "expo-audio";
-import ImageView from "react-native-image-viewing";
+import * as Haptics from "expo-haptics";
+import { Image as ExpoImage } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import React,
-  { useEffect,
+  { useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  BackHandler,
   Dimensions,
   FlatList,
   Image,
+  Keyboard,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -61,8 +68,18 @@ import {
   useReactMessageMutation,
   usePinMessageMutation,
   usePatchConversationMutation,
+  useTypingMutation,
   messagesApiSlice,
 } from "@/slices/messagesApiSlice";
+import ChatMediaViewer, { mediaTimeLabel, type ChatMedia } from "@/components/chat/ChatMediaViewer";
+import StickerPanel from "@/components/chat/StickerPanel";
+import {
+  isJumboEmoji,
+  isStickerAttachment,
+  pushRecentSticker,
+  stickerOf,
+  type Sticker,
+} from "@/components/chat/stickers";
 import { socket } from "@/lib/socket";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
 import { sk } from "@/hooks/uiVersion";
@@ -78,64 +95,9 @@ const _sameDay = (a: Date, b: Date) =>
 
 const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
-function AudioMessage({ url, durationSec, isMine }: { url: string; durationSec?: number; isMine: boolean }) {
-  const C = useThemeTokens();
-  const player = useAudioPlayer(url);
-  const [playing, setPlaying] = useState(false);
-  useEffect(() => {
-    const id = setInterval(() => {
-      try {
-        const p: any = player;
-        // playing khi đang phát; tự reset khi hết
-        if (p?.playing === false && playing) setPlaying(false);
-      } catch {}
-    }, 400);
-    return () => clearInterval(id);
-  }, [player, playing]);
-  const toggle = () => {
-    try {
-      if (playing) {
-        player.pause();
-        setPlaying(false);
-      } else {
-        player.seekTo(0);
-        player.play();
-        setPlaying(true);
-      }
-    } catch {}
-  };
-  const secs = Number(durationSec) || 0;
-  return (
-    <Pressable
-      onPress={toggle}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-        paddingVertical: 4,
-        paddingRight: 8,
-        minWidth: 140,
-      }}
-    >
-      <Ionicons
-        name={playing ? "pause-circle" : "play-circle"}
-        size={30}
-        color={isMine ? "#fff" : sk("#0066FF", "#1466F2")}
-      />
-      <View
-        style={{
-          flex: 1,
-          height: 3,
-          borderRadius: 2,
-          backgroundColor: isMine ? "rgba(255,255,255,0.5)" : C.line,
-        }}
-      />
-      <Text style={{ fontSize: 12, color: isMine ? "#E5E7EB" : C.text3 }}>
-        {secs > 0 ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` : "🎤"}
-      </Text>
-    </Pressable>
-  );
-}
+// Màu nhấn + dải màu của bong bóng tin mình gửi (V3 sáng dùng xanh dương đậm hơn)
+const ACCENT = () => sk("#1E9BFF", "#1466F2");
+const GRAD = () => sk(["#00B2FF", "#1677FF"], ["#2F8BFF", "#1466F2"]) as [string, string];
 
 function replySnippet(rt: any): string {
   if (!rt) return "";
@@ -147,39 +109,6 @@ function replySnippet(rt: any): string {
   if (a?.type === "audio") return "🎤 Tin thoại";
   if (a?.type) return "📎 Tệp";
   return "…";
-}
-
-function shouldShowTimeSep(cur?: any, older?: any) {
-  if (!cur?.createdAt) return false;
-  if (!older?.createdAt) return true;
-  const c = new Date(cur.createdAt);
-  const p = new Date(older.createdAt);
-  if (!_sameDay(c, p)) return true;
-  return c.getTime() - p.getTime() > MS_5MIN;
-}
-
-function fmtTimeSep(iso?: string) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const now = new Date();
-  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  if (_sameDay(d, now)) return time;
-  const y = new Date(now);
-  y.setDate(now.getDate() - 1);
-  if (_sameDay(d, y)) return `Hôm qua ${time}`;
-  const sameYear = d.getFullYear() === now.getFullYear();
-  const dm = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
-  if (sameYear) return `${dm} ${time}`;
-  return `${dm}/${d.getFullYear()} ${time}`;
-}
-
-function fmtBubbleTime(iso?: string) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const now = new Date();
-  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  if (_sameDay(d, now)) return time;
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)} ${time}`;
 }
 
 // Format ngày dd/MM/yyyy hoặc range dd/MM - dd/MM/yyyy
@@ -407,6 +336,362 @@ function TournamentBubbleCard({ tour, isMine }: { tour: any; isMine: boolean }) 
   );
 }
 
+// Thanh sóng âm giả lập (cố định theo URL) cho tin thoại
+function waveOf(url: string, n = 26) {
+  let h = 2166136261;
+  for (let i = 0; i < url.length; i += 1) h = Math.imul(h ^ url.charCodeAt(i), 16777619) >>> 0;
+  const out: number[] = [];
+  for (let i = 0; i < n; i += 1) {
+    h = (Math.imul(h, 1664525) + 1013904223) >>> 0;
+    out.push(0.25 + ((h >>> 8) % 100) / 133);
+  }
+  return out;
+}
+
+function AudioMessage({ url, durationSec, isMine }: { url: string; durationSec?: number; isMine: boolean }) {
+  const C = useThemeTokens();
+  const player = useAudioPlayer(url);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const bars = useMemo(() => waveOf(url), [url]);
+  useEffect(() => {
+    if (!playing) return;
+    const id = setInterval(() => {
+      try {
+        const p: any = player;
+        const dur = Number(p?.duration) || Number(durationSec) || 0;
+        if (dur > 0) setProgress(Math.min(1, (Number(p?.currentTime) || 0) / dur));
+        if (p?.playing === false) {
+          setPlaying(false);
+          setProgress(0);
+        }
+      } catch {}
+    }, 200);
+    return () => clearInterval(id);
+  }, [player, playing, durationSec]);
+  const toggle = () => {
+    try {
+      if (playing) {
+        player.pause();
+        setPlaying(false);
+      } else {
+        player.seekTo(0);
+        player.play();
+        setPlaying(true);
+      }
+    } catch {}
+  };
+  const secs = Number(durationSec) || 0;
+  const on = isMine ? "#fff" : ACCENT();
+  const off = isMine ? "rgba(255,255,255,0.45)" : C.line;
+  return (
+    <Pressable onPress={toggle} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 2, minWidth: 190 }}>
+      <View
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: isMine ? "#fff" : ACCENT(),
+        }}
+      >
+        <Ionicons name={playing ? "pause" : "play"} size={18} color={isMine ? ACCENT() : "#fff"} style={playing ? undefined : { marginLeft: 2 }} />
+      </View>
+      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 2, height: 28 }}>
+        {bars.map((b, i) => (
+          <View
+            key={i}
+            style={{
+              flex: 1,
+              height: Math.max(4, b * 26),
+              borderRadius: 2,
+              backgroundColor: i / bars.length < progress ? on : playing ? off : isMine ? "rgba(255,255,255,0.8)" : C.muted,
+            }}
+          />
+        ))}
+      </View>
+      <Text style={{ fontSize: 12.5, fontWeight: "600", color: isMine ? "#EAF4FF" : C.text3 }}>
+        {secs > 0 ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` : "🎤"}
+      </Text>
+    </Pressable>
+  );
+}
+
+const WEEKDAYS = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+function fmtDayPill(iso?: string) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const now = new Date();
+  if (_sameDay(d, now)) return "Hôm nay";
+  const y = new Date(now);
+  y.setDate(now.getDate() - 1);
+  if (_sameDay(d, y)) return "Hôm qua";
+  const dm = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
+  return d.getFullYear() === now.getFullYear()
+    ? `${WEEKDAYS[d.getDay()]}, ${dm}`
+    : `${dm}/${d.getFullYear()}`;
+}
+const fmtClock = (iso?: string) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+const senderIdOf = (m: any) => String(m?.sender?._id || m?.sender || "");
+// Hai tin cùng cụm: cùng người gửi, cùng ngày, cách nhau ≤ 5 phút, không phải tin hệ thống
+function sameCluster(a?: any, b?: any) {
+  if (!a || !b || a.systemKind || b.systemKind) return false;
+  if (senderIdOf(a) !== senderIdOf(b)) return false;
+  const ta = new Date(a.createdAt);
+  const tb = new Date(b.createdAt);
+  if (!_sameDay(ta, tb)) return false;
+  return Math.abs(ta.getTime() - tb.getTime()) <= MS_5MIN;
+}
+
+const MEDIA_W = Math.min(Dimensions.get("window").width * 0.64, 250);
+
+type RowProps = {
+  item: any;
+  older?: any;
+  newer?: any;
+  meId: string;
+  isGroup: boolean;
+  /** DM: id người kia để hiện dấu "đã xem" */
+  peerId: string;
+  mountAt: number;
+  onLongPress: (m: any) => void;
+  onReact: (mid: string, emoji: string) => void;
+  onOpenMedia: (m: any, url: string) => void;
+};
+
+const MessageRow = React.memo(function MessageRow({
+  item,
+  older,
+  newer,
+  meId,
+  isGroup,
+  peerId,
+  mountAt,
+  onLongPress,
+  onReact,
+  onOpenMedia,
+}: RowProps) {
+  const C = useThemeTokens();
+  const styles = useMemo(() => mk_styles(C), [C]);
+  const isMine = senderIdOf(item) === meId;
+  const isFirst = !sameCluster(item, older); // đầu cụm (phía trên)
+  const isLast = !sameCluster(item, newer); // cuối cụm (phía dưới)
+  const dayChanged = !older?.createdAt || !_sameDay(new Date(item.createdAt), new Date(older.createdAt));
+
+  // Tin mới tới sau khi mở màn → hiện dần
+  const isNew = useRef(new Date(item.createdAt || 0).getTime() > mountAt).current;
+  const appear = useRef(new Animated.Value(isNew ? 0 : 1)).current;
+  useEffect(() => {
+    if (!isNew) return;
+    Animated.spring(appear, { toValue: 1, useNativeDriver: true, friction: 8, tension: 90 }).start();
+  }, [appear, isNew]);
+
+  const dayPill = dayChanged ? (
+    <View style={styles.dayPillWrap}>
+      <Text style={styles.dayPill}>{fmtDayPill(item.createdAt)}</Text>
+    </View>
+  ) : null;
+
+  if (item.systemKind) {
+    return (
+      <View>
+        {dayPill}
+        <View style={styles.systemBar}>
+          <Text style={styles.systemText}>{item.content}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  const R = 20;
+  const r = 6;
+  const radius = isMine
+    ? { borderTopLeftRadius: R, borderBottomLeftRadius: R, borderTopRightRadius: isFirst ? R : r, borderBottomRightRadius: isLast ? R : r }
+    : { borderTopRightRadius: R, borderBottomRightRadius: R, borderTopLeftRadius: isFirst ? R : r, borderBottomLeftRadius: isLast ? R : r };
+
+  const avatarSlot = !isMine ? (
+    isLast ? (
+      <Pressable
+        onPress={() => {
+          const uid = senderIdOf(item);
+          if (uid) router.push(`/profile/${uid}` as any);
+        }}
+        hitSlop={6}
+      >
+        <AuthorAvatar user={item.sender} size={30} />
+      </Pressable>
+    ) : (
+      <View style={{ width: 30 }} />
+    )
+  ) : null;
+
+  const peerRead =
+    isMine && !!peerId && (item.readBy || []).some((u: any) => String(u?._id || u) === peerId);
+  const meta = isLast ? (
+    <View style={[styles.metaRow, { justifyContent: isMine ? "flex-end" : "flex-start", marginLeft: isMine ? 0 : 38 }]}>
+      <Text style={styles.bubbleTime}>{fmtClock(item.createdAt)}</Text>
+      {isMine && !item.deletedAt ? (
+        <Ionicons
+          name={peerRead ? "checkmark-done" : "checkmark"}
+          size={14}
+          color={peerRead ? ACCENT() : C.muted}
+        />
+      ) : null}
+    </View>
+  ) : null;
+
+  let body: React.ReactNode;
+  if (item.deletedAt) {
+    body = (
+      <View style={[styles.bubble, styles.bubbleGhost, radius]}>
+        <Text style={{ color: C.muted, fontStyle: "italic", fontSize: 14 }}>Tin nhắn đã bị xoá</Text>
+      </View>
+    );
+  } else {
+    const atts: any[] = item.attachments || [];
+    const sticker = stickerOf(item);
+    const hasCards = !!(item.linkedTournament || item.linkedListing || item.linkedPlay || item.arcadeInvite || item.tournamentPaymentProof);
+    const jumbo = !atts.length && !hasCards && !item.replyTo && isJumboEmoji(item.content);
+    const visual = atts.filter((a) => a.type === "image" || a.type === "video");
+    const others = atts.filter((a) => a.type !== "image" && a.type !== "video");
+    const mediaOnly = visual.length > 0 && !others.length && !item.content && !hasCards && !item.replyTo;
+
+    const mediaGrid = visual.length ? (
+      <View style={[styles.mediaGrid, { width: MEDIA_W }]}>
+        {visual.map((a, i) => {
+          const single = visual.length === 1;
+          const w = single ? MEDIA_W : (MEDIA_W - 4) / 2;
+          const ratio = single && a.width && a.height ? Math.min(1.5, Math.max(0.62, a.height / a.width)) : 1;
+          const h = single ? w * ratio : w;
+          return a.type === "image" ? (
+            <Pressable key={i} onPress={() => onOpenMedia(item, a.url)} onLongPress={() => onLongPress(item)} delayLongPress={250}>
+              <ExpoImage source={{ uri: a.url }} style={{ width: w, height: h, backgroundColor: C.field }} contentFit="cover" cachePolicy="memory-disk" transition={150} />
+            </Pressable>
+          ) : (
+            <ChatVideoThumb key={i} url={a.url} width={w} height={h} onPress={() => a.url && onOpenMedia(item, a.url)} />
+          );
+        })}
+      </View>
+    ) : null;
+
+    if (sticker) {
+      body = <ExpoImage source={{ uri: sticker.url }} style={styles.stickerMsg} contentFit="contain" cachePolicy="memory-disk" />;
+    } else if (jumbo) {
+      body = <Text style={styles.jumbo}>{String(item.content).trim()}</Text>;
+    } else if (mediaOnly) {
+      body = <View style={[styles.mediaOnly, radius]}>{mediaGrid}</View>;
+    } else {
+      const inner = (
+        <>
+          {isGroup && !isMine && isFirst ? (
+            <Text numberOfLines={1} style={styles.senderName}>
+              {item.sender?.nickname || item.sender?.name || "Thành viên"}
+            </Text>
+          ) : null}
+          {item.replyTo ? (
+            <View style={[styles.quote, isMine ? styles.quoteMine : { borderLeftColor: ACCENT(), backgroundColor: C.dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)" }]}>
+              <Text style={{ fontSize: 11.5, fontWeight: "800", color: isMine ? "#EAF4FF" : ACCENT() }} numberOfLines={1}>
+                {item.replyTo.sender?.nickname || item.replyTo.sender?.name || "Trả lời"}
+              </Text>
+              <Text style={{ fontSize: 12.5, color: isMine ? "#EAF4FF" : C.text3 }} numberOfLines={1}>
+                {replySnippet(item.replyTo)}
+              </Text>
+            </View>
+          ) : null}
+          {mediaGrid ? <View style={{ borderRadius: 12, overflow: "hidden", marginBottom: item.content ? 6 : 2 }}>{mediaGrid}</View> : null}
+          {others.map((a, i) =>
+            a.type === "audio" ? (
+              <AudioMessage key={i} url={a.url} durationSec={a.durationSec} isMine={isMine} />
+            ) : (
+              <View key={i} style={styles.fileChip}>
+                <Ionicons name="document-outline" size={20} color={isMine ? "#fff" : C.text} />
+                <Text style={{ color: isMine ? "#fff" : C.text, marginLeft: 6, flexShrink: 1 }} numberOfLines={1}>
+                  {a.name || "Tệp đính kèm"}
+                </Text>
+              </View>
+            ),
+          )}
+          {item.content ? (
+            <MentionText
+              content={item.content}
+              mentions={item.mentions}
+              style={[styles.msgText, { color: isMine ? "#fff" : C.text }]}
+              mentionColor={isMine ? "#EAF4FF" : ACCENT()}
+            />
+          ) : null}
+          {item.linkedTournament ? <TournamentBubbleCard tour={item.linkedTournament} isMine={isMine} /> : null}
+          {item.linkedListing ? <ListingChatCardRN listing={item.linkedListing} isMine={isMine} /> : null}
+          {item.linkedPlay ? <PlayChatCardRN play={item.linkedPlay} isMine={isMine} /> : null}
+          {item.tournamentPaymentProof ? <TournamentPaymentProofCard id={item.tournamentPaymentProof} /> : null}
+          {item.arcadeInvite ? <ArcadeInviteCardRN invite={item.arcadeInvite} isMine={isMine} /> : null}
+        </>
+      );
+      body = isMine ? (
+        <LinearGradient colors={GRAD()} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.bubble, radius]}>
+          {inner}
+        </LinearGradient>
+      ) : (
+        <View style={[styles.bubble, styles.bubbleTheir, radius]}>{inner}</View>
+      );
+    }
+  }
+
+  const reactList: any[] = item.deletedAt ? [] : item.reactions || [];
+  const groups: { emoji: string; count: number; mine: boolean }[] = [];
+  for (const rr of reactList) {
+    if (!rr?.emoji) continue;
+    let g = groups.find((x) => x.emoji === rr.emoji);
+    if (!g) {
+      g = { emoji: rr.emoji, count: 0, mine: false };
+      groups.push(g);
+    }
+    g.count += 1;
+    if (String(rr.user) === meId) g.mine = true;
+  }
+
+  return (
+    <View>
+      {dayPill}
+      <Animated.View
+        style={{
+          opacity: appear,
+          transform: [{ scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }],
+          marginTop: isFirst ? 8 : 2,
+        }}
+      >
+        <Pressable
+          onLongPress={item.deletedAt ? undefined : () => onLongPress(item)}
+          delayLongPress={250}
+          style={[styles.bubbleRow, isMine ? styles.rowMine : styles.rowTheir]}
+        >
+          {avatarSlot}
+          {body}
+        </Pressable>
+        {groups.length > 0 ? (
+          <View style={[styles.reactRow, { justifyContent: isMine ? "flex-end" : "flex-start", marginLeft: isMine ? 0 : 44, marginRight: isMine ? 6 : 0 }]}>
+            {groups.map((g) => (
+              <Pressable
+                key={g.emoji}
+                onPress={() => onReact(String(item._id), g.emoji)}
+                style={[styles.reactChip, g.mine && { borderColor: ACCENT() }]}
+              >
+                <Text style={{ fontSize: 13 }}>{g.emoji}</Text>
+                <Text style={{ fontSize: 11.5, fontWeight: "800", color: C.text2 }}>{g.count}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+        {meta}
+      </Animated.View>
+    </View>
+  );
+});
+
 function extractErr(err: any): string {
   if (err?.data?.message) return String(err.data.message);
   if (err?.message) return String(err.message);
@@ -424,13 +709,21 @@ export default function ChatWindow() {
   const [text, setText] = useState("");
   const [attachments, setAttachments] = useState<any[]>([]);
   const [linkedTournament, setLinkedTournament] = useState<any>(null);
-  // Fullscreen viewer state cho ảnh/video trong chat bubble.
-  const [imgViewer, setImgViewer] = useState<{
-    visible: boolean;
-    images: { uri: string }[];
-    index: number;
-  }>({ visible: false, images: [], index: 0 });
-  const [videoModal, setVideoModal] = useState<{ url: string } | null>(null);
+  // Trình xem ảnh/video toàn màn hình (vuốt, lưu, chia sẻ).
+  const [viewer, setViewer] = useState<{ visible: boolean; items: ChatMedia[]; index: number }>({
+    visible: false,
+    items: [],
+    index: 0,
+  });
+  const [panelOpen, setPanelOpen] = useState(false); // bảng sticker
+  const [plusOpen, setPlusOpen] = useState(false); // bảng "+"
+  const [recentVersion, setRecentVersion] = useState(0);
+  const [peerTyping, setPeerTyping] = useState(false);
+  const typingOffRef = useRef<any>(null);
+  const lastTypingPingRef = useRef(0);
+  const mountAt = useRef(Date.now()).current;
+  const itemsRef = useRef<any[]>([]);
+  const replyRef = useRef<any>(null);
   const [tournamentPickerOpen, setTournamentPickerOpen] = useState(false);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionRange, setMentionRange] = useState<{
@@ -448,6 +741,13 @@ export default function ChatWindow() {
 
   const onChangeText = (v: string) => {
     setText(v);
+    // Báo "đang nhập" cho người kia (tối đa 1 lần / 2,5 giây)
+    if (v && Date.now() - lastTypingPingRef.current > 2500) {
+      lastTypingPingRef.current = Date.now();
+      try {
+        (sendTyping(cidStr) as any)?.unwrap?.().catch(() => {});
+      } catch {}
+    }
     const caret = v.length;
     const before = v.slice(0, caret);
     const m = before.match(
@@ -504,6 +804,7 @@ export default function ChatWindow() {
 
   const { data: conv } = useGetConversationQuery(cidStr, { skip: !cid });
   const [patchConv] = usePatchConversationMutation();
+  const [sendTyping] = useTypingMutation();
   const convMuted = !!(conv as any)?.muted;
   const toggleConvMute = async () => {
     try {
@@ -577,6 +878,7 @@ export default function ChatWindow() {
     }
   };
   const [replyTarget, setReplyTarget] = useState<any>(null);
+  replyRef.current = replyTarget;
   const [actionMsg, setActionMsg] = useState<any>(null); // long-press action sheet
   const [pinnedMessages, setPinnedMessages] = useState<any[]>([]);
   useEffect(() => {
@@ -600,7 +902,7 @@ export default function ChatWindow() {
     }
   };
 
-  const handleReact = async (mid: string, emoji: string) => {
+  const handleReact = useCallback(async (mid: string, emoji: string) => {
     setActionMsg(null);
     dispatch(
       messagesApiSlice.util.updateQueryData(
@@ -629,7 +931,7 @@ export default function ChatWindow() {
     } catch {
       /* socket đồng bộ lại nếu lệch */
     }
-  };
+  }, [cidStr, dispatch, me?._id, reactMessage]);
 
   // Subscribe socket room + patch cache khi có message mới
   useEffect(() => {
@@ -664,6 +966,7 @@ export default function ChatWindow() {
           }
         )
       );
+      setPeerTyping(false);
       // mark read khi đang mở
       markRead(cidStr);
     };
@@ -702,6 +1005,33 @@ export default function ChatWindow() {
       if (String(payload?.conversationId) !== cidStr) return;
       setPinnedMessages(payload.pinnedMessages || []);
     };
+    // Người kia đã xem → đánh dấu vào readBy để hiện dấu tích đôi
+    const onRead = (payload: any) => {
+      if (String(payload?.conversationId) !== cidStr) return;
+      const uid = String(payload?.userId || "");
+      if (!uid || uid === String(me?._id)) return;
+      dispatch(
+        messagesApiSlice.util.updateQueryData(
+          "listMessages",
+          { cid: cidStr },
+          (draft: any) => {
+            for (const m of draft?.items || []) {
+              const list = (m.readBy = m.readBy || []);
+              if (!list.some((u: any) => String(u?._id || u) === uid)) list.push(uid);
+            }
+          }
+        )
+      );
+    };
+    const onTyping = (payload: any) => {
+      if (String(payload?.conversationId) !== cidStr) return;
+      if (String(payload?.userId || "") === String(me?._id)) return;
+      setPeerTyping(true);
+      if (typingOffRef.current) clearTimeout(typingOffRef.current);
+      typingOffRef.current = setTimeout(() => setPeerTyping(false), 3500);
+    };
+    socket.on("chat:read", onRead);
+    socket.on("chat:typing", onTyping);
     socket.on("chat:message:new", onNew);
     socket.on("chat:message:deleted", onDeleted);
     socket.on("chat:message:reaction", onReaction);
@@ -711,14 +1041,18 @@ export default function ChatWindow() {
         socket.emit("chat:unsubscribe", { conversationId: cidStr });
       } catch {}
       socket.off("connect", subscribe);
+      socket.off("chat:read", onRead);
+      socket.off("chat:typing", onTyping);
+      if (typingOffRef.current) clearTimeout(typingOffRef.current);
       socket.off("chat:message:new", onNew);
       socket.off("chat:message:deleted", onDeleted);
       socket.off("chat:message:reaction", onReaction);
       socket.off("chat:pinned:updated", onPinned);
     };
-  }, [cid, cidStr, dispatch, markRead]);
+  }, [cid, cidStr, dispatch, markRead, me?._id]);
 
-  const items = msgs?.items || [];
+  const items = useMemo(() => msgs?.items || [], [msgs?.items]);
+  itemsRef.current = items;
   const isGroup = conv?.type === "club" || conv?.type === "tournament" || conv?.type === "venue";
   const title = useMemo(() => {
     if (!conv) return "Nhắn tin";
@@ -880,91 +1214,202 @@ export default function ChatWindow() {
 
   const dmPeer =
     conv?.type === "dm" ? conv?.otherParticipants?.[0] : null;
+  const meId = String(me?._id || "");
+  const peerId = dmPeer?._id ? String(dmPeer._id) : "";
+
+  // ── Sticker / emoji ──
+  const sendSticker = useCallback(
+    async (s: Sticker) => {
+      try {
+        Haptics.selectionAsync().catch(() => {});
+      } catch {}
+      const reply = replyRef.current;
+      setReplyTarget(null);
+      pushRecentSticker(s).then(() => setRecentVersion((v) => v + 1));
+      try {
+        await sendMessage({
+          cid: cidStr,
+          content: "",
+          attachments: [
+            { type: "image", url: s.url, name: s.label, mime: "image/webp", width: 400, height: 400, sticker: true },
+          ],
+          replyTo: reply?._id || null,
+        } as any).unwrap();
+        flatRef.current?.scrollToOffset({ offset: 0, animated: true });
+      } catch (err: any) {
+        Alert.alert("Gửi sticker thất bại", extractErr(err));
+      }
+    },
+    [cidStr, sendMessage],
+  );
+  const addEmoji = useCallback((e: string) => setText((t) => `${t}${e}`), []);
+  const togglePanel = () => {
+    if (panelOpen) {
+      setPanelOpen(false);
+      return;
+    }
+    Keyboard.dismiss();
+    setPanelOpen(true);
+  };
+  useEffect(() => {
+    if (!panelOpen) return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      setPanelOpen(false);
+      return true;
+    });
+    return () => sub.remove();
+  }, [panelOpen]);
+
+  // ── Xem ảnh / video toàn màn hình ──
+  const openMedia = useCallback((msg: any, url: string) => {
+    const list: ChatMedia[] = [];
+    const all = itemsRef.current || [];
+    for (let i = all.length - 1; i >= 0; i -= 1) {
+      const m = all[i];
+      if (!m || m.deletedAt) continue;
+      (m.attachments || []).forEach((a: any, j: number) => {
+        if (!a?.url || (a.type !== "image" && a.type !== "video") || isStickerAttachment(a)) return;
+        list.push({
+          key: `${m._id}-${j}`,
+          type: a.type,
+          url: a.url,
+          senderName: authorName(m.sender),
+          timeLabel: mediaTimeLabel(m.createdAt),
+          msg: m,
+        });
+      });
+    }
+    const idx = list.findIndex((x) => String(x.msg._id) === String(msg._id) && x.url === url);
+    Keyboard.dismiss();
+    setViewer({ visible: true, items: list, index: Math.max(0, idx) });
+  }, []);
+  const openActions = useCallback((m: any) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    } catch {}
+    setActionMsg(m);
+  }, []);
+
+  const renderItem = useCallback(
+    ({ item, index }: { item: any; index: number }) => (
+      <MessageRow
+        item={item}
+        older={items[index + 1]}
+        newer={items[index - 1]}
+        meId={meId}
+        isGroup={isGroup}
+        peerId={peerId}
+        mountAt={mountAt}
+        onLongPress={openActions}
+        onReact={handleReact}
+        onOpenMedia={openMedia}
+      />
+    ),
+    [items, meId, isGroup, peerId, mountAt, openActions, handleReact, openMedia],
+  );
+
+  const headerAvatarUri =
+    conv?.type === "club"
+      ? conv?.club?.logoUrl
+      : conv?.type === "tournament"
+        ? conv?.tournament?.image
+        : conv?.type === "venue"
+          ? conv?.venue?.images?.[0]
+          : "";
+  const memberCount = Number((conv as any)?.memberCount || conv?.participants?.length || 0);
+  const subtitle = peerTyping
+    ? "Đang nhập…"
+    : dmPeer
+      ? convMuted
+        ? "Đã tắt thông báo"
+        : "Nhấn để xem trang cá nhân"
+      : memberCount > 0
+        ? `${memberCount} thành viên`
+        : "";
+  const actionMediaUrl: string =
+    (actionMsg?.attachments || []).find(
+      (a: any) => a?.url && (a.type === "image" || a.type === "video") && !isStickerAttachment(a)
+    )?.url || "";
+  const canSend = !!text.trim() || attachments.length > 0 || !!linkedTournament;
+  const bottomPad = keyboardOpen ? keyboardOverlap : panelOpen ? 0 : insets.bottom;
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen
-        options={{
-          title,
-          // Header title tappable → mở profile của DM peer
-          headerTitle: dmPeer?._id
-            ? () => (
-                <Pressable
-                  onPress={() => router.push(`/profile/${String(dmPeer._id)}` as any)}
-                  hitSlop={8}
-                >
-                  <Text
-                    style={{
-                      fontSize: 17,
-                      fontWeight: "700",
-                      color: C.text,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {title}
-                  </Text>
-                </Pressable>
-              )
-            : undefined,
-          headerRight: withNotificationHeader(dmPeer?._id
-            ? () => (
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Pressable
-                    onPress={toggleConvMute}
-                    hitSlop={10}
-                    style={{ paddingHorizontal: 6 }}
-                  >
-                    <Ionicons
-                      name={convMuted ? "notifications-off" : "notifications-outline"}
-                      size={22}
-                      color={convMuted ? C.muted : C.text}
-                    />
-                  </Pressable>
-                  <CallButton
-                    phone={dmPeer?.phone}
-                    userName={dmPeer?.nickname || dmPeer?.name}
-                  />
-                  <UserActionsMenu
-                    userId={String(dmPeer._id)}
-                    userName={dmPeer?.nickname || dmPeer?.name}
-                  />
-                </View>
-              )
-            : undefined),
-        }}
-      />
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <Stack.Screen options={{ headerShown: false, title }} />
+
+      {/* Đầu trang */}
+      <View style={styles.header}>
+        <Pressable
+          onPress={() => (router.canGoBack() ? router.back() : router.replace("/" as any))}
+          hitSlop={8}
+          style={styles.headBtn}
+          accessibilityLabel="Quay lại"
+        >
+          <Ionicons name="chevron-back" size={22} color={C.text} />
+        </Pressable>
+        <Pressable
+          disabled={!dmPeer?._id}
+          onPress={() => dmPeer?._id && router.push(`/profile/${String(dmPeer._id)}` as any)}
+          style={styles.headPeer}
+        >
+          {dmPeer ? (
+            <AuthorAvatar user={dmPeer} size={40} />
+          ) : headerAvatarUri ? (
+            <ExpoImage source={{ uri: headerAvatarUri }} style={styles.headAvatar} contentFit="cover" />
+          ) : (
+            <View style={[styles.headAvatar, styles.headAvatarFallback]}>
+              <Ionicons name={conv?.type === "tournament" ? "trophy" : "people"} size={20} color="#fff" />
+            </View>
+          )}
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.headName} numberOfLines={1}>
+              {title}
+            </Text>
+            {subtitle ? (
+              <Text style={[styles.headSub, peerTyping && { color: ACCENT(), fontWeight: "700" }]} numberOfLines={1}>
+                {subtitle}
+              </Text>
+            ) : null}
+          </View>
+        </Pressable>
+        <NotificationHeaderActions>
+          {dmPeer?._id ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <CallButton phone={dmPeer?.phone} userName={dmPeer?.nickname || dmPeer?.name} appearance="chat" />
+              <UserActionsMenu
+                userId={String(dmPeer._id)}
+                userName={dmPeer?.nickname || dmPeer?.name}
+                appearance="chat"
+                extraActions={[
+                  {
+                    text: convMuted ? "Bật thông báo" : "Tắt thông báo",
+                    onPress: toggleConvMute,
+                  },
+                ]}
+              />
+            </View>
+          ) : null}
+        </NotificationHeaderActions>
+      </View>
+
       <View
         ref={paneRef}
         collapsable={false}
         onLayout={measurePane}
-        style={{ flex: 1, paddingBottom: keyboardOpen ? keyboardOverlap : insets.bottom }}
+        style={{ flex: 1, paddingBottom: bottomPad }}
       >
         {isFetching && !items.length && (
           <ActivityIndicator style={{ marginTop: 20 }} />
         )}
         {pinnedMessages.length > 0 && (
-          <View
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderBottomWidth: 1,
-              borderBottomColor: C.border,
-              backgroundColor: C.bg,
-            }}
-          >
+          <View style={styles.pinBar}>
             {pinnedMessages.map((pm: any) => (
-              <View
-                key={pm._id}
-                style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 2 }}
-              >
+              <View key={pm._id} style={styles.pinRow}>
                 <Ionicons name="pin" size={13} color="#F59E0B" />
-                <Text style={{ fontSize: 11, fontWeight: "800", color: C.text3 }}>
+                <Text style={{ fontSize: 11.5, fontWeight: "800", color: C.text3 }}>
                   {pm.sender?.nickname || pm.sender?.name || ""}:
                 </Text>
-                <Text
-                  style={{ fontSize: 12, color: C.sub, flex: 1 }}
-                  numberOfLines={1}
-                >
+                <Text style={{ fontSize: 12.5, color: C.sub, flex: 1 }} numberOfLines={1}>
                   {replySnippet(pm)}
                 </Text>
                 <Pressable onPress={() => handlePin(pm, false)} hitSlop={8}>
@@ -981,319 +1426,25 @@ export default function ChatWindow() {
           inverted
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          contentContainerStyle={{ padding: 12, paddingBottom: 8 }}
-          renderItem={({ item, index }) => {
-            const isMine =
-              String(item.sender?._id || item.sender) === String(me?._id);
-            const prev = items[index + 1]; // vì inverted → prev = older msg
-            const next = items[index - 1]; // newer msg (visually below in inverted)
-            const showAvatar =
-              !isMine &&
-              (!prev ||
-                String(prev.sender?._id || prev.sender) !==
-                  String(item.sender?._id || item.sender));
-            const showTimeSep = shouldShowTimeSep(item, prev);
-            // Hiện timestamp dưới bubble khi: là msg cuối cùng của cluster
-            // (không có next cùng sender trong 5 phút)
-            const showBubbleTime =
-              !next ||
-              String(next.sender?._id || next.sender) !==
-                String(item.sender?._id || item.sender) ||
-              (next.createdAt &&
-                new Date(next.createdAt).getTime() -
-                  new Date(item.createdAt).getTime() >
-                  MS_5MIN);
-            if (item.systemKind) {
-              return (
-                <View style={styles.systemBar}>
-                  <Text style={styles.systemText}>{item.content}</Text>
-                </View>
-              );
-            }
-            if (item.deletedAt) {
-              return (
-                <View
-                  style={[
-                    styles.bubbleRow,
-                    isMine ? styles.rowMine : styles.rowTheir,
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.bubble,
-                      isMine ? styles.bubbleMine : styles.bubbleTheir,
-                      { opacity: 0.5 },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        color: isMine ? "#E5E7EB" : C.muted,
-                        fontStyle: "italic",
-                      }}
-                    >
-                      Tin nhắn đã bị xoá
-                    </Text>
-                  </View>
-                </View>
-              );
-            }
-            const reactList: any[] = item.reactions || [];
-            const reactGroups = (() => {
-              const map = new Map<string, { emoji: string; count: number; mine: boolean }>();
-              for (const r of reactList) {
-                if (!r?.emoji) continue;
-                const cur = map.get(r.emoji) || { emoji: r.emoji, count: 0, mine: false };
-                cur.count += 1;
-                if (String(r.user) === String(me?._id)) cur.mine = true;
-                map.set(r.emoji, cur);
-              }
-              return Array.from(map.values());
-            })();
-            return (
-              <View>
-                <Pressable
-                  onLongPress={() => setActionMsg(item)}
-                  delayLongPress={250}
-                  style={[
-                    styles.bubbleRow,
-                    isMine ? styles.rowMine : styles.rowTheir,
-                  ]}
-                >
-                {!isMine && showAvatar && (
-                  <Pressable
-                    onPress={() => {
-                      const uid = String(item.sender?._id || item.sender || "");
-                      if (uid) router.push(`/profile/${uid}` as any);
-                    }}
-                    hitSlop={6}
-                    style={{ marginRight: 6 }}
-                  >
-                    <AuthorAvatar user={item.sender} size={28} />
-                  </Pressable>
-                )}
-                {!isMine && !showAvatar && <View style={{ width: 34 }} />}
-                <View
-                  style={[
-                    styles.bubble,
-                    isMine ? styles.bubbleMine : styles.bubbleTheir,
-                  ]}
-                >
-                  {isGroup && !isMine && showAvatar && (
-                    <Text
-                      numberOfLines={1}
-                      style={{
-                        fontSize: 11.5,
-                        fontWeight: "700",
-                        color: sk("#0066FF", "#1466F2"),
-                        marginBottom: 2,
-                      }}
-                    >
-                      {item.sender?.nickname || item.sender?.name || "Thành viên"}
-                    </Text>
-                  )}
-                  {item.replyTo && (
-                    <View
-                      style={{
-                        borderLeftWidth: 3,
-                        borderLeftColor: isMine
-                          ? "rgba(255,255,255,0.7)"
-                          : sk("#1877F2", "#1466F2"),
-                        paddingLeft: 6,
-                        marginBottom: 4,
-                        opacity: 0.9,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 11,
-                          fontWeight: "800",
-                          color: isMine ? "#DBEAFE" : sk("#1877F2", "#1466F2"),
-                        }}
-                        numberOfLines={1}
-                      >
-                        {item.replyTo.sender?.nickname ||
-                          item.replyTo.sender?.name ||
-                          "Trả lời"}
-                      </Text>
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          color: isMine ? "#E5E7EB" : C.text3,
-                        }}
-                        numberOfLines={1}
-                      >
-                        {replySnippet(item.replyTo)}
-                      </Text>
-                    </View>
-                  )}
-                  {item.attachments?.length > 0 &&
-                    (() => {
-                      const msgImages = (item.attachments || [])
-                        .filter((x: any) => x.type === "image" && x.url)
-                        .map((x: any) => ({ uri: x.url }));
-                      return item.attachments.map((a: any, i: number) => (
-                        <View key={i} style={{ marginBottom: 4 }}>
-                          {a.type === "image" ? (
-                            <Pressable
-                              onPress={() => {
-                                const idx = msgImages.findIndex(
-                                  (im: any) => im.uri === a.url
-                                );
-                                setImgViewer({
-                                  visible: true,
-                                  images: msgImages,
-                                  index: idx < 0 ? 0 : idx,
-                                });
-                              }}
-                            >
-                              <Image
-                                source={{ uri: a.url }}
-                                style={styles.attachImg}
-                              />
-                            </Pressable>
-                          ) : a.type === "video" ? (
-                            <ChatVideoThumb
-                              url={a.url}
-                              onPress={() =>
-                                a.url && setVideoModal({ url: a.url })
-                              }
-                            />
-                          ) : a.type === "audio" ? (
-                            <AudioMessage
-                              url={a.url}
-                              durationSec={a.durationSec}
-                              isMine={isMine}
-                            />
-                          ) : (
-                            <View style={styles.fileChip}>
-                              <Ionicons
-                                name="document-outline"
-                                size={20}
-                                color={isMine ? "#fff" : C.text}
-                              />
-                              <Text
-                                style={{
-                                  color: isMine ? "#fff" : C.text,
-                                  marginLeft: 6,
-                                }}
-                                numberOfLines={1}
-                              >
-                                {a.name || "Tệp đính kèm"}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      ));
-                    })()}
-                  {!!item.content && (
-                    <MentionText
-                      content={item.content}
-                      mentions={item.mentions}
-                      style={[
-                        styles.msgText,
-                        { color: isMine ? "#fff" : C.text },
-                      ]}
-                      mentionColor={isMine ? "#DBEAFE" : sk("#1877F2", "#1466F2")}
-                    />
-                  )}
-                  {item.linkedTournament && (
-                    <TournamentBubbleCard
-                      tour={item.linkedTournament}
-                      isMine={isMine}
-                    />
-                  )}
-                  {item.linkedListing && (
-                    <ListingChatCardRN listing={item.linkedListing} isMine={isMine} />
-                  )}
-                  {item.linkedPlay && (
-                    <PlayChatCardRN play={item.linkedPlay} isMine={isMine} />
-                  )}
-                  {!item.deletedAt && item.tournamentPaymentProof && <TournamentPaymentProofCard id={item.tournamentPaymentProof} />}
-                  {item.arcadeInvite && (
-                    <ArcadeInviteCardRN invite={item.arcadeInvite} isMine={isMine} />
-                  )}
-                </View>
-                </Pressable>
-                {reactGroups.length > 0 && (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      flexWrap: "wrap",
-                      gap: 4,
-                      marginTop: 2,
-                      marginLeft: isMine ? 0 : 34,
-                      justifyContent: isMine ? "flex-end" : "flex-start",
-                    }}
-                  >
-                    {reactGroups.map((g) => (
-                      <Pressable
-                        key={g.emoji}
-                        onPress={() => handleReact(String(item._id), g.emoji)}
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 2,
-                          paddingHorizontal: 7,
-                          paddingVertical: 1,
-                          borderRadius: 999,
-                          backgroundColor: g.mine ? C.primarySoft : C.border,
-                          borderWidth: 1,
-                          borderColor: g.mine ? sk("#1877F2", "#1466F2") : "transparent",
-                        }}
-                      >
-                        <Text style={{ fontSize: 12 }}>{g.emoji}</Text>
-                        <Text style={{ fontSize: 11, fontWeight: "800", color: C.text2 }}>
-                          {g.count}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
-                {showBubbleTime && (
-                  <Text
-                    style={[
-                      styles.bubbleTime,
-                      { textAlign: isMine ? "right" : "left" },
-                    ]}
-                  >
-                    {fmtBubbleTime(item.createdAt)}
-                  </Text>
-                )}
-                {/* Inverted list: separator ở dưới JSX = phía TRÊN visually
-                    (giữa msg này và msg cũ hơn) */}
-                {showTimeSep && (
-                  <Text style={styles.timeSeparator}>
-                    {fmtTimeSep(item.createdAt)}
-                  </Text>
-                )}
-              </View>
-            );
-          }}
+          onScrollBeginDrag={() => panelOpen && setPanelOpen(false)}
+          contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 10, paddingBottom: 8 }}
+          renderItem={renderItem}
+          initialNumToRender={14}
+          maxToRenderPerBatch={10}
+          windowSize={11}
+          removeClippedSubviews={Platform.OS === "android"}
         />
 
-        {/* Composer */}
+        {/* Ô soạn tin */}
         <View style={styles.composer}>
           {replyTarget && (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-                borderLeftWidth: 3,
-                borderLeftColor: sk("#1877F2", "#1466F2"),
-                backgroundColor: C.field,
-                borderRadius: 8,
-                marginBottom: 6,
-              }}
-            >
+            <View style={styles.replyBar}>
+              <Ionicons name="arrow-undo" size={16} color={ACCENT()} />
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ fontSize: 11, fontWeight: "800", color: sk("#1877F2", "#1466F2") }}>
-                  Đang trả lời{" "}
-                  {replyTarget.sender?.nickname || replyTarget.sender?.name || ""}
+                <Text style={{ fontSize: 11.5, fontWeight: "800", color: ACCENT() }} numberOfLines={1}>
+                  Đang trả lời {replyTarget.sender?.nickname || replyTarget.sender?.name || ""}
                 </Text>
-                <Text style={{ fontSize: 12, color: C.text3 }} numberOfLines={1}>
+                <Text style={{ fontSize: 12.5, color: C.text3 }} numberOfLines={1}>
                   {replySnippet(replyTarget)}
                 </Text>
               </View>
@@ -1309,43 +1460,22 @@ export default function ChatWindow() {
                 return (
                   <View key={a._key || i} style={styles.attachPreview}>
                     {a.type === "image" ? (
-                      <Image
-                        source={{ uri: isTemp ? a.tempUri : a.url }}
-                        style={styles.previewImg}
-                      />
+                      <Image source={{ uri: isTemp ? a.tempUri : a.url }} style={styles.previewImg} />
                     ) : (
                       <View style={[styles.previewImg, styles.attachVideo]}>
                         <Ionicons name="videocam" size={18} color="#fff" />
                       </View>
                     )}
                     {isTemp && (
-                      <View
-                        style={[
-                          StyleSheet.absoluteFillObject,
-                          {
-                            backgroundColor: "rgba(0,0,0,0.55)",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            borderRadius: 6,
-                            gap: 2,
-                          },
-                        ]}
-                        pointerEvents="none"
-                      >
+                      <View style={styles.previewLoading} pointerEvents="none">
                         <ActivityIndicator size="small" color="#fff" />
-                        <Text style={{ color: "#fff", fontSize: 9, fontWeight: "600" }}>
-                          Đang tải…
-                        </Text>
+                        <Text style={{ color: "#fff", fontSize: 9, fontWeight: "600" }}>Đang tải…</Text>
                       </View>
                     )}
                     {!isTemp && (
                       <Pressable
                         style={styles.previewRemove}
-                        onPress={() =>
-                          setAttachments((prev) =>
-                            prev.filter((_, j) => j !== i)
-                          )
-                        }
+                        onPress={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
                       >
                         <Ionicons name="close" size={12} color="#fff" />
                       </Pressable>
@@ -1372,10 +1502,7 @@ export default function ChatWindow() {
                 <Pressable
                   key={u._id}
                   onPress={() => insertMention(u)}
-                  style={({ pressed }) => [
-                    styles.mentionItem,
-                    pressed && { backgroundColor: C.field },
-                  ]}
+                  style={({ pressed }) => [styles.mentionItem, pressed && { backgroundColor: C.field }]}
                 >
                   <AuthorAvatar user={u} size={28} />
                   <View style={{ flex: 1 }}>
@@ -1393,73 +1520,69 @@ export default function ChatWindow() {
             </View>
           )}
           {recording ? (
-            <View
-              style={[
-                styles.composerRow,
-                { alignItems: "center", gap: 10 },
-              ]}
-            >
-              <Pressable onPress={cancelRecording} hitSlop={8}>
-                <Ionicons name="trash-outline" size={24} color="#DC2626" />
+            <View style={[styles.composerRow, { alignItems: "center" }]}>
+              <Pressable onPress={cancelRecording} hitSlop={8} style={styles.plusBtn}>
+                <Ionicons name="trash-outline" size={21} color="#EF4444" />
               </Pressable>
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}
-              >
-                <View
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 5,
-                    backgroundColor: "#DC2626",
-                  }}
-                />
-                <Text style={{ color: C.text, fontWeight: "700" }}>
-                  Đang ghi âm · {Math.floor(recSecs / 60)}:
-                  {String(recSecs % 60).padStart(2, "0")}
+              <View style={[styles.inputPill, { alignItems: "center", paddingVertical: 11 }]}>
+                <View style={styles.recDot} />
+                <Text style={{ color: C.text, fontWeight: "700", fontSize: 15 }}>
+                  Đang ghi âm · {Math.floor(recSecs / 60)}:{String(recSecs % 60).padStart(2, "0")}
                 </Text>
               </View>
-              <Pressable
-                onPress={stopAndSendRecording}
-                style={styles.sendBtn}
-              >
-                <Ionicons name="send" size={18} color="#fff" />
+              <Pressable onPress={stopAndSendRecording}>
+                <LinearGradient colors={GRAD()} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.sendBtn}>
+                  <Ionicons name="send" size={18} color="#fff" />
+                </LinearGradient>
               </Pressable>
             </View>
           ) : (
             <View style={styles.composerRow}>
-              <Pressable onPress={pickMedia} style={styles.iconBtn}>
-                <Ionicons name="image-outline" size={22} color={sk("#0066FF", "#1466F2")} />
+              <Pressable onPress={() => setPlusOpen(true)} style={styles.plusBtn} accessibilityLabel="Thêm đính kèm">
+                <Ionicons name="add" size={24} color={C.text} />
               </Pressable>
-              <Pressable
-                onPress={() => setTournamentPickerOpen(true)}
-                style={styles.iconBtn}
-              >
-                <Ionicons name="trophy-outline" size={22} color="#F59E0B" />
-              </Pressable>
-              <TextInput
-                style={styles.input}
-                placeholder="Aa"
-                value={text}
-                onChangeText={onChangeText}
-                multiline
-                placeholderTextColor={C.muted}
-              />
-              {!text.trim() && !attachments.length && !linkedTournament ? (
-                <Pressable onPress={startRecording} style={styles.sendBtn}>
-                  <Ionicons name="mic" size={18} color="#fff" />
+              <View style={styles.inputPill}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nhắn tin…"
+                  value={text}
+                  onChangeText={onChangeText}
+                  onFocus={() => setPanelOpen(false)}
+                  multiline
+                  placeholderTextColor={C.muted}
+                />
+                <Pressable onPress={togglePanel} hitSlop={8} style={styles.smileBtn} accessibilityLabel="Sticker">
+                  <Ionicons
+                    name={panelOpen ? "happy" : "happy-outline"}
+                    size={24}
+                    color={panelOpen ? ACCENT() : C.sub}
+                  />
+                </Pressable>
+              </View>
+              {canSend ? (
+                <Pressable onPress={submit} disabled={sending} style={sending && { opacity: 0.5 }}>
+                  <LinearGradient colors={GRAD()} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.sendBtn}>
+                    <Ionicons name="send" size={18} color="#fff" />
+                  </LinearGradient>
                 </Pressable>
               ) : (
-                <Pressable
-                  onPress={submit}
-                  disabled={sending}
-                  style={[styles.sendBtn, sending && { opacity: 0.4 }]}
-                >
-                  <Ionicons name="send" size={18} color="#fff" />
+                <Pressable onPress={startRecording}>
+                  <LinearGradient colors={GRAD()} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.sendBtn}>
+                    <Ionicons name="mic" size={20} color="#fff" />
+                  </LinearGradient>
                 </Pressable>
               )}
             </View>
           )}
         </View>
+        {panelOpen ? (
+          <StickerPanel
+            bottomInset={insets.bottom}
+            recentVersion={recentVersion}
+            onPickSticker={sendSticker}
+            onPickEmoji={addEmoji}
+          />
+        ) : null}
       </View>
 
       <ChatTournamentPickerModal
@@ -1471,77 +1594,58 @@ export default function ChatWindow() {
         }}
       />
 
-      {/* Fullscreen image viewer — pinch/swipe/close */}
-      <ImageView
-        images={imgViewer.images}
-        imageIndex={imgViewer.index}
-        visible={imgViewer.visible}
-        onRequestClose={() =>
-          setImgViewer({ visible: false, images: [], index: 0 })
-        }
-        swipeToCloseEnabled
-        doubleTapToZoomEnabled
-        backgroundColor="#000"
+      {/* Ảnh / video toàn màn hình: vuốt, lưu về máy, chia sẻ, trả lời */}
+      <ChatMediaViewer
+        visible={viewer.visible}
+        items={viewer.items}
+        index={viewer.index}
+        onClose={() => setViewer((v) => ({ ...v, visible: false }))}
+        onReply={setReplyTarget}
       />
 
-      {/* Fullscreen video modal */}
-      <ChatVideoModal
-        url={videoModal?.url || null}
-        onClose={() => setVideoModal(null)}
-      />
+      {/* Bảng "+" : đính kèm */}
+      <Modal visible={plusOpen} transparent animationType="fade" onRequestClose={() => setPlusOpen(false)}>
+        <Pressable style={styles.sheetBackdrop} onPress={() => setPlusOpen(false)}>
+          <Pressable style={[styles.sheet, { paddingBottom: 18 + insets.bottom }]}>
+            <View style={styles.sheetGrabber} />
+            <View style={{ flexDirection: "row", gap: 12, paddingVertical: 6 }}>
+              <Pressable
+                style={styles.plusTile}
+                onPress={() => {
+                  setPlusOpen(false);
+                  setTimeout(pickMedia, Platform.OS === "ios" ? 350 : 50);
+                }}
+              >
+                <View style={[styles.plusIcon, { backgroundColor: "rgba(30,155,255,0.16)" }]}>
+                  <Ionicons name="images" size={24} color="#1E9BFF" />
+                </View>
+                <Text style={styles.plusLabel}>Ảnh & video</Text>
+              </Pressable>
+              <Pressable
+                style={styles.plusTile}
+                onPress={() => {
+                  setPlusOpen(false);
+                  setTimeout(() => setTournamentPickerOpen(true), Platform.OS === "ios" ? 350 : 50);
+                }}
+              >
+                <View style={[styles.plusIcon, { backgroundColor: "rgba(245,158,11,0.16)" }]}>
+                  <Ionicons name="trophy" size={24} color="#F59E0B" />
+                </View>
+                <Text style={styles.plusLabel}>Gắn giải đấu</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
-      {/* Action sheet khi long-press tin nhắn: react + reply + xoá */}
-      <Modal
-        visible={!!actionMsg}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setActionMsg(null)}
-      >
-        <Pressable
-          style={{
-            flex: 1,
-            backgroundColor: C.overlay,
-            justifyContent: "flex-end",
-          }}
-          onPress={() => setActionMsg(null)}
-        >
-          <Pressable
-            style={{
-              backgroundColor: C.card,
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              paddingTop: 10,
-              paddingBottom: 28,
-              paddingHorizontal: 16,
-            }}
-          >
-            <View
-              style={{
-                alignSelf: "center",
-                width: 40,
-                height: 5,
-                borderRadius: 99,
-                backgroundColor: C.line,
-                marginBottom: 12,
-              }}
-            />
-            {/* Hàng emoji */}
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-around",
-                paddingVertical: 8,
-                marginBottom: 8,
-              }}
-            >
+      {/* Bảng thao tác khi giữ lâu tin nhắn */}
+      <Modal visible={!!actionMsg} transparent animationType="fade" onRequestClose={() => setActionMsg(null)}>
+        <Pressable style={styles.sheetBackdrop} onPress={() => setActionMsg(null)}>
+          <Pressable style={[styles.sheet, { paddingBottom: 14 + insets.bottom }]}>
+            <View style={styles.sheetGrabber} />
+            <View style={styles.emojiBar}>
               {QUICK_EMOJIS.map((e) => (
-                <Pressable
-                  key={e}
-                  onPress={() =>
-                    actionMsg && handleReact(String(actionMsg._id), e)
-                  }
-                  hitSlop={8}
-                >
+                <Pressable key={e} onPress={() => actionMsg && handleReact(String(actionMsg._id), e)} hitSlop={6}>
                   <Text style={{ fontSize: 30 }}>{e}</Text>
                 </Pressable>
               ))}
@@ -1551,17 +1655,10 @@ export default function ChatWindow() {
                 setReplyTarget(actionMsg);
                 setActionMsg(null);
               }}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 12,
-                paddingVertical: 14,
-                borderTopWidth: 1,
-                borderTopColor: C.border,
-              }}
+              style={styles.sheetRow}
             >
               <Ionicons name="arrow-undo-outline" size={22} color={C.text} />
-              <Text style={{ fontSize: 16, color: C.text }}>Trả lời</Text>
+              <Text style={styles.sheetRowText}>Trả lời</Text>
             </Pressable>
             {!!actionMsg?.content && (
               <Pressable
@@ -1575,62 +1672,48 @@ export default function ChatWindow() {
                     Alert.alert("Lỗi", "Không sao chép được.");
                   }
                 }}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 12,
-                  paddingVertical: 14,
-                  borderTopWidth: 1,
-                  borderTopColor: C.border,
-                }}
+                style={styles.sheetRow}
               >
                 <Ionicons name="copy-outline" size={22} color={C.text} />
-                <Text style={{ fontSize: 16, color: C.text }}>Sao chép</Text>
+                <Text style={styles.sheetRowText}>Sao chép</Text>
               </Pressable>
             )}
+            {actionMsg && actionMediaUrl ? (
+              <Pressable
+                onPress={() => {
+                  const m = actionMsg;
+                  setActionMsg(null);
+                  setTimeout(() => openMedia(m, actionMediaUrl), Platform.OS === "ios" ? 350 : 50);
+                }}
+                style={styles.sheetRow}
+              >
+                <Ionicons name="download-outline" size={22} color={C.text} />
+                <Text style={styles.sheetRowText}>Xem & lưu về máy</Text>
+              </Pressable>
+            ) : null}
             {actionMsg && (
               <Pressable
-                onPress={() =>
-                  handlePin(actionMsg, !pinnedIdSet.has(String(actionMsg._id)))
-                }
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 12,
-                  paddingVertical: 14,
-                  borderTopWidth: 1,
-                  borderTopColor: C.border,
-                }}
+                onPress={() => handlePin(actionMsg, !pinnedIdSet.has(String(actionMsg._id)))}
+                style={styles.sheetRow}
               >
                 <Ionicons name="pin-outline" size={22} color={C.text} />
-                <Text style={{ fontSize: 16, color: C.text }}>
+                <Text style={styles.sheetRowText}>
                   {pinnedIdSet.has(String(actionMsg._id)) ? "Bỏ ghim" : "Ghim tin nhắn"}
                 </Text>
               </Pressable>
             )}
             {actionMsg &&
-              (String(actionMsg.sender?._id || actionMsg.sender) ===
-                String(me?._id) ||
-                (me as any)?.role === "admin") && (
+              (senderIdOf(actionMsg) === meId || (me as any)?.role === "admin") && (
                 <Pressable
                   onPress={() => {
                     const mid = String(actionMsg._id);
                     setActionMsg(null);
                     handleDelete(mid);
                   }}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 12,
-                    paddingVertical: 14,
-                    borderTopWidth: 1,
-                    borderTopColor: C.border,
-                  }}
+                  style={styles.sheetRow}
                 >
-                  <Ionicons name="trash-outline" size={22} color="#DC2626" />
-                  <Text style={{ fontSize: 16, color: "#DC2626" }}>
-                    Xoá tin nhắn
-                  </Text>
+                  <Ionicons name="trash-outline" size={22} color="#EF4444" />
+                  <Text style={[styles.sheetRowText, { color: "#EF4444" }]}>Xoá tin nhắn</Text>
                 </Pressable>
               )}
           </Pressable>
@@ -1642,13 +1725,15 @@ export default function ChatWindow() {
 
 function ChatVideoThumb({
   url,
+  width,
+  height,
   onPress,
 }: {
   url?: string | null;
+  width: number;
+  height: number;
   onPress: () => void;
 }) {
-  const C = useThemeTokens();
-  const styles = useMemo(() => mk_styles(C), [C]);
   const player = useVideoPlayer(url || "", (p) => {
     try {
       p.muted = true;
@@ -1658,83 +1743,26 @@ function ChatVideoThumb({
   });
   return (
     <Pressable onPress={onPress}>
-      <View style={[styles.attachImg, styles.attachVideo]}>
+      <View style={{ width, height, backgroundColor: "#111", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
         {url ? (
           <VideoView
             player={player}
             style={StyleSheet.absoluteFillObject}
             contentFit="cover"
             nativeControls={false}
-            allowsFullscreen={false}
             allowsPictureInPicture={false}
           />
         ) : null}
-        <View style={styles.videoThumbOverlay} pointerEvents="none">
-          <Ionicons name="play-circle" size={44} color="#fff" />
+        <View
+          style={[StyleSheet.absoluteFillObject, { alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.2)" }]}
+          pointerEvents="none"
+        >
+          <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" }}>
+            <Ionicons name="play" size={24} color="#fff" style={{ marginLeft: 3 }} />
+          </View>
         </View>
       </View>
     </Pressable>
-  );
-}
-
-function ChatVideoModal({
-  url,
-  onClose,
-}: {
-  url: string | null;
-  onClose: () => void;
-}) {
-  const player = useVideoPlayer(url || "", (p) => {
-    if (url) {
-      p.loop = false;
-      p.play();
-    }
-  });
-  return (
-    <Modal
-      visible={!!url}
-      transparent
-      animationType="fade"
-      statusBarTranslucent
-      onRequestClose={onClose}
-    >
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "#000",
-          justifyContent: "center",
-        }}
-      >
-        {url ? (
-          <VideoView
-            player={player}
-            style={{ width: "100%", aspectRatio: 9 / 16, maxHeight: "100%" }}
-            contentFit="contain"
-            nativeControls
-            allowsFullscreen
-            allowsPictureInPicture={false}
-          />
-        ) : null}
-        <Pressable
-          onPress={onClose}
-          hitSlop={12}
-          style={{
-            position: "absolute",
-            top: 48,
-            right: 20,
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            backgroundColor: "rgba(0,0,0,0.55)",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 10,
-          }}
-        >
-          <Ionicons name="close" size={22} color="#fff" />
-        </Pressable>
-      </View>
-    </Modal>
   );
 }
 
@@ -1850,12 +1878,246 @@ function ChatTournamentPickerModal({
 const { width: SW } = Dimensions.get("window");
 
 const mk_styles = (C: ThemeTokens) => StyleSheet.create({
-  mentionList: {
-    marginHorizontal: 8,
-    marginBottom: 6,
+  // ── Đầu trang ──
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: C.card,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: C.border,
+  },
+  headBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: C.field,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: C.border,
+  },
+  headPeer: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10 },
+  headAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.field },
+  headAvatarFallback: { alignItems: "center", justifyContent: "center", backgroundColor: "#1E9BFF" },
+  headName: { fontSize: 16.5, fontWeight: "800", color: C.text },
+  headSub: { fontSize: 12, color: C.sub, marginTop: 1 },
+  pinBar: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: C.border,
+    backgroundColor: C.card,
+  },
+  pinRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 2 },
+  // ── Tin nhắn ──
+  dayPillWrap: { alignItems: "center", marginTop: 14, marginBottom: 6 },
+  dayPill: {
+    overflow: "hidden",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
+    fontSize: 11.5,
+    fontWeight: "700",
+    color: C.sub,
+    backgroundColor: C.field,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: C.border,
+  },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 3, marginHorizontal: 6 },
+  bubbleTime: { fontSize: 10.5, color: C.muted },
+  bubbleRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
+  rowMine: { justifyContent: "flex-end" },
+  rowTheir: { justifyContent: "flex-start" },
+  bubble: {
+    maxWidth: Math.min(SW * 0.76, 520),
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  bubbleTheir: {
+    backgroundColor: C.field,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: C.border,
+  },
+  bubbleGhost: {
+    backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: C.border,
+    borderStyle: "dashed",
+  },
+  senderName: { fontSize: 11.5, fontWeight: "800", color: sk("#1E9BFF", "#1466F2"), marginBottom: 2 },
+  quote: {
+    borderLeftWidth: 3,
+    borderRadius: 6,
+    paddingLeft: 8,
+    paddingRight: 6,
+    paddingVertical: 4,
+    marginBottom: 6,
+  },
+  quoteMine: { borderLeftColor: "rgba(255,255,255,0.8)", backgroundColor: "rgba(255,255,255,0.16)" },
+  msgText: { fontSize: 15.5, lineHeight: 21 },
+  jumbo: { fontSize: 46, lineHeight: 56 },
+  stickerMsg: { width: 138, height: 138 },
+  mediaOnly: { overflow: "hidden" },
+  mediaGrid: { flexDirection: "row", flexWrap: "wrap", gap: 4 },
+  fileChip: { flexDirection: "row", alignItems: "center", paddingVertical: 4 },
+  reactRow: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: -7, zIndex: 2 },
+  reactChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: C.card,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  systemBar: { alignItems: "center", marginVertical: 8 },
+  systemText: {
+    fontSize: 12,
+    color: C.muted,
+    fontStyle: "italic",
+    textAlign: "center",
+    paddingHorizontal: 20,
+  },
+  // ── Thẻ giải đấu trong tin ──
+  msgTournamentCard: {
+    marginTop: 6,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    padding: 10,
+    borderRadius: 14,
+    backgroundColor: C.amberSoft,
+    borderWidth: 1,
+    borderColor: C.dark ? "rgba(245,158,11,0.4)" : "#FDE68A",
+    // Giữ thẻ đủ rộng khi nội dung tin ngắn (bong bóng tối đa 76% màn hình).
+    minWidth: Math.min(SW * 0.62, 300),
+    alignSelf: "stretch",
+  },
+  msgTournamentCardMine: {
+    backgroundColor: "rgba(255,255,255,0.16)",
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  msgTournamentImg: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: C.amberSoft,
+    flexShrink: 0,
+  },
+  msgTournamentImgFallback: { alignItems: "center", justifyContent: "center" },
+  msgTournamentLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: C.amberText,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  msgTournamentName: { fontSize: 14, fontWeight: "700", color: C.text, marginTop: 2, lineHeight: 18 },
+  tourInfoRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
+  tourInfoText: { fontSize: 12, flexShrink: 1, lineHeight: 16 },
+  // ── Ô soạn tin ──
+  container: { flex: 1, backgroundColor: C.bg },
+  composer: {
+    backgroundColor: C.bg,
+    paddingHorizontal: 10,
+    paddingTop: 6,
+    paddingBottom: 8,
+  },
+  composerRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
+  plusBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: C.field,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: C.border,
+  },
+  inputPill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 6,
+    minHeight: 44,
+    borderRadius: 22,
+    paddingLeft: 16,
+    paddingRight: 8,
+    backgroundColor: C.field,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: C.border,
+  },
+  input: {
+    flex: 1,
+    maxHeight: 120,
+    paddingTop: 11,
+    paddingBottom: 11,
+    paddingHorizontal: 0,
+    fontSize: 15.5,
+    color: C.text,
+  },
+  smileBtn: { width: 34, height: 44, alignItems: "center", justifyContent: "center" },
+  sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  recDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#EF4444", marginRight: 4 },
+  replyBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderLeftWidth: 3,
+    borderLeftColor: sk("#1E9BFF", "#1466F2"),
+    backgroundColor: C.field,
     borderRadius: 10,
+    marginBottom: 8,
+  },
+  attachPreviewRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingBottom: 8 },
+  attachPreview: { width: 64, height: 64, borderRadius: 12, overflow: "hidden", position: "relative" },
+  attachVideo: { backgroundColor: "#111", alignItems: "center", justifyContent: "center" },
+  previewImg: { width: "100%", height: "100%" },
+  previewLoading: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
+  },
+  previewRemove: {
+    position: "absolute",
+    top: 3,
+    right: 3,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chatTournamentChip: {
+    marginBottom: 8,
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    backgroundColor: C.amberSoft,
+    borderWidth: 1,
+    borderColor: C.dark ? "rgba(245,158,11,0.4)" : "#FED7AA",
+    maxWidth: "90%",
+  },
+  chatTournamentText: { fontSize: 13, fontWeight: "600", color: C.amberText, flexShrink: 1 },
+  mentionList: {
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 12,
     backgroundColor: C.card,
     overflow: "hidden",
   },
@@ -1870,92 +2132,51 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
   },
   mentionNick: { fontSize: 14, fontWeight: "700", color: C.text },
   mentionName: { fontSize: 12, color: C.sub },
-  chatTournamentChip: {
-    marginHorizontal: 8,
+  // ── Bảng trượt (đính kèm, thao tác tin nhắn) ──
+  sheetBackdrop: { flex: 1, backgroundColor: C.overlay, justifyContent: "flex-end" },
+  sheet: {
+    backgroundColor: C.card,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingTop: 10,
+    paddingHorizontal: 16,
+  },
+  sheetGrabber: {
+    alignSelf: "center",
+    width: 40,
+    height: 5,
+    borderRadius: 99,
+    backgroundColor: C.line,
+    marginBottom: 12,
+  },
+  emojiBar: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingVertical: 10,
     marginBottom: 6,
-    alignSelf: "flex-start",
+    borderRadius: 999,
+    backgroundColor: C.field,
+  },
+  sheetRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    gap: 12,
+    paddingVertical: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: C.border,
+  },
+  sheetRowText: { fontSize: 16, color: C.text },
+  plusTile: {
+    flex: 1,
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 16,
     borderRadius: 16,
-    backgroundColor: C.amberSoft,
-    borderWidth: 1,
-    borderColor: C.dark ? "rgba(245,158,11,0.4)" : "#FED7AA",
-    maxWidth: "90%",
+    backgroundColor: C.field,
   },
-  chatTournamentText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: C.amberText,
-    flexShrink: 1,
-  },
-  msgTournamentCard: {
-    marginTop: 6,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    padding: 10,
-    borderRadius: 12,
-    backgroundColor: C.amberSoft,
-    borderWidth: 1,
-    borderColor: C.dark ? "rgba(245,158,11,0.4)" : "#FDE68A",
-    // Force minWidth để card không bị co khi bubble content ngắn (VD chỉ "Ok?").
-    // Bubble maxWidth = SW * 0.72 nên chọn 62% để chừa mép cho avatar + gap.
-    minWidth: SW * 0.62,
-    alignSelf: "stretch",
-  },
-  msgTournamentCardMine: {
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderColor: "rgba(255,255,255,0.28)",
-  },
-  msgTournamentImg: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    backgroundColor: C.amberSoft,
-    flexShrink: 0,
-  },
-  msgTournamentImgFallback: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  msgTournamentLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: C.amberText,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  tourInfoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 3,
-  },
-  tourInfoText: { fontSize: 12, flexShrink: 1, lineHeight: 16 },
-  timeSeparator: {
-    textAlign: "center",
-    color: C.muted,
-    fontSize: 11,
-    fontWeight: "600",
-    marginVertical: 12,
-  },
-  bubbleTime: {
-    fontSize: 10,
-    color: C.muted,
-    marginTop: 2,
-    marginBottom: 6,
-    marginHorizontal: 8,
-  },
-  msgTournamentName: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: C.text,
-    marginTop: 2,
-    lineHeight: 18,
-  },
+  plusIcon: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center" },
+  plusLabel: { fontSize: 13.5, fontWeight: "700", color: C.text },
+  // ── Bảng chọn giải ──
   pickerHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -1976,12 +2197,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     borderRadius: 10,
     backgroundColor: C.field,
   },
-  pickerSearchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: C.text,
-    padding: 0,
-  },
+  pickerSearchInput: { flex: 1, fontSize: 14, color: C.text, padding: 0 },
   pickerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1991,144 +2207,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: C.border,
   },
-  pickerThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    backgroundColor: C.field,
-  },
-  pickerThumbFallback: {
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: C.amberSoft,
-  },
+  pickerThumb: { width: 44, height: 44, borderRadius: 8, backgroundColor: C.field },
+  pickerThumbFallback: { alignItems: "center", justifyContent: "center", backgroundColor: C.amberSoft },
   pickerName: { fontSize: 14, fontWeight: "700", color: C.text },
-  container: { flex: 1, backgroundColor: C.card },
-  systemBar: { alignItems: "center", marginVertical: 8 },
-  systemText: {
-    fontSize: 12,
-    color: C.muted,
-    fontStyle: "italic",
-    textAlign: "center",
-    paddingHorizontal: 20,
-  },
-  bubbleRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    marginVertical: 2,
-    gap: 6,
-  },
-  rowMine: { justifyContent: "flex-end" },
-  rowTheir: { justifyContent: "flex-start" },
-  avatarXs: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "#94A3B8",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarLetter: { color: "#fff", fontWeight: "700", fontSize: 12 },
-  bubble: {
-    maxWidth: SW * 0.72,
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  bubbleMine: {
-    backgroundColor: sk("#0066FF", "#1466F2"),
-    borderBottomRightRadius: 4,
-  },
-  bubbleTheir: {
-    backgroundColor: C.field,
-    borderBottomLeftRadius: 4,
-  },
-  msgText: { fontSize: 15, lineHeight: 20 },
-  attachImg: {
-    width: 200,
-    height: 200,
-    borderRadius: 12,
-  },
-  attachVideo: {
-    backgroundColor: "#111",
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-    position: "relative",
-  },
-  videoThumbOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.18)",
-  },
-  fileChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-  },
-  composer: {
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    backgroundColor: C.card,
-    paddingHorizontal: 8,
-    paddingTop: 8,
-    paddingBottom: 12,
-  },
-  composerRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 6,
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  input: {
-    flex: 1,
-    minHeight: 40,
-    maxHeight: 120,
-    backgroundColor: C.field,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: C.text,
-  },
-  sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: sk("#0066FF", "#1466F2"),
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  attachPreviewRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    paddingBottom: 6,
-  },
-  attachPreview: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    overflow: "hidden",
-    position: "relative",
-  },
-  previewImg: { width: "100%", height: "100%" },
-  previewRemove: {
-    position: "absolute",
-    top: 2,
-    right: 2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
 });

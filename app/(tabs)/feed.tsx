@@ -80,6 +80,7 @@ import {
   FeedHeader,
   FeedPage,
 } from "@/components/feed/FeedDesign";
+import StoryBar from "@/components/story/StoryBar";
 
 const REACTION_EMOJI: Record<string, string> = {
   like: "👍",
@@ -1912,9 +1913,11 @@ export default function FeedScreen() {
   const hasMore = Boolean(data?.hasMore);
   const nextCursor = data?.nextCursor as string | null | undefined;
 
+  const [storyRefreshKey, setStoryRefreshKey] = useState(0);
   const handleRefresh = useCallback(() => {
     setCursor(null);
     refetch();
+    setStoryRefreshKey((k) => k + 1); // kéo để làm mới → nạp lại cả thanh story
   }, [refetch]);
 
   // Refetch khi focus lại tab (user tap noti → app active → xem post mới).
@@ -2038,6 +2041,7 @@ export default function FeedScreen() {
   const feedHeader = (
     <>
       <FeedHeader />
+      <StoryBar refreshKey={storyRefreshKey} />
       {me ? <Composer onPosted={handleRefresh} /> : <GuestBanner />}
       {me ? <FeedFilters active={feedTab} onChange={(nextTab) => {
         if (feedTab === nextTab) return;

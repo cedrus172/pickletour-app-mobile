@@ -18,10 +18,13 @@ export function UserActionsMenu({
   userId,
   userName,
   appearance = "default",
+  extraActions,
 }: {
   userId: string;
   userName?: string;
-  appearance?: "default" | "profile";
+  appearance?: "default" | "profile" | "chat";
+  /** Mục thêm vào đầu menu (vd màn chat: Tắt/Bật thông báo) */
+  extraActions?: { text: string; onPress: () => void }[];
 }) {
   const C = useThemeTokens();
   const styles = useMemo(() => mk_styles(C), [C]);
@@ -61,7 +64,7 @@ export function UserActionsMenu({
   };
 
   const openMenu = () => {
-    const opts: any[] = [];
+    const opts: any[] = [...(extraActions || [])];
     if (iBlocked) {
       opts.push({ text: "Bỏ chặn", onPress: doUnblock });
     } else if (!isBlocked) {
@@ -82,7 +85,11 @@ export function UserActionsMenu({
     <Pressable
       onPress={openMenu}
       disabled={blocking || unblocking}
-      style={[styles.btn, appearance === "profile" && { width: 44, height: 44, borderRadius: 12 }]}
+      style={[
+        styles.btn,
+        appearance === "profile" && { width: 44, height: 44, borderRadius: 12 },
+        appearance === "chat" && { width: 38, height: 38, borderRadius: 19, borderWidth: StyleSheet.hairlineWidth },
+      ]}
       hitSlop={10}
     >
       <Ionicons name="ellipsis-horizontal" size={20} color={C.text2} />
