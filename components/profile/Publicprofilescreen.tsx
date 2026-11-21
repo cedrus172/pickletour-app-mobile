@@ -63,7 +63,6 @@ import { UserActionsMenu } from "@/components/social/UserActionsMenu";
 import { CoachAchievementsMobile } from "./CoachAchievementsMobile";
 import PlayerNameText from "@/components/PlayerNameText";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const HEADER_HEIGHT = 230;
 const AVATAR_SIZE = 88;
 const NAVIGATION_HEIGHT = 52;
@@ -1210,7 +1209,7 @@ const RatingLineChart = React.memo(({ data, colors, type = "double" }) => {
   const range = chartMax - chartMin || 0.1;
 
   const chartHeight = 140;
-  const chartWidth = SCREEN_WIDTH - 100;
+  const chartWidth = Math.min(Dimensions.get("window").width, 640) - 100;
 
   const points = chartData.map((d, i) => ({
     x: (i / (chartData.length - 1)) * chartWidth,

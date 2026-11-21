@@ -40,7 +40,6 @@ import { SHOULD_RENDER_NATIVE_LOTTIE } from "@/utils/runtimeSafety";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
 import { sk } from "@/hooks/uiVersion";
 
-const { width: W } = Dimensions.get("window");
 const TABS = ["news", "discussion", "events", "polls", "gallery", "sessions", "matches", "finance"] as const;
 type TabKey = (typeof TABS)[number];
 const LOTTIE_OPACITY = 0.12; // nền Lottie nhạt
@@ -124,7 +123,7 @@ export default function ClubDetailPageRN() {
   const OUT_PAD = 16;
   const SEG_H = 44;
   const TRACK_PAD = 2;
-  const trackW = W - OUT_PAD * 2;
+  const trackW = Dimensions.get("window").width - OUT_PAD * 2; // đọc lúc vẽ (gập/mở, xoay máy)
   // >4 tab: dùng bề rộng cố định + cuộn ngang; <=4 tab: chia đều lấp đầy
   const itemW =
     TABS.length > 4 ? 88 : (trackW - TRACK_PAD * 2) / TABS.length;

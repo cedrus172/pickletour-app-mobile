@@ -56,7 +56,8 @@ if (
 
 /* =================== CONFIG & THEME =================== */
 const tz = "Asia/Bangkok";
-const W = Dimensions.get("window").width;
+// Đọc lúc vẽ (không cố định lúc khởi động) để đúng khi gập/mở, xoay máy
+const getW = () => Dimensions.get("window").width;
 const PADX = 16;
 const ACCENT = sk("#6366f1", "#1466F2");
 
@@ -316,7 +317,7 @@ function KPI({ label, value, color, theme }: any) {
 /* =================== CHARTS (NO ZOOM) =================== */
 
 const SimpleLineChart = ({ data, theme }: any) => {
-  const contentWidth = Math.max(W - PADX * 4, data.length * 50);
+  const contentWidth = Math.max(getW() - PADX * 4, data.length * 50);
 
   return (
     <View style={{ height: 240 }}>
@@ -1072,7 +1073,7 @@ export default function UserStatsScreen() {
               title="Kỹ năng"
               icon="radio-outline"
               theme={T}
-              style={{ width: W * 0.44 }}
+              style={{ width: getW() * 0.44 }}
             >
               <InteractiveRadar
                 single={pf?.ranking?.single}
@@ -1151,7 +1152,7 @@ export default function UserStatsScreen() {
               <BarChart
                 stackData={stackData}
                 height={180}
-                width={W - PADX * 4}
+                width={getW() - PADX * 4}
                 spacing={24}
                 barWidth={12}
                 barBorderRadius={4}
@@ -1357,7 +1358,8 @@ const styles = StyleSheet.create({
   },
   kpiGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   kpiBox: {
-    width: (W - PADX * 2 - 20) / 3,
+    flexBasis: "30%",
+    flexGrow: 1,
     borderRadius: 12,
     padding: 10,
     borderWidth: 1,

@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, Animated, Dimensions, TouchableWithoutFeedback, BackHandler } from 'react-native';
 
-const { height } = Dimensions.get('window');
 
 const FastModal = ({ visible, children, onBackdropPress }) => {
   const [showView, setShowView] = useState(visible);
@@ -42,7 +41,7 @@ const FastModal = ({ visible, children, onBackdropPress }) => {
   if (!showView) return null;
 
   const backdropOpacity = animValue.interpolate({ inputRange: [0, 1], outputRange: [0, 0.5] });
-  const contentTranslateY = animValue.interpolate({ inputRange: [0, 1], outputRange: [height, 0] });
+  const contentTranslateY = animValue.interpolate({ inputRange: [0, 1], outputRange: [Dimensions.get('window').height, 0] });
 
   return (
     <View 

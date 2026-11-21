@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useEffect, useRef } from "react";
-import { Animated, Easing, Pressable, StyleSheet, View } from "react-native";
+import { Animated, Easing, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Text } from "@/components/ui/i18nText";
 import { Image } from "expo-image";
 import { IS_V3, V3, IS_V3_DARK } from "@/hooks/uiVersion";
@@ -17,6 +17,9 @@ const PERKS = [
 ];
 
 export default function CourtBookingBanner() {
+  // Màn hẹp (< 372pt): hai nút không đủ chỗ trên một hàng → cho xuống dòng, phần chữ rộng hơn
+  const { width: winW } = useWindowDimensions();
+  const narrow = winW < 372;
   // Chuyển động vào cảnh một lần để giữ giao diện nhẹ và tập trung.
   const shine = useRef(new Animated.Value(-1)).current;
   const pulse = useRef(new Animated.Value(1)).current;
@@ -49,14 +52,14 @@ export default function CourtBookingBanner() {
           <View style={v3.card}>
             <Image source={BOOKING_COURT_V3} style={v3.art} contentFit="cover" contentPosition="right bottom" />
             <LinearGradient pointerEvents="none" colors={IS_V3_DARK ? [V3.card, V3.cardGlass, "rgba(10,27,52,0)"] : ["#FFFFFF", "rgba(255,255,255,0.94)", "rgba(255,255,255,0)"]} locations={[0, 0.5, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={v3.artFade} />
-            <View style={v3.copy}>
+            <View style={[v3.copy, narrow && { width: "70%" }]}>
               <Text style={v3.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                 Đặt sân Pickleball
               </Text>
               <Text style={v3.sub} numberOfLines={3}>
                 Tìm sân gần bạn, chọn khung giờ trống, thanh toán online và nhận vé QR ngay.
               </Text>
-              <View style={v3.ctaRow}>
+              <View style={[v3.ctaRow, narrow && { flexWrap: "wrap" }]}>
                 <LinearGradient colors={V3.gradBlue} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={v3.cta}>
                   <Ionicons name="calendar-clear-outline" size={16} color={V3.onBlue} />
                   <Text style={v3.ctaText}>Đặt sân ngay</Text>

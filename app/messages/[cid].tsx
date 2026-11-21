@@ -35,7 +35,6 @@ import {
   Alert,
   Animated,
   BackHandler,
-  Dimensions,
   FlatList,
   Image,
   Keyboard,
@@ -43,6 +42,7 @@ import {
   Platform,
   Pressable,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { TextInput } from "@/components/ui/i18nTextInput";
@@ -265,7 +265,8 @@ function ArcadeInviteCardRN({ invite, isMine }: { invite: any; isMine: boolean }
 
 function TournamentBubbleCard({ tour, isMine }: { tour: any; isMine: boolean }) {
   const C = useThemeTokens();
-  const styles = useMemo(() => mk_styles(C), [C]);
+  const { width: winW } = useWindowDimensions();
+  const styles = useMemo(() => mk_styles(C, winW), [C, winW]);
   const dateStr = fmtDateRange(tour?.startDate, tour?.endDate);
   const regCount = Number(tour?.registrationCount || 0);
   const maxPairs = Number(tour?.maxPairs || 0);
@@ -448,7 +449,6 @@ function sameCluster(a?: any, b?: any) {
   return Math.abs(ta.getTime() - tb.getTime()) <= MS_5MIN;
 }
 
-const MEDIA_W = Math.min(Dimensions.get("window").width * 0.64, 250);
 
 type RowProps = {
   item: any;
@@ -477,7 +477,9 @@ const MessageRow = React.memo(function MessageRow({
   onOpenMedia,
 }: RowProps) {
   const C = useThemeTokens();
-  const styles = useMemo(() => mk_styles(C), [C]);
+  const { width: winW } = useWindowDimensions();
+  const styles = useMemo(() => mk_styles(C, winW), [C, winW]);
+  const MEDIA_W = Math.min(winW * 0.64, 250); // theo bề rộng hiện tại (máy gập mở/gập không cần mở lại app)
   const isMine = senderIdOf(item) === meId;
   const isFirst = !sameCluster(item, older); // đầu cụm (phía trên)
   const isLast = !sameCluster(item, newer); // cuối cụm (phía dưới)
@@ -700,7 +702,8 @@ function extractErr(err: any): string {
 
 export default function ChatWindow() {
   const C = useThemeTokens();
-  const styles = useMemo(() => mk_styles(C), [C]);
+  const { width: winW } = useWindowDimensions();
+  const styles = useMemo(() => mk_styles(C, winW), [C, winW]);
   const insets = useSafeAreaInsets();
   const { paneRef, measurePane, keyboardOpen, keyboardOverlap } = useChatKeyboard();
   const { cid } = useLocalSearchParams<{ cid: string }>();
@@ -1776,7 +1779,8 @@ function ChatTournamentPickerModal({
   onPick: (t: any) => void;
 }) {
   const C = useThemeTokens();
-  const styles = useMemo(() => mk_styles(C), [C]);
+  const { width: winW } = useWindowDimensions();
+  const styles = useMemo(() => mk_styles(C, winW), [C, winW]);
   const [q, setQ] = useState("");
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1875,9 +1879,8 @@ function ChatTournamentPickerModal({
   );
 }
 
-const { width: SW } = Dimensions.get("window");
-
-const mk_styles = (C: ThemeTokens) => StyleSheet.create({
+// SW = bề rộng cửa sổ hiện tại (truyền từ useWindowDimensions để đổi theo khi gập/mở, xoay máy)
+const mk_styles = (C: ThemeTokens, SW: number) => StyleSheet.create({
   // ── Đầu trang ──
   header: {
     flexDirection: "row",

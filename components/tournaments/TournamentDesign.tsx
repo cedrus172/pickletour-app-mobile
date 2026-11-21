@@ -4,6 +4,7 @@ import {
   Platform,
   Pressable,
   StyleSheet,
+  useWindowDimensions,
   View,
   type FlatListProps,
   type StyleProp,
@@ -73,6 +74,9 @@ export const TournamentPage = memo(function TournamentPage({ children }: { child
 });
 
 export const TournamentHeader = memo(function TournamentHeader({ isBack, onBack, onOrganize }: { isBack?: boolean; onBack?: () => void; onOrganize?: () => void }) {
+  // Màn hẹp (điện thoại nhỏ, Z Fold lúc gập): nút "Tổ chức giải" chỉ còn biểu tượng để không đè tiêu đề và chuông
+  const { width: winW } = useWindowDimensions();
+  const compact = winW < 340;
   return (
     <View style={styles.header}>
       {onOrganize ? null : (
@@ -89,7 +93,7 @@ export const TournamentHeader = memo(function TournamentHeader({ isBack, onBack,
             <Ionicons name="chevron-back" size={23} color={sk("#FFFFFF", "#0B1B3A")} />
           </Pressable>
         ) : null}
-        <Text accessibilityRole="header" style={styles.title}>Giải đấu</Text>
+        <Text accessibilityRole="header" numberOfLines={1} style={[styles.title, { flexShrink: 1 }]}>Giải đấu</Text>
         <View style={{ marginLeft: "auto", paddingLeft: 8, flexDirection: "row", alignItems: "center", gap: 8 }}>
           {onOrganize ? (
             // Mockup docs/mockups/to-chuc-giai-1-nut-A.png: nút "Tổ chức giải" cạnh chuông
@@ -99,7 +103,7 @@ export const TournamentHeader = memo(function TournamentHeader({ isBack, onBack,
                   <Ionicons name="trophy-outline" size={18} color="#FFFFFF" />
                   <View style={styles.organizePlus}><Ionicons name="add" size={9} color={TOURNAMENT_COLORS.secondary} /></View>
                 </View>
-                <Text numberOfLines={1} style={styles.organizeText}>Tổ chức giải</Text>
+                {compact ? null : <Text numberOfLines={1} style={styles.organizeText}>Tổ chức giải</Text>}
               </LinearGradient>
             </Pressable>
           ) : null}

@@ -6,7 +6,7 @@ import {
   Alert,
   StyleSheet,
   Modal,
-  Dimensions,
+  useWindowDimensions,
   Platform,
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
@@ -36,8 +36,6 @@ const pickUrl = (res: any) =>
 
 const GAP = 6;
 const COLS = 3;
-const winW = Dimensions.get("window").width;
-const cell = Math.floor((winW - 32 - GAP * (COLS - 1)) / COLS);
 
 export default function ClubGalleryRN({
   club,
@@ -46,6 +44,10 @@ export default function ClubGalleryRN({
   club: any;
   canManage: boolean;
 }) {
+  // Ô ảnh theo bề rộng hiện tại (màn rộng thêm cột) thay vì đo một lần lúc khởi động
+  const { width: winW } = useWindowDimensions();
+  const cols = winW >= 840 ? 6 : winW >= 600 ? 5 : COLS;
+  const cell = Math.floor((Math.min(winW, 1040) - 32 - GAP * (cols - 1)) / cols);
   const C = useThemeTokens();
   const styles = useMemo(() => mk_styles(C), [C]);
   const clubId = club?._id;

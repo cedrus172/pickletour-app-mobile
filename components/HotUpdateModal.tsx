@@ -23,7 +23,6 @@ type Props = {
   accentColor?: string;
 };
 
-const { width } = Dimensions.get("window");
 
 const clampProgress = (value: number) => Math.max(0, Math.min(1, value || 0));
 
@@ -197,7 +196,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   container: {
-    width: width * 0.85,
+    width: "85%",
+    maxWidth: 420,
     borderRadius: 16,
     borderWidth: 1,
     padding: 24,

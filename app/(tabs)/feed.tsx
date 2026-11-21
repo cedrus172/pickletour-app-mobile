@@ -38,6 +38,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { TextInput } from "@/components/ui/i18nTextInput";
 import { Text } from "@/components/ui/i18nText";
@@ -310,6 +311,9 @@ function requireLogin(me: any): boolean {
 }
 
 function Composer({ onPosted }: { onPosted: () => void }) {
+  // Màn hẹp (≤ 350pt: điện thoại nhỏ, Z Fold lúc gập): chỉ hiện biểu tượng để 3 nút + "Đăng" không đè nhau
+  const { width: winW } = useWindowDimensions();
+  const iconOnly = winW < 352;
   const C = useThemeTokens();
   const styles = useMemo(() => mk_styles(C), [C]);
   const me = useSelector((s: any) => s.auth?.userInfo);
@@ -730,16 +734,18 @@ function Composer({ onPosted }: { onPosted: () => void }) {
       <View style={styles.composerActions}>
         <Pressable onPress={pickMedia} style={styles.iconBtn}>
           <Ionicons name="images-outline" size={22} color={sk("#0066FF", "#1466F2")} />
-          <Text style={styles.iconBtnLabel}>Ảnh / Video</Text>
+          {iconOnly ? null : <Text style={styles.iconBtnLabel} numberOfLines={1}>Ảnh / Video</Text>}
         </Pressable>
         <Pressable
           onPress={() => setTournamentPickerOpen(true)}
           style={styles.iconBtn}
         >
           <Ionicons name="trophy-outline" size={22} color="#F59E0B" />
-          <Text style={[styles.iconBtnLabel, { color: "#F59E0B" }]}>
-            Gắn giải
-          </Text>
+          {iconOnly ? null : (
+            <Text style={[styles.iconBtnLabel, { color: "#F59E0B" }]} numberOfLines={1}>
+              Gắn giải
+            </Text>
+          )}
         </Pressable>
         <Pressable
           onPress={() =>
@@ -750,9 +756,11 @@ function Composer({ onPosted }: { onPosted: () => void }) {
           style={styles.iconBtn}
         >
           <Ionicons name="bar-chart-outline" size={22} color="#7C3AED" />
-          <Text style={[styles.iconBtnLabel, { color: "#7C3AED" }]}>
-            Bình chọn
-          </Text>
+          {iconOnly ? null : (
+            <Text style={[styles.iconBtnLabel, { color: "#7C3AED" }]} numberOfLines={1}>
+              Bình chọn
+            </Text>
+          )}
         </Pressable>
         {(() => {
           const uploadingCount = media.filter((m: any) => m._temp).length;
@@ -2385,6 +2393,7 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     color: FEED_COLORS.primary,
     fontSize: 10.5,
     fontWeight: "700",
+    flexShrink: 1,
   },
   postBtn: {
     width: 68,

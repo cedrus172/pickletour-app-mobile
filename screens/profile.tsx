@@ -1390,6 +1390,9 @@ export default function ProfileScreen({ isBack = false }) {
                       color={activeTab === tab.key ? "#fff" : t.textSecondary}
                     />
                     <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.75}
                       style={[
                         styles.tabLabel,
                         {
@@ -3692,8 +3695,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 10,
+    paddingHorizontal: 4,
     borderRadius: 12,
-    gap: 6,
+    gap: 5,
     overflow: "hidden",
   },
   tabItemGlass: {
@@ -3711,7 +3715,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.28,
     shadowRadius: 16,
   },
-  tabLabel: { fontSize: 12, fontWeight: "600" },
+  tabLabel: { fontSize: 12, fontWeight: "600", flexShrink: 1 },
 
   content: { padding: 16 },
 

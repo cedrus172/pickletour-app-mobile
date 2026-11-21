@@ -104,7 +104,6 @@ const ExpoUpdateModal: React.FC<Props> = ({ visible, status, onClose }) => {
   );
 };
 
-const { width } = Dimensions.get("window");
 
 const mk_styles = (C: ThemeTokens) => StyleSheet.create({
   overlay: {
@@ -114,7 +113,8 @@ const mk_styles = (C: ThemeTokens) => StyleSheet.create({
     alignItems: "center",
   },
   container: {
-    width: width * 0.85,
+    width: "85%",
+    maxWidth: 420,
     backgroundColor: C.card,
     borderRadius: 20,
     padding: 28,
