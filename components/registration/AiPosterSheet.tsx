@@ -317,6 +317,48 @@ function Body({
           </Text>
         ) : (
           <>
+            {data?.isStaff && (
+              <View style={[s.note, { backgroundColor: C.card, borderColor: C.border }]}>
+                {data?.templateUrl || localTemplate ? (
+                  <Image
+                    source={{ uri: normalizeUrl(String(data?.templateUrl || localTemplate)) }}
+                    style={{ width: 46, height: 60, borderRadius: 6, backgroundColor: C.bg }}
+                    resizeMode="cover"
+                  />
+                ) : null}
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={{ color: C.text, fontWeight: "800", fontSize: 13 }}>Ảnh mẫu AI Poster của giải</Text>
+                  <Text style={{ color: C.sub, fontSize: 11 }}>
+                    Poster tạo sau khi sửa sẽ dùng ảnh mẫu mới; poster đã tạo giữ nguyên.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={changeTemplate}
+                  disabled={uploadingTemplate}
+                  hitSlop={8}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: C.tint,
+                    opacity: uploadingTemplate ? 0.6 : 1,
+                  }}
+                >
+                  {uploadingTemplate ? (
+                    <ActivityIndicator size="small" color={C.tint} />
+                  ) : (
+                    <Ionicons name="create-outline" size={16} color={C.tint} />
+                  )}
+                  <Text style={{ color: C.tint, fontWeight: "800", fontSize: 13 }}>
+                    {uploadingTemplate ? "Đang tải…" : "Sửa ảnh mẫu"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
             {data?.needsPayment && (
               <View style={[s.note, { backgroundColor: "rgba(245,158,11,0.12)", borderColor: C.tint }]}>
                 <Ionicons name="card-outline" size={20} color={C.tint} />
@@ -531,13 +573,6 @@ function Body({
               </View>
             )}
 
-            {data?.isStaff && (
-              <TouchableOpacity onPress={changeTemplate} style={{ alignSelf: "center", padding: 8 }}>
-                <Text style={{ color: C.sub, textDecorationLine: "underline", fontSize: 12 }}>
-                  {uploadingTemplate ? "Đang tải ảnh mẫu..." : "BTC: đổi ảnh mẫu AI Poster"}
-                </Text>
-              </TouchableOpacity>
-            )}
           </>
         )}
       </ScrollView>

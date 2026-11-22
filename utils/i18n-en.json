@@ -3682,5 +3682,8 @@
   "Xoá story": "Delete story",
   "Báo cáo story": "Report story",
   "Xem trang cá nhân": "View profile",
-  "Vừa xong": "Just now"
+  "Vừa xong": "Just now",
+  "Ảnh mẫu AI Poster của giải": "Tournament AI Poster template",
+  "Sửa ảnh mẫu": "Change template",
+  "Poster tạo sau khi sửa sẽ dùng ảnh mẫu mới; poster đã tạo giữ nguyên.": "Posters created after the change use the new template; existing posters stay as they are."
 }
