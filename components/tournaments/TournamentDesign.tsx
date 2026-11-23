@@ -387,7 +387,25 @@ export const TournamentActions = memo(function TournamentActions({ actions }: { 
   return <View style={styles.actions}><TournamentActionGrid actions={actions} /></View>;
 });
 
-export const TournamentEventRow = memo(function TournamentEventRow({ id, title, kind, registered, capacity, actions, onDetails }: {
+// Tiêu đề NGÀY trong thẻ gom nhóm: vạch màu + "Thứ Bảy · 28/11/2026" + số nội dung, kèm hàng cột Giờ | Nội dung | Đội.
+export const TournamentDayHeader = memo(function TournamentDayHeader({ weekday, dateLabel, count }: { weekday: string; dateLabel: string; count: number }) {
+  return (
+    <View testID="tournament-day-header">
+      <View style={styles.dayHead}>
+        <View style={styles.dayBar} />
+        <Text numberOfLines={1} style={styles.dayTitle}>{dateLabel ? `${weekday} · ${dateLabel}` : "Chưa có ngày"}</Text>
+        <View style={styles.dayCount}><Text style={styles.dayCountText}>{count} nội dung</Text></View>
+      </View>
+      <View style={styles.dayCols}>
+        <Text style={[styles.dayColText, styles.dayColTime]}>Giờ</Text>
+        <Text style={[styles.dayColText, { flex: 1 }]}>Nội dung</Text>
+        <Text style={styles.dayColText}>Đội</Text>
+      </View>
+    </View>
+  );
+});
+
+export const TournamentEventRow = memo(function TournamentEventRow({ id, title, kind, registered, capacity, actions, onDetails, time }: {
   id: string;
   title: string;
   kind: string;
@@ -395,9 +413,32 @@ export const TournamentEventRow = memo(function TournamentEventRow({ id, title, 
   capacity: number;
   actions: TournamentAction[];
   onDetails: () => void;
+  /** Có truyền (kể cả "") = hiện cột giờ bên trái như bảng theo ngày; "" = chưa đặt giờ → "—". */
+  time?: string;
 }) {
   const full = capacity > 0 && registered >= capacity;
   const pct = capacity > 0 ? Math.max(0, Math.min(100, (registered / capacity) * 100)) : 0;
+  if (time !== undefined) {
+    return (
+      <View style={[styles.eventRow, styles.eventRowTimed]} testID={`tournament-event-${id}`}>
+        <View style={styles.eventTime}>
+          <Text style={styles.eventTimeText}>{time || "—"}</Text>
+          {time ? <Ionicons name="time-outline" size={15} color={TOURNAMENT_COLORS.primary} /> : null}
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={styles.eventHeading}>
+            <Pressable accessibilityRole="button" onPress={onDetails} style={styles.eventTitleTouch}>
+              <Text style={styles.eventTitle}>{title}</Text>
+              {full ? <View style={styles.eventKindRow}><Text style={styles.fullLabel}>Đã đầy</Text></View> : null}
+            </Pressable>
+            <Text style={styles.capacity}><Text style={full ? styles.capacityFull : styles.capacityCurrent}>{registered}</Text>{capacity > 0 ? `/${capacity}` : ""}</Text>
+          </View>
+          {capacity > 0 ? <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: capacity, now: Math.min(registered, capacity) }} style={styles.track}><View style={[styles.fill, { width: `${pct}%`, backgroundColor: full ? sk("#FF7781", "#DC2626") : TOURNAMENT_COLORS.primary }]} /></View> : null}
+          <TournamentActionGrid actions={[...actions, { key: "details", label: "Chi tiết", accessibilityLabel: `Chi tiết ${title}`, icon: "chevron-forward", onPress: onDetails }]} />
+        </View>
+      </View>
+    );
+  }
   return (
     <View style={styles.eventRow} testID={`tournament-event-${id}`}>
       <View style={styles.eventHeading}>
@@ -519,6 +560,17 @@ const styles = StyleSheet.create({
   actionTextPrimary: { flexShrink: 1, textAlign: "center", color: "#031526", fontSize: 13.5, lineHeight: 18, fontWeight: "800" },
   actionText: { flexShrink: 1, textAlign: "center", color: sk("#D8ECFC", "#0B2A6B"), fontSize: 13, lineHeight: 18, fontWeight: "700" },
   actionDetailsText: { color: sk("#AEC8E0", "#5F6F8A") },
+  dayHead: { flexDirection: "row", alignItems: "center", gap: 9, marginHorizontal: 14, paddingHorizontal: 6, paddingTop: 14, paddingBottom: 8 },
+  dayBar: { width: 3, height: 17, borderRadius: 2, backgroundColor: TOURNAMENT_COLORS.primary },
+  dayTitle: { flex: 1, minWidth: 0, color: sk("#FFFFFF", "#0B1B3A"), fontSize: 15, fontWeight: "800" },
+  dayCount: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999, backgroundColor: sk("rgba(8,205,245,0.10)", "rgba(20,102,242,0.08)"), borderWidth: 1, borderColor: TOURNAMENT_COLORS.border },
+  dayCountText: { color: TOURNAMENT_COLORS.textSoft, fontSize: 11.5, fontWeight: "700" },
+  dayCols: { flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 14, paddingHorizontal: 6, paddingVertical: 6, borderRadius: 8, backgroundColor: sk("rgba(255,255,255,0.04)", "rgba(16,42,92,0.04)") },
+  dayColText: { color: TOURNAMENT_COLORS.textMuted, fontSize: 11.5, fontWeight: "600" },
+  dayColTime: { width: 46 },
+  eventRowTimed: { flexDirection: "row", gap: 10 },
+  eventTime: { width: 46, paddingTop: 11, gap: 4, alignItems: "flex-start" },
+  eventTimeText: { color: TOURNAMENT_COLORS.primary, fontSize: 14, fontWeight: "800", fontVariant: ["tabular-nums"] },
   eventRow: { marginHorizontal: 14, paddingHorizontal: 6, paddingTop: 12, paddingBottom: 11, borderTopWidth: 1, borderTopColor: sk("#21475F", "rgba(16,42,92,0.10)") },
   eventHeading: { flexDirection: "row", alignItems: "center", gap: 8 },
   eventTitleTouch: { flex: 1, minHeight: 44, minWidth: 0, justifyContent: "center" },

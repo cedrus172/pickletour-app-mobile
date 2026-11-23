@@ -110,3 +110,68 @@ export function groupStatus(items: any[]): string {
   if (items.some((x) => x?.status === "upcoming")) return "upcoming";
   return "finished";
 }
+
+// ── Chia nội dung con theo NGÀY THI ĐẤU (giờ địa phương của giải, mặc định VN) — khớp bản web ──
+const DEFAULT_TZ = "Asia/Ho_Chi_Minh";
+const WEEKDAYS_VI = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+const VN_OFFSET_MS = 7 * 3600 * 1000;
+
+type StartParts = { y: number; m: number; d: number; hh: number; mm: number; wd: number; ms: number };
+
+// Mốc bắt đầu theo múi giờ giải. Hermes có Intl đủ timeZone trên iOS/Android mới; lỗi thì tính tay theo UTC+7.
+export function localStartParts(t: any): StartParts | null {
+  const raw = t?.startDate || t?.startAt;
+  const dt = raw ? new Date(raw) : null;
+  if (!dt || !Number.isFinite(dt.getTime())) return null;
+  const ms = dt.getTime();
+  try {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: t?.timezone || DEFAULT_TZ,
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", hourCycle: "h23", weekday: "short",
+    } as any).formatToParts(dt);
+    const g = (k: string) => parts.find((p) => p.type === k)?.value || "";
+    const WD: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    const y = Number(g("year"));
+    if (y && g("weekday") in WD) {
+      return { y, m: Number(g("month")), d: Number(g("day")), hh: Number(g("hour")) % 24, mm: Number(g("minute")), wd: WD[g("weekday")], ms };
+    }
+  } catch {
+    /* rơi xuống tính tay */
+  }
+  const v = new Date(ms + VN_OFFSET_MS);
+  return { y: v.getUTCFullYear(), m: v.getUTCMonth() + 1, d: v.getUTCDate(), hh: v.getUTCHours(), mm: v.getUTCMinutes(), wd: v.getUTCDay(), ms };
+}
+
+// "07:30"; trả "" nếu giải không đặt giờ (00:00 = chỉ đặt ngày).
+export function startTimeLabel(t: any): string {
+  const p = localStartParts(t);
+  if (!p || (p.hh === 0 && p.mm === 0)) return "";
+  return `${String(p.hh).padStart(2, "0")}:${String(p.mm).padStart(2, "0")}`;
+}
+
+export type DayGroup = { key: string; dateLabel: string; weekday: string; items: any[] };
+
+/** Gom nội dung theo ngày bắt đầu, xếp ngày tăng dần; trong ngày theo giờ rồi thứ tự gốc. */
+export function groupItemsByDay(items: any[]): DayGroup[] {
+  const rows = (items || []).map((t, i) => ({ t, i, p: localStartParts(t) }));
+  rows.sort((a, b) => (a.p?.ms ?? Infinity) - (b.p?.ms ?? Infinity) || a.i - b.i);
+  const out: DayGroup[] = [];
+  const byKey = new Map<string, DayGroup>();
+  for (const r of rows) {
+    const key = r.p ? `${r.p.y}-${r.p.m}-${r.p.d}` : "none";
+    let g = byKey.get(key);
+    if (!g) {
+      g = {
+        key,
+        dateLabel: r.p ? `${String(r.p.d).padStart(2, "0")}/${String(r.p.m).padStart(2, "0")}/${r.p.y}` : "",
+        weekday: r.p ? WEEKDAYS_VI[r.p.wd] : "",
+        items: [],
+      };
+      byKey.set(key, g);
+      out.push(g);
+    }
+    g.items.push(r.t);
+  }
+  return out;
+}

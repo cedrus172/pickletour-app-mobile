@@ -29,7 +29,7 @@ import { SafeAreaView as EdgeSafeAreaView } from "react-native-safe-area-context
 import { useSelector } from "react-redux";
 import { Image as ExpoImage } from "expo-image";
 import { normalizeUrl } from "@/utils/normalizeUri";
-import { groupTournaments, subLabelOf, groupStatus } from "@/utils/groupTournaments";
+import { groupTournaments, subLabelOf, groupStatus, groupItemsByDay, startTimeLabel } from "@/utils/groupTournaments";
 import { useTheme } from "@react-navigation/native";
 import ImageView from "@/components/ui/ResponsiveImageViewer";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -43,6 +43,7 @@ import {
   TournamentCover,
   TournamentFilters,
   TournamentEventRow,
+  TournamentDayHeader,
   TournamentHeader,
   TournamentInfo,
   TournamentKindSwitch,
@@ -313,7 +314,9 @@ function GroupCard({ group, canManage, formatDate, onPreview }: any) {
   const gstatus = groupStatus(items);
   const totalReg = items.reduce((sum, item) => sum + (Number(item?.registered) || 0), 0);
   const zalo = items.find((x) => x?.zaloGroupUrl)?.zaloGroupUrl || DEFAULT_ZALO_GROUP;
-  const visible = open ? items : items.slice(0, 3);
+  // Xếp nội dung theo ngày + giờ bắt đầu; thu gọn = 3 nội dung sớm nhất, rồi chia lại theo ngày.
+  const ordered = groupItemsByDay(items).flatMap((g) => g.items);
+  const dayGroups = groupItemsByDay(open ? ordered : ordered.slice(0, 3));
 
   return (
     <PremiumTournamentCard>
@@ -337,7 +340,10 @@ function GroupCard({ group, canManage, formatDate, onPreview }: any) {
         contentCount={items.length}
         registration={`${totalReg} đội`}
       />
-      {visible.map((item) => {
+      {dayGroups.map((day) => (
+        <React.Fragment key={day.key}>
+          <TournamentDayHeader weekday={day.weekday} dateLabel={day.dateLabel} count={day.items.length} />
+      {day.items.map((item) => {
         const id = String(item?._id);
         const sub = subLabelOf(item?.name, group?.title) ||
           (String(item?.eventType || "").toLowerCase() === "single" ? "Đấu đơn" : "Đấu đôi");
@@ -357,9 +363,12 @@ function GroupCard({ group, canManage, formatDate, onPreview }: any) {
             capacity={Number(item?.maxPairs) || 0}
             actions={actions}
             onDetails={() => router.push(`/tournament/${id}`)}
+            time={startTimeLabel(item)}
           />
         );
       })}
+        </React.Fragment>
+      ))}
       {items.length > 3 ? (
         <TouchableOpacity onPress={() => setOpen((value) => !value)} style={{ flexDirection: "row", alignItems: "center", gap: 5, marginHorizontal: 14, minHeight: 44 }}>
           <Text style={{ color: TOURNAMENT_COLORS.primary, fontSize: 12.5, fontWeight: "700" }}>{open ? "Thu gọn" : `Xem tất cả ${items.length} nội dung`}</Text>
