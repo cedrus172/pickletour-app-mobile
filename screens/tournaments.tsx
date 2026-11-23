@@ -314,6 +314,12 @@ function GroupCard({ group, canManage, formatDate, onPreview }: any) {
   const gstatus = groupStatus(items);
   const totalReg = items.reduce((sum, item) => sum + (Number(item?.registered) || 0), 0);
   const zalo = items.find((x) => x?.zaloGroupUrl)?.zaloGroupUrl || DEFAULT_ZALO_GROUP;
+  // Khoảng ngày của cả nhóm (bắt đầu sớm nhất → kết thúc muộn nhất), không chỉ của ảnh bìa.
+  const msOf = (v: any) => { const n = v ? new Date(v).getTime() : NaN; return Number.isFinite(n) ? n : NaN; };
+  const starts = items.map((x) => msOf(x?.startDate)).filter(Number.isFinite);
+  const ends = items.map((x) => msOf(x?.endDate || x?.startDate)).filter(Number.isFinite);
+  const groupStart = starts.length ? new Date(Math.min(...starts)).toISOString() : cover?.startDate;
+  const groupEnd = ends.length ? new Date(Math.max(...ends)).toISOString() : cover?.endDate;
   // Xếp nội dung theo ngày + giờ bắt đầu; thu gọn = 3 nội dung sớm nhất, rồi chia lại theo ngày.
   const ordered = groupItemsByDay(items).flatMap((g) => g.items);
   const dayGroups = groupItemsByDay(open ? ordered : ordered.slice(0, 3));
@@ -324,7 +330,8 @@ function GroupCard({ group, canManage, formatDate, onPreview }: any) {
         image={cardImageOf(cover)}
         title={group?.title || "Giải đấu Pickletour"}
         status={gstatus}
-        startDate={cover?.startDate}
+        startDate={groupStart}
+        endDate={groupEnd}
         onPress={() => setOpen((value) => !value)}
         onPressImage={() => {
           const uri = normalizeUrl(cover?.image);
@@ -333,12 +340,13 @@ function GroupCard({ group, canManage, formatDate, onPreview }: any) {
         }}
       />
       <TournamentInfo
-        date={formatDate(cover?.startDate)}
-        startDate={cover?.startDate}
-        endDate={cover?.endDate}
+        date={formatDate(groupStart)}
+        startDate={groupStart}
+        endDate={groupEnd}
         location={items[0]?.location || "Chưa cập nhật"}
         contentCount={items.length}
         registration={`${totalReg} đội`}
+        onZalo={() => Linking.openURL(zalo)}
       />
       {dayGroups.map((day) => (
         <React.Fragment key={day.key}>
@@ -375,7 +383,6 @@ function GroupCard({ group, canManage, formatDate, onPreview }: any) {
           <Ionicons name={open ? "chevron-up" : "chevron-down"} size={14} color={TOURNAMENT_COLORS.primary} />
         </TouchableOpacity>
       ) : null}
-      <ZaloButton onPress={() => Linking.openURL(zalo)} />
     </PremiumTournamentCard>
   );
 }
@@ -744,6 +751,7 @@ export default function TournamentDashboardScreen({ isBack = false }) {
           status={tt.status}
           mode={(tt as any)?.tournamentMode}
           startDate={tt.startDate}
+          endDate={tt.endDate}
           onPress={() => onPressCard(tt)}
           onPressImage={() => {
             const uri = normalizeUrl(tt.image);

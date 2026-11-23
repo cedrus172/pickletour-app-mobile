@@ -24,5 +24,6 @@ export function tournamentDateLabel(start?: string | Date | null, end?: string |
   const first = tournamentDateParts(start);
   if (!first) return null;
   const last = tournamentDateParts(end);
-  return last && last.date !== first.date ? `${first.label}\n– ${last.date}` : first.label;
+  // Một dòng: đủ chỗ nên không xuống dòng (user yêu cầu 24/11/2026).
+  return last && last.date !== first.date ? `${first.label} – ${last.date}` : first.label;
 }

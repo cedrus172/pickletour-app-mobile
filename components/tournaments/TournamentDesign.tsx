@@ -288,17 +288,23 @@ export const TournamentStatus = memo(function TournamentStatus({ status }: { sta
   return <View style={styles.statusBadge}><View style={[styles.statusDot, { backgroundColor: tone.color }]} /><Text style={styles.statusText}>{tone.label}</Text></View>;
 });
 
-export const TournamentCover = memo(function TournamentCover({ image, title, status, mode, startDate, onPress, onPressImage }: {
+export const TournamentCover = memo(function TournamentCover({ image, title, status, mode, startDate, endDate, onPress, onPressImage }: {
   image?: string | null;
   title: string;
   status?: string;
   mode?: string;
   startDate?: string | Date | null;
+  /** Ngày kết thúc: khác ngày bắt đầu thì huy hiệu hiện khoảng, vd "28–29 TH11". */
+  endDate?: string | Date | null;
   onPress: () => void;
   onPressImage?: () => void;
 }) {
   const normalizedMode = String(mode || "").toLowerCase();
   const date = tournamentDateParts(startDate);
+  const last = tournamentDateParts(endDate);
+  const multiDay = !!(date && last && last.date !== date.date);
+  const dayText = multiDay ? `${date!.day}–${last!.day}` : date?.day;
+  const monthText = multiDay && last!.month !== date!.month ? `TH${date!.month}–${last!.month}` : `TH${date?.month}`;
   return (
     <>
       <Pressable accessibilityRole="button" accessibilityLabel={`Xem ảnh ${title}`} testID="tournament-cover" onPress={onPressImage || onPress} style={({ pressed }) => pressed && styles.coverPressed}>
@@ -309,7 +315,7 @@ export const TournamentCover = memo(function TournamentCover({ image, title, sta
           {normalizedMode === "mlp" || normalizedMode === "team" ? (
             <View style={styles.modeBadge}><MaterialCommunityIcons name={normalizedMode === "mlp" ? "trophy-award" : "account-group-outline"} size={14} color="#FFE071" /><Text style={styles.modeText}>{normalizedMode === "mlp" ? "MLP" : "Đồng đội"}</Text></View>
           ) : null}
-          {date ? <View style={styles.dateBadge} testID="tournament-date-badge"><Text style={styles.dateDay}>{date.day}</Text><Text style={styles.dateMonth}>TH{date.month}</Text></View> : null}
+          {date ? <View style={styles.dateBadge} testID="tournament-date-badge"><Text style={[styles.dateDay, multiDay && styles.dateDayRange]}>{dayText}</Text><Text style={styles.dateMonth}>{monthText}</Text></View> : null}
         </View>
       </Pressable>
       <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.titlePressable, pressed && styles.pressed]}>
@@ -319,13 +325,15 @@ export const TournamentCover = memo(function TournamentCover({ image, title, sta
   );
 });
 
-export const TournamentInfo = memo(function TournamentInfo({ date, location, registration, contentCount, startDate, endDate }: {
+export const TournamentInfo = memo(function TournamentInfo({ date, location, registration, contentCount, startDate, endDate, onZalo }: {
   date: string;
   location: string;
   registration: string;
   contentCount?: number;
   startDate?: string | Date | null;
   endDate?: string | Date | null;
+  /** Có thì hiện nút Zalo nhỏ ngay sau tổng số đội. */
+  onZalo?: () => void;
 }) {
   const [venue, ...address] = location.split(/\s*[•·]\s*/);
   const area = address.join(" · ").split(",").slice(-2).map((part) => part.trim()).join(", ");
@@ -341,6 +349,12 @@ export const TournamentInfo = memo(function TournamentInfo({ date, location, reg
       <View style={styles.infoSummary}>
         {typeof contentCount === "number" ? <><View style={styles.summaryItem}><Ionicons name="people-outline" size={16} color={TOURNAMENT_COLORS.textMuted} /><Text style={styles.summaryText}>{contentCount} nội dung</Text></View><View style={styles.summaryDivider} /></> : null}
         <View style={styles.summaryItem}><Ionicons name="people" size={16} color={TOURNAMENT_COLORS.textMuted} /><Text style={styles.summaryText}>{registration}</Text></View>
+        {onZalo ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Nhóm Zalo" onPress={onZalo} style={({ pressed }) => [styles.zaloChip, pressed && styles.pressed]}>
+            <Ionicons name="chatbubble-ellipses" size={12} color="#FFFFFF" />
+            <Text style={styles.zaloChipText}>Zalo</Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -422,8 +436,10 @@ export const TournamentEventRow = memo(function TournamentEventRow({ id, title, 
     return (
       <View style={[styles.eventRow, styles.eventRowTimed]} testID={`tournament-event-${id}`}>
         <View style={styles.eventTime}>
-          <Text style={styles.eventTimeText}>{time || "—"}</Text>
-          {time ? <Ionicons name="time-outline" size={15} color={TOURNAMENT_COLORS.primary} /> : null}
+          <View style={[styles.timeBadge, !time && styles.timeBadgeEmpty]}>
+            <Ionicons name="time-outline" size={11} color={time ? TOURNAMENT_COLORS.primary : TOURNAMENT_COLORS.textMuted} />
+            <Text style={[styles.timeBadgeText, !time && styles.timeBadgeTextEmpty]}>{time || "--:--"}</Text>
+          </View>
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={styles.eventHeading}>
@@ -434,7 +450,15 @@ export const TournamentEventRow = memo(function TournamentEventRow({ id, title, 
             <Text style={styles.capacity}><Text style={full ? styles.capacityFull : styles.capacityCurrent}>{registered}</Text>{capacity > 0 ? `/${capacity}` : ""}</Text>
           </View>
           {capacity > 0 ? <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: capacity, now: Math.min(registered, capacity) }} style={styles.track}><View style={[styles.fill, { width: `${pct}%`, backgroundColor: full ? sk("#FF7781", "#DC2626") : TOURNAMENT_COLORS.primary }]} /></View> : null}
-          <TournamentActionGrid actions={[...actions, { key: "details", label: "Chi tiết", accessibilityLabel: `Chi tiết ${title}`, icon: "chevron-forward", onPress: onDetails }]} />
+          <View style={styles.miniActions}>
+            {[...actions, { key: "details", label: "Chi tiết", accessibilityLabel: `Chi tiết ${title}`, icon: "chevron-forward", onPress: onDetails } as DisplayAction].map((a: DisplayAction) => (
+              <Pressable key={a.key} accessibilityRole="button" accessibilityLabel={a.accessibilityLabel || a.label} testID={`tournament-action-${a.key}`} onPress={a.onPress} hitSlop={6} style={({ pressed }) => [styles.miniAction, a.primary && styles.miniActionPrimary, pressed && styles.pressed]}>
+                {a.key !== "details" ? <Ionicons name={a.icon} size={12} color={a.primary ? sk("#031526", "#FFFFFF") : sk("#38D4F3", "#1466F2")} /> : null}
+                <Text style={[styles.miniActionText, a.primary && styles.miniActionTextPrimary]}>{a.label}</Text>
+                {a.key === "details" ? <Ionicons name="chevron-forward" size={12} color={TOURNAMENT_COLORS.textMuted} /> : null}
+              </Pressable>
+            ))}
+          </View>
         </View>
       </View>
     );
@@ -567,10 +591,21 @@ const styles = StyleSheet.create({
   dayCountText: { color: TOURNAMENT_COLORS.textSoft, fontSize: 11.5, fontWeight: "700" },
   dayCols: { flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 14, paddingHorizontal: 6, paddingVertical: 6, borderRadius: 8, backgroundColor: sk("rgba(255,255,255,0.04)", "rgba(16,42,92,0.04)") },
   dayColText: { color: TOURNAMENT_COLORS.textMuted, fontSize: 11.5, fontWeight: "600" },
-  dayColTime: { width: 46 },
+  dayColTime: { width: 62 },
   eventRowTimed: { flexDirection: "row", gap: 10 },
-  eventTime: { width: 46, paddingTop: 11, gap: 4, alignItems: "flex-start" },
-  eventTimeText: { color: TOURNAMENT_COLORS.primary, fontSize: 14, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  eventTime: { width: 62, paddingTop: 12 },
+  timeBadge: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: sk("rgba(8,205,245,0.35)", "rgba(20,102,242,0.28)"), backgroundColor: sk("rgba(8,205,245,0.12)", "rgba(20,102,242,0.08)") },
+  timeBadgeEmpty: { borderStyle: "dashed", borderColor: sk("rgba(145,174,206,0.35)", "rgba(16,42,92,0.18)"), backgroundColor: sk("rgba(255,255,255,0.04)", "rgba(16,42,92,0.03)") },
+  timeBadgeText: { color: TOURNAMENT_COLORS.primary, fontSize: 12.5, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  timeBadgeTextEmpty: { color: TOURNAMENT_COLORS.textMuted },
+  miniActions: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 2 },
+  miniAction: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1, borderColor: TOURNAMENT_COLORS.border, backgroundColor: sk("rgba(255,255,255,0.03)", "#FFFFFF") },
+  miniActionPrimary: { borderColor: sk("#54E0F5", "#1466F2"), backgroundColor: sk("#11D3F3", "#1466F2") },
+  miniActionText: { color: TOURNAMENT_COLORS.textSoft, fontSize: 12, fontWeight: "700" },
+  miniActionTextPrimary: { color: sk("#031526", "#FFFFFF") },
+  zaloChip: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999, backgroundColor: "#0068FF" },
+  zaloChipText: { color: "#FFFFFF", fontSize: 11.5, fontWeight: "800" },
+  dateDayRange: { fontSize: 19, lineHeight: 26 },
   eventRow: { marginHorizontal: 14, paddingHorizontal: 6, paddingTop: 12, paddingBottom: 11, borderTopWidth: 1, borderTopColor: sk("#21475F", "rgba(16,42,92,0.10)") },
   eventHeading: { flexDirection: "row", alignItems: "center", gap: 8 },
   eventTitleTouch: { flex: 1, minHeight: 44, minWidth: 0, justifyContent: "center" },
