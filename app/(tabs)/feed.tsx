@@ -1685,8 +1685,9 @@ function PostCard({ post, me }: { post: any; me: any }) {
         </Pressable>
         <Pressable onPress={openAuthor} style={{ flex: 1 }} hitSlop={6}>
           <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
-            {isPage ? (
-              // Tên Fanpage: chữ thường, không áp hiệu ứng tên VĐV (bảng hiệu ứng khớp theo nickname)
+            {isPage && !post.author?.nameStyle ? (
+              // Tên Fanpage chưa đặt màu: chữ thường (KHÔNG tra bảng hiệu ứng tên VĐV theo nickname).
+              // Có màu riêng (author.nameStyle) thì PlayerNameText dùng màu đó trước bảng hiệu ứng.
               <Text style={styles.postAuthor}>{authorName(post.author)}</Text>
             ) : (
               <PlayerNameText

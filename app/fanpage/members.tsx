@@ -73,7 +73,7 @@ function AddMemberModal({ pageId, myRole, onClose }: { pageId: string; myRole: s
     <AppModal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: C.bg, padding: 16, gap: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text style={{ color: C.text, fontSize: 18, fontWeight: "900" }}>Mời thành viên</Text>
+          <Text style={{ color: C.text, fontSize: 18, fontWeight: "900" }}>Thêm thành viên</Text>
           <Pressable onPress={onClose} hitSlop={10} accessibilityLabel="Đóng">
             <Ionicons name="close" size={26} color={C.text} />
           </Pressable>
@@ -136,6 +136,44 @@ export default function FanpageMembersScreen() {
   const items: any[] = data?.items || [];
   const myId = String(me?._id || "");
 
+  const isOfficial = Boolean(data?.isOfficial);
+  const canChangeRole = (m: any) => myRole === "owner" && String(m.user._id) !== myId && m.role !== "owner";
+  const canRemoveM = (m: any) =>
+    String(m.user._id) !== myId && m.role !== "owner" && (myRole === "owner" || (myRole === "admin" && m.role === "editor"));
+
+  const changeRole = (m: any) => {
+    const uid = String(m.user._id);
+    const pick = (role: "admin" | "editor") => async () => {
+      try {
+        await updateMember({ id: pageId, userId: uid, role }).unwrap();
+      } catch (e: any) {
+        Alert.alert("Không đổi được", e?.data?.message || "Vui lòng thử lại.");
+      }
+    };
+    Alert.alert(`Vai trò của ${nameOf(m.user)}`, "Chọn vai trò mới", [
+      { text: `${m.role === "admin" ? "✓ " : ""}Quản trị viên — đăng bài, sửa trang, quản lý biên tập viên`, onPress: pick("admin") },
+      { text: `${m.role === "editor" ? "✓ " : ""}Biên tập viên — đăng bài & story`, onPress: pick("editor") },
+      { text: "Huỷ", style: "cancel" },
+    ]);
+  };
+
+  const confirmRemove = (m: any) => {
+    Alert.alert("Gỡ khỏi Fanpage?", `${nameOf(m.user)} sẽ không còn đăng bài dưới tên trang nữa.`, [
+      { text: "Huỷ", style: "cancel" },
+      {
+        text: "Gỡ",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await removeMember({ id: pageId, userId: String(m.user._id) }).unwrap();
+          } catch (e: any) {
+            Alert.alert("Không gỡ được", e?.data?.message || "Vui lòng thử lại.");
+          }
+        },
+      },
+    ]);
+  };
+
   const act = (m: any) => {
     const uid = String(m.user._id);
     const self = uid === myId;
@@ -147,7 +185,7 @@ export default function FanpageMembersScreen() {
         Alert.alert("Không thực hiện được", e?.data?.message || "Vui lòng thử lại.");
       }
     };
-    if (myRole === "owner" && !self) {
+    if (myRole === "owner" && !self && !isOfficial) {
       if (m.role !== "admin") opts.push({ text: "Đặt làm Quản trị viên", onPress: run(() => updateMember({ id: pageId, userId: uid, role: "admin" }).unwrap()) });
       if (m.role !== "editor") opts.push({ text: "Đặt làm Biên tập viên", onPress: run(() => updateMember({ id: pageId, userId: uid, role: "editor" }).unwrap()) });
       opts.push({
@@ -199,7 +237,16 @@ export default function FanpageMembersScreen() {
                 <StatusBadge status={page.status} />
               </View>
             ) : null}
+            {isOfficial ? (
+              <View style={[styles.info, { borderColor: C.border, backgroundColor: C.field }]}>
+                <Ionicons name="shield-checkmark-outline" size={20} color={C.primary} />
+                <Text style={{ flex: 1, color: C.sub, fontSize: 12.5, lineHeight: 18 }}>
+                  Trang chính thức: mọi admin PickleTour luôn có toàn quyền. Thêm người khác làm Quản trị viên / Biên tập viên để họ đăng bài & story dưới tên PickleTour.
+                </Text>
+              </View>
+            ) : null}
             <Text style={{ color: C.text, fontWeight: "900", fontSize: 16 }}>{`Thành viên (${items.length})`}</Text>
+            {!isLoading && !items.length ? <Text style={{ color: C.sub, fontSize: 13 }}>Chưa có ai trong danh sách. Bấm "Thêm thành viên" bên dưới.</Text> : null}
             {isLoading ? <ActivityIndicator color={C.primary} /> : null}
           </View>
         }
@@ -210,8 +257,17 @@ export default function FanpageMembersScreen() {
               {nameOf(m.user)}
               {String(m.user._id) === myId ? " (bạn)" : ""}
             </Text>
-            <RoleBadge role={m.role} />
-            <Ionicons name="ellipsis-vertical" size={18} color={C.sub} />
+            <Pressable onPress={() => (canChangeRole(m) ? changeRole(m) : null)} disabled={!canChangeRole(m)} hitSlop={6} style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+              <RoleBadge role={m.role} />
+              {canChangeRole(m) ? <Ionicons name="chevron-down" size={14} color={C.sub} /> : null}
+            </Pressable>
+            {canRemoveM(m) ? (
+              <Pressable onPress={() => confirmRemove(m)} hitSlop={8} accessibilityLabel={`Gỡ ${nameOf(m.user)}`} style={styles.iconBtn}>
+                <Ionicons name="trash-outline" size={18} color="#EF4444" />
+              </Pressable>
+            ) : (
+              <Ionicons name="ellipsis-vertical" size={18} color={C.sub} />
+            )}
           </Pressable>
         )}
         ListFooterComponent={
@@ -219,7 +275,7 @@ export default function FanpageMembersScreen() {
             {myRole === "owner" || myRole === "admin" ? (
               <Pressable onPress={() => setAdding(true)} style={[styles.addBtn, { borderColor: C.primary }]}>
                 <Ionicons name="person-add-outline" size={19} color={C.primary} />
-                <Text style={{ color: C.primary, fontWeight: "900", fontSize: 15 }}>Mời thành viên</Text>
+                <Text style={{ color: C.primary, fontWeight: "900", fontSize: 15 }}>Thêm thành viên</Text>
               </Pressable>
             ) : null}
             <View style={[styles.info, { borderColor: C.border, backgroundColor: C.field }]}>
@@ -241,6 +297,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 14, borderWidth: 1 },
   addBtn: { height: 50, borderRadius: 14, borderWidth: 1.5, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   info: { flexDirection: "row", gap: 10, padding: 12, borderRadius: 12, borderWidth: 1 },
+  iconBtn: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(239,68,68,0.10)" },
   roleOpt: { flex: 1, height: 42, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   search: { height: 46, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, fontSize: 15 },
 });

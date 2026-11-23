@@ -9,6 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 
 import { PageAvatar, useImageUpload } from "@/components/fanpage/FanpageUI";
+import NameStylePicker, { type NameStyle } from "@/components/fanpage/NameStylePicker";
 import { Text } from "@/components/ui/i18nText";
 import TextInput from "@/components/ui/i18nTextInput";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
@@ -56,6 +57,7 @@ export default function FanpageCreateScreen() {
   const [phone, setPhone] = useState("");
   const [website, setWebsite] = useState("");
   const [docs, setDocs] = useState<string[]>([]);
+  const [nameStyle, setNameStyle] = useState<NameStyle>(null);
 
   useEffect(() => {
     if (!page) return;
@@ -68,6 +70,7 @@ export default function FanpageCreateScreen() {
     setPhone(page.phone || "");
     setWebsite(page.website || "");
     setDocs(page.verifyDocs || []);
+    setNameStyle(page.nameStyle || null);
   }, [page]);
 
   const input = [styles.input, { color: C.text, borderColor: C.border, backgroundColor: C.field }];
@@ -91,6 +94,7 @@ export default function FanpageCreateScreen() {
       phone: phone.trim(),
       website: website.trim(),
       verifyDocs: docs,
+      nameStyle: nameStyle || { effect: "none" },
     };
     try {
       if (editing) {
@@ -113,7 +117,7 @@ export default function FanpageCreateScreen() {
   if (editing && loadingPage) {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center" }}>
-        <Stack.Screen options={{ title: "Sửa Fanpage", headerShown: true }} />
+        <Stack.Screen options={{ title: "Thiết lập Fanpage", headerShown: true }} />
         <ActivityIndicator color={C.primary} />
       </View>
     );
@@ -121,7 +125,7 @@ export default function FanpageCreateScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["bottom", "left", "right"]}>
-      <Stack.Screen options={{ title: editing ? "Sửa Fanpage" : "Tạo Fanpage mới", headerShown: true }} />
+      <Stack.Screen options={{ title: editing ? "Thiết lập Fanpage" : "Tạo Fanpage mới", headerShown: true }} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={90}>
         <ScrollView
           contentContainerStyle={{ padding: 16, gap: 14, maxWidth: 640, width: "100%", alignSelf: "center", paddingBottom: 40 }}
@@ -248,6 +252,26 @@ export default function FanpageCreateScreen() {
             </View>
           </View>
 
+          <View style={[styles.section, { borderColor: C.border, backgroundColor: C.card }]}>
+            <Label C={C} text="Màu tên trang" />
+            <Text style={{ color: C.muted, fontSize: 12 }}>Tên trang hiện màu này ở Bảng tin, story và trang Fanpage.</Text>
+            <NameStylePicker C={C} name={name} value={nameStyle} onChange={setNameStyle} />
+          </View>
+
+          {editing && page?.myRole ? (
+            <Pressable
+              onPress={() => router.push(`/fanpage/members?id=${String(id)}` as any)}
+              style={[styles.section, { borderColor: C.border, backgroundColor: C.card, flexDirection: "row", alignItems: "center", gap: 12 }]}
+            >
+              <Ionicons name="people-circle-outline" size={30} color={C.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: C.text, fontWeight: "900", fontSize: 15 }}>Thành viên & vai trò</Text>
+                <Text style={{ color: C.sub, fontSize: 12.5 }}>Thêm người quản lý, đổi vai trò, gỡ khỏi trang</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={C.sub} />
+            </Pressable>
+          ) : null}
+
           {!editing || page?.status !== "approved" ? (
             <View style={[styles.note, { borderColor: "#C5F433", backgroundColor: "rgba(197,244,51,0.08)" }]}>
               <Ionicons name="time-outline" size={20} color={C.isV3 ? "#4D7C0F" : "#C5F433"} />
@@ -280,5 +304,6 @@ const styles = StyleSheet.create({
   doc: { width: 72, height: 72, borderRadius: 10, borderWidth: 1, overflow: "hidden" },
   docX: { position: "absolute", top: 3, right: 3, width: 20, height: 20, borderRadius: 10, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center" },
   note: { flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: 12, borderWidth: 1 },
+  section: { padding: 12, borderRadius: 14, borderWidth: 1, gap: 8 },
   submit: { height: 50, borderRadius: 14, alignItems: "center", justifyContent: "center", marginTop: 4 },
 });

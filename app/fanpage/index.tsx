@@ -8,6 +8,7 @@ import { useSelector } from "react-redux";
 
 import { PageAvatar, RoleBadge, StatusBadge, VerifiedTick } from "@/components/fanpage/FanpageUI";
 import { Text } from "@/components/ui/i18nText";
+import PlayerNameText from "@/components/PlayerNameText";
 import TextInput from "@/components/ui/i18nTextInput";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
 import {
@@ -24,9 +25,13 @@ function PageRow({ C, page, right, onPress }: { C: ThemeTokens; page: any; right
       <PageAvatar uri={page.avatar} size={48} C={C} />
       <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-          <Text style={{ color: C.text, fontWeight: "800", fontSize: 15, flexShrink: 1 }} numberOfLines={1}>
-            {page.name}
-          </Text>
+          {page.nameStyle ? (
+            <PlayerNameText user={page} name={page.name} style={{ color: C.text, fontWeight: "800", fontSize: 15 }} numberOfLines={1} />
+          ) : (
+            <Text style={{ color: C.text, fontWeight: "800", fontSize: 15, flexShrink: 1 }} numberOfLines={1}>
+              {page.name}
+            </Text>
+          )}
           {page.verified ? <VerifiedTick size={15} /> : null}
         </View>
         <Text style={{ color: C.sub, fontSize: 12.5 }} numberOfLines={1}>

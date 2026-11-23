@@ -12,6 +12,7 @@ import { PageAvatar, StatusBadge, VerifiedTick } from "@/components/fanpage/Fanp
 import StoryViewer from "@/components/story/StoryViewer";
 import { Text } from "@/components/ui/i18nText";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
+import PlayerNameText from "@/components/PlayerNameText";
 import { useListFeedQuery } from "@/slices/feedApiSlice";
 import {
   FANPAGE_KIND_LABEL,
@@ -63,9 +64,9 @@ export default function FanpageScreen() {
 
   const manage = () => {
     const opts: any[] = [];
-    if (canEdit) opts.push({ text: "Sửa thông tin", onPress: () => router.push(`/fanpage/create?id=${pageId}` as any) });
-    if (myRole && !page?.isOfficial) opts.push({ text: "Thành viên & phân quyền", onPress: () => router.push(`/fanpage/members?id=${pageId}` as any) });
-    if (myRole === "owner") {
+    if (canEdit) opts.push({ text: "Thiết lập Fanpage (thông tin, màu tên)", onPress: () => router.push(`/fanpage/create?id=${pageId}` as any) });
+    if (myRole) opts.push({ text: "Thành viên & vai trò", onPress: () => router.push(`/fanpage/members?id=${pageId}` as any) });
+    if (myRole === "owner" && !page?.isOfficial) {
       opts.push({
         text: "Xoá Fanpage",
         style: "destructive",
@@ -147,7 +148,11 @@ export default function FanpageScreen() {
           {!approved ? <StatusBadge status={page.status} /> : null}
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <Text style={{ color: C.text, fontSize: 22, fontWeight: "900", flexShrink: 1 }}>{page.name}</Text>
+          {page.nameStyle ? (
+            <PlayerNameText user={page} name={page.name} style={{ color: C.text, fontSize: 22, fontWeight: "900" }} />
+          ) : (
+            <Text style={{ color: C.text, fontSize: 22, fontWeight: "900", flexShrink: 1 }}>{page.name}</Text>
+          )}
           {page.verified ? <VerifiedTick size={20} /> : null}
         </View>
         <Text style={{ color: C.sub, fontSize: 13.5 }}>
