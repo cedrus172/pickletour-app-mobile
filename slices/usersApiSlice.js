@@ -98,6 +98,14 @@ export const userApiSlice = apiSlice.injectEndpoints({
         body: data,
       }),
     }),
+    // Màn Đăng ký: SĐT đã có tài khoản? → { exists, guest, canReset }
+    checkSignupPhone: builder.mutation({
+      query: (phone) => ({
+        url: `${USERS_URL}/check-phone`,
+        method: "POST",
+        body: { phone },
+      }),
+    }),
     updateUser: builder.mutation({
       query: (data) => ({
         url: `${USERS_URL}/profile`,
@@ -399,6 +407,7 @@ export const {
   useLoginMutation,
   useLogoutMutation,
   useRegisterMutation,
+  useCheckSignupPhoneMutation,
   useUpdateUserMutation,
   useGetPublicProfileQuery,
   useGetRatingHistoryQuery,

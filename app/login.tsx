@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 import {
   View,
@@ -127,6 +127,7 @@ export default function LoginScreen() {
   const params = useLocalSearchParams<{
     returnTo?: string | string[];
     redirectTo?: string | string[];
+    identifier?: string | string[];
   }>();
   const insets = useSafeAreaInsets();
   const scheme = useColorScheme() ?? "light";
@@ -170,6 +171,13 @@ export default function LoginScreen() {
   // State
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
+  // Điền sẵn SĐT/email khi chuyển từ màn Đăng ký / Đặt lại mật khẩu (?identifier=).
+  const prefillId = String(
+    (Array.isArray(params.identifier) ? params.identifier[0] : params.identifier) || ""
+  ).trim();
+  useEffect(() => {
+    if (prefillId) setLoginId((cur) => cur || prefillId);
+  }, [prefillId]);
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<"login" | "password" | null>(null);
   const passwordInputRef = React.useRef<TextInput>(null);

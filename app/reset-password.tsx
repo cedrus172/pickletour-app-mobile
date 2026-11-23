@@ -137,6 +137,8 @@ export default function ResetPasswordOtpScreen() {
   const identifier = String(getParam("identifier", "")).trim();
   const useIdentifier = !!identifier;
   const isZalo = channel === "zalo";
+  // Tài khoản do BTC tạo khi đăng ký giải hộ (đi từ màn Đăng ký) → thêm 1 dòng hướng dẫn.
+  const isGuest = String(getParam("guest", "")) === "1";
   // Tham số định danh dùng chung cho verify/reset. Ưu tiên identifier (app mới):
   // BE tự resolve user theo identifier + OTP, không cần biết email/SĐT thật.
   const authArgs = useIdentifier
@@ -291,7 +293,20 @@ export default function ResetPasswordOtpScreen() {
       RNAlert.alert(
         "Thành công",
         "Đổi mật khẩu thành công. Vui lòng đăng nhập lại.",
-        [{ text: "OK", onPress: () => router.replace("/login") }]
+        [
+          {
+            text: "OK",
+            // Điền sẵn SĐT/email vừa dùng để đăng nhập ngay bằng mật khẩu mới.
+            onPress: () => {
+              const loginHint = identifier || initialPhone || initialEmail;
+              router.replace(
+                loginHint
+                  ? { pathname: "/login", params: { identifier: loginHint } }
+                  : "/login"
+              );
+            },
+          },
+        ]
       );
     } catch (err) {
       RNAlert.alert(
@@ -299,7 +314,7 @@ export default function ResetPasswordOtpScreen() {
         err?.data?.message || "Không đổi được mật khẩu. Có thể OTP đã hết hạn."
       );
     }
-  }, [canReset, resetPassword, initialEmail, otp, pwd, router]);
+  }, [canReset, resetPassword, initialEmail, initialPhone, identifier, otp, pwd, router]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: themed.bg }}>
@@ -332,6 +347,11 @@ export default function ResetPasswordOtpScreen() {
                 </Text>
                 .
               </Text>
+              {isGuest && isZalo && phase === "otp" ? (
+                <Text style={[styles.desc, { color: themed.text }]}>
+                  Nhập mã OTP gửi qua Zalo tới số này để đặt mật khẩu mới.
+                </Text>
+              ) : null}
 
               {/* ⬇️ NEW: Lottie OTP — chỉ hiện ở phase OTP */}
               {false && phase === "otp" && SHOULD_RENDER_NATIVE_LOTTIE && (

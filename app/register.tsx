@@ -1,7 +1,7 @@
 import { t } from "@/utils/i18n";
 import { IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
 // app/(auth)/register.jsx
-import React, { useMemo, useState, useRef, useEffect } from "react";
+import React, { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -30,7 +30,10 @@ import { Stack, router, Redirect } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
-import { useRegisterMutation } from "@/slices/usersApiSlice";
+import {
+  useRegisterMutation,
+  useCheckSignupPhoneMutation,
+} from "@/slices/usersApiSlice";
 import { useUploadRealAvatarMutation } from "@/slices/uploadApiSlice";
 import { useGetRegistrationSettingsQuery } from "@/slices/settingsApiSlice";
 import { setCredentials } from "@/slices/authSlice";
@@ -345,6 +348,7 @@ export default function RegisterScreen() {
   const userInfo = useSelector((s) => s.auth?.userInfo);
 
   const [register, { isLoading }] = useRegisterMutation();
+  const [checkSignupPhone] = useCheckSignupPhoneMutation();
   const [uploadAvatar, { isLoading: uploadingAvatar }] =
     useUploadRealAvatarMutation();
 
@@ -415,6 +419,67 @@ export default function RegisterScreen() {
     handleChange("dob", `${yyyy}-${mm}-${dd}`);
   };
 
+  // SĐT đã có tài khoản → gợi ý lấy lại mật khẩu: { phone, exists, guest, canReset }
+  const [phoneCheck, setPhoneCheck] = useState<{
+    phone: string;
+    exists: boolean;
+    guest: boolean;
+    canReset: boolean;
+  } | null>(null);
+  const phoneCheckCache = useRef(new Map());
+  const runPhoneCheck = useCallback(
+    async (phone: string, force = false) => {
+      if (!/^0\d{9}$/.test(phone)) return null;
+      const cached = phoneCheckCache.current.get(phone);
+      if (cached && !force) {
+        setPhoneCheck(cached);
+        return cached;
+      }
+      try {
+        const res: any = await checkSignupPhone(phone).unwrap();
+        const result = {
+          phone,
+          exists: !!res?.exists,
+          guest: !!res?.guest,
+          canReset: !!res?.canReset,
+        };
+        phoneCheckCache.current.set(phone, result);
+        setPhoneCheck(result);
+        return result;
+      } catch {
+        return null; // lỗi mạng → bỏ qua, không hiện gợi ý
+      }
+    },
+    [checkSignupPhone]
+  );
+  const phoneClean = cleanPhone(form.phone || "");
+  // Chỉ kiểm tra khi đủ 10 số và ngừng gõ một nhịp (không gọi mỗi phím).
+  useEffect(() => {
+    if (!/^0\d{9}$/.test(phoneClean)) return undefined;
+    const timer = setTimeout(() => {
+      runPhoneCheck(phoneClean);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [phoneClean, runPhoneCheck]);
+  // Sửa SĐT → gợi ý cũ không còn khớp thì ẩn.
+  const phoneNotice =
+    phoneCheck && phoneCheck.exists && phoneCheck.phone === phoneClean
+      ? phoneCheck
+      : null;
+  const goForgotWithPhone = useCallback(() => {
+    Keyboard.dismiss();
+    router.push({
+      pathname: "/forgot-password",
+      params: phoneNotice?.guest
+        ? { identifier: phoneClean, guest: "1", auto: "1" }
+        : { identifier: phoneClean },
+    });
+  }, [phoneClean, phoneNotice?.guest]);
+  const goLoginWithPhone = useCallback(() => {
+    Keyboard.dismiss();
+    router.push({ pathname: "/login", params: { identifier: phoneClean } });
+  }, [phoneClean]);
+
   const emailOptional = registrationSettings?.emailOptional === true;
   const validation = useMemo(
     () => validateAll(form, avatarUrl, accepted, requireOptional, emailOptional),
@@ -461,6 +526,14 @@ export default function RegisterScreen() {
       router.replace("/(tabs)");
     } catch (err) {
       const raw = err?.data?.message || err?.error || "Đăng ký thất bại";
+      // "Số điện thoại đã tồn tại" / "đã được đăng ký" → hiện gợi ý lấy lại mật khẩu dưới ô SĐT.
+      if (String(raw).includes("Số điện thoại")) {
+        const phone = cleanPhone(form.phone || "");
+        const checked = await runPhoneCheck(phone, true);
+        if (!checked?.exists) {
+          setPhoneCheck({ phone, exists: true, guest: false, canReset: true });
+        }
+      }
       Alert.alert("Lỗi", raw);
     }
   };
@@ -469,6 +542,11 @@ export default function RegisterScreen() {
     setShowErrors(true);
     if (validation.hasErrors) {
       Alert.alert("Thiếu/Không hợp lệ", validation.messages.join("\n"));
+      return;
+    }
+    // Tài khoản thường đã dùng SĐT này → không cho đăng ký trùng, chỉ gợi ý lấy lại mật khẩu.
+    if (phoneNotice && !phoneNotice.guest) {
+      Alert.alert("Lỗi", "Số điện thoại này đã được đăng ký.");
       return;
     }
 
@@ -715,6 +793,17 @@ export default function RegisterScreen() {
               error={showErrors && !!validation.fields.phone}
               helperText={showErrors ? validation.fields.phone : ""}
             />
+            {phoneNotice ? (
+              <PhoneExistsNotice
+                guest={phoneNotice.guest}
+                canReset={phoneNotice.canReset}
+                isDark={isDark}
+                tint={tint}
+                textPrimary={textPrimary}
+                onForgot={goForgotWithPhone}
+                onLogin={goLoginWithPhone}
+              />
+            ) : null}
             <Field
               label="Số CCCD"
               value={form.cccd}
@@ -1463,6 +1552,104 @@ function BottomOptionPicker({
 }
 
 // Field Input thường (Giữ nguyên)
+// Gợi ý ngay dưới ô SĐT khi số đã có tài khoản (định nghĩa ngoài màn để không remount khi gõ).
+function PhoneExistsNotice({
+  guest,
+  canReset,
+  isDark,
+  tint,
+  textPrimary,
+  onForgot,
+  onLogin,
+}: {
+  guest: boolean;
+  canReset: boolean;
+  isDark: boolean;
+  tint: string;
+  textPrimary: string;
+  onForgot: () => void;
+  onLogin: () => void;
+}) {
+  const accent = guest ? tint : "#F59E0B";
+  const message = guest
+    ? canReset
+      ? "Số điện thoại này đã có tài khoản do ban tổ chức tạo khi đăng ký giải cho bạn. Đặt mật khẩu để dùng ngay — lịch sử thi đấu được giữ nguyên."
+      : "Số điện thoại này đã có tài khoản do ban tổ chức tạo khi đăng ký giải cho bạn. Hoàn tất đăng ký bên dưới để nhận lại tài khoản — lịch sử thi đấu được giữ nguyên."
+    : "Số điện thoại này đã được đăng ký.";
+  return (
+    <View
+      style={[
+        styles.phoneNotice,
+        {
+          backgroundColor: rgbaFromHex(accent, isDark ? 0.16 : 0.1),
+          borderColor: rgbaFromHex(accent, isDark ? 0.5 : 0.4),
+        },
+      ]}
+      accessibilityRole="alert"
+    >
+      <Text
+        style={[
+          styles.phoneNoticeText,
+          { color: textPrimary, fontWeight: guest ? "400" : "700" },
+        ]}
+      >
+        {message}
+      </Text>
+      {guest ? (
+        <View style={styles.phoneNoticeActions}>
+          {canReset ? (
+            <Pressable
+              onPress={onForgot}
+              style={({ pressed }) => [
+                styles.btn,
+                styles.phoneNoticeBtn,
+                { backgroundColor: tint, opacity: pressed ? 0.9 : 1 },
+              ]}
+              accessibilityRole="button"
+            >
+              <Text style={styles.btnTextWhite}>Đặt mật khẩu qua mã OTP</Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            onPress={onLogin}
+            style={({ pressed }) => [
+              styles.btn,
+              styles.btnOutline,
+              styles.phoneNoticeBtn,
+              { borderColor: tint, opacity: pressed ? 0.9 : 1 },
+            ]}
+            accessibilityRole="button"
+          >
+            <Text style={[styles.btnText, { color: tint }]}>Đăng nhập</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <View style={styles.phoneNoticeLinks}>
+          {canReset ? (
+            <Text style={[styles.phoneNoticeText, { color: textPrimary }]}>
+              Quên mật khẩu?{" "}
+              <Text
+                style={{ color: tint, fontWeight: "700" }}
+                onPress={onForgot}
+                suppressHighlighting
+              >
+                Lấy lại mật khẩu
+              </Text>
+            </Text>
+          ) : null}
+          <Text
+            style={[styles.phoneNoticeText, { color: tint, fontWeight: "700" }]}
+            onPress={onLogin}
+            suppressHighlighting
+          >
+            Đăng nhập
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 // Thay thế function Field cũ bằng đoạn này:
 function Field({
   label,
@@ -1944,6 +2131,17 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
   },
   btnText: { fontWeight: "700" },
+  phoneNotice: {
+    marginTop: -4,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  phoneNoticeText: { fontSize: 13.5, lineHeight: 19 },
+  phoneNoticeActions: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
+  phoneNoticeBtn: { marginTop: 0, paddingVertical: 9, flexGrow: 1 },
+  phoneNoticeLinks: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 14, marginTop: 6 },
   btnTextWhite: { color: "#fff", fontWeight: "700" },
   btnOutline: { borderWidth: 1 },
   btnTextOnly: { backgroundColor: "transparent" },

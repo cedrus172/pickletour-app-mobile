@@ -3685,5 +3685,11 @@
   "Vừa xong": "Just now",
   "Ảnh mẫu AI Poster của giải": "Tournament AI Poster template",
   "Sửa ảnh mẫu": "Change template",
-  "Poster tạo sau khi sửa sẽ dùng ảnh mẫu mới; poster đã tạo giữ nguyên.": "Posters created after the change use the new template; existing posters stay as they are."
+  "Poster tạo sau khi sửa sẽ dùng ảnh mẫu mới; poster đã tạo giữ nguyên.": "Posters created after the change use the new template; existing posters stay as they are.",
+  "Số điện thoại này đã có tài khoản do ban tổ chức tạo khi đăng ký giải cho bạn. Đặt mật khẩu để dùng ngay — lịch sử thi đấu được giữ nguyên.": "This phone number already has an account, created by the organizers when they registered you for a tournament. Set a password to start using it — your match history is kept.",
+  "Số điện thoại này đã có tài khoản do ban tổ chức tạo khi đăng ký giải cho bạn. Hoàn tất đăng ký bên dưới để nhận lại tài khoản — lịch sử thi đấu được giữ nguyên.": "This phone number already has an account, created by the organizers when they registered you for a tournament. Complete the sign-up below to claim it — your match history is kept.",
+  "Đặt mật khẩu qua mã OTP": "Set password via OTP",
+  "Số điện thoại này đã được đăng ký.": "This phone number is already registered.",
+  "Lấy lại mật khẩu": "Recover password",
+  "Nhập mã OTP gửi qua Zalo tới số này để đặt mật khẩu mới.": "Enter the OTP sent via Zalo to this number to set a new password."
 }

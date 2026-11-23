@@ -1,6 +1,6 @@
 // app/screens/ForgotPasswordScreen.jsx  (có thể đặt ở app/(auth)/forgot-password.jsx)
 import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import {
   Alert as RNAlert,
   ActivityIndicator,
@@ -17,7 +17,7 @@ import {
 } from "react-native";
 import { TextInput } from "@/components/ui/i18nTextInput";
 import { Text } from "@/components/ui/i18nText";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   useForgotPasswordMutation,
   useResolveResetOptionsMutation,
@@ -85,8 +85,19 @@ function SuccessBanner({ children, isDark }) {
 
 export default function ForgotPasswordScreen() {
   const authWide = useAuthWide();
+  // Điền sẵn từ màn Đăng ký: ?identifier=<SĐT>&guest=1 (tài khoản BTC tạo)&auto=1 (tự tiếp tục)
+  const params = useLocalSearchParams<{
+    identifier?: string | string[];
+    guest?: string | string[];
+    auto?: string | string[];
+  }>();
+  const firstParam = (v?: string | string[]) =>
+    String((Array.isArray(v) ? v[0] : v) || "").trim();
+  const prefillIdentifier = firstParam(params.identifier);
+  const isGuest = firstParam(params.guest) === "1";
+  const autoContinue = firstParam(params.auto) === "1";
   // identifier = email HOẶC số điện thoại; app tự hỏi BE kênh khả dụng.
-  const [identifier, setIdentifier] = useState("");
+  const [identifier, setIdentifier] = useState(prefillIdentifier);
   const [forgotPassword, { isLoading: isSending }] = useForgotPasswordMutation();
   const [resolveOptions, { isLoading: isResolving }] =
     useResolveResetOptionsMutation();
@@ -135,15 +146,16 @@ export default function ForgotPasswordScreen() {
           );
           return;
         }
-        const params = new URLSearchParams({
+        const query = new URLSearchParams({
           identifier: id,
           channel,
           masked: res?.masked || "",
           expiresIn: String(
             typeof res?.expiresIn === "number" ? res.expiresIn : 600
           ),
+          ...(isGuest ? { guest: "1" } : {}),
         }).toString();
-        router.push(`/reset-password?${params}`);
+        router.push(`/reset-password?${query}`);
       } catch (err: any) {
         RNAlert.alert(
           "Thất bại",
@@ -151,7 +163,7 @@ export default function ForgotPasswordScreen() {
         );
       }
     },
-    [identifier, isLoading, forgotPassword, router]
+    [identifier, isLoading, forgotPassword, router, isGuest]
   );
 
   // Bước 1: tra kênh khả dụng. Nếu chỉ 1 kênh -> gửi luôn; nếu 2 -> cho chọn.
@@ -189,6 +201,14 @@ export default function ForgotPasswordScreen() {
       );
     }
   }, [identValid, identifier, isLoading, resolveOptions, sendOtp]);
+
+  // Đi từ nút "Đặt mật khẩu qua mã OTP" ở màn Đăng ký → tự tiếp tục 1 lần (tra kênh → gửi OTP).
+  const autoRanRef = useRef(false);
+  useEffect(() => {
+    if (!autoContinue || autoRanRef.current || !identValid) return;
+    autoRanRef.current = true;
+    handleContinue();
+  }, [autoContinue, identValid, handleContinue]);
 
   const goLogin = useCallback(() => {
     router.back();
@@ -243,6 +263,11 @@ export default function ForgotPasswordScreen() {
                 thống sẽ gửi <Text style={styles.bold}>mã OTP 6 số</Text> để đặt
                 lại mật khẩu.
               </Text>
+              {isGuest && identifier.trim() === prefillIdentifier ? (
+                <Text style={[styles.desc, { color: themed.text }]}>
+                  Nhập mã OTP gửi qua Zalo tới số này để đặt mật khẩu mới.
+                </Text>
+              ) : null}
 
               {opts?.found && opts?.channels?.email && opts?.channels?.zalo ? (
                 // Có cả email và SĐT -> cho chọn kênh nhận OTP
