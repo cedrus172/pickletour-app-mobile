@@ -1685,11 +1685,16 @@ function PostCard({ post, me }: { post: any; me: any }) {
         </Pressable>
         <Pressable onPress={openAuthor} style={{ flex: 1 }} hitSlop={6}>
           <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
-            <PlayerNameText
-              user={post.author}
-              name={authorName(post.author)}
-              style={styles.postAuthor}
-            />
+            {isPage ? (
+              // Tên Fanpage: chữ thường, không áp hiệu ứng tên VĐV (bảng hiệu ứng khớp theo nickname)
+              <Text style={styles.postAuthor}>{authorName(post.author)}</Text>
+            ) : (
+              <PlayerNameText
+                user={post.author}
+                name={authorName(post.author)}
+                style={styles.postAuthor}
+              />
+            )}
             {post.isPinned && (
               <Ionicons
                 name="pin"
