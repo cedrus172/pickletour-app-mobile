@@ -4,8 +4,9 @@ import { apiSlice } from "./apiSlice";
 export const feedApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     listFeed: builder.query({
-      query: ({ cursor, tag, limit = 10, following } = {}) => {
+      query: ({ cursor, tag, limit = 10, following, page } = {}) => {
         const p = new URLSearchParams();
+        if (page) p.set("page", String(page)); // bài của một Fanpage
         if (cursor) p.set("cursor", String(cursor));
         if (tag) p.set("tag", String(tag).toLowerCase());
         if (limit) p.set("limit", String(limit));

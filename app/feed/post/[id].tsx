@@ -711,7 +711,10 @@ export default function FeedPostDetail() {
     setMentionResults([]);
   };
 
-  const isMine = post && String(post.author?._id) === String(me?._id);
+  // Bài đăng dưới tên Fanpage: author = trang, postedBy = người bấm đăng
+  const isPage = Boolean(post?.author?.isPage);
+  const isMine = post && (isPage ? String(post.postedBy?._id || "") === String(me?._id) : String(post.author?._id) === String(me?._id));
+  const authorPath = post?.author?._id ? (isPage ? `/fanpage/${post.author._id}` : `/profile/${post.author._id}`) : "";
 
   const openPostMenu = () => {
     if (!post) return;
@@ -729,7 +732,7 @@ export default function FeedPostDetail() {
             }
           }),
       });
-      if (post.author?._id) {
+      if (post.author?._id && !isPage) {
         opts.push({
           text: "Chặn người này",
           style: "destructive" as const,
@@ -888,25 +891,18 @@ export default function FeedPostDetail() {
         >
           <View style={styles.postCard}>
             <View style={styles.postHeader}>
-              <Pressable
-                onPress={() =>
-                  post.author?._id && router.push(`/profile/${post.author._id}`)
-                }
-                hitSlop={6}
-              >
+              <Pressable onPress={() => authorPath && router.push(authorPath as any)} hitSlop={6}>
                 <AuthorAvatar user={post.author} size={40} />
               </Pressable>
-              <Pressable
-                onPress={() =>
-                  post.author?._id && router.push(`/profile/${post.author._id}`)
-                }
-                style={{ flex: 1 }}
-                hitSlop={6}
-              >
+              <Pressable onPress={() => authorPath && router.push(authorPath as any)} style={{ flex: 1 }} hitSlop={6}>
                 <Text style={styles.postAuthor}>
                   {authorName(post.author)}
+                  {isPage && post.author?.verified ? " ✓" : ""}
                 </Text>
-                <Text style={styles.postTime}>{fmtTime(post.createdAt)}</Text>
+                <Text style={styles.postTime}>
+                  {fmtTime(post.createdAt)}
+                  {isPage && post.postedBy ? ` · đăng bởi ${authorName(post.postedBy)}` : ""}
+                </Text>
               </Pressable>
               {!isMine && (
                 <Pressable onPress={openPostMenu} hitSlop={12}>

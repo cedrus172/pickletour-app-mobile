@@ -23,6 +23,7 @@ import { Text } from "@/components/ui/i18nText";
 import { TextInput } from "@/components/ui/i18nTextInput";
 import { useUploadFeedMediaMutation } from "@/slices/feedApiSlice";
 import { useCreateStoryMutation } from "@/slices/storiesApiSlice";
+import PostAsPicker, { usePostablePages, type PostAsPage } from "@/components/fanpage/PostAsPicker";
 
 export type PickedStoryMedia = {
   uri: string;
@@ -53,7 +54,7 @@ function PreviewVideo({ uri }: { uri: string }) {
 
 function ComposerBody({
   media,
-  canPermanent,
+  canPermanent: canPermanentSelf,
   onClose,
   onPosted,
 }: {
@@ -63,6 +64,10 @@ function ComposerBody({
   onPosted: () => void;
 }) {
   const insets = useSafeAreaInsets(); // trong cửa sổ modal
+  // Đăng dưới tên Fanpage (admin: trang PickleTour). Trang chính thức / có dấu tích được đăng vĩnh viễn.
+  const pages = usePostablePages();
+  const [asPage, setAsPage] = useState<PostAsPage | null>(null);
+  const canPermanent = canPermanentSelf || Boolean(asPage?.isOfficial || asPage?.verified);
   const [caption, setCaption] = useState("");
   const [permanent, setPermanent] = useState(canPermanent);
   const [linkUrl, setLinkUrl] = useState("");
@@ -115,6 +120,7 @@ function ComposerBody({
         permanent: canPermanent && permanent,
         linkUrl: canPermanent ? linkUrl.trim() : "",
         linkLabel: canPermanent ? linkLabel.trim() : "",
+        asPage: asPage?._id || undefined,
       }).unwrap();
       onPosted();
     } catch (e: any) {
@@ -155,6 +161,7 @@ function ComposerBody({
         colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.82)"]}
         style={[styles.bottom, { paddingBottom: kb ? 12 : Math.max(insets.bottom, 14) + 6 }]}
       >
+        <PostAsPicker pages={pages} value={asPage?._id || null} onChange={(_id, page) => setAsPage(page)} />
         {canPermanent ? (
           <View style={styles.durRow}>
             <Text style={styles.durLabel}>Thời gian hiển thị</Text>

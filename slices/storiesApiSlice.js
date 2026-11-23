@@ -4,7 +4,8 @@ import { apiSlice } from "./apiSlice";
 export const storiesApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getStoryFeed: builder.query({
-      query: () => ({ url: `/api/stories/feed`, method: "GET" }),
+      // page: chỉ story của một Fanpage (màn Fanpage); bỏ trống = thanh story Bảng tin
+      query: (page) => ({ url: page ? `/api/stories/feed?page=${page}` : `/api/stories/feed`, method: "GET" }),
       providesTags: [{ type: "Story", id: "FEED" }],
       keepUnusedDataFor: 120,
     }),

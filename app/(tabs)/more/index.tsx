@@ -68,6 +68,14 @@ const MORE_ITEMS = [
     accent: "#16a34a",
   },
   {
+    key: "fanpage",
+    title: "Fanpage",
+    description: "Trang CLB, ban tổ chức, sân: theo dõi, tạo trang và cùng đăng bài, story.",
+    icon: "flag-outline" as const,
+    route: "/fanpage",
+    accent: "#2F8BFF",
+  },
+  {
     key: "live",
     title: "Live",
     description: "Xem livestream các trận đấu đang diễn ra.",
@@ -211,7 +219,7 @@ const MORE_ITEMS = [
 const SECTIONS: { title: string; keys: string[] }[] = [
   { title: "Cá nhân", keys: ["profile", "my_tournament", "my-events", "chat", "messages", "friends"] },
   { title: "Đặt sân", keys: ["courts", "my-bookings", "my-packages"] },
-  { title: "Khám phá", keys: ["marketplace", "play", "coaches"] },
+  { title: "Khám phá", keys: ["fanpage", "marketplace", "play", "coaches"] },
   { title: "Xem trực tiếp", keys: ["live", "youtube-library", "clip-cam", "highlight-var"] },
   { title: "Trọng tài", keys: ["referee-clusters", "referee-scan"] },
   { title: "Chủ sân & Quản trị", keys: ["owner", "live-control", "fb-to-youtube", "admin-cam-clip", "admin-face-lookup", "my-live-grants"] },

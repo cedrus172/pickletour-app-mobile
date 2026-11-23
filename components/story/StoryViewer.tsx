@@ -158,6 +158,14 @@ function ViewerBody({ groups, startIndex, onClose }: { groups: any[]; startIndex
   const [si, setSi] = useState(() => (group?.isMine ? 0 : firstUnseen(group)));
   const story = stories[si];
   const isMine = String(group?.author?._id || "") === meId;
+  // Story đăng dưới tên Fanpage: thành viên quản lý trang được xoá + xem người xem
+  const isPage = Boolean(group?.author?.isPage);
+  const canManage = isMine || (isPage && Boolean(group?.canManage));
+  const authorPath = group?.author?._id
+    ? isPage
+      ? `/fanpage/${String(group.author._id)}`
+      : `/profile/${String(group.author._id)}`
+    : "";
 
   const [held, setHeld] = useState(false);
   const [sheet, setSheet] = useState(false);
@@ -252,7 +260,7 @@ function ViewerBody({ groups, startIndex, onClose }: { groups: any[]; startIndex
     setHeld(true);
     const done = () => setHeld(false);
     const opts: any[] = [];
-    if (isMine || isAdmin) {
+    if (canManage || isAdmin) {
       opts.push({
         text: "Xoá story",
         style: "destructive",
@@ -273,7 +281,7 @@ function ViewerBody({ groups, startIndex, onClose }: { groups: any[]; startIndex
         },
       });
     }
-    if (!isMine && meId) {
+    if (!canManage && meId) {
       opts.push({
         text: "Báo cáo story",
         style: "destructive",
@@ -292,10 +300,10 @@ function ViewerBody({ groups, startIndex, onClose }: { groups: any[]; startIndex
     }
     if (!isMine) {
       opts.push({
-        text: "Xem trang cá nhân",
+        text: isPage ? "Xem Fanpage" : "Xem trang cá nhân",
         onPress: () => {
           onClose();
-          if (group?.author?._id) router.push(`/profile/${String(group.author._id)}` as any);
+          if (authorPath) router.push(authorPath as any);
         },
       });
     }
@@ -371,7 +379,7 @@ function ViewerBody({ groups, startIndex, onClose }: { groups: any[]; startIndex
             style={styles.authorTap}
             onPress={() => {
               onClose();
-              if (group?.author?._id) router.push(`/profile/${String(group.author._id)}` as any);
+              if (authorPath) router.push(authorPath as any);
             }}
           >
             <AuthorAvatar user={group.author} size={38} />
@@ -385,6 +393,7 @@ function ViewerBody({ groups, startIndex, onClose }: { groups: any[]; startIndex
               <Text style={styles.authorSub} numberOfLines={1}>
                 {timeAgo(story.createdAt)}
                 {story.permanent ? " · Vĩnh viễn" : ""}
+                {isPage && story.postedBy ? ` · đăng bởi ${nameOf(story.postedBy)}` : ""}
               </Text>
             </View>
           </Pressable>
@@ -415,7 +424,7 @@ function ViewerBody({ groups, startIndex, onClose }: { groups: any[]; startIndex
             </Text>
           </Pressable>
         ) : null}
-        {isMine ? (
+        {canManage ? (
           <Pressable style={styles.viewsBtn} onPress={() => setSheet(true)}>
             <Ionicons name="eye-outline" size={19} color="#fff" />
             <Text style={styles.viewsText}>{`${story.viewCount || 0} người xem`}</Text>

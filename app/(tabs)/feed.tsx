@@ -82,6 +82,7 @@ import {
   FeedPage,
 } from "@/components/feed/FeedDesign";
 import StoryBar from "@/components/story/StoryBar";
+import PostAsPicker, { usePostablePages, type PostAsPage } from "@/components/fanpage/PostAsPicker";
 
 const REACTION_EMOJI: Record<string, string> = {
   like: "👍",
@@ -335,6 +336,9 @@ function Composer({ onPosted }: { onPosted: () => void }) {
   const [uploadMedia] = useUploadFeedMediaMutation();
   const [createPost, { isLoading }] = useCreateFeedPostMutation();
   const [triggerUserSearch] = useLazySearchUserQuery();
+  // Đăng dưới tên Fanpage (admin: trang PickleTour) — ẩn nếu không quản lý trang nào
+  const postablePages = usePostablePages();
+  const [asPage, setAsPage] = useState<PostAsPage | null>(null);
 
   const onChangeContent = (text: string) => {
     setContent(text);
@@ -475,6 +479,7 @@ function Composer({ onPosted }: { onPosted: () => void }) {
         media,
         linkedTournament: linkedTournament?._id || null,
         mentions: stillPresent,
+        asPage: asPage?._id || undefined,
         poll: pollValid
           ? {
               question: pollDraft.question,
@@ -496,12 +501,22 @@ function Composer({ onPosted }: { onPosted: () => void }) {
 
   return (
     <View style={styles.composer}>
+      {postablePages.length ? (
+        <View style={{ marginBottom: 10 }}>
+          <PostAsPicker
+            pages={postablePages}
+            value={asPage?._id || null}
+            onChange={(_id, page) => setAsPage(page)}
+            palette={{ text: C.text, sub: C.sub, card: C.field, border: C.border, accent: C.primary, selBg: C.primarySoft }}
+          />
+        </View>
+      ) : null}
       <View style={styles.composerRow}>
-        <AuthorAvatar user={me} size={46} />
+        <AuthorAvatar user={asPage ? { ...me, avatar: asPage.avatar, name: asPage.name, nickname: asPage.name } : me} size={46} />
         <TextInput
           style={styles.input}
           multiline
-          placeholder={`${authorName(me)} ơi, chia sẻ gì hôm nay? (gõ @ để nhắc bạn)`}
+          placeholder={asPage ? `Viết bài cho ${asPage.name}… (gõ @ để nhắc bạn)` : `${authorName(me)} ơi, chia sẻ gì hôm nay? (gõ @ để nhắc bạn)`}
           placeholderTextColor={C.muted}
           value={content}
           onChangeText={onChangeContent}
@@ -1505,7 +1520,8 @@ function SharedEventCardRN({ se }: { se: any }) {
 
 // Bài viết chỉ vẽ lại khi chính nó đổi (cùng object từ cache RTK Query) — tránh vẽ lại cả danh sách
 // mỗi lần màn Bảng tin cập nhật trạng thái (tải thêm, đổi bộ lọc, socket…).
-const MemoPostCard = React.memo(function MemoPostCard(props: { post: any; me: any }) {
+// Dùng lại ở màn Fanpage (app/fanpage/[id].tsx)
+export const MemoPostCard = React.memo(function MemoPostCard(props: { post: any; me: any }) {
   return <PostCard {...props} />;
 });
 
@@ -1551,8 +1567,20 @@ function PostCard({ post, me }: { post: any; me: any }) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
 
-  const isMine = String(post.author?._id) === String(me?._id);
+  // Bài đăng dưới tên Fanpage: author = trang, postedBy = người bấm đăng
+  const isPage = Boolean(post.author?.isPage);
+  const postablePages = usePostablePages();
+  const pageRole = isPage
+    ? postablePages.find((p) => String(p._id) === String(post.author?._id))?.myRole || null
+    : null;
+  const isMine = isPage
+    ? String(post.postedBy?._id || "") === String(me?._id) || pageRole === "owner" || pageRole === "admin"
+    : String(post.author?._id) === String(me?._id);
   const isAdmin = me?.role === "admin";
+  const openAuthor = () => {
+    if (!post.author?._id) return;
+    router.push((isPage ? `/fanpage/${post.author._id}` : `/profile/${post.author._id}`) as any);
+  };
 
   const handleShare = async () => {
     const url = `${WEB_BASE_URL}/feed/post/${post._id}`;
@@ -1635,7 +1663,7 @@ function PostCard({ post, me }: { post: any; me: any }) {
     }
     if (!isMine) {
       options.push({ text: "Báo cáo bài viết", onPress: doReportPost });
-      if (post.author?._id) {
+      if (post.author?._id && !isPage) {
         options.push({
           text: "Chặn người này",
           onPress: doBlockAuthor,
@@ -1652,21 +1680,10 @@ function PostCard({ post, me }: { post: any; me: any }) {
   return (
     <View style={styles.postCard}>
       <View style={styles.postHeader}>
-        <Pressable
-          onPress={() =>
-            post.author?._id && router.push(`/profile/${post.author._id}`)
-          }
-          hitSlop={6}
-        >
+        <Pressable onPress={openAuthor} hitSlop={6}>
           <AuthorAvatar user={post.author} size={46} />
         </Pressable>
-        <Pressable
-          onPress={() =>
-            post.author?._id && router.push(`/profile/${post.author._id}`)
-          }
-          style={{ flex: 1 }}
-          hitSlop={6}
-        >
+        <Pressable onPress={openAuthor} style={{ flex: 1 }} hitSlop={6}>
           <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
             <PlayerNameText
               user={post.author}
@@ -1681,12 +1698,20 @@ function PostCard({ post, me }: { post: any; me: any }) {
                 style={styles.pinnedBadge}
               />
             )}
-            <ScoreBadges
-              single={post.author?.score?.single}
-              double={post.author?.score?.double}
-            />
+            {isPage && post.author?.verified ? (
+              <Ionicons name="checkmark-circle" size={15} color="#2F8BFF" style={{ marginLeft: 4 }} />
+            ) : null}
+            {!isPage ? (
+              <ScoreBadges
+                single={post.author?.score?.single}
+                double={post.author?.score?.double}
+              />
+            ) : null}
           </View>
-          <Text style={styles.postTime}>{fmtTime(post.createdAt)}</Text>
+          <Text style={styles.postTime}>
+            {fmtTime(post.createdAt)}
+            {isPage && post.postedBy ? ` · đăng bởi ${authorName(post.postedBy)}` : ""}
+          </Text>
         </Pressable>
         <Pressable onPress={handleMenu} hitSlop={12}>
           <Ionicons name="ellipsis-horizontal" size={20} color={C.sub} />
