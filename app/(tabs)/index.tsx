@@ -41,6 +41,7 @@ import { normalizeUrl } from "@/utils/normalizeUri";
 import ImageViewing from "@/components/ui/ResponsiveImageViewer";
 import LeaderboardSection from "@/components/home/LeaderboardSection";
 import EventLiveBanner from "@/components/home/EventLiveBanner";
+import { useGetEventLiveHomeQuery } from "@/slices/eventLiveApiSlice";
 import CourtBookingBanner from "@/components/home/CourtBookingBanner";
 import YoutubeClipsHome from "@/components/home/YoutubeClipsHome";
 import HomeFeatureIcon from "@/components/home/HomeFeatureIcon";
@@ -1929,6 +1930,9 @@ function HomeLiquidGlassBackdrop({
 }
 
 export default function HomeScreen() {
+  // Có banner xem live (dùng chung cache với EventLiveBanner) → thẻ GOATWIN đứng dưới banner thay vì đè ảnh đầu trang.
+  const { data: liveHome } = useGetEventLiveHomeQuery(undefined);
+  const hasHomeLive = ((liveHome as any)?.events || []).some((e: any) => e && e.configured);
   const bottomPadding = useFloatingTabBarPadding(100);
   const scrollViewRef = React.useRef(null);
   const heroLottieRef = React.useRef<any>(null);
@@ -1992,10 +1996,12 @@ export default function HomeScreen() {
             <View testID="home-responsive-layout" style={twoPane ? { width: homeWidth, flexDirection: "row", alignItems: "flex-start", gap: 16 } : undefined}>
               <View testID="home-primary-pane" style={twoPane ? { width: paneWidth + 24 } : undefined}>
                 <HomeV3Hero width={twoPane ? paneWidth + 24 : homeWidth} />
-                <HomeV3ShopCard />
+                {/* Banner xem live giải (đang live / sắp diễn ra + đếm ngược) đặt trên gian hàng GOATWIN,
+                    đè lên mép dưới ảnh đầu trang như thẻ GOATWIN trước đây. */}
+                <EventLiveBanner overlapHero />
+                <HomeV3ShopCard belowBanner={hasHomeLive} />
                 <HomeV3QuickTiles />
                 <HomeV3ArcadeBanner />
-                <EventLiveBanner />
                 <CourtBookingBanner />
                 {stage >= 1 ? <HomeV3Shortcuts /> : null}
                 <View style={{ height: 22 }} />

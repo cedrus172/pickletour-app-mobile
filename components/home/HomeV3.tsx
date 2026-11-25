@@ -198,11 +198,17 @@ export const HomeV3UserCard = memo(function HomeV3UserCard({ variant = "card" }:
 /* ------------------------------------------------------------------ */
 /* Thẻ Gian hàng độc quyền GOATWIN (chỉ hiện khi gian hàng mở cho người xem) */
 /* ------------------------------------------------------------------ */
-export const HomeV3ShopCard = memo(function HomeV3ShopCard() {
+export const HomeV3ShopCard = memo(function HomeV3ShopCard({ belowBanner = false }: { belowBanner?: boolean }) {
   const { data: shop } = useShopInfo();
   if (!shop?.enabled) return null;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={shop.title} onPress={() => router.push("/shop" as never)} style={styles.shopPress}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={shop.title}
+      onPress={() => router.push("/shop" as never)}
+      // Có banner xem live phía trên → banner đè lên ảnh đầu trang, thẻ này đứng ngay dưới (không đè -30).
+      style={[styles.shopPress, belowBanner && { marginTop: 12 }]}
+    >
       <LinearGradient colors={["#070709", "#2A0709", "#4A0B10"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.shopCard}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>

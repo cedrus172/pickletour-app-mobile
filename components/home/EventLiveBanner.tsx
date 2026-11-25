@@ -95,7 +95,7 @@ function EventLiveCard({ ev, pulse }: { ev: HomeEvent; pulse: Animated.Value }) 
   );
 }
 
-export default function EventLiveBanner() {
+export default function EventLiveBanner({ overlapHero = false }: { overlapHero?: boolean }) {
   const { data } = useGetEventLiveHomeQuery(undefined, {
     refetchOnMountOrArgChange: true,
   });
@@ -118,7 +118,7 @@ export default function EventLiveBanner() {
   if (!events.length) return null;
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, overlapHero && IS_V3 && { marginTop: -30, marginBottom: 0 }]}>
       {events.map((ev, i) => (
         <View key={ev.slug || `elv-${i}`} style={i > 0 ? { marginTop: 10 } : undefined}>
           <EventLiveCard ev={ev} pulse={pulse} />
