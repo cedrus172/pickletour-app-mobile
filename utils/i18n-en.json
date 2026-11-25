@@ -3691,5 +3691,11 @@
   "Đặt mật khẩu qua mã OTP": "Set password via OTP",
   "Số điện thoại này đã được đăng ký.": "This phone number is already registered.",
   "Lấy lại mật khẩu": "Recover password",
-  "Nhập mã OTP gửi qua Zalo tới số này để đặt mật khẩu mới.": "Enter the OTP sent via Zalo to this number to set a new password."
+  "Nhập mã OTP gửi qua Zalo tới số này để đặt mật khẩu mới.": "Enter the OTP sent via Zalo to this number to set a new password.",
+  "SỰ KIỆN SẮP BẮT ĐẦU": "EVENT STARTS SOON",
+  "Phút": "Min",
+  "Giây": "Sec",
+  "Bắt đầu lúc ": "Starts at ",
+  "Bắt đầu lúc": "Starts at",
+  "Luồng trực tiếp sẽ tự hiện khi sự kiện lên sóng": "Live streams will appear here once the event goes on air"
 }

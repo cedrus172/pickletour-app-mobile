@@ -38,6 +38,8 @@ import {
 import { useChatKeyboard } from "@/hooks/useChatKeyboard";
 import EventLiveChat from "@/components/EventLiveChat";
 import { useThemeTokens, type ThemeTokens } from "@/hooks/useThemeTokens";
+import EventCountdown from "@/components/live/EventCountdown";
+import useEventCountdown from "@/hooks/useEventCountdown";
 import { IS_V3_LIGHT, V3, sk } from "@/hooks/uiVersion";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -282,10 +284,14 @@ export default function EventLiveScreen() {
     [live, current?.videoId],
   );
 
+  // Chưa tới giờ sự kiện → khung video hiện đồng hồ đếm ngược (không tự phát video xem lại).
+  const countdown = useEventCountdown(data?.startAt);
+
   // Tự chọn feed đầu tiên khi có dữ liệu — ưu tiên luồng NHÚNG được.
   useEffect(() => {
     if (current) return;
     const liveFeeds = live.flatMap((c) => c.angles || []);
+    if (countdown.active && !liveFeeds.length) return;
     const replayFeeds = replays.flatMap((c) => c.videos || []);
     const first =
       liveFeeds.find((f) => f.embeddable !== false) ||
@@ -296,7 +302,7 @@ export default function EventLiveScreen() {
       setCurrent(first);
       if (!live.length && replays.length) setTab("replay");
     }
-  }, [live, replays, current]);
+  }, [live, replays, current, countdown.active]);
 
   useEffect(() => {
     if (!live.length && replays.length) setTab("replay");
@@ -481,6 +487,8 @@ export default function EventLiveScreen() {
             <View style={styles.playerEmpty}>
               {isLoading ? (
                 <ActivityIndicator color="#fff" />
+              ) : countdown.active ? (
+                <EventCountdown fill startAt={data?.startAt} eventName={data?.eventName || ""} />
               ) : (
                 <Text style={{ color: SUB }}>Chưa có video để phát</Text>
               )}

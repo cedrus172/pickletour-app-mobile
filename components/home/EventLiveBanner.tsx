@@ -16,6 +16,7 @@ import { Text } from "@/components/ui/i18nText";
 import { useGetEventLiveHomeQuery } from "@/slices/eventLiveApiSlice";
 import { Image } from "expo-image";
 import { IS_V3 } from "@/hooks/uiVersion";
+import useEventCountdown, { fmtCountdown } from "@/hooks/useEventCountdown";
 
 const LIVE_BANNER_V3 = require("@/assets/images/v3/live-banner.jpg");
 
@@ -23,12 +24,16 @@ type HomeEvent = {
   slug?: string;
   eventName?: string;
   bannerImageUrl?: string;
+  startAt?: string;
   configured?: boolean;
 };
 
 function EventLiveCard({ ev, pulse }: { ev: HomeEvent; pulse: Animated.Value }) {
   const name = ev.eventName || "Giải đấu đang diễn ra";
   const href = ev.slug ? `/live/event/${ev.slug}` : "/live/event";
+  // Có giờ bắt đầu ở tương lai → "Sắp diễn ra" + đồng hồ đếm ngược.
+  const cd = useEventCountdown(ev.startAt);
+  const soon = cd.active;
   if (IS_V3) {
     return (
       <Pressable onPress={() => router.push(href as any)} style={v3.press}>
@@ -38,19 +43,19 @@ function EventLiveCard({ ev, pulse }: { ev: HomeEvent; pulse: Animated.Value }) 
             <Animated.View style={{ opacity: pulse }}>
               <Ionicons name="radio" size={13} color="#fff" />
             </Animated.View>
-            <Text style={v3.liveTagText}>LIVE</Text>
+            <Text style={v3.liveTagText}>{soon ? "SẮP DIỄN RA" : "LIVE"}</Text>
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={v3.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
               {name}
             </Text>
             <Text style={v3.sub} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
-              Trực tiếp · Nhiều sân · Nhiều góc quay
+              {soon ? `Bắt đầu sau ${fmtCountdown(cd)}` : "Trực tiếp · Nhiều sân · Nhiều góc quay"}
             </Text>
           </View>
           <View style={v3.cta}>
-            <Ionicons name="play" size={14} color="#EF3B3B" />
-            <Text style={v3.ctaText}>Xem ngay</Text>
+            <Ionicons name={soon ? "time-outline" : "play"} size={14} color="#EF3B3B" />
+            <Text style={v3.ctaText}>{soon ? "Chi tiết" : "Xem ngay"}</Text>
           </View>
         </View>
       </Pressable>
@@ -69,7 +74,7 @@ function EventLiveCard({ ev, pulse }: { ev: HomeEvent; pulse: Animated.Value }) 
       >
         <View style={styles.liveTag}>
           <Animated.View style={[styles.dot, { opacity: pulse }]} />
-          <Text style={styles.liveTagText}>LIVE</Text>
+          <Text style={styles.liveTagText}>{soon ? "SẮP DIỄN RA" : "LIVE"}</Text>
         </View>
 
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -77,7 +82,7 @@ function EventLiveCard({ ev, pulse }: { ev: HomeEvent; pulse: Animated.Value }) 
             {name}
           </Text>
           <Text style={styles.sub} numberOfLines={1}>
-            Xem trực tiếp · nhiều sân · nhiều góc camera
+            {soon ? `Bắt đầu sau ${fmtCountdown(cd)}` : "Xem trực tiếp · nhiều sân · nhiều góc camera"}
           </Text>
         </View>
 
