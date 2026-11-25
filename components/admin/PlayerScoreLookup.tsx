@@ -13,7 +13,7 @@ import { useCreateEvaluationMutation } from "@/slices/evaluationsApiSlice";
 import { TextInput } from "@/components/ui/i18nTextInput";
 import { normalizeUrl } from "@/utils/normalizeUri";
 
-export const SOURCE_COLOR: Record<string, string> = { spc: "#2563EB", pbvn: "#16A34A", pt: "#0891B2" };
+export const SOURCE_COLOR: Record<string, string> = { spc: "#2563EB", pbvn: "#16A34A", pvna: "#EA580C", pt: "#0891B2" };
 
 /** Ảnh đại diện bấm vào → xem ảnh đầy đủ (nền đen, chạm để đóng). */
 export function ZoomAvatar({ uri, size = 48, fallback }: { uri?: string; size?: number; fallback?: React.ReactNode }) {
@@ -296,7 +296,7 @@ export default function PlayerScoreLookupModal({
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                   {res.face ? <ExpoImage source={{ uri: res.face }} style={{ width: 52, height: 52, borderRadius: 26 }} /> : null}
                   <Text style={{ color: C.sub, fontSize: 12.5, flex: 1, lineHeight: 17 }}>
-                    Tra theo {srcLabel}. Điểm PickleTour = điểm đôi của diễn đàn · PickleballVN trừ 0.4 · SportConnect giữ nguyên.
+                    Tra theo {srcLabel}. Điểm PickleTour = điểm đôi của diễn đàn · PickleballVN trừ 0.4 · SportConnect, PVNA giữ nguyên.
                   </Text>
                 </View>
               )}

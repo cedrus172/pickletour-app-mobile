@@ -62,6 +62,7 @@ import { OpenMessageButton } from "@/components/social/OpenMessageButton";
 import { UserActionsMenu } from "@/components/social/UserActionsMenu";
 import { CoachAchievementsMobile } from "./CoachAchievementsMobile";
 import PlayerNameText from "@/components/PlayerNameText";
+import PlayerScoreLookupModal from "@/components/admin/PlayerScoreLookup";
 
 const HEADER_HEIGHT = 230;
 const AVATAR_SIZE = 88;
@@ -1449,6 +1450,9 @@ export default function PublicProfileScreen() {
     userInfo?.role === "admin" ||
     (Array.isArray(userInfo?.roles) && userInfo.roles.includes("admin"));
   const canSeeSensitive = isSelf || isAdminViewer;
+  // Admin: "Tra điểm" — tra khuôn mặt VĐV (ưu tiên ảnh CCCD, không có thì ảnh đại diện) trong dữ liệu
+  // SportConnect / PickleballVN / PVNA, xem điểm quy đổi và chấm trình ngay tại hồ sơ.
+  const [lookupTarget, setLookupTarget] = useState<{ imageUrl: string; name?: string; userId?: string; province?: string; score?: number } | null>(null);
 
   const isOnline = base?.isOnline || base?.status === "online";
   const lastSeen = base?.lastSeen;
@@ -2417,8 +2421,27 @@ export default function PublicProfileScreen() {
                     style={[styles.profileAction, { borderColor: colors.border }]}
                   >
                     <Ionicons name="ribbon-outline" size={20} color={colors.text} />
-                    <Text style={[styles.profileActionText, { color: colors.text }]}>
+                    <Text style={[styles.profileActionText, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                       Chấm trình
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() =>
+                      setLookupTarget({
+                        imageUrl: String(base?.avatar || ""),
+                        name: base?.name || base?.nickname || "",
+                        userId: String(baseId || id),
+                        province: base?.province || "",
+                        score: Number.isFinite(Number(latestDouble)) ? Number(latestDouble) : undefined,
+                      })
+                    }
+                    accessibilityRole="button"
+                    activeOpacity={0.85}
+                    style={[styles.profileAction, { borderColor: colors.border }]}
+                  >
+                    <Ionicons name="scan-outline" size={20} color={colors.text} />
+                    <Text style={[styles.profileActionText, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+                      Tra điểm
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -2428,7 +2451,7 @@ export default function PublicProfileScreen() {
                     style={[styles.profileAction, { borderColor: colors.border }]}
                   >
                     <Ionicons name="card-outline" size={20} color={colors.text} />
-                    <Text style={[styles.profileActionText, { color: colors.text }]}>
+                    <Text style={[styles.profileActionText, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                       CCCD / KYC
                     </Text>
                   </TouchableOpacity>
@@ -2892,6 +2915,18 @@ export default function PublicProfileScreen() {
             )}
           </View>
         </Animated.ScrollView>
+
+        {/* Admin: Tra điểm theo khuôn mặt (CCCD → ảnh đại diện) */}
+        {isAdminViewer ? (
+          <PlayerScoreLookupModal
+            target={lookupTarget}
+            onClose={() => setLookupTarget(null)}
+            onGraded={() => {
+              baseQ.refetch?.();
+              rateQ.refetch?.();
+            }}
+          />
+        ) : null}
 
         {/* Avatar Viewer */}
         <ImageViewing
