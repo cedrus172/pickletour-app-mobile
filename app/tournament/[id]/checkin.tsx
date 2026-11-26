@@ -612,7 +612,7 @@ export default function TournamentCheckinScreen() {
                   <View style={[styles.rowWrap, { marginTop: 6 }]}>
                     <ChipRN
                       label={reg?.paid ? "Đã thanh toán" : "Chưa thanh toán"}
-                      variant={reg?.paid ? "success" : "neutral"}
+                      variant={reg?.paid ? "success" : "warning"}
                     />
                     {reg?.checkinAt ? (
                       <ChipRN

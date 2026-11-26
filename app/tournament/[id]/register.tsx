@@ -1084,17 +1084,28 @@ const RegItem = memo(function RegItem({
             </View>
           )}
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+        {/* Đã thanh toán = xanh lục, chưa thanh toán = vàng (giống web). */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 4,
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            borderRadius: 999,
+            backgroundColor: isPaid ? "#16a34a" : "#facc15",
+          }}
+        >
           <Ionicons
             name={isPaid ? "checkmark-circle" : "time"}
-            size={14}
-            color={isPaid ? C.successText : C.warningText}
+            size={13}
+            color={isPaid ? "#ffffff" : "#422006"}
           />
           <Text
             style={{
               fontSize: 11,
-              fontWeight: "700",
-              color: isPaid ? C.successText : C.warningText,
+              fontWeight: "800",
+              color: isPaid ? "#ffffff" : "#422006",
             }}
           >
             {isPaid ? "Đã Thanh toán" : "Chưa Thanh toán"}
