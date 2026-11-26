@@ -3,6 +3,7 @@ import { withNotificationHeader } from "@/components/GlobalNotificationShell";
 // nên i18n phải dùng alias `tr` để không gọi nhầm object tokens như một hàm.
 import { t as tr } from "@/utils/i18n";
 // app/(app)/admin/tournament/[id]/ManageScreen.jsx
+import * as Clipboard from "expo-clipboard";
 import React, {
   useEffect,
   useMemo,
@@ -3994,6 +3995,31 @@ ${html.replace(/<html>|<\/html>|<head>.*?<\/head>|<!doctype[^>]*>/gis, "")}
                 onPress={() => {
                   setHdrMenuOpen(false);
                   setLiveSetupSheet({ open: true, bracket: null });
+                }}
+              />
+              <MenuItem
+                icon="view-carousel"
+                label="Overlay nhà tài trợ"
+                onPress={() => {
+                  setHdrMenuOpen(false);
+                  // Dãy logo nhà tài trợ nằm ngang, nền trong suốt (web /overlay/sponsors/:id) — dán vào OBS / app live.
+                  const url = `https://pickletour.vn/overlay/sponsors/${tid}`;
+                  setTimeout(() => {
+                    RNAlert.alert(
+                      "Overlay nhà tài trợ",
+                      `Dãy logo nhà tài trợ của giải, nền trong suốt — dán vào OBS / app live (Browser source 1920×1080):\n\n${url}\n\nThêm ?pos=top (đặt trên cùng), ?bg=light (nền trắng), ?h=100 (logo to).`,
+                      [
+                        {
+                          text: "Sao chép link",
+                          onPress: () => {
+                            Clipboard.setStringAsync(url).catch(() => {});
+                          },
+                        },
+                        { text: "Xem thử", onPress: () => Linking.openURL(url).catch(() => {}) },
+                        { text: "Đóng", style: "cancel" },
+                      ],
+                    );
+                  }, 350);
                 }}
               />
               <View style={{ height: 8 }} />
