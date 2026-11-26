@@ -31,6 +31,7 @@ import { useSocket } from "@/context/SocketContext";
 import { useSocketRoomSet } from "@/hooks/useSocketRoomSet";
 import ResponsiveMatchViewer from "@/components/match/ResponsiveMatchViewer";
 import TicketQrRN from "@/components/courts/TicketQrRN";
+import { MultiCourtQrSection } from "@/components/sheets/MultiCourtQrModal";
 import * as Clipboard from "expo-clipboard";
 import {
   getPairDisplayName,
@@ -3225,6 +3226,16 @@ export default function CourtManagerSheet({
                   </Text>
                 </View>
               </View>
+
+              {!isPreviewingUnsavedCluster &&
+              runtimeStations.filter((st) => st?.isActive !== false).length >= 2 ? (
+                <MultiCourtQrSection
+                  tournamentId={String(tournamentId)}
+                  clusterId={String(selectedClusterId)}
+                  clusterName={selectedCluster?.name}
+                  stations={runtimeStations}
+                />
+              ) : null}
 
               {isPreviewingUnsavedCluster ? (
                 <View

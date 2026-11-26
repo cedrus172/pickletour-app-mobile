@@ -7,6 +7,14 @@ export const courtClustersAdminApiSlice = apiSlice.injectEndpoints({
         `/api/admin/tournaments/${tournamentId}/court-stations/${stationId}/referee-qr`,
       keepUnusedDataFor: 0,
     }),
+    // QR trọng tài NHIỀU SÂN (≥ 2 sân trong cụm): quản lý giải tạo, hiệu lực 24 giờ; app quét PKTREFC.
+    createCourtStationRefereeQr: builder.mutation({
+      query: ({ tournamentId, clusterId, stationIds }) => ({
+        url: `/api/admin/tournaments/${tournamentId}/court-clusters/${clusterId}/referee-qr`,
+        method: "POST",
+        body: { stationIds },
+      }),
+    }),
     getTournamentCourtClusterOptions: builder.query({
       query: (tournamentId) =>
         `/api/admin/tournaments/${tournamentId}/allowed-court-clusters/options`,
@@ -147,6 +155,7 @@ export const courtClustersAdminApiSlice = apiSlice.injectEndpoints({
 
 export const {
   useLazyGetCourtStationRefereeQrQuery,
+  useCreateCourtStationRefereeQrMutation,
   useGetTournamentCourtClusterOptionsQuery,
   useUpdateTournamentAllowedCourtClustersMutation,
   useGetTournamentCourtClusterRuntimeQuery,
