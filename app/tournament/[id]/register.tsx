@@ -422,8 +422,9 @@ const getScoreCap = (tour: any, isSingles: boolean) =>
 const getMaxDelta = (tour: any) =>
   Number(tour?.scoreGap ?? tour?.maxDelta ?? 0);
 const decideTotalState = (total: number, cap: number, delta?: number) => {
-  const t = Number(total);
-  const c = Number(cap);
+  // So bằng điểm ĐÃ LÀM TRÒN 2 chữ số (đúng số đang hiển thị): tổng 4.954 hiện 4.95, trần+dung sai 4.95 → VÀNG, không ĐỎ.
+  const t = roundScore2(Number(total));
+  const c = roundScore2(Number(cap));
   const d = Number(delta);
   if (!Number.isFinite(t) || !(Number.isFinite(c) && c > 0))
     return { state: "default", note: "" };
@@ -431,7 +432,7 @@ const decideTotalState = (total: number, cap: number, delta?: number) => {
   // Chỉ ĐỎ khi vượt QUÁ dung sai (trần + dung sai = c + tol). Ví dụ trần 4.4,
   // dung sai 0.1 thì phải > 4.5 mới đỏ. Trong khoảng dung sai (đã quá trần
   // nhưng còn trong mức cho phép) => cảnh báo vàng, không đỏ.
-  if (t > c + tol + 1e-6) return { state: "error", note: "" };
+  if (t > roundScore2(c + tol) + 1e-6) return { state: "error", note: "" };
   if (t > c + 1e-6) return { state: "warning", note: "" };
   if (Math.abs(t - c) <= 1e-6) return { state: "warning", note: "" };
   return { state: "success", note: "" };
@@ -2049,15 +2050,17 @@ export default function TournamentRegistrationScreen() {
     });
   const matchRegFilter = useCallback(
     (r: any, key: string) => {
-      const EPS = 0.001;
+      const EPS = 1e-6;
       const players = [r?.player1, r?.player2].filter(Boolean);
       if (key === "over") {
-        // "Vượt điểm trình" = vượt TRẦN (nominal cap), khớp chip tổng màu đỏ.
+        // "Vượt điểm trình" = vượt MAX (trần + dung sai), khớp tổng màu ĐỎ (giống web) — so bằng điểm đã làm tròn 2 chữ số.
+        const tol = Number.isFinite(Number(delta)) && Number(delta) > 0 ? Number(delta) : 0;
         const total = totalScoreOf(r, isSingles);
-        const overTotal = cap > 0 && total != null && total > cap + EPS;
+        const overTotal =
+          cap > 0 && total != null && roundScore2(total) > roundScore2(cap + tol) + EPS;
         const overSingle =
           eachCap > 0 &&
-          players.some((p: any) => Number(p.score) > eachCap + EPS);
+          players.some((p: any) => roundScore2(Number(p.score)) > roundScore2(eachCap + tol) + EPS);
         return overTotal || overSingle;
       }
       if (key === "unpaid")
