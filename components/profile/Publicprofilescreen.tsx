@@ -1,3 +1,4 @@
+import { fmtScore2, roundScore2 } from "@/utils/skillScore";
 import { t } from "@/utils/i18n";
 /* eslint-disable react/prop-types, react/display-name */
 import React, { useMemo, useState, useRef, useCallback } from "react";
@@ -93,8 +94,8 @@ const fmtShortDate = (iso) => {
   return `${d.getDate()}/${d.getMonth() + 1}`;
 };
 
-const num = (v, digits = 3) =>
-  Number.isFinite(+v) ? Number(v).toFixed(digits) : "—";
+const num = (v, _digits?: number) =>
+  Number.isFinite(+v) ? fmtScore2(v) : "—";
 const numFloat = (v, digits = 3) =>
   Number.isFinite(+v) ? Number(v).toFixed(digits) : "—";
 

@@ -1,3 +1,4 @@
+import { fmtScore2, roundScore2 } from "@/utils/skillScore";
 import { useFloatingTabBarPadding } from "@/hooks/useFloatingTabBarPadding";
 // app/components/RankingChart.jsx
 import React, {
@@ -287,7 +288,7 @@ const SelectedUserCard = memo(
               TRÌNH ĐÔI
             </Text>
             <Text style={[styles.statValue, { color: COLORS.double }]}>
-              {scoreDouble === null ? "***" : (scoreDouble?.toFixed(3) || "---")}
+              {scoreDouble === null ? "***" : (scoreDouble != null ? fmtScore2(scoreDouble) : "---")}
             </Text>
           </View>
           <View
@@ -298,7 +299,7 @@ const SelectedUserCard = memo(
               TRÌNH ĐƠN
             </Text>
             <Text style={[styles.statValue, { color: COLORS.single }]}>
-              {scoreSingle === null ? "***" : (scoreSingle?.toFixed(3) || "---")}
+              {scoreSingle === null ? "***" : (scoreSingle != null ? fmtScore2(scoreSingle) : "---")}
             </Text>
           </View>
         </AppleLiquidGlassView>
@@ -887,7 +888,7 @@ const RankingChart = memo(
           <View style={styles.header}>
             <View>
               <Text style={[styles.headerValue, { color: colors.text }]}>
-                {highestUserScore === null ? "***" : highestUserScore.toFixed(3)}
+                {highestUserScore === null ? "***" : fmtScore2(highestUserScore)}
               </Text>
               <Text style={[styles.headerLabel, { color: colors.subText }]}>
                 Điểm cao nhất

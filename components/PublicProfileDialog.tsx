@@ -1,3 +1,4 @@
+import { fmtScore2, roundScore2 } from "@/utils/skillScore";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -62,7 +63,7 @@ const safe = (v: any, fb = TEXT_PLACE) => {
 };
 const num = (v: any, digits = 3) => {
   if (v === null) return "***";
-  return Number.isFinite(v) ? Number(v).toFixed(digits) : TEXT_PLACE;
+  return Number.isFinite(v) ? fmtScore2(v) : TEXT_PLACE;
 };
 const fmtDate = (iso?: string) => {
   if (!iso) return TEXT_PLACE;

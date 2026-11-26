@@ -1,3 +1,4 @@
+import { fmtScore2, roundScore2 } from "@/utils/skillScore";
 import { t } from "@/utils/i18n";
 // app/coaches/index.tsx — Danh sách Huấn luyện viên (mobile).
 import {
@@ -59,7 +60,7 @@ function ScoreChip({
     >
       <Text style={[styles.scoreChipLabel, { color }]}>{label}</Text>
       <Text style={[styles.scoreChipVal, { color }]}>
-        {Number(value || 0).toFixed(3)}
+        {fmtScore2(value || 0)}
       </Text>
     </View>
   );

@@ -1,3 +1,4 @@
+import { fmtScore2, roundScore2 } from "@/utils/skillScore";
 import { useFloatingTabBarPadding } from "@/hooks/useFloatingTabBarPadding";
 // app/screens/RankingListScreen.jsx
 import {
@@ -153,7 +154,7 @@ const PODIUM_MARQUEE_META = {
 
 const fmt3 = (x) => {
   if (x === null) return "***";
-  return Number.isFinite(x) ? Number(x).toFixed(3) : "0.000";
+  return Number.isFinite(x) ? fmtScore2(x) : "0.00";
 };
 
 const CustomImageComponent = (props) => (

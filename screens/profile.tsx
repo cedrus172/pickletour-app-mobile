@@ -1,6 +1,7 @@
 // NOTE: bên trong ProfileScreen, biến `t` bị shadow bởi `const t = useTokens()`
 // (tokens theme), nên i18n phải dùng alias `tr` để không gọi nhầm object tokens
 // như một hàm (đây là nguyên nhân crash khi bấm Đăng xuất trên iOS).
+import { fmtScore2, roundScore2 } from "@/utils/skillScore";
 import { t as tr } from "@/utils/i18n";
 // app/(tabs)/profile/index.jsx
 // ✨ NEW LAYOUT v4 - ULTRA PERFORMANCE:
@@ -295,7 +296,7 @@ const mapGender = (g) =>
 const fmtScore = (v) => {
   const n = Number(v);
   if (!Number.isFinite(n)) return "0.00";
-  return n.toFixed(2);
+  return fmtScore2(n);
 };
 
 /* ---------- Theme ---------- */

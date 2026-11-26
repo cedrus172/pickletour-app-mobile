@@ -1,3 +1,4 @@
+import { fmtScore2, roundScore2 } from "@/utils/skillScore";
 import React, { useMemo, useState } from "react";
 import {
   View,
@@ -352,7 +353,7 @@ export default function ClubMembersManagerRN({ club, canManage }) {
                           <Text
                             style={[styles.scoreText, { color: colors.roleAdminText }]}
                           >
-                            Đôi {Number(m.user.score.double).toFixed(3)}
+                            Đôi {fmtScore2(m.user.score.double)}
                           </Text>
                         </View>
                       )}
@@ -366,7 +367,7 @@ export default function ClubMembersManagerRN({ club, canManage }) {
                           <Text
                             style={[styles.scoreText, { color: isDark ? "#5DD989" : "#1B7A46" }]}
                           >
-                            Đơn {Number(m.user.score.single).toFixed(3)}
+                            Đơn {fmtScore2(m.user.score.single)}
                           </Text>
                         </View>
                       )}

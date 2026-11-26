@@ -71,7 +71,7 @@ import PlayerSelector from "@/components/PlayerSelector";
 import GuestRegistrationForm from "@/components/registration/GuestRegistrationForm";
 import { normalizeUrl } from "@/utils/normalizeUri";
 import { Image as ExpoImage } from "expo-image"; // <--- Dùng Expo Image
-import { roundTo3 } from "@/utils/roundTo3";
+import { fmtScore2, roundScore2 } from "@/utils/skillScore";
 import { getFeeAmount } from "@/utils/fee";
 import { getPlayerDisplayName } from "@/utils/matchDisplay";
 import AppleLiquidGlassView from "@/components/ui/AppleLiquidGlassView";
@@ -1207,7 +1207,7 @@ const RegItem = memo(function RegItem({
                       color: scoreChip.text,
                     }}
                   >
-                    {roundTo3(pl?.score)}
+                    {roundScore2(pl?.score)}
                   </Text>
                 </View>
                 {onLookupScore ? (
@@ -1317,7 +1317,7 @@ const RegItem = memo(function RegItem({
                           {jr.nickName || jr.fullName}
                         </Text>
                         <Text style={{ color: C.textSecondary, fontSize: 11 }} numberOfLines={1}>
-                          {t("Điểm")}: {Number(jr.score || 0).toFixed(3)}
+                          {t("Điểm")}: {fmtScore2(jr.score || 0)}
                         </Text>
                       </View>
                     </TouchableOpacity>
@@ -1358,7 +1358,7 @@ const RegItem = memo(function RegItem({
         <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}>
           <Text style={{ fontSize: 11, color: C.textSecondary }}>Tổng:</Text>
           <Text style={{ fontSize: 16, fontWeight: "800", color: totalColor }}>
-            {roundTo3(total)}
+            {roundScore2(total)}
           </Text>
           {cap > 0 && (
             <Text style={{ fontSize: 11, color: C.textSecondary }}>
@@ -3126,7 +3126,7 @@ export default function TournamentRegistrationScreen() {
                       }}
                     >
                       Điểm:{" "}
-                      {roundTo3(
+                      {roundScore2(
                         isSingles ? me?.score?.single : me?.score?.double
                       )}
                     </Text>
@@ -3979,7 +3979,7 @@ export default function TournamentRegistrationScreen() {
                                       color: scoreChip.text,
                                     }}
                                   >
-                                    {roundTo3(pl?.score)}
+                                    {roundScore2(pl?.score)}
                                   </Text>
                                 </View>
                               </View>
@@ -4012,7 +4012,7 @@ export default function TournamentRegistrationScreen() {
                               color: "#92400E",
                             }}
                           >
-                            {roundTo3(total)}
+                            {roundScore2(total)}
                           </Text>
                           {cap > 0 && (
                             <Text
@@ -4570,7 +4570,7 @@ export default function TournamentRegistrationScreen() {
                       }}
                     >
                       <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>
-                        {(Number(item?.score) || 0).toFixed(3)}
+                        {fmtScore2(Number(item?.score) || 0)}
                       </Text>
                     </View>
                   </Pressable>
