@@ -162,6 +162,9 @@ export const buildRefereeMatchRoute = (match, extraParams = {}) => {
       ...(normalized?.tournament?.nameDisplayMode
         ? { nameDisplayMode: normalized.tournament.nameDisplayMode }
         : {}),
+      ...(normalized?.tournament?.refereeTraining?.enabled === true
+        ? { refereeTraining: { enabled: true } }
+        : {}),
     },
     ...(pairA ? { pairA } : {}),
     ...(pairB ? { pairB } : {}),

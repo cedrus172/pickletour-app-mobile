@@ -67,6 +67,7 @@ import { formatMatchElapsed, matchTimestamp } from "@/utils/refereeElapsedTime";
 import { CoinFace, DrawCard, DrawColorPair, TwoTeamWheel, DRAW_BLUE, DRAW_RED, DRAW_GOLD } from "./ServeDrawVisuals.native";
 
 import AppModal from "@/components/ui/AppModal";
+import RefereeTrainingCoach from "@/components/referee/RefereeTrainingCoach";
 import { AppV2NavTheme, IS_V3, IS_V3_LIGHT } from "@/hooks/uiVersion";
 const VOICE_API_URL = `${BASE_URL}/api/voice/parse`;
 /* ---------- Theme tokens ---------- */
@@ -4530,6 +4531,8 @@ export default function RefereeJudgePanel({ matchId, initialMatch = null, onTogg
           paddingBottom: pageBottomInset,
         }}
       >
+        {/* Giải tập huấn trọng tài: thẻ hướng dẫn từng bước (giải thường → không render gì). */}
+        <RefereeTrainingCoach match={match} top={56} />
         {/* Trạng thái đồng bộ khi chấm "trên máy trước": chỉ hiện lúc còn thao tác chưa lên server */}
         {liveSync?.optimistic && (Number(liveSync?.pendingCount || 0) > 0 || liveSync?.online === false) ? (
           <View

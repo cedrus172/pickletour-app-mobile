@@ -1,4 +1,5 @@
 import TournamentSponsors from "@/components/tournament/TournamentSponsors";
+import RefereeTrainingBanner from "@/components/referee/RefereeTrainingBanner";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { t } from "@/utils/i18n";
 import { IS_V3, IS_V3_LIGHT, sk, useUiVersion } from "@/hooks/uiVersion";
@@ -1187,6 +1188,9 @@ export default function TournamentOverviewScreen() {
               </View>
             </View>
           </View>
+
+          {/* Giải tập huấn trọng tài (chỉ giải bật refereeTraining) */}
+          <RefereeTrainingBanner tournament={tournament} />
 
           {/* CONTENT GRID */}
           <View style={{ paddingHorizontal: 16, marginTop: 14 }}>
