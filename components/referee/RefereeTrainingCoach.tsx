@@ -55,6 +55,14 @@ export default function RefereeTrainingCoach({ match, top = 8 }: Props) {
     }
   }, [current]);
 
+  // Đang chấm: bước thao tác (không cần "Đã hiểu") tự thu gọn sau 8 giây để không che bảng điểm.
+  const curStep = steps[viewIdx ?? current];
+  useEffect(() => {
+    if (!enabled || !open || !snap.started || curStep?.manual) return;
+    const tm = setTimeout(() => setOpen(false), 8000);
+    return () => clearTimeout(tm);
+  }, [enabled, open, snap.started, curStep?.key, curStep?.manual]);
+
   if (!enabled) return null;
 
   const idx = viewIdx ?? current;

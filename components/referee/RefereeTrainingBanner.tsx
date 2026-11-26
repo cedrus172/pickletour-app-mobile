@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/i18nText";
 import AppModal, { useModalTopInset } from "@/components/ui/AppModal";
 import { useThemeTokens } from "@/hooks/useThemeTokens";
@@ -19,11 +20,12 @@ const fmtTime = (v?: string | null) => {
 function GuideBody({ onClose, onOpenCourts }: { onClose: () => void; onOpenCourts: () => void }) {
   const C = useThemeTokens();
   const top = useModalTopInset(12);
+  const ins = useSafeAreaInsets();
   const [i, setI] = useState(0);
   const step = TRAINING_INTRO_STEPS[i];
   const last = i === TRAINING_INTRO_STEPS.length - 1;
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: top }}>
+    <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: top, paddingLeft: ins.left, paddingRight: ins.right }}>
       <View style={S.modalHead}>
         <Text style={[S.modalTitle, { color: C.text }]}>Hướng dẫn tập huấn trọng tài</Text>
         <Pressable hitSlop={10} onPress={onClose} accessibilityLabel="Đóng">
@@ -78,7 +80,7 @@ function GuideBody({ onClose, onOpenCourts }: { onClose: () => void; onOpenCourt
   );
 }
 
-export default function RefereeTrainingBanner({ tournament }: { tournament: any }) {
+export default function RefereeTrainingBanner({ tournament, flush = false }: { tournament: any; flush?: boolean }) {
   const C = useThemeTokens();
   const router = useRouter();
   const [guide, setGuide] = useState(false);
@@ -92,7 +94,7 @@ export default function RefereeTrainingBanner({ tournament }: { tournament: any 
   const resetAt = fmtTime(rt.lastResetAt);
 
   return (
-    <View style={{ paddingHorizontal: 16, marginTop: 14 }}>
+    <View style={flush ? { marginBottom: 12 } : { paddingHorizontal: 16, marginTop: 14 }}>
       <View style={[S.card, { backgroundColor: C.card, borderColor: "#22c55e" }]}>
         <View style={S.row}>
           <View style={S.icon}>

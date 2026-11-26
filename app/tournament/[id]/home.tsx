@@ -19,6 +19,7 @@ import {
   useColorScheme,
 } from "react-native";
 import { Text } from "@/components/ui/i18nText";
+import RefereeTrainingBanner from "@/components/referee/RefereeTrainingBanner";
 import { useSelector } from "react-redux";
 import { router, useLocalSearchParams } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -724,6 +725,9 @@ export default function OverviewScreen() {
             </Pressable>
           </HStack>
         </HStack>
+
+        {/* Giải tập huấn trọng tài (chỉ giải bật refereeTraining) */}
+        <RefereeTrainingBanner tournament={tour} flush />
 
         {/* KPI cards */}
         <HStack style={{ gap: 10, flexWrap: "wrap" }}>
